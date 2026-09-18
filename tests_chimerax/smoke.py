@@ -27,9 +27,9 @@ check("docs index", len(idx.chunks) > 500, "%d passages in %.1fs" % (len(idx.chu
 hits = ex.search_docs("color chain A blue", 3)
 check("search", hits and hits[0]["command"] == "color", [h["command"] for h in hits])
 
-r = ex.run_commands(["open 1abc", "color red", "cartoon"])
+r = ex.run_commands(["open 4hhb", "color red", "cartoon"])
 check("run ok", all(x["ok"] for x in r) and len(r) == 3, [x["error"] for x in r])
-check("log captured", any("1abc" in i for i in r[0]["info"]), r[0]["info"][:2])
+check("log captured", any("4hhb" in i for i in r[0]["info"]), r[0]["info"][:2])
 
 st = ex.get_state()
 check("state models", st["models"] and st["models"][0]["id"] == "#1", st["models"][:1])
@@ -38,7 +38,7 @@ check("state chains", st["models"][0].get("chains"), st["models"][0].get("chains
 r = ex.run_commands(["select #1:10-20", "colr red", "color blue"])
 check("error captured", len(r) == 2 and not r[1]["ok"] and r[1]["error"], r[1]["error"])
 st = ex.get_state()
-check("selection", st["selection"].get("num_residues") == 11, st["selection"])
+check("selection", st["selection"].get("num_residues") == 44, st["selection"])
 check("last error in state", "colr" in st.get("last_error", ""), st.get("last_error"))
 
 u = ex.command_usage("color")

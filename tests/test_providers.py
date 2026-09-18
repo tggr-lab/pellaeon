@@ -47,7 +47,7 @@ def test_ollama_stream_and_messages(monkeypatch):
     assert msg.tool_calls()[0].args == {"commands": ["color #1 red"]}
     assert usage.input_tokens == 50 and usage.output_tokens == 7
     body = calls["body"]
-    assert body["model"] == "qwen3:8b" and body["options"]["num_ctx"] >= 8192
+    assert body["model"] == "qwen3:8b" and body["options"]["num_ctx"] >= 16384
     roles = [m["role"] for m in body["messages"]]
     assert roles == ["system", "user", "assistant", "tool", "user"]
     assert body["messages"][1]["content"] == "open 1abc"            # old user message: no context

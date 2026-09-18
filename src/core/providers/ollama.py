@@ -50,7 +50,7 @@ class OllamaProvider(Provider):
             "stream": True,
             "options": {
                 "temperature": float(self.options.get("temperature", 0.2)),
-                "num_ctx": int(self.options.get("num_ctx", 16384)),
+                "num_ctx": int(self.options.get("num_ctx", 32768)),
             },
             "keep_alive": self.options.get("keep_alive", "10m"),
         }

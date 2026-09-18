@@ -110,7 +110,7 @@ def registry_usage_entries(session, max_entries: int = 400) -> Dict[str, str]:
         return out
     for name in names[:max_entries]:
         try:
-            out[name] = cli.usage(name, show_hidden=False)
+            out[name] = cli.usage(session, name, show_hidden=False)
         except Exception:
             continue
     return out
@@ -165,9 +165,11 @@ class ChimeraXExecutor:
                 except Exception as e:  # noqa: BLE001
                     entry["error"] = "%s: %s" % (e.__class__.__name__, e)
                     entry["traceback"] = traceback.format_exc()[-1500:]
-            entry["info"] = [m.strip() for m in cap.by_level.get("info", []) if m.strip()][:20]
+            # ChimeraX calls the info level "note"; drop the command echo line
+            infos = cap.by_level.get("note", []) + cap.by_level.get("info", [])
+            entry["info"] = [m.strip() for m in infos if m.strip() and not m.startswith("Executing:")][:20]
             entry["warnings"] = [m.strip() for m in cap.by_level.get("warning", []) if m.strip()][:10]
-            errs = [m.strip() for m in cap.by_level.get("error", []) if m.strip()]
+            errs = [m.strip() for m in cap.by_level.get("error", []) + cap.by_level.get("bug", []) if m.strip()]
             if errs and not entry["error"]:
                 entry["error"] = errs[0]
                 entry["ok"] = False
@@ -187,12 +189,12 @@ class ChimeraXExecutor:
         def f():
             from chimerax.core.commands import cli
             try:
-                return cli.usage(name.strip(), show_hidden=False)
+                return cli.usage(self.session, name.strip(), show_hidden=False)
             except Exception as e:  # noqa: BLE001
                 # try the first word only (e.g. "cartoon style" -> "cartoon")
                 first = name.strip().split()[0] if name.strip() else ""
                 try:
-                    return cli.usage(first, show_hidden=False)
+                    return cli.usage(self.session, first, show_hidden=False)
                 except Exception:
                     return "No such command: %s (%s)" % (name, e)
         return _run_on_main_thread(self.session, f)

@@ -12,6 +12,8 @@ It works with **local models** (Ollama — free, private, runs on your own machi
 
 Named after Gilad Pellaeon, captain of the *Chimaera*.
 
+![Pellaeon panel inside ChimeraX](docs/panel.png)
+
 ## Install (3 steps)
 
 1. Install ChimeraX 1.9 or newer.
@@ -48,7 +50,7 @@ Keys are stored privately on your computer (system keyring or a private file), n
 - The `pellaeon` command works from ChimeraX's own command line and in scripts: `pellaeon color everything by chain`.
 - Advanced: allow Python code (always asks first), let vision models look at a screenshot of the view, Claude effort level, temperature.
 
-Try it with a fresh session: `open 1abc`, then "color by chain", "show the ligand as spheres and hide water", "make it spin", "stop", "label residues 10 and 20", "close everything" (asks first).
+Try it with a fresh session: `open 4hhb`, then "color by chain", "show the ligand as spheres and hide water", "make it spin", "stop", "label residues 10 and 20", "close everything" (asks first).
 
 ## How it works
 
