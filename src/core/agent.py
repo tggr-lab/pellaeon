@@ -216,6 +216,14 @@ class Agent:
             reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
                                             on_delta=self.cb.on_text_delta, cancel=cancel)
             usage.add(u)
+            if not reply.text().strip() and not reply.tool_calls():
+                # empty answer (small local models do this occasionally): ask once more
+                self._status("Empty answer, retrying…")
+                reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
+                                                on_delta=self.cb.on_text_delta, cancel=cancel)
+                usage.add(u)
+                if not reply.text().strip() and not reply.tool_calls():
+                    reply = Message.assistant("The model returned an empty answer twice. Please try again or rephrase.")
             self.conversation.append(reply)
             calls = reply.tool_calls()
             if not calls:

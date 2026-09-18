@@ -59,6 +59,7 @@ class OllamaProvider(Provider):
         if "think" in self.options:
             body["think"] = bool(self.options["think"])
         text_parts: List[str] = []
+        thinking_parts: List[str] = []
         calls: List[ToolCall] = []
         usage = Usage()
         try:
@@ -67,6 +68,8 @@ class OllamaProvider(Provider):
                 if "error" in chunk:
                     raise ProviderError("Ollama: %s" % chunk["error"])
                 msg = chunk.get("message") or {}
+                if msg.get("thinking"):
+                    thinking_parts.append(msg["thinking"])
                 piece = msg.get("content") or ""
                 if piece:
                     text_parts.append(piece)
@@ -89,6 +92,8 @@ class OllamaProvider(Provider):
             raise ProviderError("Ollama is not running at %s (%s). Start Ollama and try again." % (self.base_url, e))
         parts: List[Any] = []
         text = "".join(text_parts)
+        if not text.strip() and not calls and thinking_parts:
+            text = "".join(thinking_parts).strip()[-1500:]  # better than nothing
         if text:
             parts.append(TextPart(text))
         parts.extend(calls)

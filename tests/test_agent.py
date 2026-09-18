@@ -318,3 +318,10 @@ def test_resolve_protein_with_pdb_id_gives_hint():
     agent.run_turn("open 4ake")
     tr = agent.conversation[2].tool_results_list()[0]
     assert "open 4ake" in tr.content and not tr.is_error
+
+
+def test_empty_reply_is_retried_once():
+    prov = ScriptedProvider([{"text": "", "calls": []}, "second try worked"])
+    agent = Agent(prov, FakeExecutor(), config=AgentConfig(nudge_on_no_action=False))
+    res = agent.run_turn("what is open?")
+    assert res.reply == "second try worked" and len(prov.requests) == 2
