@@ -66,4 +66,4 @@ chimerax --nogui --exit --cmd "devel install \"$(pwd)\""   # install into your C
 chimerax --nogui --exit --script tests_chimerax/smoke.py    # in-ChimeraX checks
 ```
 
-See `RELEASING.md` for building the wheel. Licensed under MIT.
+See `RELEASING.md` for building the wheel and [docs/tutorial.md](docs/tutorial.md) for the illustrated install-and-use guide. Licensed under MIT.

@@ -8,11 +8,21 @@ _DISEASE_RE = re.compile(r"\bin ([A-Z][A-Z0-9]{2,}[^;.]*)")
 
 
 def _find_structure(session, spec: str):
+    """Accept '#1', '1', '#1.1', a model name, or (if only one structure is open) anything."""
     from chimerax.atomic import AtomicStructure
-    ident = spec.strip().lstrip("#")
-    for m in session.models.list():
-        if isinstance(m, AtomicStructure) and m.id_string == ident:
-            return m
+    structs = [m for m in session.models.list() if isinstance(m, AtomicStructure)]
+    ident = (spec or "").strip()
+    m = re.search(r"#?(\d+(?:\.\d+)*)", ident)
+    if m:
+        for st in structs:
+            if st.id_string == m.group(1):
+                return st
+    low = ident.lower().lstrip("#")
+    for st in structs:
+        if low and (low == st.name.lower() or low in st.name.lower()):
+            return st
+    if len(structs) == 1:
+        return structs[0]
     return None
 
 
@@ -116,6 +126,21 @@ def annotate(session, run_commands, uniprot, model: str, accession: str, kind: s
     kinds = kinds_map.get(kind_l, [kind])
     if kind_l == "disease":
         only_disease = True
+    # accept a gene/protein name, or take the accession from an AlphaFold model name
+    acc = (accession or "").strip()
+    if not re.match(r"^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$", acc.upper()):
+        mname = re.search(r"\b([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})\b", m.name.upper())
+        if mname:
+            acc = mname.group(1)
+        elif acc:
+            r = uniprot.resolve(acc, "human")
+            if r.get("accession"):
+                acc = r["accession"]
+            else:
+                return {"error": "Could not find a UniProt accession for '%s'." % accession}
+        else:
+            return {"error": "No UniProt accession given and none found in the model name."}
+    accession = acc
     feats = uniprot.features(accession, kinds)
     if "error" in feats:
         return feats

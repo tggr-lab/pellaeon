@@ -162,3 +162,10 @@ a { color: var(--accent); }
 .selbar { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
 .selbar b { color: var(--ink); }
 .secondary.small { padding: 2px 8px; font-size: 11px; }
+
+/* narrow docks: never let content force the panel wider than the dock */
+.page, .transcript, .msg, .settings { min-width: 0; }
+.msg.user, .msg.assistant .text, .cmd code, .card { overflow-wrap: anywhere; }
+.brand { flex: 1; min-width: 0; }
+.subtitle { max-width: 100%; }
+.topbar-actions select { max-width: 120px; }
