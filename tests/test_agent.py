@@ -161,7 +161,7 @@ def test_python_requires_confirmation_and_is_optional():
     tr = agent.conversation[2].tool_results_list()[0]
     assert not tr.is_error and "42" in tr.content
     # without allow_python the tool is not offered
-    agent2 = Agent(ScriptedProvider(["x"]), ex)
+    agent2 = Agent(ScriptedProvider(["x"]), ex, config=AgentConfig(nudge_on_no_action=False))
     agent2.run_turn("hi")
     assert "run_python" not in [t.name for t in agent2.provider.requests[0][2]]
 
@@ -182,15 +182,43 @@ def test_provider_error_is_reported():
 
 def test_compaction_keeps_recent_and_summarises():
     prov = ScriptedProvider(["r%d" % i for i in range(30)] + ["SUMMARY"])
-    agent = Agent(prov, FakeExecutor())
-    import core.agent as agent_mod
-    old = agent_mod.COMPACT_AFTER_MESSAGES
-    agent_mod.COMPACT_AFTER_MESSAGES = 10
-    try:
-        for i in range(6):
-            agent.run_turn("turn %d" % i)
-    finally:
-        agent_mod.COMPACT_AFTER_MESSAGES = old
+    agent = Agent(prov, FakeExecutor(), config=AgentConfig(compact_after_messages=10, nudge_on_no_action=False))
+    for i in range(6):
+        agent.run_turn("turn %d" % i)
     assert agent.summary
     assert len(agent.conversation) <= 10
     assert "Earlier in this conversation" in agent.system_prompt
+
+
+def test_nudge_when_model_only_talks():
+    # first reply claims success without any tool call; after the nudge it actually runs the command
+    prov = ScriptedProvider(["The atoms are now hidden.",
+                             {"calls": [("run_commands", {"commands": ["hide #1 atoms"]})]},
+                             "Atoms hidden."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    res = agent.run_turn("hide the atoms")
+    assert ex.ran == ["hide #1 atoms"]
+    assert res.reply == "Atoms hidden."
+    nudges = [m for m in agent.conversation if m.role == "user" and m.text().startswith("(system) You did not call")]
+    assert len(nudges) == 1
+
+
+def test_no_nudge_for_questions_and_small_talk():
+    for text in ["what is open?", "is chain A visible", "thanks", "How do I color by chain?"]:
+        prov = ScriptedProvider(["Sure."])
+        agent = Agent(prov, FakeExecutor())
+        agent.run_turn(text)
+        assert len(prov.requests) == 1, text
+
+
+def test_compaction_archives_old_messages():
+    prov = ScriptedProvider(["r%d" % i for i in range(30)] + ["SUMMARY"])
+    agent = Agent(prov, FakeExecutor(), config=AgentConfig(compact_after_messages=10, nudge_on_no_action=False))
+    for i in range(6):
+        agent.run_turn("turn %d" % i)
+    assert agent.summary
+    assert len(agent.conversation) <= 10
+    assert agent.archived and agent.archived[0].text() == "turn 0"
+    assert all("context" not in m.meta for m in agent.archived)
+    assert len(agent.archived) + len(agent.conversation) == 12

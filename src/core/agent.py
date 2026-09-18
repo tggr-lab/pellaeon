@@ -7,6 +7,7 @@ never imports ChimeraX.
 from __future__ import annotations
 
 import json
+import re
 import threading
 import traceback
 from dataclasses import dataclass, field
@@ -20,7 +21,7 @@ from .providers.base import Provider, ProviderError
 
 MAX_TOOL_ROUNDS = 12
 MAX_CONSECUTIVE_ERRORS = 3
-COMPACT_AFTER_MESSAGES = 40
+COMPACT_AFTER_MESSAGES = 80
 COMPACT_AFTER_TOKENS = 60000
 
 
@@ -35,6 +36,31 @@ class AgentConfig:
     vision: bool = False
     docs_per_turn: int = 6
     max_tool_rounds: int = MAX_TOOL_ROUNDS
+    compact_after_messages: int = COMPACT_AFTER_MESSAGES
+    compact_after_tokens: int = COMPACT_AFTER_TOKENS
+    nudge_on_no_action: bool = True   # re-prompt when an action request got words but no tool call
+
+
+NUDGE = ("(system) You did not call any tool. If the user asked you to change something in ChimeraX, do it now "
+         "with run_commands (and only then describe the result). If it was just a question or a remark, answer it briefly.")
+
+_QUESTION_STARTS = ("what", "why", "how", "which", "where", "when", "who", "is", "are", "do", "does", "did", "can",
+                    "could", "should", "would", "explain", "tell", "describe", "list", "summarize", "summarise")
+_SMALL_TALK = {"thanks", "thank", "thx", "ok", "okay", "cool", "nice", "great", "hi", "hello", "hey", "bye", "good", "perfect"}
+
+
+def looks_like_action_request(text: str) -> bool:
+    t = (text or "").strip().lower()
+    if not t or t.startswith("(system)"):
+        return False
+    words = re.findall(r"[a-z']+", t)
+    if not words:
+        return False
+    if len(words) <= 2 and all(w in _SMALL_TALK for w in words):
+        return False
+    if t.endswith("?") or words[0] in _QUESTION_STARTS:
+        return False
+    return True
 
 
 @dataclass
@@ -69,6 +95,7 @@ class Agent:
         self.config = config or AgentConfig()
         self.cb = callbacks or Callbacks()
         self.conversation: List[Message] = []
+        self.archived: List[Message] = []   # messages folded into `summary` (kept for the transcript on disk)
         self.summary: str = ""
         self.total_usage = Usage()
         self._system = system_prompt or prompt_mod.build_system_prompt(
@@ -85,6 +112,7 @@ class Agent:
 
     def reset(self) -> None:
         self.conversation = []
+        self.archived = []
         self.summary = ""
 
     def run_turn(self, user_text: str, cancel: Optional[threading.Event] = None) -> TurnResult:
@@ -97,56 +125,18 @@ class Agent:
             self.conversation.append(Message.user(user_text, context))
             tools = tool_specs(self.config.allow_python,
                                self.config.vision and getattr(self.provider, "supports_vision", False))
-            consecutive_errors = 0
-            for _round in range(self.config.max_tool_rounds + 1):
-                if cancel.is_set():
-                    raise TurnCancelled()
-                reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
-                                                on_delta=self.cb.on_text_delta, cancel=cancel)
-                usage.add(u)
-                self.conversation.append(reply)
-                calls = reply.tool_calls()
-                if not calls:
-                    break
-                results: List[ToolResult] = []
-                asked = False
-                any_error = False
-                for call in calls:
-                    if cancel.is_set():
-                        raise TurnCancelled()
-                    if call.name == "ask_user":
-                        q = str(call.args.get("question", "")).strip()
-                        opts = [str(o) for o in (call.args.get("options") or [])]
-                        if self.cb.on_ask_user:
-                            self.cb.on_ask_user(q, opts)
-                        results.append(ToolResult(call.id, call.name, "Question shown to the user; wait for their answer."))
-                        asked = True
-                        continue
-                    res, payload = self._dispatch(call)
-                    any_error = any_error or res.is_error
-                    results.append(res)
-                self.conversation.append(Message.tool_results(results))
-                if asked:
+            outcome = self._loop(tools, cancel, usage)
+            if outcome.get("asked"):
+                self.total_usage.add(usage)
+                return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
+            if (self.config.nudge_on_no_action and not outcome.get("called_tool")
+                    and looks_like_action_request(user_text)):
+                # words but no action: make the model act (or say it cannot)
+                self.conversation.append(Message.user(NUDGE))
+                outcome = self._loop(tools, cancel, usage)
+                if outcome.get("asked"):
                     self.total_usage.add(usage)
-                    return TurnResult(reply.text(), len(self.conversation) - start_len, usage, asked_user=True)
-                if any_error:
-                    consecutive_errors += 1
-                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
-                        self.conversation.append(Message.user(
-                            "(system) Several attempts failed. Stop trying; explain briefly what failed and ask the user how to proceed."))
-                        reply, u = self.provider.stream(self.system_prompt, self.conversation, [],
-                                                        on_delta=self.cb.on_text_delta, cancel=cancel)
-                        usage.add(u)
-                        self.conversation.append(reply)
-                        if not reply.text().strip():
-                            last = self.executor.get_state().get("last_error", "") if hasattr(self.executor, "get_state") else ""
-                            self.conversation.append(Message.assistant(
-                                "I could not complete this request after several attempts. Last error: %s" % (last or "unknown")))
-                        break
-                else:
-                    consecutive_errors = 0
-            else:
-                self.conversation.append(Message.assistant("I stopped after too many steps. Tell me how you'd like to continue."))
+                    return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
             self.total_usage.add(usage)
             self._maybe_compact()
             final = self._last_assistant_text()
@@ -163,6 +153,60 @@ class Agent:
             return TurnResult("Unexpected error: %s" % e, len(self.conversation) - start_len, usage, error=tb)
         finally:
             self._status("")
+
+    def _loop(self, tools, cancel: threading.Event, usage: Usage) -> Dict[str, bool]:
+        """Model -> tools -> model ... until a reply without tool calls. Returns flags."""
+        consecutive_errors = 0
+        called_tool = False
+        for _round in range(self.config.max_tool_rounds + 1):
+            if cancel.is_set():
+                raise TurnCancelled()
+            reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
+                                            on_delta=self.cb.on_text_delta, cancel=cancel)
+            usage.add(u)
+            self.conversation.append(reply)
+            calls = reply.tool_calls()
+            if not calls:
+                return {"called_tool": called_tool, "asked": False}
+            results: List[ToolResult] = []
+            asked = False
+            any_error = False
+            for call in calls:
+                if cancel.is_set():
+                    raise TurnCancelled()
+                if call.name == "ask_user":
+                    q = str(call.args.get("question", "")).strip()
+                    opts = [str(o) for o in (call.args.get("options") or [])]
+                    if self.cb.on_ask_user:
+                        self.cb.on_ask_user(q, opts)
+                    results.append(ToolResult(call.id, call.name, "Question shown to the user; wait for their answer."))
+                    asked = True
+                    continue
+                called_tool = True
+                res, payload = self._dispatch(call)
+                any_error = any_error or res.is_error
+                results.append(res)
+            self.conversation.append(Message.tool_results(results))
+            if asked:
+                return {"called_tool": called_tool, "asked": True}
+            if any_error:
+                consecutive_errors += 1
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    self.conversation.append(Message.user(
+                        "(system) Several attempts failed. Stop trying; explain briefly what failed and ask the user how to proceed."))
+                    reply, u = self.provider.stream(self.system_prompt, self.conversation, [],
+                                                    on_delta=self.cb.on_text_delta, cancel=cancel)
+                    usage.add(u)
+                    self.conversation.append(reply)
+                    if not reply.text().strip():
+                        last = self.executor.get_state().get("last_error", "") if hasattr(self.executor, "get_state") else ""
+                        self.conversation.append(Message.assistant(
+                            "I could not complete this request after several attempts. Last error: %s" % (last or "unknown")))
+                    return {"called_tool": True, "asked": False}
+            else:
+                consecutive_errors = 0
+        self.conversation.append(Message.assistant("I stopped after too many steps. Tell me how you'd like to continue."))
+        return {"called_tool": called_tool, "asked": False}
 
     def answer_question(self, answer: str, cancel: Optional[threading.Event] = None) -> TurnResult:
         """Continue after an ask_user: the answer is just the next user turn."""
@@ -286,7 +330,7 @@ class Agent:
 
     # ------------------------------------------------------------ memory
     def _estimated_tokens(self) -> int:
-        n = estimate_tokens(self.system_prompt)
+        n = 0
         for m in self.conversation:
             for p in m.parts:
                 if isinstance(p, TextPart):
@@ -299,7 +343,8 @@ class Agent:
         return n
 
     def _maybe_compact(self) -> None:
-        if len(self.conversation) < COMPACT_AFTER_MESSAGES and self._estimated_tokens() < COMPACT_AFTER_TOKENS:
+        if (len(self.conversation) < self.config.compact_after_messages
+                and self._estimated_tokens() < self.config.compact_after_tokens):
             return
         # keep the last 8 messages verbatim; summarise the rest
         keep = 8
@@ -327,6 +372,9 @@ class Agent:
         except Exception:
             new_summary = "\n".join(transcript)[-3000:]
         self.summary = (self.summary + "\n" + new_summary).strip() if self.summary else new_summary
+        for m in old:
+            m.meta.pop("context", None)
+        self.archived.extend(old)
         # strip context blocks from retained old messages to save tokens
         for m in recent:
             if m.role == "user" and m is not recent[-1]:

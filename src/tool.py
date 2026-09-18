@@ -398,6 +398,9 @@ class PellaeonTool(HtmlToolInstance):
         directory = self.executor.knowledge.command_directory()
         cfg = AgentConfig(autonomy=s.autonomy, allow_python=bool(s.allow_python), vision=bool(s.vision),
                           docs_per_turn=int(s.docs_per_turn))
+        if preset["provider"] == "ollama":
+            # keep the conversation well inside the local context window (32k by default)
+            cfg.compact_after_tokens = max(8000, int(options.get("num_ctx", 32768) * 0.55))
         cb = Callbacks(on_text_delta=self._on_delta, on_tool_start=self._on_tool_start,
                        on_tool_result=self._on_tool_result, on_confirm=self._on_confirm,
                        on_ask_user=self._on_ask_user, on_status=self._on_status)
@@ -524,8 +527,11 @@ class PellaeonTool(HtmlToolInstance):
         if not self._conv_id:
             self._conv_id = time.strftime("%Y%m%d-%H%M%S")
         first_user = next((m.text() for m in self.agent.conversation if m.role == "user"), "Conversation")
+        first_user = next((m.text() for m in (self.agent.archived + self.agent.conversation)
+                           if m.role == "user" and not m.text().startswith("(system)")), first_user)
         doc = {"id": self._conv_id, "title": first_user[:80], "updated": time.time(),
                "summary": self.agent.summary,
+               "archived": json.loads(conversation_to_json(self.agent.archived)),
                "messages": json.loads(conversation_to_json(self.agent.conversation))}
         try:
             with open(os.path.join(self._conv_dir(), self._conv_id + ".json"), "w", encoding="utf-8") as f:
@@ -567,10 +573,11 @@ class PellaeonTool(HtmlToolInstance):
                 return
         self._save_conversation()
         self.agent.conversation = conversation_from_json(json.dumps(doc.get("messages", [])))
+        self.agent.archived = conversation_from_json(json.dumps(doc.get("archived", [])))
         self.agent.summary = doc.get("summary", "")
         self._conv_id = cid
         rendered = []
-        for m in self.agent.conversation:
+        for m in self.agent.archived + self.agent.conversation:
             if m.role == "user" and not m.text().startswith("(system)"):
                 rendered.append({"role": "user", "text": m.text()})
             elif m.role == "assistant":
