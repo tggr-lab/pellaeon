@@ -243,7 +243,7 @@ def test_complaint_adds_note_with_previous_commands():
     prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["color #1 byelement"]})]}, "done",
                              {"calls": [("run_commands", {"commands": ["color #1:asp,glu red"]})]}, "ok now"])
     agent = Agent(prov, FakeExecutor())
-    agent.run_turn("color by aa type")
+    agent.run_turn("color it by element")
     agent.run_turn("you did not")
     ctx = next(m.meta.get("context", "") for m in agent.conversation if m.role == "user" and m.text() == "you did not")
     assert "<note>" in ctx and "color #1 byelement" in ctx and "Do not repeat" in ctx
