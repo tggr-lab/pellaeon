@@ -1,0 +1,222 @@
+[
+ {
+  "request": "open the af model for the gene f2rl1",
+  "commands": [
+   "open alphafold:P55085"
+  ],
+  "note": "P55085 came from resolve_protein('F2RL1'); never guess accessions."
+ },
+ {
+  "request": "open the alphafold model for the gene f2rl1, after that color it in white but color amino acid 159 in blue",
+  "commands": [
+   "open alphafold:P55085",
+   "color #1 white",
+   "show #1:159 atoms",
+   "style #1:159 stick",
+   "color #1:159 blue",
+   "view #1:159"
+  ]
+ },
+ {
+  "request": "i want to see the human protein coded by the gene f2rl2",
+  "commands": [
+   "open alphafold:P55085"
+  ],
+  "note": "resolve_protein first; open the AlphaFold model by accession."
+ },
+ {
+  "request": "open 1zik",
+  "commands": [
+   "open 1zik"
+  ]
+ },
+ {
+  "request": "select amino acids 227 156 159 and 326 and show their atoms",
+  "commands": [
+   "select #1:227,156,159,326",
+   "show sel atoms",
+   "style sel stick"
+  ]
+ },
+ {
+  "request": "color each one of these in a diffrent color",
+  "commands": [
+   "color #1:227 red",
+   "color #1:156 green",
+   "color #1:159 blue",
+   "color #1:326 orange"
+  ],
+  "note": "'these' = the residues just selected; get_state shows the selection."
+ },
+ {
+  "request": "select amono acids 100 and 150 and mesure the distance between them",
+  "commands": [
+   "select #1:100,150",
+   "distance #1:100@CA #1:150@CA"
+  ]
+ },
+ {
+  "request": "delete chains A B E and G",
+  "commands": [
+   "delete #1/A,B,E,G"
+  ],
+  "note": "delete needs confirmation."
+ },
+ {
+  "request": "close it, instead open f2rl3, and make it look publiction ready",
+  "commands": [
+   "close #1",
+   "open alphafold:Q96RI0",
+   "preset \"overall look\" \"publication 1\"",
+   "lighting soft",
+   "graphics silhouettes true",
+   "set bgColor white",
+   "view"
+  ]
+ },
+ {
+  "request": "select postions 159 and 300 and color them green. the rest of the protein should be white",
+  "commands": [
+   "color #1 white",
+   "select #1:159,300",
+   "show sel atoms",
+   "style sel stick",
+   "color sel green"
+  ]
+ },
+ {
+  "request": "make it spin",
+  "commands": [
+   "roll y 0.5"
+  ]
+ },
+ {
+  "request": "make it spin in place",
+  "commands": [
+   "view",
+   "roll y 0.5"
+  ]
+ },
+ {
+  "request": "stop it",
+  "commands": [
+   "stop"
+  ]
+ },
+ {
+  "request": "slower",
+  "commands": [
+   "stop",
+   "roll y 0.1"
+  ]
+ },
+ {
+  "request": "reverse selection",
+  "commands": [
+   "select ~sel"
+  ]
+ },
+ {
+  "request": "deselect all",
+  "commands": [
+   "select clear"
+  ]
+ },
+ {
+  "request": "make the selected half transperent",
+  "commands": [
+   "transparency sel 50 target acs"
+  ]
+ },
+ {
+  "request": "color the bacground grey",
+  "commands": [
+   "set bgColor gray"
+  ]
+ },
+ {
+  "request": "show the surface and color it by hydrophobicity",
+  "commands": [
+   "surface #1",
+   "mlp #1"
+  ]
+ },
+ {
+  "request": "show hydrogen bonds",
+  "commands": [
+   "hbonds #1 reveal true"
+  ]
+ },
+ {
+  "request": "show the ligand as spheres and hide water",
+  "commands": [
+   "show ligand atoms",
+   "style ligand sphere",
+   "hide solvent"
+  ]
+ },
+ {
+  "request": "color by chain",
+  "commands": [
+   "color #1 bychain"
+  ]
+ },
+ {
+  "request": "rainbow it",
+  "commands": [
+   "rainbow #1"
+  ]
+ },
+ {
+  "request": "focos on the selection",
+  "commands": [
+   "view sel"
+  ]
+ },
+ {
+  "request": "reset the view",
+  "commands": [
+   "view"
+  ]
+ },
+ {
+  "request": "label residues 159 and 300",
+  "commands": [
+   "label #1:159,300"
+  ]
+ },
+ {
+  "request": "show the transmembrane helices of PAR2 in orange",
+  "commands": [
+   "color #1 white",
+   "color #1:47-73,84-107,124-147,169-192,222-247,271-294,305-329 orange target ac"
+  ],
+  "note": "ranges from protein_features(accession, ['Transmembrane']) after resolve_protein('PAR2')."
+ },
+ {
+  "request": "save a picture",
+  "commands": [
+   "save ~/Desktop/chimerax.png width 2000 supersample 3"
+  ],
+  "note": "save needs confirmation; the interface asks."
+ },
+ {
+  "request": "close everything",
+  "commands": [
+   "close"
+  ],
+  "note": "close needs confirmation."
+ },
+ {
+  "request": "align these two proteins",
+  "commands": [
+   "matchmaker #2 to #1",
+   "view"
+  ]
+ },
+ {
+  "request": "what is open?",
+  "commands": [],
+  "note": "Use get_state and answer in words; no commands needed."
+ }
+]

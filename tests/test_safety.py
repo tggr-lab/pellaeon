@@ -1,0 +1,28 @@
+from core.safety import classify, needs_confirmation, split_commands, AUTONOMY_ASK, AUTONOMY_AUTO, AUTONOMY_ALL
+
+
+def test_safe_commands():
+    for cmd in ["color #1 red", "open 1abc", "open alphafold:P55085", "open emdb:1080",
+                "select #1:159", "view", "roll y 0.5", "surface #1", "open https://x.org/a.pdb",
+                "~cartoon #1", "hide solvent", "set bgColor white", "undo"]:
+        assert not classify(cmd).confirm, cmd
+
+
+def test_risky_commands():
+    for cmd in ["close #1", "close", "delete solvent", "save ~/a.png", "exit", "quit",
+                "runscript foo.py", "open /home/me/x.pdb", "open ~/Desktop/a.cxs", "open model.pdb",
+                "toolshed install x", "pip install y", "remotecontrol rest start", "perframe turn y 1",
+                "~delete #1", "swapaa #1:5 ala"]:
+        assert classify(cmd).confirm, cmd
+        assert classify(cmd).reason
+
+
+def test_modes():
+    cmds = ["color #1 red", "close #1"]
+    assert [c.command for c in needs_confirmation(cmds, AUTONOMY_AUTO)] == ["close #1"]
+    assert len(needs_confirmation(cmds, AUTONOMY_ASK)) == 2
+    assert needs_confirmation(cmds, AUTONOMY_ALL) == []
+
+
+def test_split():
+    assert split_commands("open 1abc; color red ;; # comment") == ["open 1abc", "color red"]

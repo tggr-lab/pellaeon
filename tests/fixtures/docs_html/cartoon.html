@@ -1,0 +1,549 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Command: cartoon, ribbon, worm</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#commands">Command</a>: cartoon, ribbon, worm</h3>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>smooth</b>&nbsp;&nbsp;<i>factor</i>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>suppressBackboneDisplay</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br>(&nbsp;<b>cartoon hide</b>&nbsp;|&nbsp;<b>ribbon hide</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<br>&ndash; or &ndash;<br>
+(&nbsp;<b>~cartoon</b>&nbsp;|&nbsp;<b>~ribbon</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+</h3>
+<p>
+The <b>cartoon</b> or <b>ribbon</b> command shows a simplified backbone 
+representation of the specified biopolymer residues.
+The command <b>cartoon hide</b> or <b>~cartoon</b>
+(<b>ribbon hide</b> or <b>~ribbon</b>) hides cartoon for the specified residues.
+The commands <a href="show.html"><b>hide</b></a> and 
+<a href="show.html"><b>show</b></a> can also be used to control cartoon display.
+Protein secondary structure (helix and strand)
+assignments are read from the input structure file
+or calculated with <a href="dssp.html"><b>dssp</b></a>.
+Sometimes two helices are adjacent in sequence (not separated by any
+other residues), and the integer-valued
+<a href="../attributes.html#residue">residue attribute</a> <b>ss_id</b> is
+automatically used to distinguish them. To force combining adjacent helices
+or breaking a longer helix into shorter ones, <b>ss_id</b> can be changed
+&ldquo;manually&rdquo; with <a href="setattr.html"><b>setattr</b></a>.
+</p><p>
+For &ldquo;worms,&rdquo; specialized cartoons with variable thickness to show
+the values of a numerical <a href="../attributes.html">attribute</a>,
+see the <a href="#byattribute"><b>cartoon byattribute</b></a>
+or <a href="#worm"><b>worm</b></a> command.
+</p><p>
+See also:
+<a href="preset.html"><b>preset</b></a>,
+<a href="nucleotides.html"><b>nucleotides</b></a>,
+<a href="snfg.html"><b>snfg</b></a>,
+<a href="define.html#axis"><b>define axis</b></a>,
+<a href="struts.html"><b>struts</b></a>,
+<a href="shape.html"><b>shape</b></a>,
+<a href="graphics.html#quality"><b>graphics quality</b></a>,
+<a href="../menu.html#actions"><b>Actions</b> menu</a>,
+<a href="../tools/inspector.html"><b>Selection Inspector</b></a>,
+<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border="1" src="../tools/shortcut-icons/ribshow.png" alt="computer generated image"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border="1" src="../tools/shortcut-icons/ribhide.png" alt="computer generated image"></a>
+</p><p>
+Cartoon settings are only changed when explicitly specified;
+there are no command defaults, only initial default settings of a structure
+when it is first opened. Changes only apply to models that are already present,
+not those opened later.
+</p><p>
+The following settings can be different for different residues:
+</p><blockquote>
+<b>smooth</b> &nbsp;<i>factor</i>
+<br>
+The <i>factor</i> controls the balance between smoothing peptide &beta;-strands 
+versus following the exact positions of the &alpha;-carbons
+(initial default <b>1.0</b> maximally smoothed, ranging to 0.0 for unsmoothed).
+Specifying <b>default</b> instead of a numerical value sets the value to 1.0. 
+Smoothing applies only to peptide strands, not to helices, coil, or 
+nucleic acids.
+Lower values may be desired for strand residues with sidechains displayed,
+to preclude showing <a href="#tether">tethers</a>.
+</blockquote>
+<blockquote>
+<a name="suppress"></a>
+<b>suppressBackboneDisplay</b> &nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether showing cartoon for a residue suppresses the display of
+its backbone atoms (initial default <b>true</b>). 
+The backbone atoms suppressed  by cartoons are N, C, and O in amino acids
+and P, OP1, OP2, OP3, O5', C5', and O3' in nucleic acids.
+Simultaneous display can be enabled by setting this option to <b>false</b>.
+Connecting <a href="#tether">tethers</a> are drawn
+where displayed backbone atoms are offset from the cartoon.
+</blockquote>
+<p>
+The <b>cartoon</b> <a href="#subcommands">subcommands</a>, however,
+control per-model settings:
+</p>
+<ul>
+<li><a href="#style"><b>cartoon style</b></a>
+&ndash; width, thickness, and shape; protein secondary structure representations
+</li><li><a href="#tether"><b>cartoon tether</b></a>
+&ndash; appearance of connectors between cartoon and offset backbone atoms
+</li><li><a href="#byattribute"><b>cartoon byattribute</b></a>
+(<a href="#worm"><b>worm</b></a>)
+&ndash; create &ldquo;worms,&rdquo; specialized cartoons with variable
+thickness to show <a href="../attributes.html">attribute</a> values;
+toggle between worms and standard cartoons
+</li></ul>
+<p>
+The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
+and C5' in nucleic acids. To use different atoms, try command
+<a href="shape.html#tube"><b>shape tube</b></a> or
+<a href="shape.html#ribbon"><b>shape ribbon</b></a> instead, for example:
+<a href="shape.html#tube"><b>shape tube</b></a> <b>nucleic & @P</b>
+</p><p>
+<a name="orientation"></a>
+The transverse orientation of a residue's ribbon segment is set
+according to the type of secondary structure and/or polymer:
+</p>
+<ul>
+<li>nucleic acid &ndash; at C5' by the C5'&rarr;C1' vector
+</li><li>peptide helix &ndash; at CA by a vector perpendicular to
+both the CA<sub>i-1</sub>&rarr;CA and CA&rarr;CA<sub>i+1</sub> vectors
+<br>
+(default mode; however, peptide helices can be shown as 
+<a href="#hmode">tubes</a> or as ribbons that <a href="#hmode">wrap</a>
+around the computed tubes instead)
+</li><li>peptide strand &ndash; at CA by a vector parallel to 
+both the preceding and following peptide planes 
+(like their line of intersection)
+</li></ul>
+Peptide residues at the beginning or end of a secondary structure element (SSE)
+are given the same orientation as the adjacent residue in that SSE.
+The depiction of a peptide helix or strand starts at the CA atom of its first 
+(N-terminal) residue and ends at the CA atom of its last (C-terminal) residue.
+<p></p>
+
+<a name="subcommands"></a>
+<a name="style"></a>
+<p class="nav">
+[<a href="#top">back to top: cartoon</a>]
+</p><h3>Cartoon Subcommands: Style, Tether</h3>
+<p>
+The subcommands <a href="#style"><b>cartoon style</b></a> and 
+<a href="#tether"><b>cartoon tether</b></a> control per-model settings.
+Style examples, with <a href="alias.html"><b>alias</b></a> for convenience
+in reusing the settings:
+</p>
+<blockquote><b>
+<a href="alias.html">alias</a> nucrib
+&nbsp;<a href="#style">cartoon style</a> 
+&nbsp;<a href="atomspec.html#builtin">nucleic</a> 
+xsect oval width 1.6 thick 1.6
+<br>
+<a href="alias.html">alias</a> tubes 
+&nbsp;<a href="#style">cartoon style</a> 
+&nbsp;<a href="atomspec.html#builtin">protein</a> 
+modeh tube rad 2 sides 24
+<br>
+<a href="alias.html">alias</a> licorice &nbsp;<a href="#style">car style</a>
+&nbsp;<a href="atomspec.html#builtin">protein</a> 
+modeh default arrows f xsect oval width 1 thick 1
+</b>
+<p>
+Styles similar to these are available as 
+<a href="../menu.html#presets">presets</a>, and the 
+default cartoon style can be restored with command:
+<b><a href="preset.html">preset</a>&nbsp;ribbon</b>
+</p>
+<br>
+<table cellpadding="0px" cellspacing="0px">
+<tbody><tr>
+<td><img class="outline" src="style1.png" width="200px" alt="6cmn default cartoon" title="6cmn default cartoon"></td>
+<td><img class="outline" src="nucrib.png" width="200px" alt="6cmn nucrib" title="6cmn nucrib"></td>
+<td><img class="outline" src="cylinders.png" width="200px" alt="6cmn alpha-helix tubes" title="6cmn alpha-helix cylinders"></td>
+<td><img class="outline" src="licorice.png" width="200px" alt="6cmn licorice" title="6cmn licorice"></td>
+</tr><tr>
+<!-- 6cmn, white background, silhouettes, color bychain, nuc stubs -->
+<td align="center">initial cartoon style
+<br>+ <a href="nucleotides.html#stubs"><b>nuc stubs</b></a></td>
+<td align="center"><b>nucrib</b><br>(nucleic backbone tubes)</td>
+<td align="center"><b>nucrib</b> + <b>tubes</b>
+<br>(protein &alpha;-helix tubes)</td>
+<td align="center"><b>nucrib</b> + <b>licorice</b>
+<br>(no 2&deg;-structure representations)</td>
+</tr></tbody></table>
+</blockquote>
+
+<!--
+undocumented command option "cartoon style ssEnds long|short" (default short)
+which I thought was removed in 2018 but apparently can be used even in a
+daily build from 14 Feb 2024.  The reason we meant to remove or at least not 
+document this option is that it only works on some of the ends (those not 
+preceded by coil? due to https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/333 )
+-->
+
+<a href="#top" class="nounder">&bull;</a>
+(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<b>style</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
+[&nbsp;<b>thickness</b>&nbsp;&nbsp;<i>t</i>&nbsp;]
+[&nbsp;<b>xsection</b>&nbsp;&nbsp;oval&nbsp;|&nbsp;rectangle&nbsp;|&nbsp;barbell&nbsp;]
+&nbsp;<a href="#style-model-options"><i>model-options</i></a>&nbsp;
+<!--
+[&nbsp;<b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>arrowsHelix</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>arrowScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;<b>barScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>divisions</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
+[&nbsp;<b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;cylinder&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>&nbsp;]
+[&nbsp;<b>ssEnds</b>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
+-->
+<blockquote>
+<p>
+The <b>cartoon style</b> command controls 
+secondary structure representations, width, thickness, and shape
+(see examples <a href="#subcommands">above</a>).
+Given without options, it reports the current settings for each atomic model. 
+</p><p>
+The following options can have different values for
+<b>helix</b>, <b>strand</b>, <b>coil</b>, and/or <b>nucleic</b> in the
+same model (and these 
+<a href="atomspec.html#builtin">built-in classifications</a>
+can be used in the <a href="atomspec.html"><i>atom-spec</i></a>).
+Conversely, a blank <a href="atomspec.html"><i>atom-spec</i></a>
+indicates all applicable models and secondary structure types.
+</p>
+<blockquote>
+The <b>width</b> <i>w</i> and <b>thickness</b> <i>t</i> are given
+in &Aring;. The <b>width</b> setting does not affect coil,
+however, as only its <b>thickness</b> is used in both dimensions.
+The initial default width and thickness are
+<b>2.0</b> and <b>0.4</b> &Aring;, respectively.
+<p></p><p>
+<a name="xsection"></a>
+The <b>xsection</b> or cross-sectional shape of the cartoon can be
+<b>oval</b> (synonym <b>round</b>), <b>rectangle</b> (synonym <b>square</b>),
+or <b>barbell</b> with rounded edges and a thinner middle
+(synonym <b>piping</b>).
+The <b>barbell</b> cross-section does not apply to coil and does not
+affect arrowheads.
+The initial default cross-section is <b>oval</b> for helix and coil,
+<b>rectangle</b> for strand and nucleic.
+</p></blockquote>
+<p>
+<a name="style-model-options"></a>
+The following <b>cartoon style</b> <i>model-options</i>
+have only a single value per model:
+</p>
+<blockquote>
+<a name="hmode"></a>
+<b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;cylinder&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default
+<br>
+The <b>modeHelix</b> option
+allows showing each peptide helix as a <b>tube</b> (curved cylinder) or 
+straight <b>cylinder</b> rather than as a ribbon spiraling along the 
+backbone atoms (initial default).
+Spiraling ribbons from the <b>wrap</b> mode wrap around the calculated
+tubes, whereas those from the initial <b>default</b> mode
+are oriented as described <a href="#orientation">above</a>.
+For cylinders aligned with the helix axis that can be used in
+<a href="distance.html"><b>distance</b></a> and 
+<a href="angle.html"><b>angle</b></a> measurements, see
+<a href="define.html#axis"><b>define axis</b></a> instead.
+<p>
+Helix <b>tube</b> and <b>cylinder</b> calculations use &alpha;-carbon 
+coordinates. In the <b>tube</b> mode, 
+</p>
+<ul>
+<li>For a helix of 6 or more residues, a straight tube axis (first principal
+component) is used if it gives a low average distance to the &alpha;-carbons; 
+otherwise, an arc (circle segment) fit to the &alpha;-carbon coordinates 
+is used instead. 
+<li>For a helix of 3-5 residues, the axis of an idealized 
+&alpha;-helix fit to the &alpha;-carbons is used.
+</ul>
+<p>
+Increasing the number of <a href="#sides"><b>sides</b></a> from 12
+is recommended to give tubes and cylinders
+a more rounded (smoother) appearance.
+Other than <a href="#radius"><b>radius</b></a>
+and <a href="#sides"><b>sides</b></a>,
+most helix settings such as width, height, cross-section, and arrows
+do not apply to helices in the <b>tube</b> or <b>cylinder</b> modes.
+</p></blockquote><blockquote>
+<a name="radius"></a>
+<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>
+<br>
+For peptide helices in the <a href="#hmode"><b>tube</b> mode</a> or
+<a href="#hmode"><b>cylinder</b> mode</a>,
+a constant <b>radius</b> <i>r</i> can be specified, otherwise
+(<b>auto</b>, default) a radius will be determined separately for each helix
+according to the average distance of the &alpha;-carbons to the midline,
+capped at a maximum of 2.5 &Aring;.
+Where a displayed &alpha;-carbon is offset from the tube surface,
+a <a href="#tether">tether</a> will be drawn.
+  </blockquote><blockquote>
+<a name="sides"></a>
+<b>sides</b>&nbsp;&nbsp;<i>N</i>
+<br>The number of straight-line segments
+used to draw an <a href="#xsection"><b>oval</b> cross-section</a> or 
+the circumference of a <a href="#hmode">tube</a>, with higher numbers 
+corresponding to finer subdivisions (initial default <b>12</b>).
+Shading is used to give a smooth, rounded appearance despite
+this approximation of the shape.
+See also: 
+<a href="#byattribute"><b>cartoon byattribute</b></a>
+(<a href="#worm"><b>worm</b></a>),
+<a href="graphics.html#quality"><b>graphics quality</b></a>
+  </blockquote><blockquote>
+<b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>Whether to show arrowheads at the 
+C-terminal ends of peptide strands (initial default <b>true</b>).
+  </blockquote><blockquote>
+<b>arrowsHelix</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>Whether to show arrowheads at the 
+C-terminal ends of peptide helices (initial default <b>false</b>).
+  </blockquote><blockquote>
+<b>arrowScale</b>&nbsp;&nbsp;<i>factor</i>
+<br>The <i>factor</i> (initial default <b>2.0</b>)
+is multiplied by the width of helix or strand to give the arrowhead width.
+  </blockquote><blockquote>
+<a name="divisions"></a>
+<b>divisions</b>&nbsp;&nbsp;<i>N</i>
+<br>The number of divisions per residue along the path of the ribbon.
+When an atomic structure is opened, the value is set automatically
+within the range 2-20, using 20 for structures with &lt;20,000 residues.
+See also: <a href="graphics.html#quality"><b>graphics quality</b></a>
+  </blockquote><blockquote>
+<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>
+<br>The number of straight-line segments
+used to draw a <a href="#xsection"><b>barbell</b> cross-section</a>
+(initial default <b>18</b>). Odd values
+of <b>barSides</b> <i>N<font size="-1"><sub>b</sub></font></i>
+are automatically rounded up to the next even number.
+  </blockquote><blockquote>
+<b>barScale</b>&nbsp;&nbsp;<i>factor</i> 
+<br>
+The <i>factor</i> (range 0.2&ndash;1.0,
+initial default <b>0.5</b>) is multiplied by the thickness to give
+the central &ldquo;bar&rdquo; thickness of <b>barbell</b> cross-section
+relative to the edges, where the nominal value applies.
+  </blockquote><blockquote>
+<b>worm</b> &nbsp;true&nbsp;|&nbsp;false&nbsp;
+<br>
+Switch between the usual cartoon display, 
+in which the other <a href="#style"><b>cartoon style</b></a> parameters apply,
+and the specialized <a href="#worm">worm</a> display,
+in which the radius may be scaled based on the values of some 
+<a href="../attributes.html">attribute</a>;
+same as the commands <a href="#worm"><b>worm on</b></a> 
+and <a href="#worm"><b>worm off</b></a> (<a href="#worm"><b>~worm</b></a>).
+<!--
+  </blockquote><blockquote>
+<b>ssEnds</b> &nbsp;short&nbsp;|&nbsp;long&nbsp;
+<br>
+This option specifies the C-terminal endpoint and thus the length of 
+peptide helix and strand representations, with possible values:
+<table class="clRight" cellspacing="0px" cellpadding="0px">
+<tbody><tr>
+<td><img class="outline" src="carlink-short.png" width="150px"></td>
+<td><img class="outline" src="carlink-long.png" width="150px"></td>
+</tr>
+</tbody></table>
+</p><ul>
+<li><b>short</b> (initial default)
+&ndash; depiction of the helix or strand secondary structure element (SSE) 
+starts at the C&alpha; of its first (N-terminal) residue
+and ends at the C&alpha; of its last (C-terminal) residue
+<li><b>long</b>
+&ndash; depiction of the SSE starts at the C&alpha; of its first residue 
+(same as for <b>short</b>) but ends in the middle of its following peptide bond
+</ul>
+-->
+  </blockquote>
+<p></p><p>
+More examples:
+</p>
+<blockquote><b>
+cartoon style width 1.5 thick 0.3
+<br>
+cartoon style <a href="atomspec.html#builtin">helix</a> width 1.5 thick 0.3
+<br>
+car style <a href="atomspec.html#builtin">strand</a> xsection rect width 2
+<br>
+rib style x rect
+<br>
+rib style (#1 & <a href="atomspec.html#builtin">coil</a>) x oval
+</b></blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="tether"></a>
+(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<b>tether</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>shape</b>&nbsp;<b>cone</b>&nbsp;|&nbsp;steeple&nbsp;|&nbsp;cylinder&nbsp;]
+[&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>t</sub></font></i>&nbsp;]
+[&nbsp;<b>scale</b>&nbsp;&nbsp;<i>scale</i>&nbsp;]
+[&nbsp;<b>opacity</b>&nbsp;&nbsp;<i>opacity</i>&nbsp;]
+<blockquote>
+<p>
+A <b><i>tether</i></b> is drawn between a displayed &alpha;-carbon (CA atom)
+and the corresponding cartoon segment where they are offset, such as in
+<a href="#top">smoothed strands</a> or <a href="#hmode">helix tubes</a>.
+Tethers are also drawn for displayed proline N
+and nucleic acid C3' and C4' atoms,
+and when <a href="#suppress">backbone suppression</a> is turned off, 
+additional displayed backbone atoms.
+<!--
+amino acid N, C, and nucleotide P, O3', and O5'
+-->
+</p><p>
+Tether <b>shape</b> can be:
+ </p><ul>
+ <li><b>cone</b> (initial default) 
+ &ndash; cone with base at the &alpha;-carbon, point at the cartoon
+ </li><li><b>steeple</b>
+ &ndash; cone with base at the cartoon, point at the &alpha;-carbon
+ </li><li><b>cylinder</b>
+ </li></ul>
+The <b>sides</b> option controls the number of planar facets used to draw
+a tether (range 3-10, initial default <b>4</b>).
+The <b>scale</b> option sets tether base radius relative to the display radius 
+of the corresponding &alpha;-carbon (range 0.0-1.0, initial default <b>1.0</b>).
+The tether color tracks the color of the corresponding &alpha;-carbon.
+The tether <b>opacity</b> value (1 &ndash; transparency) can range from 0.0
+(completely transparent) to 1.0 (completely opaque),
+with initial default <b>0.5</b>.
+<p></p><p>
+Tethers can be hidden using <b>opacity 0</b>.
+</p>
+</blockquote>
+
+<a name="byattribute"></a>
+<a name="worm"></a>
+<p class="nav">
+[<a href="#top">back to top: cartoon</a>]
+</p><h3>Cartoon by Attribute (Worm)</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+(&nbsp;<b>cartoon byattribute</b>&nbsp;|&nbsp;<b>worm</b>&nbsp;)
+&nbsp;<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<i>values-and-radii</i>&nbsp;]
+[&nbsp;<b>noValueRadius</b>&nbsp;&nbsp;<i>radius</i>&nbsp;]
+[&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+(&nbsp;<b>cartoon byattribute</b>&nbsp;|&nbsp;<b>worm</b>&nbsp;) 
+(&nbsp;<b>on</b>&nbsp;|&nbsp;<b>off</b>&nbsp;)
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>~worm</b>
+</blockquote>
+<p>
+A <b><i>worm</i></b> is a specialized cartoon in which the radius varies to
+show the values of a numerical <a href="../attributes.html">attribute</a>.
+Attribute values are mapped to worm radius on a per-residue basis,
+and only biopolymer chains can be shown as worms.
+If an <a href="../attributes.html#atom">atom attribute</a> is given,
+the average value over all atoms in a residue is used for that residue.
+Several attributes are present automatically, but others can be
+defined by the user arbitrarily or created by various ChimeraX tools and
+commands (<a href="../attributes.html">details...</a>).
+The graphical interface to <b>cartoon byattribute</b> is
+<a href="../tools/render.html"><b>Render by Attribute</b></a>.
+See also: 
+<a href="color.html#byattribute"><b>color byattribute</b></a>,
+<a href="size.html#byattribute"><b>size byattribute</b></a>
+</p><p>
+The <i>values and radii</i> specification can be given as two or more
+space-separated pairs of the form:
+</p>
+<blockquote>
+<i>value</i>:<i>radius</i>
+</blockquote>
+<p>
+...where <i>value</i> can be <b>min</b> or <b>max</b> as well as
+a numerical value of the attribute. The default mapping is:
+</p>
+<blockquote>
+<b>min:0.25 max:2.0</b>
+</blockquote>
+<p>
+The min and max are determined from the residues within the specified model 
+or models (&ldquo;all&rdquo; if the specification is blank,
+as per the usual convention) and that can be represented by a cartoon,
+namely peptide and nucleotide chains.
+</p><p>
+The <b>noValueRadius</b> option indicates what radius to use for residues 
+without an assignment (or within atomic structures without an 
+assignment) for the specified attribute (default <b>0.1</b> &Aring;).
+</p><p>
+The <b>sides</b> option sets the number of facets <i>N</i> around the 
+circumference of the worm, with higher values giving a more smoothly
+rounded shape. The default for worms is <b>24</b> (the current maximum).
+This parameter can also be adjusted with
+<a href="cartoon.html#style"><b>cartoon style</b></a>
+and <a href="graphics.html#quality"><b>graphics quality</b></a>.
+</p><p>
+Once generated, the worm radii are remembered separately from the other 
+cartoon parameters (as a residue
+<a href="../attributes.html">attribute</a> named <b>worm_radius</b>),
+and it is possible to toggle back and forth between 
+the previous non-worm cartoon and a previously defined worm display. 
+This can be done with
+<b>worm off</b> (equivalent to <b>~worm</b> or <b>cartoon byattribute off</b>)
+and <b>worm on</b> (equivalent to <b>cartoon byattribute on</b>).
+As with other Boolean settings, synonyms for <b>on</b> are <b>true</b>, 
+<b>True</b>, <b>1</b>, and synonyms for <b>off</b> are
+<b>false</b>, <b>False</b>, <b>0</b>. Example commands:
+</p>
+<blockquote>
+<b>cartoon byattr bfactor min:0.2 max:2.5</b>
+<br>
+<b>worm bfactor min:0.2 max:2.5</b>
+<br>
+<b>~worm</b>
+</blockquote>
+<p>
+These commands do not hide/show worms, they merely switch between worm
+and non-worm cartoon styles without changing whether the cartoon is displayed.
+As with other cartoon displays, the command 
+<a href="#top"><b>cartoon hide</b></a> or <a href="#top"><b>~cartoon</b></a>
+(<a href="#top"><b>ribbon hide</b></a> or <a href="#top"><b>~ribbon</b></a>)
+hides worm for the specified residues.
+The general <a href="show.html"><b>hide</b></a> and 
+<a href="show.html"><b>show</b></a> commands can also be used.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2026</address>
+
+</body></html>

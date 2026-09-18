@@ -1,0 +1,2587 @@
+{
+ "2dlabels": {
+  "purpose": "Adds text and arrows directly onto the 2D screen view for figures, annotations, and movies. These labels do not move with the 3D model.",
+  "keywords": [
+   "annotation",
+   "text label",
+   "arrow",
+   "screen label",
+   "presentation",
+   "image overlay",
+   "movie annotation",
+   "overlay text",
+   "figure label",
+   "symbol",
+   "2D drawing"
+  ],
+  "nl_queries": [
+   "add title to image",
+   "put text on screen",
+   "draw an arrow here",
+   "how do I add a label to the view?",
+   "annotate the figure",
+   "place text overlay",
+   "show symbol on screen"
+  ],
+  "notes": "Coordinates (xpos, ypos) are relative to the window (0-1). Use `listfonts` to see available fonts. Use backslash escapes like `\\\\u03b1` for symbols. Example command script: > open > 1bfp; > turn > z 90; > turn > y 10 > preset > pub; > windowsize > 600 400 > 2dlab text 'Blue Fluorescent Protein' color light sea green size 26 x .03 y .92; > wait > 60 > 2dlab #2 ypos .03 size 40 frames 60; > wait > 120 > 2dlab #2 text \"here's an arrow\" > 2d arrow start .5,.075 end .9,.2 color red; > wait > 120 > 2dlab #2 text 'Fading...' vis f frames 100; 2d arrow #3 vis f frames 100; > wait > 100 See also the G-",
+  "related": "Distinct from `label` which creates 3D labels attached to atoms/models. Use `color` to change label color. Use `delete` or `close` or `~2dlabels` to remove labels. Use `save` to save the image including the 2D labels."
+ },
+ "addcharge": {
+  "purpose": "Assigns partial atomic charges and Amber/GAFF atom types to molecules, often needed for simulations or electrostatic calculations.",
+  "keywords": [
+   "partial charges",
+   "atom charges",
+   "electrostatics",
+   "force field",
+   "AmberTools",
+   "GAFF",
+   "AM1-BCC",
+   "Gasteiger",
+   "parameterization",
+   "molecular dynamics",
+   "docking preparation",
+   "charge assignment"
+  ],
+  "nl_queries": [
+   "calculate partial charges",
+   "assign amber charges",
+   "add gaff types",
+   "prepare ligand charges",
+   "how to get charges for simulation?",
+   "run antechamber",
+   "standardize residues for charging"
+  ],
+  "notes": "`am1-bcc` is generally more accurate but slower than `gasteiger`. Standard residues (proteins, nucleic acids) get charges from standard libraries. Non-standard residues are parameterized using Antechamber (AM1-BCC or Gasteiger). Check Log for errors. Requires explicit hydrogens (`addh`). The main addcharge command works on both standard and nonstandard residues, guessing net charges for the latter. The subcommand addcharge nonstd allows specifying the desired integral net-charge of an individual nonstandard residue type with name residue-name , for which the atomic partial charges will be calc",
+  "related": "Requires hydrogens, use `addh` first. Often used as part of `dockprep`. Results used by `coulombic` for electrostatic surface coloring. Relies on AmberTools."
+ },
+ "addh": {
+  "purpose": "Adds hydrogen atoms to molecular models, considering stereochemistry and potential H-bonds. Also adds missing C-terminal OXT atoms.",
+  "keywords": [
+   "hydrogen addition",
+   "protonation",
+   "add hydrogens",
+   "H atoms",
+   "OXT atom",
+   "C-terminus",
+   "N-terminus",
+   "stereochemistry",
+   "hydrogen bonds",
+   "pH",
+   "residue protonation state"
+  ],
+  "nl_queries": [
+   "add hydrogens to my protein",
+   "how to protonate the molecule",
+   "add H atoms",
+   "fix missing hydrogens",
+   "set protonation state of HIS",
+   "add terminal oxygen"
+  ],
+  "notes": "Requires existing heavy atoms. Considers H-bonding by default (`hbond true`). Can specify protonation states for specific residues (His, Asp, Glu, Lys, Cys, Tyr) using special names or let the tool determine histidine state based on environment. `inIsolation` controls whether neighboring models influence placement. Hydrogens are added to entire atomic model(s) even if only parts of models are specified. The positions of pre-existing atoms are not changed, but any lone pairs and atoms of unidentifiable element are deleted. Hydrogens are named in accordance with the PDB standard, if possible, an",
+  "related": "Often used before `addcharge`. Related to `hbonds` for H-bond calculation. Opposite of `delete H`. Part of the `dockprep` workflow. `build` can also add hydrogens in specific modification contexts."
+ },
+ "alias": {
+  "purpose": "Creates shortcuts or custom command names that expand into longer or more complex command sequences.",
+  "keywords": [
+   "shortcut",
+   "macro",
+   "custom command",
+   "command definition",
+   "abbreviation",
+   "scriptlet",
+   "user-defined command"
+  ],
+  "nl_queries": [
+   "create a shortcut for a command",
+   "define a new command",
+   "make an abbreviation for color red target c",
+   "how to make a macro command?",
+   "list my custom commands"
+  ],
+  "notes": "Use `$1`, `$2` etc. for arguments within the alias definition. Use `$*` for all remaining arguments. Use `$$` for a literal `$`. Semicolons separate multiple commands within the alias `wordlist`. Saved in sessions and can be added to startup scripts. Within wordlist , $1 , $2 , $3 ... may be used to indicate the first, second, third ... arguments of name . In addition, $$ indicates $ itself, and $* indicates the rest of the line, which allows for variable numbers of arguments. For example, ribbon is aliased to cartoon $* , allowing any of the following to work: > ribbon > ribbon #1/A > ribbon ",
+  "related": "Similar to `functionkey` (assigns commands to keys) and `buttonpanel` (creates GUI buttons for commands). Different from `name` which names selections, not commands. Use `alias list` to see defined aliases, `alias delete` to remove them."
+ },
+ "align": {
+  "purpose": "Moves one set of specified atoms (or the model/chain/residue containing them) to structurally align them onto another set of specified reference atoms using least-squares fitting based on coordinate positions.",
+  "keywords": [
+   "superimpose",
+   "superposition",
+   "least-squares fit",
+   "RMSD calculation",
+   "structure comparison",
+   "fitting coordinates",
+   "matching atoms",
+   "structural alignment",
+   "coordinate alignment"
+  ],
+  "nl_queries": [
+   "align structure A onto structure B using these atoms",
+   "superimpose these two models based on CA atoms",
+   "fit chain A to chain B",
+   "calculate RMSD between structures after fitting",
+   "move model 1 to match model 2",
+   "overlay structures by coordinates"
+  ],
+  "notes": "Requires equal numbers of `matchatoms` and `refatoms` after applying pairing options. `cutoffDistance` allows iterative fitting, removing poorly matching pairs. `move` option controls what gets transformed (atoms, residues, chains, whole structures). `each` allows fitting parts (chains, coordsets) independently. Pairing options (`matchAtomNames`, `matchNumbering`, `matchChainIds`) help restrict which specified atoms are actually used in the fit. Only equal numbers of matchatoms and refatoms can be used in the calculation, but the pairing options may help to restrict broader specifications to o",
+  "related": "Similar to `matchmaker` but `matchmaker` uses sequence alignment first to determine which atoms to pair for fitting, while `align` requires the user to specify the exact atom pairs. `rmsd` calculates RMSD *without* moving structures. `view` can save the aligned position. `fitmap` aligns structures to density maps."
+ },
+ "alphafold": {
+  "purpose": "Interacts with AlphaFold services to fetch pre-computed models, predict new structures (monomers or multimers via ColabFold), and analyze prediction confidence (pLDDT, PAE).",
+  "keywords": [
+   "AlphaFold",
+   "protein structure prediction",
+   "AI model",
+   "deep learning",
+   "ColabFold",
+   "AlphaFold Database",
+   "UniProt",
+   "pLDDT",
+   "PAE",
+   "predicted aligned error",
+   "confidence score",
+   "multimer prediction",
+   "complex prediction",
+   "homology modeling alternative"
+  ],
+  "nl_queries": [
+   "fetch alphafold model for uniprot ID",
+   "predict structure using alphafold",
+   "run colabfold prediction",
+   "show alphafold confidence",
+   "color by pLDDT score",
+   "plot alphafold PAE",
+   "predict protein complex structure",
+   "alphafold search for similar proteins"
+  ],
+  "notes": "`fetch` retrieves from database, `predict` runs new prediction on Colab (requires Google account), `match` finds DB entries similar to open structures, `search` performs BLAST search against AF DB. Predictions have confidence scores (pLDDT in B-factor column, PAE in separate files/plots). High pLDDT (>90) is good, low (<50) is unreliable. PAE assesses inter-residue/inter-domain confidence. Batch commands exist for advanced users running ColabFold locally.",
+  "related": "Similar purpose to `esmfold` (another prediction method). `blastprotein` can search sequence databases including AlphaFold DB. `modeller` is for traditional homology modeling. `alphafold contacts` visualizes PAE on the structure. `alphafold pae` plots the PAE matrix. Fetching is like `open from alphafold`."
+ },
+ "altlocs": {
+  "purpose": "Manages alternate locations (alt locs) present in PDB/CIF files, allowing users to view, select, or clean up different conformations of atoms/residues.",
+  "keywords": [
+   "alternate locations",
+   "altlocs",
+   "alternate conformation",
+   "PDB format",
+   "structural heterogeneity",
+   "occupancy",
+   "disorder",
+   "sidechain conformation",
+   "ligand conformation"
+  ],
+  "nl_queries": [
+   "show alternate locations for residue 10",
+   "switch to altloc B",
+   "list altlocs",
+   "how to choose alternate conformation?",
+   "delete unused altlocs",
+   "display all altlocs at once"
+  ],
+  "notes": "`list` shows available altlocs and the one currently used. `change` switches the active altloc for a residue and connected atoms. `clean` deletes all but the currently active altloc for specified residues. `show` creates temporary submodels to display multiple altlocs concurrently, `hide` removes these submodels. Altlocs are chosen initially based on occupancy, B-factor, and ID. * altlocs list – list alternate locations and report which is being used * altlocs change – specify which alternate location to use * altlocs clean – delete all but the currently used alternate location * altlocs show/",
+  "related": "`swapaa`/`swapna` might deal with residues that have altlocs. `build` or `dockprep` might precede `altlocs clean`. `attributes` can show altloc IDs."
+ },
+ "angle": {
+  "purpose": "Measures or modifies the geometric angle formed by three specified atoms (or points like centroids/markers). Can also measure angles between geometric objects (axes, planes) or angles defined by four atoms (without modification).",
+  "keywords": [
+   "bond angle",
+   "valence angle",
+   "geometry measurement",
+   "angle modification",
+   "structure building",
+   "adjust angle",
+   "measure angle",
+   "three-atom angle",
+   "four-atom angle",
+   "axis angle",
+   "plane angle"
+  ],
+  "nl_queries": [
+   "measure angle between atom A B C",
+   "set angle of atom X Y Z to 109.5",
+   "what is the angle formed by these three atoms?",
+   "change the bond angle",
+   "report angle between plane 1 and axis 2"
+  ],
+  "notes": "Requires exactly three atoms (or centroids/markers) for measurement or modification. Modification (`angle` value specified) only works if the path between atom 1 and 3 goes through atom 2. `move small` (default) moves the smaller group attached to atom 1 or 3. Can measure, but not set, angles defined by 4 atoms or geometric objects.",
+  "related": "Related to `distance` (measures distance), `torsion` (measures/modifies dihedral angle - 4 atoms). Part of the `build` structure modification toolkit. Can use geometric objects defined by `define`. `measure` has related subcommands."
+ },
+ "aniso": {
+  "purpose": "Displays anisotropic B-factors (atomic displacement parameters) from crystallographic data as thermal ellipsoids around atoms.",
+  "keywords": [
+   "anisotropic B-factors",
+   "thermal ellipsoids",
+   "atomic displacement parameters",
+   "ADPs",
+   "ANISOU records",
+   "crystal structure visualization",
+   "thermal motion",
+   "uncertainty visualization"
+  ],
+  "nl_queries": [
+   "show thermal ellipsoids",
+   "display anisotropic B-factors",
+   "visualize ANISOU records",
+   "how to see atomic displacement?",
+   "turn on ellipsoids for atoms"
+  ],
+  "notes": "Only works for atoms with ANISOU records in the input file (typically high-resolution structures). Ellipsoid size represents probability (often 50% probability, adjustable with `scale`). Appearance controlled by `aniso style` (color, transparency, smoothing) or `aniso preset`. Works best with stick or wireframe atom styles. Tip : Since the ellipsoids may be obscured when atoms are shown as balls or spheres, using a thin stick representation is recommended (see style and size ).",
+  "related": "Uses data (B-factors) often visualized differently using `color bfactor` or `Render by Attribute`. Complementary to `style` and `size` for controlling underlying atom display. `~aniso` hides the ellipsoids."
+ },
+ "blastprotein": {
+  "purpose": "Performs a protein BLAST search using a given sequence against various online databases (PDB, nr, UniRef, AlphaFold DB, ESMFold DB) to find similar sequences and associated structures.",
+  "keywords": [
+   "BLAST",
+   "protein search",
+   "sequence similarity",
+   "homology search",
+   "find similar proteins",
+   "database search",
+   "PDB search",
+   "UniProt search",
+   "AlphaFold search",
+   "ESMFold search",
+   "template finding",
+   "comparative modeling"
+  ],
+  "nl_queries": [
+   "blast this protein sequence",
+   "find proteins similar to chain A",
+   "search PDB for homologs",
+   "blast against alphafold database",
+   "find templates for modeling",
+   "run protein blast search"
+  ],
+  "notes": "Requires an internet connection to contact the RBVI BLAST service. Query can be a structure chain, sequence from Sequence Viewer, UniProt ID, or raw sequence text. `database` option specifies which database to search. `matrix` and `cutoff` control search sensitivity/scoring. `showResultsTable` (default true) displays hits interactively. `loadStructures` automatically fetches structures for hits. `showSequenceAlignment` shows alignment in Sequence Viewer. The query sequence can be given as any of the following: * a chain-spec corresponding to a single chain in an atomic structure open in Chimer",
+  "related": "`alphafold search` and `esmfold search` are specialized searches within those specific databases. `similarstructures blast` uses BLAST as part of structure-based similarity searching (Foldseek). `matchmaker` aligns structures based on sequence alignment. Results can be viewed in the Sequence Viewer. Fetched structures are opened like with the `open` command."
+ },
+ "bond": {
+  "purpose": "Creates or deletes covalent bonds between specified atoms, or modifies the length of an existing bond.",
+  "keywords": [
+   "covalent bond",
+   "add bond",
+   "delete bond",
+   "break bond",
+   "bond length",
+   "bond distance",
+   "structure editing",
+   "build structure",
+   "connectivity"
+  ],
+  "nl_queries": [
+   "add a bond between atom A and atom B",
+   "delete the bond between these atoms",
+   "make a bond here",
+   "set bond length to 1.5",
+   "measure bond length",
+   "break this bond"
+  ],
+  "notes": "`bond atom-spec` adds bonds. `reasonable true` (default) only adds bonds if atoms are close; `reasonable false` adds them regardless of distance. `~bond atom-spec` deletes bonds between specified atoms. `bond length atom-spec [length]` sets or reports bond length (requires exactly two atoms forming an existing bond). `move small` (default) moves the smaller fragment when changing length. Atoms must be in the same model to be bonded (`combine` models first if needed). A bond can only be added between atoms that are in the same atomic model; if they are in separate models, a single combined mode",
+  "related": "`build` uses bonding implicitly. `angle` and `torsion` act on angles defined by bonds. `pbond` manages pseudobonds (non-covalent connections). `combine` merges models without necessarily adding bonds between them. `delete sel` can delete selected bonds."
+ },
+ "build": {
+  "purpose": "Provides tools for building and modifying atomic structures, including starting new molecules (atoms, fragments, peptides, nucleic acids), modifying existing atoms, joining models, inverting stereocenters, and replacing chain segments.",
+  "keywords": [
+   "structure building",
+   "model building",
+   "molecular editing",
+   "add atom",
+   "add fragment",
+   "build peptide",
+   "build nucleic acid",
+   "modify atom",
+   "change atom type",
+   "join models",
+   "combine structures",
+   "invert chirality",
+   "swap substituents",
+   "replace residues",
+   "manual modeling"
+  ],
+  "nl_queries": [
+   "build a benzene ring",
+   "start building a molecule",
+   "create a peptide sequence",
+   "build dna helix",
+   "change this carbon to nitrogen",
+   "join model 1 and model 2 with a bond",
+   "invert this chiral center",
+   "replace residues 10-15 with these ones"
+  ],
+  "notes": "`start` creates new, separate models. `modify` changes atom type, adds hydrogens based on geometry. `join` merges two models with a new covalent bond (peptide or generic), deleting/replacing specified atoms. `invert` swaps two substituents of a central atom. `replace` copies coordinates from one chain segment to another (no fitting involved). Building actions are generally not undoable, save sessions often. • build start atom model-info [ position x,y,z ] [ resName resname ] [ select true | false ] • build start fragment model-info fragment-name [ position x,y,z ] [ resName resname ] • build s",
+  "related": "Uses `bond`, `angle`, `torsion` implicitly or explicitly. `addh` adds hydrogens more globally. `delete` removes atoms/bonds. `swapaa`/`swapna` replace sidechains/bases with rotamers. `combine` merges models without bonding. `open` can build structures from SMILES. `rna` builds RNA helices."
+ },
+ "bumps": {
+  "purpose": "Identifies and marks protrusions (bumps) on an isosurface relative to a central point, primarily designed for analyzing cell surface features in microscopy volume data.",
+  "keywords": [
+   "surface protrusion",
+   "bump detection",
+   "isosurface analysis",
+   "volume data",
+   "microscopy",
+   "cell surface",
+   "feature detection",
+   "distance maxima",
+   "marker placement",
+   "surface geometry"
+  ],
+  "nl_queries": [
+   "find bumps on this surface",
+   "identify protrusions from center point",
+   "mark surface maxima",
+   "analyze cell surface features",
+   "quantify surface bumps"
+  ],
+  "notes": "Requires a `volume` model and a `center` point (usually a marker model). Parameters `range`, `baseArea`, and `height` control the detection algorithm sensitivity. `bumps report` provides statistics on detected bumps (size, height, signal from another map). Finds radially oriented protrusions best. Examples: > bumps #1 center #2 height 1 base 100 range 75 > bumps report #3 save ~/Desktop/prot.txt signalMap #4 Conceptually, rays are followed out from the center up to the range distance, and distance maxima in the isosurface are identified. The rays for maxima are followed back toward the center ",
+  "related": "Operates on `volume` data and its isosurface. Uses `marker` models for input (center) and output (bumps). `measure convexity` provides a different measure of surface shape."
+ },
+ "buttonpanel": {
+  "purpose": "Creates custom graphical panels containing buttons that execute specified ChimeraX commands when clicked.",
+  "keywords": [
+   "custom interface",
+   "GUI builder",
+   "button panel",
+   "command button",
+   "graphical shortcut",
+   "user interface",
+   "VR interface",
+   "macro button",
+   "control panel"
+  ],
+  "nl_queries": [
+   "create a button panel",
+   "add a button to run a command",
+   "make a custom GUI",
+   "how to create command buttons?",
+   "build an interface panel"
+  ],
+  "notes": "First command defines the panel title and layout (rows, columns). Subsequent `add` commands add buttons with a name and the command string to execute. Commands with spaces need quotes. Panel layout fills row-wise or column-wise. If the number of rows N and columns M in the panel is not given, all of the buttons will be placed in a single row. Each use of add creates an additional button with text button-name that executes button-command when clicked. Each button-command may be a composite of other commands, i.e. , multiple commands separated by semicolons, and should be enclosed in quotation m",
+  "related": "Similar to `alias` (creates command shortcuts) and `functionkey` (assigns commands to keys), but provides a graphical interface. Panels can be specified for use with `vr` command's `gui` option. Commands executed can use `sel` or other dynamic specifiers. Saved in sessions."
+ },
+ "camera": {
+  "purpose": "Controls the viewing mode (mono, stereo, orthographic, 360, dome) and parameters related to stereo vision (eye separation, field of view, convergence).",
+  "keywords": [
+   "viewing mode",
+   "stereo",
+   "stereoscopic",
+   "monoscopic",
+   "orthographic",
+   "perspective",
+   "cross-eye",
+   "wall-eye",
+   "3D vision",
+   "camera settings",
+   "field of view",
+   "FOV",
+   "eye separation",
+   "360 view",
+   "dome view",
+   "equirectangular",
+   "VR view"
+  ],
+  "nl_queries": [
+   "turn on stereo mode",
+   "switch to orthographic view",
+   "enable cross-eye stereo",
+   "set camera to mono",
+   "adjust field of view",
+   "change eye separation for stereo",
+   "make a 360 degree image"
+  ],
+  "notes": "`mode mono` is default perspective. `mode ortho` removes perspective. `mode crosseye`/`walleye`/`sbs`/`tb` are for stereo. `mode stereo` requires specific hardware. `mode 360`/`dome` are special projections. `eyeSeparation`, `fieldOfView`, `convergence` fine-tune stereo/viewing. Running `camera` with no arguments reports current settings. The camera mode can be: * mono (default) – monoscopic with perspective (apparent size decreasing with distance from the viewer) * ortho – orthographic, monoscopic without perspective * crosseye – side-by-side left- and right-eye views for visualization with c",
+  "related": "Complements `view` (which controls camera position/orientation) and `zoom` (which controls magnification/scale). `vr` command manages camera settings specifically for virtual reality. Settings affect image saving via `save`. `getcrd` reports camera position."
+ },
+ "cartoon": {
+  "purpose": "Show or hide cartoon/ribbon backbone representation; set cartoon style.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "cd": {
+  "purpose": "Changes the current working directory for file operations within ChimeraX.",
+  "keywords": [
+   "change directory",
+   "working directory",
+   "current directory",
+   "folder",
+   "file path",
+   "navigation",
+   "set directory"
+  ],
+  "nl_queries": [
+   "change directory to /path/to/files",
+   "set working folder",
+   "go to my home directory",
+   "where am I saving files?"
+  ],
+  "notes": "`cd` with no argument goes to the home directory. `cd browse` opens a file browser. Directory paths are standard OS paths. Running a command file temporarily changes `cd` to that file's location.",
+  "related": "Affects default paths for `open` and `save`. `pwd` reports the current directory. `runscript` temporarily changes the directory while executing a script."
+ },
+ "changechains": {
+  "purpose": "Changes the chain identifiers (chain IDs) of specified residues or atoms. Can also standardize glycosylation chain IDs to match the protein chain they are attached to.",
+  "keywords": [
+   "chain ID",
+   "change chain ID",
+   "rename chain",
+   "reassign chain",
+   "modify chain",
+   "glycosylation chain ID",
+   "HET chain"
+  ],
+  "nl_queries": [
+   "change chain A to chain B",
+   "rename chain C",
+   "set chain ID for these residues to X",
+   "fix glycosylation chain IDs",
+   "how to change chain identifiers?"
+  ],
+  "notes": "Can change specified atoms/residues to a single `new-ID`, or change multiple IDs based on paired lists (`current-ID-list` to `new-ID-list`). `changechains glycosylations` automatically finds and re-ID's HET chains bonded to specified biopolymer chains. Chain IDs are case-sensitive. Either a single desired chain ID can be given, or a comma-separated list of current IDs followed by a comma-separated list of the desired IDs. If lists are used, they must contain equal numbers of IDs, which will be paired in the order given. Ranges of IDs cannot be given. Within the set of specified atoms, occurren",
+  "related": "Related to `rename` (changes model names) and `renumber` (changes residue numbers). `combine` and `build join` might necessitate chain ID changes to avoid conflicts. `save` writes the modified chain IDs to output files."
+ },
+ "clashes": {
+  "purpose": "Find and show steric clashes between atoms.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "clip": {
+  "purpose": "Controls near/far and front/back clipping planes to hide parts of the scene or reveal interiors.",
+  "keywords": [
+   "clipping plane",
+   "slab view",
+   "cross-section",
+   "hide front",
+   "hide back",
+   "near clip",
+   "far clip",
+   "depth view",
+   "slice view",
+   "per-model clipping"
+  ],
+  "nl_queries": [
+   "clip the view",
+   "show a slice through the model",
+   "hide the front part",
+   "adjust clipping planes",
+   "slab the view near this atom",
+   "turn off clipping for the surface"
+  ],
+  "notes": "`near`/`far` planes are parallel to the screen. `front`/`back` planes move with the model and can be oriented arbitrarily (`axis`). `offset` values move planes relative to a `position` (default center) or current location. `clip off` or `~clip` disables all clipping. `clip model` allows clipping specific models differently (only for front/back planes). Each plane can be activated or turned off individually; specifying an offset activates a plane if it was not already active. Offsets are in physical distance units (generally Å), with positive values increasing away from the viewer for the near/",
+  "related": "`surface cap` controls appearance of clipped surfaces. Mouse modes allow interactive clipping. `view` saves clipping plane status. `cofr` (center of rotation) is often used as the reference point. `perframe` can animate clipping."
+ },
+ "close": {
+  "purpose": "Removes models (structures, maps, surfaces, etc.) or the entire session from ChimeraX.",
+  "keywords": [
+   "close model",
+   "remove model",
+   "delete model",
+   "unload model",
+   "close session",
+   "end session",
+   "clear scene"
+  ],
+  "nl_queries": [
+   "close model number 1",
+   "remove structure 2",
+   "delete the map",
+   "clear everything",
+   "close the session",
+   "unload model 3"
+  ],
+  "notes": "`close` with no arguments closes all models. `close #N` closes model N and its submodels. `close session` clears all data and resets many global settings. Closed models cannot be recovered except by reopening or reloading a saved session. Examples: > close > close #1 > close #2,4-6 > close #3.2 > close #3.2-10",
+  "related": "Opposite of `open`. `hide` makes models invisible but doesn't remove them. `delete` removes atoms/bonds within a model, not the whole model. `quit` exits ChimeraX entirely."
+ },
+ "cofr": {
+  "purpose": "Sets or reports the center of rotation (CoR) for mouse-controlled scene manipulation.",
+  "keywords": [
+   "center of rotation",
+   "CoR",
+   "pivot point",
+   "rotation center",
+   "view manipulation",
+   "navigation control",
+   "fixed center",
+   "front center",
+   "center of view"
+  ],
+  "nl_queries": [
+   "set center of rotation to this atom",
+   "fix the rotation point",
+   "where is the center of rotation?",
+   "use front center rotation method",
+   "show the rotation pivot"
+  ],
+  "notes": "`frontCenter` (also `~cofr`) updates CoR based on view/front objects (default-like behavior). `centerOfView` updates based on window center and clipping planes. `fixed` uses the last defined point. Can specify a point explicitly using coordinates or `spec` (center of specified items). `showPivot` displays a visual marker for the CoR. The first set of options specify the center of rotation method : * frontCenter – use the front center method (also specified with ~cofr ): when the view is zoomed out, use the center of the bounding box of all displayed items; when the view is zoomed in, keep upda",
+  "related": "Affects `mousemode` rotation behavior. `view` saves/restores the CoR method and position. `measure center` calculates geometric centers which can be used as input for `cofr`. `move cofr` translates the scene relative to the CoR."
+ },
+ "color": {
+  "purpose": "Colors various items (atoms, bonds, cartoons, surfaces, labels, maps) using specified colors, built-in schemes (by element, chain, residue type), sequential schemes (rainbow), or based on attribute values, map values, or distance. Also manages named colors.",
+  "keywords": [
+   "color",
+   "coloring",
+   "colour",
+   "colouration",
+   "atom color",
+   "surface color",
+   "cartoon color",
+   "map color",
+   "label color",
+   "by element",
+   "by chain",
+   "by residue",
+   "by attribute",
+   "b-factor coloring",
+   "rainbow",
+   "sequential color",
+   "electrostatic potential color",
+   "color by value",
+   "color key",
+   "palette",
+   "transparency",
+   "texture mapping"
+  ],
+  "nl_queries": [
+   "color chain A blue",
+   "color atoms by element",
+   "color surface by charge",
+   "color by b-factor",
+   "rainbow color the protein",
+   "color surface based on map values",
+   "make atoms red",
+   "define a new color",
+   "color by distance from ligand"
+  ],
+  "notes": "`target` option specifies what part is colored (atoms `a`, bonds `b`, cartoon `c`, surface `s`, pseudobonds `p`, ring fill `f`, labels `l`). `color byelement`, `bychain`, `byidentity`, `bymodel`, `random`, `bynucleotide` are built-in schemes. `color sequential` (`rainbow`) applies colors along chains/models. `color byattribute` is very versatile. Palettes (`palette` option) define color ranges for value-based or sequential coloring. Color names, hex codes, or rgb values can be used. `color modify` changes existing colors. Additional subcommands manage the set of named colors: * color name – de",
+  "related": "`transparency` sets transparency. `coulombic` and `mlp` color surfaces by electrostatic potential. `surface` and `volume` create objects that can be colored. `cartoon` uses default coloring schemes. `key` or `Color Key` tool creates a legend for value-based coloring. `rainbow` is a synonym for `color sequential`. `preset` can use color commands. `Render by Attribute` tool provides GUI for attribut"
+ },
+ "combine": {
+  "purpose": "Merges multiple atomic models into a single new model, or copies a single atomic model. Coordinates are preserved; no new bonds are automatically formed between the merged parts unless `retainIds true` causes residues to become sequential.",
+  "keywords": [
+   "combine models",
+   "merge models",
+   "join models",
+   "copy model",
+   "merge structures",
+   "consolidate models"
+  ],
+  "nl_queries": [
+   "combine model 1 and model 2",
+   "merge these structures into one",
+   "copy model 3",
+   "join these two PDBs"
+  ],
+  "notes": "Does not move models relative to each other. `close true` removes original models. `modelId` and `name` specify properties of the new combined model. `retainIds false` (default) reassigns duplicate chain IDs; `retainIds true` keeps original IDs but fails if residue number conflicts arise; it may also implicitly form bonds/pseudobonds between chains with the same ID if residue numbering allows. By default ( retainIds false ), duplicate chain IDs are resolved by assigning new chain IDs. Giving retainIds true indicates instead keeping all chain IDs the same as in the original models, as long as d",
+  "related": "Different from `build join` which forms a covalent bond and repositions atoms. `split` does the opposite (separates chains/models). `mcopy` copies models while applying transformations. `save` can save the combined model. Chain IDs might need adjustment using `changechains` or `renumber` afterwards."
+ },
+ "coordset": {
+  "purpose": "Play or step through trajectory frames / coordinate sets.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "coulombic": {
+  "purpose": "Calculates and displays Coulombic electrostatic potential (ESP) on molecular surfaces to show charge distribution.",
+  "keywords": [
+   "electrostatic potential",
+   "ESP",
+   "Coulombic potential",
+   "surface potential",
+   "charge distribution",
+   "surface coloring",
+   "Poisson-Boltzmann alternative",
+   "charge complementarity",
+   "binding site identification",
+   "DNA binding",
+   "ligand binding",
+   "protein-ligand interaction",
+   "clipped surface coloring"
+  ],
+  "nl_queries": [
+   "color surface by electrostatic potential",
+   "calculate coulombic potential",
+   "show ESP on surface",
+   "display surface charge",
+   "show charge distribution"
+  ],
+  "notes": "Default colors are red (negative) to white (zero) to blue (positive). Calculation uses a distance-dependent dielectric model by default (`distDep true`). Requires atomic partial charges (looks up standard, calculates non-standard via Antechamber unless already present). `offset` shifts calculation relative to surface (1.4A often used for outer surfaces, 0 for planar caps). `key true` automatically adds a color key. The calculation can handle structures with or without explicit hydrogens ( details... ). Partial atomic charges are looked up for standard residues, and in the rarer case they are n",
+  "related": "Uses atomic charges, often assigned previously with `addcharge` (or calculates them on the fly). `mlp` calculates potential using a lipophilicity approach. `surface` creates the surface to be colored. `key` (via `coulombic ... key true` or separately) creates a legend. Uses palettes for coloring (default red-white-blue). `color` can also color surfaces by map values (if ESP is saved as a map, thou"
+ },
+ "crossfade": {
+  "purpose": "Smoothly fade between two views or displays (for movies).",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "crosslinks": {
+  "purpose": "Modifies the appearance (radius, dashes, color) of pseudobonds, often used for visualizing crosslinking or other distance restraint data. Also provides tools to analyze these pseudobonds (histogram, network diagram, length minimization).",
+  "keywords": [
+   "crosslinks",
+   "pseudobonds",
+   "distance restraints",
+   "IHM",
+   "integrative modeling",
+   "histogram",
+   "network diagram",
+   "minimize length",
+   "modify pseudobonds"
+  ],
+  "nl_queries": [
+   "show crosslinks as dashed lines",
+   "color pseudobonds blue",
+   "make pseudobonds thicker",
+   "histogram pseudobond lengths",
+   "show crosslink network",
+   "minimize crosslink distances"
+  ],
+  "notes": "The top-level command changes display style. Subcommands `histogram`, `network`, `minimize` perform analyses. `histogram` plots length distribution. `network` shows inter-chain links. `minimize` moves specified models (`moveModels`) as rigid bodies to shorten inter-model pseudobonds. The top-level command sets pseudobond stick radius , number of dashes N , and/or color . Only whole numbers of dashes are accepted, with 0 indicating solid sticks. Currently, odd numbers are rounded down to give an even number of dashes. The following subcommands perform plotting and other analyses: * crosslinks h",
+  "related": "Acts on pseudobonds, created by `pbond` or loaded from files (e.g., IHM mmCIF). `clashes`/`contacts` find close contacts, `hbonds` finds hydrogen bonds (also pseudobonds). `distance` measures distances. `label` can label pseudobonds."
+ },
+ "crystalcontacts": {
+  "purpose": "Identifies and analyzes close contacts between symmetry-related copies of a molecule in a crystal lattice.",
+  "keywords": [
+   "crystal packing",
+   "crystal contacts",
+   "symmetry contacts",
+   "lattice contacts",
+   "packing interfaces",
+   "symmetry copies",
+   "unit cell",
+   "space group"
+  ],
+  "nl_queries": [
+   "show crystal contacts",
+   "analyze crystal packing",
+   "find symmetry contacts",
+   "show neighboring molecules in the crystal",
+   "calculate buried area at packing interface"
+  ],
+  "notes": "Requires symmetry information (e.g., from PDB/CIF header). `distance` defines contact threshold. `copies true` loads full atomic copies. `schematic true` shows a simplified marker representation. `residueInfo` logs residue pairs in contact. `buriedAreas` calculates and logs buried SASA at the contact interface. One or more atomic models can be specified . Any atoms one wishes to exclude from the calculation (solvent, etc. ) should be deleted beforehand. Symmetry copies can be shown as full atomic models and/or represented schematically . Results are reported in the Log ( details... ).",
+  "related": "Uses symmetry information often visualized with `unitcell` and `sym`. Related to `clashes`/`contacts` (which find contacts within or between arbitrary models, not necessarily symmetry-related). `interfaces` calculates properties of interfaces between chains/models."
+ },
+ "define": {
+  "purpose": "Defines geometric objects (axes, planes, centroids) based on specified atoms, points, or other geometric objects.",
+  "keywords": [
+   "define axis",
+   "define plane",
+   "define centroid",
+   "geometric object",
+   "principal axis",
+   "inertia axis",
+   "helix axis",
+   "geometric center",
+   "center of mass"
+  ],
+  "nl_queries": [
+   "define axis for this selection",
+   "find the principal axes",
+   "define plane through these atoms",
+   "calculate centroid",
+   "define helix axis",
+   "make a plane object"
+  ],
+  "notes": "`axis` can be defined by atoms/points, per helix, from two points, or normal to a plane. `centroid` can be mass-weighted. `plane` defines a best-fit plane. Options control appearance (color, radius, length, padding), naming (`name`, `id`), and calculation details (mass-weighting, which eigenvector for axes). Objects are created as separate models. > Axes can be defined: > by a set of at least two specified atoms ( > perHelix > false), where > markers > such as from > define centroid > are equivalent to atoms > for each protein helix in models containing the specified atoms ( > perHelix > true)",
+  "related": "Objects created can be used in `distance` and `angle` measurements, or to orient the `view`. `measure inertia` calculates inertia properties without creating persistent objects. `aniso` visualizes anisotropic B-factors (related to thermal ellipsoids, not inertia). `shape` creates basic geometric shapes unrelated to atoms. `marker` can create points, similar to `define centroid`."
+ },
+ "delete": {
+  "purpose": "Permanently removes specified atoms, bonds, or pseudobonds from their models.",
+  "keywords": [
+   "delete atoms",
+   "delete bonds",
+   "delete pseudobonds",
+   "remove atoms",
+   "remove bonds",
+   "structure editing"
+  ],
+  "nl_queries": [
+   "delete water",
+   "remove hydrogens",
+   "delete these selected atoms",
+   "delete the bond between atom A and B",
+   "remove pseudobonds"
+  ],
+  "notes": "Default is `delete atoms`. Specify `bonds` or `pseudobonds` explicitly. `attachedHyds true` (default) also deletes hydrogens bonded to deleted heavy atoms. Deletion is permanent within the session (cannot be undone except by reopening/reloading).",
+  "related": "Different from `hide` (makes items invisible but doesn't remove them) and `close` (removes entire models). `~bond` also deletes bonds. `addh` adds hydrogens, `delete H` removes them. `build` involves adding/deleting atoms/bonds."
+ },
+ "devel": {
+  "purpose": "Provides tools for developers to build, install, and manage ChimeraX bundles (plugins/extensions).",
+  "keywords": [
+   "developer tools",
+   "build bundle",
+   "install bundle",
+   "clean build",
+   "bundle alias",
+   "pip",
+   "ChimeraX extension"
+  ],
+  "nl_queries": [
+   "build my chimerax plugin",
+   "install bundle from source",
+   "how to develop a chimerax extension",
+   "set alias for bundle path",
+   "clean build directory",
+   "install python package for chimerax"
+  ],
+  "notes": "This command is primarily for ChimeraX developers. It includes subcommands: `alias`/`unalias` (manage path shortcuts), `build` (compile/prepare bundle), `clean` (remove build files), `dump` (log metadata), `install` (install bundle, optionally user-specific or editable), `pip` (manage Python packages). > Assign a convenient > name > to a > path > on the system, for use in other > devel > commands. If no arguments are given, list all of the currently defined path aliases. If > name > but not > path > is given, report the path aliased to that name. If a new path is entered for a name already in ",
+  "related": "`pip` is closely related (and `devel pip` is a synonym). General development might involve scripting using commands like `runscript`."
+ },
+ "device": {
+  "purpose": "Configure VR/space-navigator devices.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "distance": {
+  "purpose": "Measures the distance between two specified objects (atoms, axes, planes) and optionally creates a persistent, labeled pseudobond (distance monitor) for atom-atom distances.",
+  "keywords": [
+   "distance measurement",
+   "measure distance",
+   "atomic distance",
+   "atom-plane distance",
+   "atom-axis distance",
+   "distance monitor",
+   "pseudobond",
+   "geometry"
+  ],
+  "nl_queries": [
+   "measure distance between atom X and atom Y",
+   "show the distance from this atom to the plane",
+   "what is the distance between these two atoms?",
+   "create a distance monitor here",
+   "change distance label color",
+   "delete all distances",
+   "save distances to file"
+  ],
+  "notes": "Creates persistent, dynamically updating \"distance monitors\" (pseudobonds) only for atom-atom distances by default (`monitor true`). Distances involving axes/planes are reported but not monitored. `distance delete` or `~distance` removes monitors. `distance style` modifies monitor appearance and defaults. `distance save` outputs measurements to a file. In the case of two atoms, unless monitor false is given, a distance monitor pseudobond (see also the Distances graphical interface) is added and labeled according to the display options . Although subsequent changes in distance are not logged, d",
+  "related": "Complementary to `angle` for geometric measurements. Uses `axis` and `plane` objects created by `define`. Distance monitors are a type of `pseudobond`, styled with commands like `pbond`, `color`, `style`, `size`, `label`. Related to commands that find specific distance-based relationships like `clashes`/`contacts`, `hbonds`, `crosslinks`. `getcrd` reports coordinates, which distances are based on."
+ },
+ "dockprep": {
+  "purpose": "Prepares molecular structures (usually proteins and ligands) for docking or other computational procedures by performing a series of common cleanup and preparation steps.",
+  "keywords": [
+   "dock prep",
+   "docking preparation",
+   "structure preparation",
+   "delete solvent",
+   "complete sidechains",
+   "add hydrogens",
+   "add charges",
+   "standardize residues",
+   "rotamer library"
+  ],
+  "nl_queries": [
+   "prepare structure for docking",
+   "run dockprep on this model",
+   "add hydrogens and charges to protein",
+   "delete water molecules",
+   "fix missing sidechain atoms",
+   "standardize selenomethionine",
+   "use Dunbrack library to complete sidechains"
+  ],
+  "notes": "Provides a streamlined workflow for common structure preparation tasks. Options allow toggling specific steps (delete solvent/ions/altlocs, add hydrogens, add charges, standardize residues) and choosing methods (rotamer library for sidechains, charge calculation method). Settings can be saved/reused with `memorize`. Hydrogen addition options (`ah...`) mirror those in `addh`. > delAltLocs > true > | false > Whether to delete all but the currently used alternate locations (default > true > ). See also: > altlocs clean > completeSideChains > method > Whether and how to repair truncated amino acid",
+  "related": "A convenience command that combines functionality from `delete` (solvent/ions/altlocs), `swapaa` (or rotamer libraries for `completeSideChains`), `addh` (adding hydrogens), and `addcharge` (adding charges). `altlocs clean` is related to `delAltLocs`."
+ },
+ "dssp": {
+  "purpose": "Recompute secondary structure assignments.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "esmfold": {
+  "purpose": "Fetch or predict ESMFold structures.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "exit": {
+  "purpose": "Terminates the ChimeraX application session.",
+  "keywords": [
+   "exit",
+   "quit",
+   "close application",
+   "terminate",
+   "stop ChimeraX"
+  ],
+  "nl_queries": [
+   "exit chimerax",
+   "quit the program",
+   "close chimerax"
+  ],
+  "notes": "`exit` and `quit` are synonyms. This command closes the entire application, potentially losing unsaved work if not prompted.",
+  "related": "`close` closes models or the entire session data but doesn't terminate the application itself. `stop` halts command execution, not the application."
+ },
+ "fitmap": {
+  "purpose": "Fit atomic models or maps into density maps.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "fly": {
+  "purpose": "Animate the camera through a series of saved views.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "foldseek": {
+  "purpose": "Search for structurally similar proteins.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "getcrd": {
+  "purpose": "Reports the X,Y,Z coordinates of specified atoms in the Log.",
+  "keywords": [
+   "coordinates",
+   "atomic coordinates",
+   "get coordinates",
+   "position",
+   "atom position",
+   "scene coordinates",
+   "screen coordinates",
+   "model coordinates"
+  ],
+  "nl_queries": [
+   "get coordinates of this atom",
+   "what are the coordinates for atom X?",
+   "report coordinates",
+   "get scene coordinates",
+   "get screen position of atom"
+  ],
+  "notes": "Output goes to the Log. Can specify coordinate system: `model` (original), `scene` (default, accounts for relative model movements), or `screen` (2D projection plus depth). `model` and `scene` are identical if models haven't been moved relative to each other. The keywords indicate which coordinate system to use: * model - the original coordinate system of a model * scene (default) - the scene coordinate system , which includes changes from moving any models relative to other models (by fitting, matching, etc. ) * screen - the screen coordinate system , with X horizontal increasing rightward, Y",
+  "related": "Coordinates are the basis for geometric calculations like `distance` and `angle`. `save PDB` writes model coordinates to a file. `camera` and `view` relate to the scene and screen coordinate systems. `Map Coordinates` tool relates atomic and map coordinates."
+ },
+ "graphics": {
+  "purpose": "Controls global graphics rendering settings affecting the visual appearance and performance of the display.",
+  "keywords": [
+   "graphics settings",
+   "rendering",
+   "background color",
+   "frame rate",
+   "rendering quality",
+   "triangulation",
+   "subdivisions",
+   "selection outline",
+   "silhouettes",
+   "OpenGL"
+  ],
+  "nl_queries": [
+   "change background color to white",
+   "increase rendering quality",
+   "make ribbons smoother",
+   "show frame rate",
+   "report graphics driver info",
+   "change selection highlight color",
+   "turn on silhouette edges",
+   "report number of triangles"
+  ],
+  "notes": "A collection of subcommands for various graphics parameters. `bgColor` sets background. `driver` reports OpenGL info. `quality` adjusts triangulation/subdivision levels (smoothness vs performance) automatically or manually (`atomTriangles`, `bondTriangles`, `ribbonDivisions`, etc.). `rate` controls frame rate reporting and limits. `selection` sets selection outline style. `silhouettes` toggles edge outlines. `triangles` reports geometry count. > Set background color. Any transparency in the color is ignored; however, images can be saved with a (completely) transparent background using the > sa",
+  "related": "`set` can also change some graphics settings (`bgColor`, `subdivision`). `preset` applies predefined graphics settings. `save` (image saving) has options related to background transparency. `cartoon style` also controls ribbon subdivisions. `surface` controls surface triangulation. `vr` adjusts quality settings for VR."
+ },
+ "hbonds": {
+  "purpose": "Identifies and displays hydrogen bonds (H-bonds) based on geometric criteria and atom types. Can also identify salt bridges specifically.",
+  "keywords": [
+   "hydrogen bonds",
+   "H-bonds",
+   "salt bridges",
+   "bonding interactions",
+   "non-covalent interactions",
+   "pseudobonds",
+   "geometric criteria"
+  ],
+  "nl_queries": [
+   "find hydrogen bonds",
+   "show h-bonds for this selection",
+   "identify salt bridges",
+   "display h-bonds between protein and ligand",
+   "select atoms involved in h-bonds",
+   "color h-bonds green",
+   "delete h-bonds"
+  ],
+  "notes": "Creates pseudobonds by default (`makePseudobonds true`) in a model named \"hydrogen bonds\". Geometric criteria (distance, angle) can be adjusted. Can restrict scope (`restrict` option for intra/inter-specifier H-bonds, `interModel`, `intraMol`, etc.). `saltOnly` finds only interactions between formal charges. `reveal` displays atoms/residues needed to show the H-bond pseudobonds. Output includes count in Log, optional detailed log/file. The saltOnly option allows finding just the salt bridges, and the restrict option allows finding only H-bonds within the specified set of atoms or between them ",
+  "related": "`addh` uses H-bond criteria to place hydrogens. `distance` measures distances, `clashes`/`contacts` find close contacts. `pbond` creates generic pseudobonds. `interfaces` calculates interaction surfaces. `crosslinks histogram`/`network` can analyze H-bond pseudobonds. `nucleotides ladder` can display base-pairing H-bonds. `color`/`size`/`label` can modify H-bond pseudobond appearance. `~hbonds` or"
+ },
+ "help": {
+  "purpose": "Displays the documentation (help page) for a specified ChimeraX command in the integrated browser.",
+  "keywords": [
+   "help",
+   "documentation",
+   "command help",
+   "usage",
+   "man page",
+   "info"
+  ],
+  "nl_queries": [
+   "help for command X",
+   "show documentation for surface",
+   "how to use the align command?",
+   "open help page for color",
+   "man align"
+  ],
+  "notes": "Opens the relevant `.md` file (rendered as HTML) in the ChimeraX browser. The `newTab` keyword opens it in a separate tab. If no specific help page exists, basic usage info is shown in the Log. Examples: > help set > help volume gaussian",
+  "related": "`open` can open local HTML files or web URLs, including documentation pages if the path is known. The Log displays basic usage if a help page isn't found."
+ },
+ "hkcage": {
+  "purpose": "Creates a geometric representation (cage of hexagons and pentagons) of an icosahedral virus capsid based on H,K indices or T number.",
+  "keywords": [
+   "virus capsid",
+   "icosahedral symmetry",
+   "HK lattice",
+   "T number",
+   "geodesic dome",
+   "marker model",
+   "cage model",
+   "virology"
+  ],
+  "nl_queries": [
+   "make hk cage for T=3 virus",
+   "create icosahedral cage h=1 k=1",
+   "show T=4 capsid lattice",
+   "generate hk cage",
+   "change hk cage color"
+  ],
+  "notes": "Input is h,k indices (e.g., `hkcage 1,0` for T=1, `hkcage 1,1` for T=3, `hkcage 2,0` for T=4). `radius` controls overall size. `edgeRadius` controls stick thickness (if marker model). `orientation` sets alignment relative to X,Y,Z axes. `sphereFactor` interpolates between icosahedron and sphere. `alpha` creates expanded lattices. `mesh` creates a surface instead of markers. `replace` overwrites previous `hkcage` model. The arrangement of subunits in an icosahedral capsid can be described as a sheet of hexagons in which curvature is introduced by replacing certain hexagons with pentagons, as in",
+  "related": "Creates a `marker` model by default, or a surface model if `mesh true`. `marker` commands can manipulate the marker model. `size` can change the `edgeRadius` after creation. `sym` relates to general symmetry operations, including icosahedral."
+ },
+ "info": {
+  "purpose": "Report information about models, chains, residues, atoms, selection in the log.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "interfaces": {
+  "purpose": "Calculates and visualizes interfaces between chains based on buried solvent-accessible surface area (SASA). Selects residues involved in these interfaces.",
+  "keywords": [
+   "interface",
+   "chain interface",
+   "protein interface",
+   "buried surface area",
+   "SASA",
+   "contact residues",
+   "network diagram",
+   "interface selection"
+  ],
+  "nl_queries": [
+   "find interfaces between chains",
+   "calculate buried surface area for chain contacts",
+   "show interface network diagram",
+   "select residues at the interface between chain A and B",
+   "identify interacting chains"
+  ],
+  "notes": "Calculates buried SASA for all specified chain pairs. Creates an interactive network diagram showing interfaces exceeding an `areaCutoff`. `interfaces select` specifically selects residues at the interface between two sets of specified atoms (`atom-spec1`, `atom-spec2`), considering `areaCutoff` and `interfaceResidueAreaCutoff`. Network diagram nodes/edges have context menus for selection, display changes, and generating residue plots. The default probeRadius rad for calculating each SAS is 1.4 Å, often used to approximate a water molecule. Interfaces with at least interface-area buried (defau",
+  "related": "Based on `measure buriedarea` calculations, but aggregated per chain pair. `clashes`/`contacts`/`crystalcontacts` find close atomic contacts, not based on SASA. `crosslinks` and `hbonds` analyze specific types of interactions (pseudobonds). `Select Contacts` is a GUI tool with similar selection functionality."
+ },
+ "key": {
+  "purpose": "Draw a color key (legend) for value-based coloring.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "kvfinder": {
+  "purpose": "Detect cavities and pockets.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "label": {
+  "purpose": "Creates, modifies, or deletes 3D labels associated with atoms, residues, models, bonds, or pseudobonds.",
+  "keywords": [
+   "label",
+   "3D label",
+   "text label",
+   "annotate",
+   "atom label",
+   "residue label",
+   "model label",
+   "bond label",
+   "pseudobond label",
+   "attribute label"
+  ],
+  "nl_queries": [
+   "label these atoms",
+   "label residue 50",
+   "show model names as labels",
+   "label bonds with length",
+   "delete labels",
+   "change label color to red",
+   "label atoms by bfactor"
+  ],
+  "notes": "Labels move with the associated 3D item. Specify `level` (atoms, residues, models, bonds, pseudobonds) to control what is labeled and the default content. `text` option allows custom strings or attribute formatting (`{attribute}`). `attribute` option labels by a specific attribute value with default formatting. Appearance options control color, height (in Å or `fixed` to screen size), font, background, and offset from the item. The type of items to label can be indicated with one of the following level keywords, with default label contents: * atoms – atom name * residues – residue name and num",
+  "related": "`2dlabels` creates 2D labels fixed to the window, not objects. `distance` can create labeled distance monitors (pseudobonds), whose labels can be modified by `label`. `label delete` or `~label` removes labels. Label appearance options (color, height/size, font, bgColor, offset) control styling. Can label items by `attribute` values (set by commands like `setattr` or inherent properties)."
+ },
+ "lighting": {
+  "purpose": "Controls global scene illumination parameters, including directional lights (key, fill), ambient light, depth cueing, and shadows. Also includes presets for common lighting setups.",
+  "keywords": [
+   "lighting",
+   "illumination",
+   "light source",
+   "key light",
+   "fill light",
+   "ambient light",
+   "shadows",
+   "depth cueing",
+   "preset lighting",
+   "material properties"
+  ],
+  "nl_queries": [
+   "change lighting",
+   "use full lighting preset",
+   "turn on shadows",
+   "make lighting softer",
+   "adjust key light direction",
+   "turn off depth cueing",
+   "make model #1 not cast shadows"
+  ],
+  "notes": "Global settings apply to the whole scene. Presets (`simple`, `full`, `soft`, `gentle`, `flat`) offer quick setups. Key light is the primary directional source, can cast `shadows`. Fill light is secondary directional. `ambientIntensity`/`ambientColor` control omnidirectional light. `depthCue` simulates atmospheric haze. `multiShadow` enables ambient occlusion (soft shadows). `lighting model` command sets per-model overrides (casts/receives shadows). Given without arguments, lighting reports the current settings in the Log . Colors are reported as red, green, and blue components in the range 0-1",
+  "related": "`preset` applies predefined sets of settings, including lighting. `graphics` controls related visual parameters like background color and silhouettes. `material` sets object surface properties affecting light reflection and shadow casting. `clip` controls clipping planes which interact with depth cueing ranges."
+ },
+ "log": {
+  "purpose": "Controls and interacts with the ChimeraX Log panel, which displays command feedback, results, errors, warnings, and user-added content.",
+  "keywords": [
+   "log",
+   "message log",
+   "output log",
+   "command history",
+   "log settings",
+   "save log",
+   "log thumbnail",
+   "log metadata",
+   "log chains"
+  ],
+  "nl_queries": [
+   "show the log",
+   "clear log",
+   "save log to file",
+   "add message to log",
+   "log current image thumbnail",
+   "show metadata for model #1",
+   "list chains in log"
+  ],
+  "notes": "Main command can add `thumbnail` images or `text`/`html` strings. Subcommands control the panel (`show`, `hide`, `clear`), configure behavior (`settings`), save contents (`save`), or display model info (`metadata`, `chains`). `log metadata` retrieves info from input files (PDB/mmCIF). `log chains` provides links to sequences and UniProt. Options of the main log command add images and/or specified text: * thumbnail - include a thumbnail image of the current display; pixel width and height can be specified (default 100 x 100 ) * text - echo the rest of the command (up to the next carriage return",
+  "related": "Many commands report output to the Log (e.g., `getcrd`, `measure`, `interfaces`). `usage` reports command usage to the Log. `Command History` panel shows previously executed commands. `info` shows model info similar to `log metadata`/`chains`. `Sequence Viewer` is opened via `log chains`."
+ },
+ "marker": {
+  "purpose": "Creates and manipulates non-atomic markers (points/spheres) and links (lines/sticks) between them. Used for annotation, measurement, and representing abstract objects.",
+  "keywords": [
+   "marker",
+   "link",
+   "point",
+   "sphere",
+   "stick",
+   "annotation",
+   "measurement marker",
+   "tape measure",
+   "marker set"
+  ],
+  "nl_queries": [
+   "place marker at position X,Y,Z",
+   "create marker at atom A",
+   "link marker 1 and marker 2",
+   "change marker color",
+   "delete marker #2:3",
+   "marker connected surface components",
+   "convert mesh to markers"
+  ],
+  "notes": "Markers/links are stored in separate models. `marker position` creates a single marker. `marker link` connects two existing markers. `marker segment` creates two markers and the link between them. `marker connected` places markers on surface blobs. `marker fromMesh` converts surface vertices/edges. `marker change` modifies existing markers/links. `marker delete` removes them. Coordinates can be absolute (x,y,z) or relative to other objects/coordinate systems. > Creating Markers and Links > Changing Markers and Links > Deletion Example commands: > marker #2 position 16.06,-9.172,116.5 color yel",
+  "related": "Markers are similar to atoms, links to bonds. `define centroid` creates centroid markers. `measure center` calculates centers. `hkcage` creates marker models representing virus capsids. `marker fromMesh` converts surface meshes (from `shape`, `hkcage mesh true`, `volume`) to markers/links. `size` and `color` can modify markers/links. `label` can add labels. `distance` can measure between markers. "
+ },
+ "matchmaker": {
+  "purpose": "Superimposes (aligns in 3D) two or more structures based on their sequence alignment.",
+  "keywords": [
+   "structure alignment",
+   "superposition",
+   "match structures",
+   "structure comparison",
+   "sequence alignment fit",
+   "RMSD",
+   "protein alignment",
+   "nucleic acid alignment"
+  ],
+  "nl_queries": [
+   "align structure #2 to #1",
+   "matchmaker #1 to #2",
+   "superimpose these two proteins",
+   "align these structures by sequence",
+   "fit model #3 onto model #4",
+   "show sequence alignment used for match"
+  ],
+  "notes": "Synonym `mmaker`. Requires a structure to match (`matchstruct`) and a reference (`refstruct`). First aligns sequences, then fits CA (protein) or C4'/P (nucleic acid) atoms of aligned residues. `pairing` option controls chain matching strategy (best-best, best-specific, specific-specific). Iterative fitting (`cutoffDistance`) refines the fit on well-aligned core regions. Can `showAlignment` in Sequence Viewer. `bring` moves other specified models along with the matched structure. Alignment parameters (`alg`, `matrix`, `ssFraction`, gap penalties) can be customized. The method was originally imp",
+  "related": "Uses sequence alignment (similar to `sequence match`) followed by a 3D fit (similar concept to `align` but restricted to specific atoms and based on seq align). `rmsd` calculates RMSD between specified atoms, often used after alignment. `fitmap` fits atoms into density maps. `morph` interpolates between structures, often aligned first with `matchmaker`. `view` can save/restore aligned positions. `"
+ },
+ "material": {
+  "purpose": "Defines how surfaces reflect light (material properties) and whether transparent or mesh objects cast shadows.",
+  "keywords": [
+   "material",
+   "lighting",
+   "reflection",
+   "reflectivity",
+   "diffuse reflection",
+   "specular reflection",
+   "shininess",
+   "exponent",
+   "shadows",
+   "transparent shadows",
+   "mesh shadows"
+  ],
+  "nl_queries": [
+   "make objects shinier",
+   "reduce specular highlights",
+   "make surfaces dull",
+   "use chimera material settings",
+   "enable shadows for transparent surfaces",
+   "make meshes cast shadows"
+  ],
+  "notes": "Applies globally to all standard objects. `reflectivity` controls diffuse reflection (overall brightness). `specularReflectivity` and `exponent` control shininess (bright, focused highlights). `ambientReflectivity` controls reflection of ambient light. `transparentCastShadows` and `meshesCastShadows` control shadow behavior for specific object types, often best left `false`. Given without arguments, material reports the current settings in the Log . The preset can be: * default – all properties default values * shiny – specular reflectivity 1 * dull – specular reflectivity 0 * chimera – specul",
+  "related": "`lighting` controls the light sources themselves. `material` controls how surfaces interact with that light. Settings here affect the appearance of all objects using standard rendering. `volume` `meshLighting` is a related option for volume meshes."
+ },
+ "mcopy": {
+  "purpose": "Copies display styles (colors, styles, visibility), labels, secondary structure assignments, and/or atomic coordinates between corresponding atoms/residues in different atomic models.",
+  "keywords": [
+   "copy style",
+   "copy attributes",
+   "transfer appearance",
+   "copy coordinates",
+   "model copy",
+   "match residues"
+  ],
+  "nl_queries": [
+   "copy style from #1 to #2",
+   "make model #3 look like model #1",
+   "copy coordinates from model A to model B",
+   "transfer labels from #1 to #2"
+  ],
+  "notes": "Acts between existing models (`source` to `target`), does not create new models. Requires matching residues between source and target, either by residue number/name/chain ID (`matchResidues true`, default) or by sequential order (`matchResidues false`). Atom names must also match within paired residues. `settings` keyword controls which specific attributes are copied (c=color, s=style, v=visibility, h=helix/strand, l=labels, x=coords(model), p=placement, y=coords(scene), a=all except h,y). The source may include part or all of a single atomic model, and the target may include part or all of on",
+  "related": "`combine` copies an entire model to create a new one. `volume copy` copies display settings between volume models. `preset` applies predefined styles. `dssp` calculates secondary structure, which `mcopy` can copy (`settings h`). `setattr` modifies attributes directly."
+ },
+ "measure": {
+  "purpose": "Performs various measurements on models (atomic structures, surfaces, volumes) and reports results to the Log.",
+  "keywords": [
+   "measure",
+   "calculate",
+   "area",
+   "volume",
+   "center of mass",
+   "buried area",
+   "contact area",
+   "correlation",
+   "inertia",
+   "convexity",
+   "map statistics",
+   "map values",
+   "sasa",
+   "symmetry",
+   "weight",
+   "length"
+  ],
+  "nl_queries": [
+   "measure surface area",
+   "calculate volume of surface",
+   "find center of mass",
+   "measure buried area between chain A and B",
+   "calculate map correlation",
+   "measure inertia ellipsoid",
+   "calculate sasa",
+   "get map statistics",
+   "measure map value at atom X",
+   "calculate molecular weight"
+  ],
+  "notes": "This is a command with many subcommands for different calculations. Check the specific subcommand (`area`, `blob`, `buriedarea`, `center`, `contactarea`, `convexity`, `correlation`, `inertia`, `length`, `mapstats`, `mapvalues`, `motion`, `rotation`, `sasa`, `symmetry`, `volume`, `weight`) for details and options. Results are typically reported in the Log, but some subcommands have options to select atoms/residues or create new models (e.g., markers, surfaces). > Report the total surface area of an existing surface model, computed as the sum of the areas of its triangles. The > includeMasked > ",
+  "related": "Many subcommands relate to specific model types: `surface` (area, volume, blob, contactarea, convexity), `volume` (mapstats, mapvalues, symmetry, correlation), atoms (buriedarea, center, inertia, length, sasa, weight). `interfaces` uses `measure buriedarea`. `define` creates geometric objects like axes/planes/centroids, related to `measure inertia`/`center`. `marker connected` is related to `measu"
+ },
+ "meeting": {
+  "purpose": "Enables collaborative viewing and interaction within a shared ChimeraX session across multiple computers, including support for virtual reality (VR).",
+  "keywords": [
+   "meeting",
+   "collaboration",
+   "shared session",
+   "VR meeting",
+   "virtual reality",
+   "synchronization",
+   "multi-user VR"
+  ],
+  "nl_queries": [
+   "start a meeting named X",
+   "join meeting Y",
+   "share my session",
+   "collaborate in VR",
+   "leave meeting",
+   "show meeting info"
+  ],
+  "notes": "Requires a central meeting server (public `chimeraxmeeting.net` by default, or a private one) or direct connection. Participants are represented by face images (VR headset position) and pointer cones (VR controllers or mouse). `meeting start` initiates, `meeting join` connects, `meeting close` leaves. `meeting settings` configures participant name, color, image, and server details. Scene copying and command synchronization occur. Still under development with known limitations. * meeting start meeting-name – start a new meeting * meeting join meeting-name – join a meeting * meeting close – leav",
+  "related": "Primarily used in conjunction with `vr` for virtual reality sessions. Commands executed by one participant are typically mirrored by others. View synchronization depends on VR/non-VR status."
+ },
+ "mlp": {
+  "purpose": "Calculates and visualizes the Molecular Lipophilicity Potential (MLP) for protein structures, typically by coloring molecular surfaces. Helps identify hydrophobic and hydrophilic regions.",
+  "keywords": [
+   "MLP",
+   "molecular lipophilicity potential",
+   "hydrophobicity",
+   "lipophilicity",
+   "surface coloring",
+   "lipophilicity map",
+   "protein surface properties",
+   "hydrophobic pocket",
+   "binding site identification",
+   "membrane interaction",
+   "clipped surface coloring"
+  ],
+  "nl_queries": [
+   "calculate MLP",
+   "show lipophilicity surface",
+   "color surface by MLP",
+   "identify hydrophobic patches",
+   "mlp calculation",
+   "color the surface by hydrophobicity",
+   "show hydrophobic pocket"
+  ],
+  "notes": "Ignores non-protein atoms. Uses atomic contributions based on literature (Ghose et al., with hydrogen values collapsed onto heavy atoms). `method` controls the distance-decay function (default `fauchere`). Colors surfaces by default (`color true`) using the `lipophilicity` palette (cyan-white-goldenrod). `range` controls the value mapping. `map true` saves the calculated MLP grid as a volume model. The calculation is based on pyMLP : > Molecular structures: Perception, autocorrelation descriptor and SAR studies. System of atomic contributions for the calculation of the > n > -octanol/water par",
+  "related": "Typically colors a `surface` model, which might be created automatically or limited to a zone using `surface zone`. Uses a palette for coloring (can be customized, see `palette`). `coulombic` calculates/colors by electrostatic potential. `key` can display the color mapping. `color sample` can apply values from a saved MLP map (`map true`) to a surface. `per-model clipping` or `clip` can reveal int"
+ },
+ "modelcif": {
+  "purpose": "Specifically reads and plots pairwise error metrics (like PAE) from theoretical structure models in mmCIF format, typically from ModelArchive, using the AlphaFold Error Plot tool.",
+  "keywords": [
+   "ModelArchive",
+   "mmCIF",
+   "PAE plot",
+   "predicted aligned error",
+   "AlphaFold error plot",
+   "pairwise metric",
+   "theoretical model quality"
+  ],
+  "nl_queries": [
+   "plot PAE for ModelArchive structure X",
+   "show ModelArchive PAE plot",
+   "modelcif pae for model #1"
+  ],
+  "notes": "This command is specific to plotting pairwise metrics (usually PAE) from ModelArchive mmCIF files. It reads the metric from the `ma_qa_metric` table in the CIF file. Requires standard residues currently. Provides options to select the metric, set default scores for missing pairs, save the intermediate JSON data, and customize the plot palette and range. Currently, plotting does not work for ModelArchive structures that contain any residues other than standard amino acids and nucleic acids. Some of the entries in the ModelArchive have associated pairwise reliability scores such as predicted ali",
+  "related": "Uses the plotting functionality of `alphafold pae`. `open` with `pae true` can also trigger plotting for ModelArchive entries, but `modelcif pae` offers more control over metric selection (`metricName`) and plotting options (`palette`, `range`, `defaultScores`, `jsonOutputPath`)."
+ },
+ "modeller": {
+  "purpose": "Performs protein structure modeling using the external Modeller software, either via a web service or a local installation. Supports comparative (homology) modeling and loop modeling/refinement.",
+  "keywords": [
+   "modeller",
+   "homology modeling",
+   "comparative modeling",
+   "protein modeling",
+   "loop modeling",
+   "structure prediction",
+   "web service",
+   "Modeller license"
+  ],
+  "nl_queries": [
+   "homology model this sequence",
+   "run modeller comparative",
+   "build missing loop",
+   "refine loop region",
+   "use modeller to build structure",
+   "get modeller scores"
+  ],
+  "notes": "Requires a Modeller license key (free for academics, specified once and saved). Runs calculations via RBVI web service (default) or local installation (`executableLocation`). `modeller comparative` needs a sequence alignment with template structures associated. `modeller loops` or `modeller refine` builds/refines specified sequence regions (`sequence-spec:region`). Results (models) are opened and superimposed on templates. Scores are shown in a panel and can be requested via `modeller scores`. Options control number of models, license key, local execution, handling of HETATMs/water/hydrogens, ",
+  "related": "`alphafold` and `esmfold` are alternative structure prediction methods (not template-based). `swapaa` performs sidechain rotamer replacement. `build` performs basic structure editing. Requires a sequence alignment (can be created with `sequence match` or external tools) for comparative modeling. `matchmaker` superimposes structures, often used to align results to templates."
+ },
+ "molmap": {
+  "purpose": "Generates a density map (volume data) from atomic coordinates, simulating a low-resolution map of the molecule.",
+  "keywords": [
+   "molecular map",
+   "atomic map",
+   "simulate map",
+   "density map",
+   "low resolution",
+   "Gaussian map",
+   "pdb2mrc",
+   "volume generation"
+  ],
+  "nl_queries": [
+   "create map from atoms",
+   "molmap #1 resolution 5",
+   "simulate density map",
+   "generate map for symmetric assembly",
+   "make map from PDB"
+  ],
+  "notes": "Based on EMAN's pdb2mrc. Each atom contributes a Gaussian function (default) or a flat ball with Gaussian falloff (`balls true`). `resolution` parameter controls the width of the Gaussians. Map grid (`gridSpacing`, `edgePadding`, `onGrid`, `cube`) and calculation parameters (`cutoffRange`, `sigmaFactor`) can be adjusted. `symmetry` option allows generating maps for symmetric assemblies using BIOMT info, symmetry from other models, or cage polygon symmetry. The molmap command is based on the pdb2mrc program in EMAN. Examples: > molmap #1 3.5 > molmap protein 6",
+  "related": "Creates a `volume` model. `fitmap` fits atomic models into maps (often experimental). `measure inertia` provides another way to get a low-resolution shape. `sym` applies symmetry operations to atomic models; `molmap` `symmetry` applies symmetry during map generation. `volume` command controls display and saving of the generated map."
+ },
+ "morph": {
+  "purpose": "Creates a smooth trajectory (movie) interpolating between two or more superimposed atomic structures.",
+  "keywords": [
+   "morph",
+   "interpolation",
+   "trajectory",
+   "conformational change",
+   "structural transition",
+   "movie generation",
+   "coordinate set",
+   "morphing"
+  ],
+  "nl_queries": [
+   "morph between model #1 and #2",
+   "create morph trajectory",
+   "interpolate between structures",
+   "animate conformational change",
+   "make morph movie"
+  ],
+  "notes": "Based on the Yale Morph Server method. Requires superimposed input models (`model-spec`). Models must have the same number of chains. Only atoms common to all input models are included. Creates a new trajectory model. `frames` controls the number of interpolated steps per stage. `wrap` morphs from last back to first. `method` (linear/corkscrew) affects rigid-body motion. `cartesian` forces simple linear interpolation (faster, less realistic). `rate` controls interpolation speed profile. Hinge detection (`coreFraction`, `minHingeSpacing`) divides chains into rigid segments. `colorSegments`/`col",
+  "related": "Input structures should generally be superimposed first using `matchmaker` or `align`. The output is a trajectory model playable with `coordset` commands or the `coordset slider`. `volume morph` performs similar interpolation for volume data. Movie recording often involves `movie record` or the slider's record button."
+ },
+ "move": {
+  "purpose": "Translates specified models, atoms, or the entire scene along a specified axis by a given distance, potentially over multiple frames for animation. Also centers models at the center of rotation.",
+  "keywords": [
+   "move",
+   "translate",
+   "shift",
+   "position",
+   "center model",
+   "move cofr"
+  ],
+  "nl_queries": [
+   "move model #1 along x by 5",
+   "translate selection y -10",
+   "shift scene z 20",
+   "center model #2 at cofr"
+  ],
+  "notes": "Requires an `axis` (x, y, z, or vector spec). `distance` is in Ångstroms (or data units). If no models/atoms specified, moves the whole scene. `coordinateSystem` specifies the reference frame. `frames` distributes movement over multiple frames for animation. `move cofr` is a specific subcommand to center models. The axis is required and can be x , y , z or any of the other standard vector specifications . The screen coordinate system (X horizontal, Y vertical, Z in/out of screen) will be used to interpret axis specifications unless a reference model is given with the coordinateSystem option. T",
+  "related": "`roll` and `turn` perform rotations. `zoom` changes magnification (effectively moves camera along Z). `cofr` sets the center of rotation. `move cofr` moves models to that center. `wait` can pause command execution until movement finishes. `stop` can halt ongoing movement. `view` can save/restore positions."
+ },
+ "movie": {
+  "purpose": "Records a sequence of image frames from ChimeraX and encodes them into a movie file (e.g., MP4, MOV, AVI). Designed for scripted movie creation.",
+  "keywords": [
+   "movie",
+   "record movie",
+   "encode movie",
+   "video",
+   "animation",
+   "frame capture",
+   "ffmpeg"
+  ],
+  "nl_queries": [
+   "record movie",
+   "encode movie frames",
+   "stop movie recording",
+   "movie crossfade",
+   "list movie formats"
+  ],
+  "notes": "Intended for non-interactive, scripted recording. Use screen capture software for interactive recording. Key actions: `record` starts frame capture, `encode` assembles frames into a movie file, `stop` halts recording without encoding. `crossfade` and `duplicate` manipulate recorded frames before encoding. Options control image `size`, `supersample` level (anti-aliasing), image `format` (jpeg/png/ppm), temporary file `directory`/`pattern`, output movie `format`/`quality`/`bitrate`/`framerate`, etc. One of the following action keywords must be given: * record – start recording frames * encode – ",
+  "related": "Captures frames generated by other commands like `turn`, `rock`, `roll`, `fly`, `coordset play`, `morph`, `view`. `wait` is crucial for inserting pauses or ensuring actions complete between frames. `save image` saves single images. `view` controls camera position between frames. `windowsize` can set the window dimensions (used if `size` option isn't). Uses external `ffmpeg` for encoding."
+ },
+ "mseries": {
+  "purpose": "Plays through a sequence of models as if they were frames of a trajectory (a model series). Provides a slider interface for playback and movie recording.",
+  "keywords": [
+   "model series",
+   "trajectory",
+   "animation",
+   "playback",
+   "slider",
+   "ensemble",
+   "sequential models"
+  ],
+  "nl_queries": [
+   "play models #1.1-20 as trajectory",
+   "mseries #1-10",
+   "show mseries slider for models",
+   "animate model series"
+  ],
+  "notes": "Treats specified models (`model-spec`) as sequential frames. `step` allows skipping models (e.g., `step 2` plays every other model). `pauseFrames` controls dwell time per model during playback/recording. `loop` repeats playback. `mseries slider` creates a GUI for interactive control and basic movie recording. Examples: > mseries #1.1-60 pause 5 step 3 > mseries slider #1 > mseries slider #1.1-20",
+  "related": "Similar concept to `coordset` for playing trajectories stored within a single model. `vseries` plays through volume series. The `mseries slider` provides playback controls similar to the `coordset slider`. `movie` command can also be used for recording, potentially offering more control than the slider's record button."
+ },
+ "mutationscores": {
+  "purpose": "Loads, analyzes, and visualizes deep mutational scanning data, associating scores with protein structure positions. Enables plotting scores (scatter plots, histograms), defining new scores, and coloring/labeling structures based on scores.",
+  "keywords": [
+   "deep mutational scanning",
+   "DMS",
+   "mutation scores",
+   "variant scores",
+   "protein variants",
+   "scatter plot",
+   "histogram",
+   "structure annotation",
+   "AlphaMissense",
+   "UniProt Variants",
+   "SIFT",
+   "PolyPhen"
+  ],
+  "nl_queries": [
+   "plot mutation scores",
+   "show DMS scatter plot",
+   "histogram mutation scores",
+   "color structure by mutation data",
+   "define new mutation score",
+   "associate mutation data with structure #1"
+  ],
+  "notes": "Data is read from `.csv` files or fetched. Each dataset is a \"mutation set\". Requires association between mutation data (sequence/numbering) and structure chains (`mutationscores structure` or via `open`). `scatterplot` shows correlation between two scores. `histogram` shows distribution of one score. `define` creates new scores from existing ones. `label` adds a color-coded grid to residues showing scores for all substitutions at that position. `umap` projects scores per position into 2D. Plots are interactive. * mutationscores scatterplot – plot mutants by two types of score * mutationscores",
+  "related": "Reads data via `open` (for `.csv` files or fetching from databases like AlphaMissense/UniProt Variants). Interacts with structures (`open`, `color`, `label`, `select`, `view`). Plots are generated (`scatterplot`, `histogram`, `umap`)."
+ },
+ "name": {
+  "purpose": "Defines a custom name (selector) as a synonym for a complex atom specification (`spec`), making it easier to refer to that group of atoms later.",
+  "keywords": [
+   "name selection",
+   "define selector",
+   "named set",
+   "target name",
+   "custom selection",
+   "alias selection"
+  ],
+  "nl_queries": [
+   "name selection X as Y",
+   "define target my_ligand as ligand",
+   "name current selection pocket",
+   "list named selections",
+   "delete named selection"
+  ],
+  "notes": "Names must start with a letter and contain alphanumeric characters, `_`, `+`, `-`. Standard `name` creates an \"evaluate-later\" target, meaning the `spec` string is re-evaluated each time the name is used. `name frozen` creates an \"evaluate-now\" target, capturing the specific atoms included in `spec` at the time of definition; this set does not update automatically. `name list` shows defined targets. `name delete` removes them. Defining a name is useful to replace a long target specification string with something shorter and easier to type, or to name the current selection for easy access to it",
+  "related": "`select` defines the current selection, which can then be named using `name frozen ... sel`. `alias` defines command aliases, while `name` defines selection aliases. `rename` changes the name attribute of models or residues. Named targets appear in the `Select... User-Defined Selectors` menu and the `Basic Actions` tool."
+ },
+ "nucleotides": {
+  "purpose": "Creates specialized, non-atomic representations for nucleic acid residues (DNA/RNA).",
+  "keywords": [
+   "nucleotides",
+   "nucleic acid representation",
+   "DNA style",
+   "RNA style",
+   "base ladder",
+   "base stubs",
+   "filled rings",
+   "base slabs",
+   "tube representation"
+  ],
+  "nl_queries": [
+   "show dna as ladder",
+   "represent rna with slabs",
+   "fill nucleotide rings",
+   "show base stubs",
+   "turn off nucleotide representation"
+  ],
+  "notes": "Operates via different `mode` options: `atoms` (or `~nucleotides`) removes special representations. `fill` shows atoms but fills rings. `ladder` shows H-bonded pairs as rungs (uses `hbonds`). `stubs` shows unpaired bases as half-rungs. `tube/slab` shows ribose as tube, base as slab (box/muffler/ellipsoid). `slab` shows ribose as filled rings, base as slab. Options within each mode control radius, thickness, shape, dimensions, hiding atoms, etc. > Remove special representations to reveal atoms and bonds. > > Atomic representation, but with filled rings (base and ribose). Fill thickness can be a",
+  "related": "Modifies the display style of nucleotide residues, complementing atomic styles (`hide`/`show`, `style`, `color`) and cartoon (`cartoon`). `color bynucleotide` applies standard base colors. `hbonds` finds H-bonds used by `ladder` mode. `struts` can connect backbone atoms. `preset` can apply nucleotide styles."
+ },
+ "open": {
+  "purpose": "Opens data files from local storage or fetches them from online databases, creating new models in ChimeraX. Handles various file formats for structures, maps, sequences, etc.",
+  "keywords": [
+   "open",
+   "load",
+   "read",
+   "fetch",
+   "PDB",
+   "mmCIF",
+   "MRC",
+   "map",
+   "sequence",
+   "URL",
+   "database ID",
+   "file format"
+  ],
+  "nl_queries": [
+   "open file.pdb",
+   "fetch 1abc",
+   "load map.mrc",
+   "open sequence.fasta",
+   "open session file",
+   "fetch emd-1234"
+  ],
+  "notes": "Can open local files (pathnames, optionally with wildcards or `browse`), URLs, or database entries (`prefix:identifier`, e.g., `pdb:1abc`, `emdb:1234`, `alphafold:uniprot_id`, `uniprot:uniprot_id`). `format` option can specify file type if suffix is missing/ambiguous. Numerous options control how data is interpreted and displayed upon opening (e.g., `coordsets`, `vseries`, `name`, `autoStyle`, `center`, `atomic`, sequence/alignment handling options, map interpretation options). `open formats` lists supported types. Examples: > open ~/Desktop/maps/myfile.mrc name refined3 > open 2gbp > open 1pl",
+  "related": "`close` removes opened models. `save` saves models to files. `runscript` executes commands from a file (can contain `open`). `alphafold`/`esmfold` fetch specific types of predicted models. `help` can open documentation files. `sym` creates symmetry-related copies of opened models. `info` reports details about opened models. `cd` changes the directory for opening local files."
+ },
+ "pbond": {
+  "purpose": "Creates or deletes a generic pseudobond between two specified atoms. Pseudobonds are visual representations of interactions or distances, distinct from covalent bonds.",
+  "keywords": [
+   "pseudobond",
+   "pbond",
+   "draw line",
+   "interaction line",
+   "restraint line",
+   "link atoms"
+  ],
+  "nl_queries": [
+   "create pseudobond between atom A and atom B",
+   "draw line from here to here",
+   "delete pseudobond",
+   "pbond sel"
+  ],
+  "notes": "Requires specification of two atoms (`atom1`, `atom2` or `sel` if selection is 2 atoms). Creates pseudobonds in a model named \"custom\" by default (`name` option changes this). `reveal` shows endpoint atoms. `showDist` adds a dynamic distance label. `color`, `radius`, `dashes` control appearance. `currentCoordsetOnly` makes the pbond specific to the current trajectory frame. The pseudobonds can be removed with the pbond delete or ~pbond command. If atom1 and atom2 are specified, the pseudobond between them will be removed. Otherwise, an entire pseudobond model can be deleted by giving its name.",
+  "related": "Creates pseudobonds, which are distinct from covalent `bond`s. `distance`, `hbonds`, `clashes`/`contacts`, `crosslinks` automatically create specific types of pseudobonds based on calculations. `label` can add labels to pseudobonds. `color`, `size`, `style` can modify pseudobond appearance. `pbond delete` or `~pbond` removes pseudobonds created by this command (or by name). `close` removes pseudob"
+ },
+ "perframe": {
+  "purpose": "Executes one or more specified commands repeatedly over a sequence of display frames, typically for creating animations or performing actions across trajectory frames.",
+  "keywords": [
+   "perframe",
+   "frame loop",
+   "animation",
+   "movie making",
+   "iterate commands",
+   "sequence execution",
+   "trajectory analysis"
+  ],
+  "nl_queries": [
+   "run this command for every frame",
+   "animate the rotation and save images",
+   "change the volume level from 2.5 to 0.5 over 50 frames",
+   "make a movie of the structure rotating",
+   "stop all perframe actions",
+   "run dssp on every frame of the trajectory"
+  ],
+  "notes": "The `operation` argument specifies the command(s) (semicolon-separated if multiple) to execute each frame. Substitution arguments (`$1`, `$2`, etc.) in the `operation` can be replaced by values from `range` specifications or the frame counter (starting from 1). The duration is controlled by the `frames` option or implied by the `range`. The `interval` option allows executing the `operation` less frequently (e.g., every Kth frame). `zeroPadWidth` and `format` are useful for formatting substituted numbers, especially for generating sequential filenames. Indefinite `perframe` loops require `perfr",
+  "related": "`perframe` automates the execution of *any* other ChimeraX command(s) or pre-defined `alias`es. It's frequently used in conjunction with commands like `turn`, `roll`, `move` (for transformations), `save` (for images/sessions), `volume`, `color` (for display changes), `coordset` (for stepping through trajectories), `dssp`, `hbonds` (for per-frame calculations), and `wait` (to synchronize with other"
+ },
+ "preset": {
+  "purpose": "Applies predefined sets of display settings (like representation, coloring, lighting, surface appearance) or executes user-defined sequences of commands (aliases) to quickly achieve a specific look or state.",
+  "keywords": [
+   "preset",
+   "style",
+   "appearance",
+   "display settings",
+   "predefined look",
+   "cartoon",
+   "surface",
+   "lighting",
+   "publication preset",
+   "interactive preset",
+   "user preset"
+  ],
+  "nl_queries": [
+   "apply the cartoon preset",
+   "use the publication 1 style",
+   "show the ghostly white surface preset",
+   "preset interactive",
+   "run my custom preset named 'setup_view'"
+  ],
+  "notes": "Built-in presets primarily affect atomic models. Category/preset names can be truncated and are case-insensitive. Quotes are needed if the specified name part contains spaces. User-defined presets are created by saving an `alias` via the `Presets` menu -> `Save Preset`. Built-in presets often hide existing molecular surfaces. The exact result of a preset depends on the current state and may not be fully deterministic in all cases. * Cartoons/Nucleotides Ribbons/Slabs – cartoon style initial defaults + nucleotide bases as rectangular boxes Cylinders/Stubs – cartoon style protein α-helix cylinde",
+  "related": "Presets bundle multiple display-related commands (`style`, `cartoon`, `nucleotides`, `color`, `surface`, `graphics`, `lighting`, `background`, etc.) into a single command. User-defined presets are essentially `alias`es stored in a specific way accessible via the `preset` command and menu. `mcopy` can copy display settings, similar to applying a preset."
+ },
+ "pwd": {
+  "purpose": "Print the current working directory.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "registration": {
+  "purpose": "",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "remotecontrol": {
+  "purpose": "",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rename": {
+  "purpose": "Rename models or chains.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "renumber": {
+  "purpose": "Renumber residues.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "resfit": {
+  "purpose": "Show residue fit to density.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rmsd": {
+  "purpose": "Compute RMSD between two atom sets.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rna": {
+  "purpose": "Build RNA models.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rock": {
+  "purpose": "Rock the view back and forth continuously.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "roll": {
+  "purpose": "Spin the view continuously (roll y 0.5); smaller step = slower. Stop with 'stop'.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "runscript": {
+  "purpose": "Run a Python or ChimeraX command script file with arguments.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "save": {
+  "purpose": "Save images (png), sessions (cxs), structures (pdb/cif), maps and other files.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "scalebar": {
+  "purpose": "Show a scale bar.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "segger": {
+  "purpose": "Segment maps with Segger.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "segmentation": {
+  "purpose": "Work with segmentations of maps.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "segmentations": {
+  "purpose": "",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "select": {
+  "purpose": "Select atoms/residues/chains/models by specifier; add, subtract, invert, clear; select by zone.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "sequence": {
+  "purpose": "Manages and interacts with sequences and sequence alignments displayed in the Sequence Viewer, including associating sequences with structures, performing alignment-based operations, and controlling the viewer's display.",
+  "keywords": [
+   "sequence",
+   "sequence viewer",
+   "alignment",
+   "sequence alignment",
+   "structure association",
+   "sequence matching",
+   "superposition",
+   "sequence identity",
+   "reference sequence",
+   "header",
+   "consensus",
+   "conservation",
+   "MMSeqs2"
+  ],
+  "nl_queries": [
+   "show sequence for chain A",
+   "align these sequences",
+   "associate chain B with sequence X in alignment Y",
+   "match structures based on alignment",
+   "calculate sequence identity",
+   "search for similar sequences",
+   "hide the consensus header",
+   "set sequence Z as the reference for numbering"
+  ],
+  "notes": "The command consists of various subcommands (`chain`, `associate`, `match`, `align`, `identity`, etc.) each with specific functions related to sequence data. Many actions require specifying an `alignment-ID` (from the Sequence Viewer title bar) and often a `sequence-ID` (name or index within the alignment). Most functionality is also accessible via the Sequence Viewer's menus. `sequence associate` is crucial for linking 3D structure selections/coloring to the 1D sequence display.",
+  "related": "`sequence` subcommands interact heavily with the Sequence Viewer tool. `sequence chain` displays sequences from atomic models. `sequence match` performs superposition similar to `matchmaker` but driven explicitly by an existing alignment. `sequence align` uses external tools (like Clustal Omega, MUSCLE) accessed via web services. `sequence search` uses MMSeqs2. Sequence-structure association links"
+ },
+ "set": {
+  "purpose": "Sets global parameters affecting the ChimeraX environment and display, such as background color and the subdivision level for certain atomic representations.",
+  "keywords": [
+   "set",
+   "global parameter",
+   "setting",
+   "background color",
+   "bgColor",
+   "subdivision",
+   "smoothness",
+   "rendering quality"
+  ],
+  "nl_queries": [
+   "set background color to white",
+   "set subdivision to 5",
+   "what are the current set parameters?",
+   "change background color",
+   "make spheres smoother",
+   "set parameter bgColor"
+  ],
+  "notes": "Currently, `set` controls only a limited number of global parameters (`bgColor`, `subdivision`). Many other global settings are managed by commands like `graphics`, `lighting`, `windowsize`, etc. Running `set` without any arguments lists the current values of its controlled parameters in the Log. Increasing `subdivision` improves visual quality for certain representations but can negatively impact performance due to increased geometric complexity. Parameter keyword : * bgColor – background color * subdivision – fineness of triangulation of stick, ball-and-stick, and sphere display styles Param",
+  "related": "`set bgColor` is equivalent to `graphics bgColor`. `set subdivision` controls the detail level for `style`s like stick, ball-and-stick, and sphere; `graphics quality` offers more fine-grained control over triangle counts and also affects `cartoon` representation quality. `preset` commands often implicitly change settings controlled by `set`. Using `~set bgColor` reverts the background color to the"
+ },
+ "setattr": {
+  "purpose": "Set attribute values on atoms, residues, chains or models.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "shape": {
+  "purpose": "Creates surface models representing various geometric shapes (sphere, cylinder, box, ribbon, etc.) or paths connecting atoms/markers.",
+  "keywords": [
+   "shape",
+   "geometry",
+   "surface model",
+   "sphere",
+   "ellipsoid",
+   "cylinder",
+   "cone",
+   "icosahedron",
+   "triangle",
+   "rectangle",
+   "ribbon",
+   "tube",
+   "boxPath",
+   "geometric object"
+  ],
+  "nl_queries": [
+   "create a sphere shape",
+   "draw a cylinder",
+   "make an icosahedron shape",
+   "show a ribbon connecting these atoms",
+   "create a tube along this path",
+   "shape sphere radius 5",
+   "shape cylinder height 10 radius 2",
+   "shape ribbon atoms /A:10-20"
+  ],
+  "notes": "Each shape type (`sphere`, `cylinder`, etc.) has specific options (e.g., `radius`, `height`, `axis`, `caps`). Common options include `center`, `rotation`, `color`, `modelId`, `divisions` (controlling mesh fineness, except for rectangle). Paths (ribbon, tube, boxPath) require an `atoms` or `markers` specification. Icosahedron has special options like `orientation`, `sphereFactor`, and `lattice` (for HK cage generation). Unlike `define` objects, `shape` objects are primarily for visualization and cannot be directly used in measurement commands like `distance` or `angle`. The shape can be: * sphe",
+  "related": "`shape` creates surface models, distinct from `marker` which creates pseudoatoms (used in measurements) and `define` which creates geometric objects for measurements (axes, planes, centroids). `shape ribbon`, `shape tube`, `shape boxPath` use atom/marker specifications to define the path. The appearance of shapes can be modified using standard surface commands like `color`, `transparency`, `surfac"
+ },
+ "show": {
+  "purpose": "Controls the visibility (display/undisplay) of specified items, including atoms, bonds, pseudobonds, cartoons, molecular surfaces, volume displays, and entire models.",
+  "keywords": [
+   "show",
+   "hide",
+   "display",
+   "undisplay",
+   "visible",
+   "invisible",
+   "turn on",
+   "turn off",
+   "view"
+  ],
+  "nl_queries": [
+   "show chain A",
+   "hide solvent",
+   "hide cartoons",
+   "show surface for protein",
+   "hide model #2",
+   "show everything",
+   "hide waters",
+   "display sidechains for residue 50",
+   "show protein backbone only"
+  ],
+  "notes": "Requires an atom/model specification (`spec`). A blank `spec` usually means \"all\" applicable items. The `level` keyword (e.g., `atoms`, `cartoons`, `surfaces`, `models`) or the `target` option (using single-letter codes like `a`, `c`, `s`, `m`) specifies which representation type(s) to affect. The default `level` depends on the `spec`. `hide` makes items invisible but does not delete them; they still exist and can be shown again. Examples: > show #1/a > hide /b-d cartoons > hide > hbonds > hide > nucleic > targ cp Which of the possible displays of a given atom, residue, etc. to show or hide ca",
+  "related": "`show`/`hide` controls the overall visibility of items or representations. Commands like `style`, `cartoon`, `surface`, `volume` create or modify these representations, but `show`/`hide` determines if they are drawn. `display` is similar but usually targets specific residues or atoms rather than entire representations. `delete` removes items entirely, whereas `hide` just makes them invisible. `clo"
+ },
+ "similarstructures": {
+  "purpose": "Interacts with the \"Similar Structures\" tool, which finds protein structures similar to a query structure (using BLAST or Foldseek implicitly), displays results in a table, and provides various ways to analyze and visualize large sets of hits (3D traces, 2D sequence/scatter plots).",
+  "keywords": [
+   "similar structures",
+   "BLAST",
+   "Foldseek",
+   "structure search",
+   "protein similarity",
+   "PDB search",
+   "AlphaFold search",
+   "sequence alignment plot",
+   "UMAP",
+   "structure clustering",
+   "ligand mapping",
+   "hit analysis"
+  ],
+  "nl_queries": [
+   "find similar structures to chain A using BLAST",
+   "open hit 6cmi_B",
+   "show traces for similar structures results",
+   "cluster the hits",
+   "map ligands from similar structures",
+   "close the similar structures results bl1"
+  ],
+  "notes": "This command primarily controls the \"Similar Structures\" tool and its associated visualizations and analyses. Many subcommands require a results set name (e.g., `bl1`, obtained when running `similarstructures blast` or listed by `similarstructures list`). The tool handles fetching structures, trimming them (removing extra chains, non-aligned regions, ligands based on options), and superimposing them onto the query. The `cluster` subcommand performs UMAP dimensionality reduction on Cα coordinates. `ligands` maps non-polymer atoms from hits based on spatial proximity after superposition. * Simil",
+  "related": "`similarstructures` is the command interface to the \"Similar Structures\" tool. `similarstructures blast` performs a BLAST search similar to `blastprotein` but tailored for this tool's output. It implicitly uses structure alignment (like `align`) for opening/superimposing hits. `sequence search` (MMseqs2) and `foldseek` offer faster alternatives for finding similar structures, and their results can"
+ },
+ "size": {
+  "purpose": "Adjusts radius parameters for atomic representations (VDW spheres, balls, sticks) and pseudobonds. Allows setting radii based on numerical attribute values using the `byattribute` subcommand.",
+  "keywords": [
+   "size",
+   "radius",
+   "VDW radius",
+   "ball scale",
+   "stick radius",
+   "pseudobond radius",
+   "atomic size",
+   "bond size",
+   "render by attribute",
+   "size byattribute"
+  ],
+  "nl_queries": [
+   "set atom radius to 1.5",
+   "increase stick radius",
+   "decrease ball scale",
+   "size atoms by bfactor",
+   "change pseudobond thickness",
+   "reset atom radii to default",
+   "make ligand atoms bigger"
+  ],
+  "notes": "Radii can be set to absolute values or changed relatively using `+` or `-`. `atomRadius default` restores standard VDW radii. `ballScale` applies model-wide even if only part of the model is specified. `stickRadius` applies to bonds and singleton atoms in stick style. `size byattribute` requires a numerical `attribute-name` and maps values to radii using `value:radius` pairs (default `min:1 max:4`).",
+  "related": "`size` sets radii used by different `style` representations (sphere, ball, stick). `style` controls which representation is used. `size byattribute` is analogous to `color byattribute` and `cartoon byattribute` (worm style) for visually mapping attributes. `set subdivision` and `graphics quality` affect the smoothness/detail of these representations, not their fundamental radii. `setattr` can crea"
+ },
+ "smoothlines": {
+  "purpose": "Smooths jagged paths in models composed of line segments (e.g., imported from VTK files) by iteratively averaging vertex positions.",
+  "keywords": [
+   "smooth lines",
+   "line model",
+   "path smoothing",
+   "vertex averaging",
+   "VTK",
+   "line segment model"
+  ],
+  "nl_queries": [
+   "smooth the lines in model #3",
+   "smoothlines #3 iterations 20",
+   "smooth this line model"
+  ],
+  "notes": "Works by iteratively moving each vertex towards the average position of itself and its neighbors. Parameters `stepFactor` (fraction of distance moved per iteration, default 0.1) and `iterations` (number of smoothing cycles, default 10) control the smoothing extent. `replace true` modifies the original model; the default (`false`) creates a new, smoothed model. See also: volume , volume operations",
+  "related": "`smoothlines` operates specifically on line-segment models. It's somewhat analogous to smoothing operations available for `volume` data but applied to 1D paths instead of 3D density maps. The input might come from files opened with the `open` command (e.g., VTK format)."
+ },
+ "snapshot": {
+  "purpose": "Saves a snapshot image of the current 3D view, equivalent to clicking the toolbar camera icon. Allows specifying a custom save directory.",
+  "keywords": [
+   "snapshot",
+   "image",
+   "save image",
+   "screenshot",
+   "capture view",
+   "toolbar icon"
+  ],
+  "nl_queries": [
+   "take a snapshot",
+   "save snapshot image",
+   "snapshot directory ~/Pictures/ChimeraX",
+   "snapshot browse"
+  ],
+  "notes": "Primarily a convenience command replicating the toolbar icon's function. The main utility over simply clicking the icon is programmatically setting the save `directory` preference, which affects other toolbar/slider-based saving actions. The actual image saving uses default parameters (PNG, 3x supersampling) which cannot be changed via this command. See also: save , saving images , saving movies",
+  "related": "`snapshot` is a simplified interface to the `save` command, specifically for images with default settings (like the toolbar icon). It uses hardcoded settings like `supersample 3` and PNG format. The `directory` option sets a preference used by `snapshot`, the spin movie icon, and movie recording from sliders (`coordset`, `morph`, `mseries`, `volume morph`, `vseries`). For more control over image f"
+ },
+ "split": {
+  "purpose": "Divides an atomic model into multiple independent submodels based on specified criteria (chains, ligands, connectivity, or custom atom specifications).",
+  "keywords": [
+   "split",
+   "partition",
+   "separate model",
+   "submodel",
+   "chain split",
+   "ligand split",
+   "connected components",
+   "divide structure"
+  ],
+  "nl_queries": [
+   "split model #1 by chain",
+   "split ligands in model #2",
+   "split model #3 into connected parts",
+   "split residues 1-100 into a separate model",
+   "split chains A B C"
+  ],
+  "notes": "Operates on atomic models. Creates submodels within the model hierarchy. A blank model specification applies the split to all atomic models. Splitting criteria include `chains` (default), `ligands`, `connected` (covalently bonded fragments), and custom `atoms` specifications (can be used multiple times to define multiple submodels). There is no direct undo; the original model must be reopened or `combine`d if needed. As per the usual convention, a blank specification means \"all.\" That is, if no models are specified, all atomic models will be affected. There is no way to undo this operation exc",
+  "related": "`split` is the inverse of `combine`. It creates new submodels (e.g., #1.1, #1.2) from an existing model (#1). The resulting submodels can then be manipulated independently using commands like `move`, `color`, `hide`, or via the `Model Panel`."
+ },
+ "stop": {
+  "purpose": "Immediately halts all ongoing multi-frame motions initiated by commands like `move`, `roll`, `turn`, or `view` changes.",
+  "keywords": [
+   "stop",
+   "halt",
+   "cancel motion",
+   "stop animation",
+   "interrupt movement",
+   "freeze",
+   "still"
+  ],
+  "nl_queries": [
+   "stop motion",
+   "halt all movement",
+   "stop spinning",
+   "make it stop moving",
+   "stop the animation",
+   "halt rotation",
+   "freeze the view",
+   "make it still"
+  ],
+  "notes": "A simple command with no arguments. Affects all currently active, built-in multi-frame motions simultaneously. See also: move , roll , turn , view , wait",
+  "related": "`stop` specifically targets and halts motions started by `move`, `roll`, `turn`, and animated `view` changes. It does *not* stop per-frame scripts run by `perframe` (use `perframe stop` or `~perframe` for that) or trajectory playback from `coordset` (use `coordset stop`). `wait` can be used to pause script execution until motions initiated by preceding commands are finished, whereas `stop` cancels"
+ },
+ "struts": {
+  "purpose": "Adds reinforcing pseudobonds (struts) between nearby atoms in a molecular structure, primarily to increase its physical stability for 3D printing. Optionally thickens protein/nucleic acid ribbons.",
+  "keywords": [
+   "struts",
+   "3D printing",
+   "reinforce structure",
+   "pseudobond",
+   "thicken ribbon",
+   "model stability",
+   "physical model"
+  ],
+  "nl_queries": [
+   "add struts to C-alphas",
+   "struts @ca length 8 loop 40",
+   "reinforce model for 3D printing",
+   "thicken ribbons and add struts",
+   "delete struts"
+  ],
+  "notes": "Requires a non-blank `atom-spec` to specify which atoms can form strut endpoints (e.g., `@ca` for C-alphas in proteins). Struts are added between atom pairs closer than `length` (default 7.0 Å) if their shortest path through existing bonds/pseudobonds is longer than `loop` (default 30.0 Å). `fattenRibbon true` (default) increases default `cartoon style` dimensions. `~struts` or `struts delete` removes struts and optionally reverts ribbon fattening (`resetRibbon true` default). A non-blank atom-spec is required to create new struts (it is rarely a good idea to use all atoms). Pairs of atoms wit",
+  "related": "`struts` creates a new `pseudobond` model containing the struts. The appearance (radius, color) of these pseudobonds can be controlled via options or modified later using `color`, `size`, `style`. The `fattenRibbon` option modifies parameters otherwise controlled by `cartoon style`. The command uses distance (`length`) and connectivity (`loop` through existing `bond`s and `pseudobond`s like `hbond"
+ },
+ "style": {
+  "purpose": "Sets the atomic representation style (sphere, stick, ball-and-stick) for specified atoms/bonds, controls aromatic ring filling, and sets the number of dashes for pseudobonds.",
+  "keywords": [
+   "style",
+   "representation",
+   "atomic style",
+   "sphere",
+   "stick",
+   "ball and stick",
+   "ring fill",
+   "dashes",
+   "pseudobond style"
+  ],
+  "nl_queries": [
+   "style sphere",
+   "show atoms as sticks",
+   "change to ball and stick style",
+   "fill aromatic rings",
+   "make pseudobonds dashed",
+   "style protein stick",
+   "style ligand ball"
+  ],
+  "notes": "Applies to atoms and bonds specified. Styles are `sphere`, `stick`, `ball`. `ringFill` options (`thick`, `thin`, `off`, `on`) control aromatic ring display per residue. `dashes` takes an integer `N` (0 for solid, even numbers for dashes) and applies model-wide to specified pseudobond models. See also: show , preset , cartoon style , graphics quality , nucleotides , hbonds , crosslinks , setattr , Actions menu , Molecule Display icons, Selection Inspector",
+  "related": "`style` determines the *type* of atomic representation, while `size` controls the *radii* used within those styles (VDW radius for sphere, ball scale factor, stick radius). `show`/`hide` controls the overall visibility of these representations. `preset` commands often change styles implicitly. `cartoon style` controls cartoon representations separately. `nucleotides` has its own specialized repres"
+ },
+ "surface": {
+  "purpose": "Creates, displays, modifies, and closes molecular surfaces. Supports solvent-excluded surfaces (SES, detailed, default) and lower-resolution Gaussian surfaces (GS). Allows control over surface appearance, calculation parameters, and display style (solid, mesh, dot). Includes subcommands for surface editing operations.",
+  "keywords": [
+   "surface",
+   "molecular surface",
+   "solvent-excluded surface",
+   "SES",
+   "Gaussian surface",
+   "GS",
+   "surface display",
+   "surface color",
+   "surface transparency",
+   "surface calculation",
+   "probe radius",
+   "resolution",
+   "grid spacing",
+   "surface patches",
+   "surface style",
+   "surface editing"
+  ],
+  "nl_queries": [
+   "show surface",
+   "surface residues 10-20",
+   "calculate surface with probe radius 1.6",
+   "make surface transparent",
+   "color surface by chain",
+   "hide surface for waters",
+   "show surface mesh",
+   "close surface",
+   "surface gaussian resolution 3"
+  ],
+  "notes": "Default is SES calculated per biopolymer chain. SES retains atomic associations, allowing per-atom patch control (show/hide/color) unless `sharpBoundaries` is false. GS is smoother, calculated from atomic pseudo-density, and does not retain atomic associations by default (requires `sharpBoundaries true`). Options control grouping (`enclose`, `include`), calculation (`probeRadius`, `resolution`, `gridSpacing`), and appearance (`color`, `transparency`, `visiblePatches`, `update`, `sharpBoundaries`). `surface style` changes rendering (solid/mesh/dot). Editing subcommands modify existing surfaces.",
+  "related": "`surface` creates surface models. `color` and `transparency` modify their appearance. `show`/`hide` control visibility of entire surface models or specific atomic patches (for SES). `measure` can calculate surface areas. `sym` can apply symmetry to generate multimeric surfaces. `volume` operations can be used on related density maps, and `topography` can map data onto surfaces. `shape` creates geo"
+ },
+ "swapaa": {
+  "purpose": "Performs virtual mutations on protein structures by replacing specified amino acid sidechains with new ones (different type or different rotamer of the same type), chosen from a rotamer library based on specified criteria. Can also display rotamers interactively.",
+  "keywords": [
+   "swapaa",
+   "mutate residue",
+   "amino acid substitution",
+   "rotamer",
+   "rotamer library",
+   "virtual mutation",
+   "sidechain replacement",
+   "clash score",
+   "hydrogen bond",
+   "Dunbrack library"
+  ],
+  "nl_queries": [
+   "mutate residue 50 to Alanine",
+   "swapaa /A:123 trp",
+   "change residue 20 to its best rotamer",
+   "swapaa /B:45 same criteria hp",
+   "interactively choose rotamer for residue 60",
+   "swap residue 10 using Dunbrack library"
+  ],
+  "notes": "Modifies sidechains only, backbone atoms remain unchanged. Requires a residue specification and the new amino acid type(s) (3-letter or `seq:` 1-letter). Can change to a different type or `same` type (to find a new rotamer). Rotamer choice depends on `rotLib` (e.g., `Dunbrack`, `Dynameomics`) and `criteria` (combination of `d`=density, `c`=clash, `h`=H-bond, `p`=prevalence; default `dchp`). Options allow preserving chi angles (`preserve`), retaining original sidechain as altloc (`retain`), specifying density map (`density`), controlling clash/H-bond parameters, etc. `swapaa interactive` shows ",
+  "related": "`swapaa` replaces sidechains based on rotamer libraries. `swapna` does the equivalent for nucleic acids. `build` can add missing sidechains. `torsion` can manually adjust sidechain angles. `hbonds` and `clashes` calculate interactions used in rotamer selection criteria. `setattr` can change residue names without changing geometry. `modeller comparative` and tools like `alphafold`/`esmfold` perform"
+ },
+ "swapna": {
+  "purpose": "Performs virtual mutations on nucleic acid residues by replacing the base moiety (A, T, G, C, U) while keeping the sugar-phosphate backbone coordinates.",
+  "keywords": [
+   "swapna",
+   "mutate nucleic acid",
+   "base substitution",
+   "DNA mutation",
+   "RNA mutation",
+   "virtual mutation"
+  ],
+  "nl_queries": [
+   "mutate base 10 to Guanine",
+   "swapna /A:5 C",
+   "change bases 20-25 to A,T,G,C,T,A"
+  ],
+  "notes": "Only replaces the base atoms; sugar and phosphate coordinates are unchanged. Can lead to sterically poor structures. Requires a residue specification and the new base type(s) (1-letter code: A, T, G, C, U). `preserve true` (default) tries to maintain the existing glycosidic torsion angle. `bfactor` option assigns a B-factor value to the new base atoms. One or more nucleic acid residues to change can be specified in a single command, and new-type-list can be either of the following: * a single one-letter code representing one of the standard nucleic acid bases: A, T, G, C, or U (capitalized or ",
+  "related": "`swapna` is the nucleic acid equivalent of `swapaa` for proteins, but much simpler as it only replaces the base atoms without considering rotamers or complex criteria. `build` can add missing bases or residues. `torsion` can adjust glycosidic bond angles. `altlocs` can manage alternative base conformations."
+ },
+ "sym": {
+  "purpose": "Generates symmetry-related copies of atomic models, either based on biological assembly information read from mmCIF files or according to user-specified symmetry types (point groups like cyclic, dihedral, tetrahedral, icosahedral; helical; translational).",
+  "keywords": [
+   "symmetry",
+   "sym",
+   "assembly",
+   "biological assembly",
+   "biomolecule generation",
+   "point group",
+   "icosahedral",
+   "helical",
+   "crystal symmetry",
+   "PDB assembly",
+   "mmCIF assembly",
+   "graphical clones"
+  ],
+  "nl_queries": [
+   "generate symmetry copies",
+   "show biological assembly 1",
+   "sym #1 assembly 1",
+   "apply C3 symmetry",
+   "build icosahedral structure",
+   "sym #1 I",
+   "sym clear #1"
+  ],
+  "notes": "Can generate assemblies from mmCIF metadata (use `sym #model` first to list available assemblies and their IDs) or apply user-defined symmetry (`C<n>`, `D<n>`, `T`, `O`, `I`, `H`=helical, `shift`=translational). Options control axis/center of symmetry, coordinate system, filtering copies (`contact`, `range`), and representation (`copies true` for full atomic models, `copies false` for graphical clones; default depends on copy number). `newModel true` creates a new model containing the assembly, hiding the original. `sym clear` removes clones, not full copies. User-defined symmetry can be added",
+  "related": "`sym` reads assembly information often loaded by `open` (from mmCIF). It creates copies which can be full atomic models or graphical clones. Full copies behave like models opened normally, while clones are lightweight representations. `surface`, `crystalcontacts`, `unitcell` also deal with symmetry or repeating units. `fitmap` can fit structures into cryo-EM maps, often using symmetry. `view` or c"
+ },
+ "taskman": {
+  "purpose": "Lists or terminates ongoing background calculations (tasks/jobs) managed by ChimeraX.",
+  "keywords": [
+   "task manager",
+   "taskman",
+   "background job",
+   "cancel job",
+   "kill task",
+   "list tasks"
+  ],
+  "nl_queries": [
+   "list background tasks",
+   "kill task 3",
+   "show running jobs",
+   "cancel background calculation"
+  ],
+  "notes": "`taskman list` outputs information about active background jobs, including a local ID, to the Log. `taskman kill <local-ID>` attempts to terminate the specified job. The list information includes a local job ID number that can be used to abort a specific job with taskman kill , for example: > taskman kill 3",
+  "related": "`taskman` interacts with the ChimeraX background task system. Commands that initiate potentially long-running background tasks (like some structure predictions, searches, or complex calculations) might be listed or terminated using `taskman`. The `Task Manager` tool in the GUI provides a graphical interface to the same functionality."
+ },
+ "tile": {
+  "purpose": "Arranges specified (or all displayed) models in a 2D grid layout (tiled) in the viewing plane and enables independent rotation of each model with the left mouse button (or trackpad gesture).",
+  "keywords": [
+   "tile",
+   "arrange models",
+   "grid layout",
+   "independent rotation",
+   "model comparison",
+   "view multiple models"
+  ],
+  "nl_queries": [
+   "tile all models",
+   "tile models #1-5",
+   "tile models columns 3",
+   "turn off tiling",
+   "arrange models in a grid"
+  ],
+  "notes": "Spreads displayed models into an XY grid. `columns` specifies the number of columns (default is squarish). `spacingFactor` controls separation (default 1.3). Switches to simple lighting for performance. Changes left mouse/trackpad drag to independent rotation. `tile off` or `~tile` restores original positions and collective rotation. Models that are not displayed will be ignored. The columns keyword specifies arranging the models into N columns in the viewing plane. If not specified, a square layout (rows = columns) will be used. The spacingFactor f indicates how far apart the structures shoul",
+  "related": "`tile` arranges models spatially and changes the default `mousemode` for the left button to `rotate independent`. `tile off` or `~tile` reverts the arrangement and mouse mode. `undo` also reverts tiling. `view` controls the overall camera position; `tile viewAll true` (default) adjusts the view to fit all tiled models. `volume tile` performs a similar function for volume data. `matchmaker` and `al"
+ },
+ "toolshed": {
+  "purpose": "Manages ChimeraX extensions (bundles) hosted on the UCSF ChimeraX Toolshed web repository. Allows listing, installing, uninstalling bundles, showing the Toolshed website, and managing local bundle caches.",
+  "keywords": [
+   "toolshed",
+   "bundles",
+   "extensions",
+   "plugins",
+   "install tool",
+   "remove tool",
+   "list bundles",
+   "ChimeraX Toolshed"
+  ],
+  "nl_queries": [
+   "list installed toolshed bundles",
+   "install bundle 'Volume Segmenter'",
+   "uninstall Segger",
+   "show toolshed website",
+   "reload toolshed list",
+   "toolshed list available full"
+  ],
+  "notes": "Interacts with the online ChimeraX Toolshed repository (default URL at UCSF RBVI). Bundles are separately installable modules. Subcommands handle specific actions: `list`, `install`, `uninstall`, `show`, `reload`, `url`, `cache`. Installing can handle dependencies (`noDeps false` default). Reloading (`installed`, `available`, `cache`, `all`) updates local information about bundles. * toolshed cache * toolshed install * toolshed list * toolshed reload * toolshed show * toolshed uninstall * toolshed url > Report the location of the bundle information cache. > Install a bundle. If > bundle-name >",
+  "related": "`toolshed` manages bundles which may contain new commands, tools (GUIs), file readers, etc., extending ChimeraX functionality. Installed bundles might provide commands that then appear in the command list or tools accessible via the `Tools` menu. It uses `pip` under the hood for installation. The `Toolshed` preferences offer GUI control for some of these functions."
+ },
+ "topography": {
+  "purpose": "Creates a 3D topographic surface representation from a 2D plane of volume data, where the height of the surface at each point corresponds to the data value in the plane.",
+  "keywords": [
+   "topography",
+   "height map",
+   "surface from plane",
+   "volume plane",
+   "2D data visualization",
+   "surface plot"
+  ],
+  "nl_queries": [
+   "create topography from volume plane",
+   "topography #1 height 5",
+   "make height map from this slice"
+  ],
+  "notes": "Input must be a volume model displayed as a single plane. Surface height (`h` option) maps linearly to data values (0 value = plane level). Surface complexity depends on volume plane resolution and `interpolation` option. `meshType` controls triangulation. `smoothingIterations` and `smoothingFactor` can smooth the surface but distort the data mapping. `color` or `palette`/`range` options control surface coloring. Values will be mapped linearly to surface heights up to a maximum of height h from the volume data plane, with a zero value coinciding with the volume data plane. The default h is 10%",
+  "related": "`topography` requires a `volume` model displayed as a single plane (using `volume` options like `showPlane true`, `plane`, `step 1` along two axes). It generates a new `surface` model. The appearance of this surface can be modified using `color` (including `palette` options for multicoloring based on height/value), `transparency`, `surface style`, etc. `shape` creates geometric surfaces, while `to"
+ },
+ "torsion": {
+  "purpose": "Sets or reports the torsion (dihedral) angle defined by four specified atoms. Requires the two central atoms to be bonded.",
+  "keywords": [
+   "torsion",
+   "dihedral angle",
+   "set angle",
+   "measure angle",
+   "rotate bond",
+   "bond torsion"
+  ],
+  "nl_queries": [
+   "measure torsion angle for atoms A B C D",
+   "set torsion angle N-CA-C-N to 120 degrees",
+   "torsion /A:50@CA,CB,CG,CD1 60",
+   "report torsion angle"
+  ],
+  "notes": "Requires four atoms specified in order. Central two atoms must be bonded. If `angle` is omitted, reports the current angle. If `angle` is given, sets the angle by rotating the part specified by `move` (`small` side default, `large` side alternative). Can use centroids or markers as endpoint atoms. For rotating bonds interactively, see the Adjust Torsions section of Build Structure and/or the bond rotation mouse mode . For measuring or changing valence angles defined by three atoms, see the angle command and/or the Angles/Torsions and Adjust Angles sections of Build Structure . See also: build ",
+  "related": "`torsion` sets/reports angles defined by four atoms connected 1-2-3-4, rotating around the 2-3 bond. `angle` sets/reports valence angles defined by three atoms 1-2-3. `bond` can create/delete the central bond needed for `torsion`. `build` (specifically Adjust Torsions) and the bond rotation `mousemode` allow interactive torsion adjustment. `swapaa`/`swapna` often implicitly set torsions when placi"
+ },
+ "transparency": {
+  "purpose": "Sets the transparency level (0-100%) for specified items, including atoms, bonds, cartoons, surfaces (molecular and volume isosurfaces), pseudobonds, and ring fills.",
+  "keywords": [
+   "transparency",
+   "transparent",
+   "opacity",
+   "see-through",
+   "alpha blend",
+   "surface transparency",
+   "atom transparency"
+  ],
+  "nl_queries": [
+   "make surface transparent 50%",
+   "transparency ligand 70",
+   "set cartoon transparency to 30",
+   "make atoms opaque",
+   "transparency #2 80 surfaces"
+  ],
+  "notes": "Requires a specification (`spec`) and a percentage (`percent`, 0=opaque, 100=transparent). The `target` option (using single-letter codes: `a`=atoms, `b`=bonds, `c`/`r`=cartoons, `s`=surfaces, `p`=pseudobonds, `f`=rings/nucs) or `what` keyword list (`atoms`, `bonds`, `cartoons`/`ribbons`, `surfaces`, `pseudobonds`, `rings`, `All`) specifies which representation type(s) to affect for the given `spec`. Rendering highly transparent objects can have limitations and performance costs. The target option allows acting on only a subset of the possible displays of a given atom, residue, etc. The string",
+  "related": "`transparency` modifies the alpha component of the color of specified items. `color` can set color and transparency simultaneously. `surface`, `volume`, `style`, `cartoon`, `nucleotides` create the representations whose transparency is controlled by this command. `material` can affect how transparency interacts with lighting. `per-model clipping` provides another way to reveal internal structures."
+ },
+ "tug": {
+  "purpose": "Pulls a specified set of atoms (`tugatoms`) towards the initial positions of a reference set of atoms (`refatoms`) by running a short, guided molecular dynamics (MD) simulation using OpenMM.",
+  "keywords": [
+   "tug",
+   "pull atoms",
+   "guided MD",
+   "molecular dynamics",
+   "structure manipulation",
+   "conformational change",
+   "OpenMM"
+  ],
+  "nl_queries": [
+   "tug selection A to selection B",
+   "pull these atoms towards those atoms",
+   "run guided MD to move this loop",
+   "tug sel to #2/A@CA steps 100"
+  ],
+  "notes": "Requires two atom selections (`tugatoms`, `refatoms`) of equal size, paired in order. Only models containing `tugatoms` participate actively in the MD; `refatoms` only define target positions. Model(s) with `tugatoms` must be parametrised for OpenMM (standard residues, protonated). Options control simulation length (`steps`, `frames`), integrator settings (`errorTolerance`, `forceConstant` for pulling, `temperature`), nonbonded `cutoff`, and compute `platform` (CPU, CUDA, HIP, OpenCL). `finish true` makes the command wait for completion. Saving the session beforehand is recommended as changes ",
+  "related": "`tug` uses OpenMM for MD calculations, requiring the model containing `tugatoms` to be parametrized (e.g., using `addh` beforehand if needed for standard residues). It applies forces to pull `tugatoms` towards `refatoms`. The `mousemode` 'tug' provides interactive control similar to this command. `minimize` (mouse mode) performs energy minimization. `build` allows manual structure manipulation. `u"
+ },
+ "turn": {
+  "purpose": "Rotates models or the entire scene around a specified axis and center. Can perform continuous rotation, rocking, or wobbling motions over multiple frames.",
+  "keywords": [
+   "turn",
+   "rotate",
+   "rotation",
+   "spin",
+   "view rotation",
+   "rock",
+   "wobble",
+   "model rotation",
+   "scene rotation"
+  ],
+  "nl_queries": [
+   "turn 90 degrees around Y axis",
+   "turn x 180",
+   "rock model #1",
+   "wobble the view",
+   "spin the protein",
+   "rotate around center of ligand"
+  ],
+  "notes": "Takes `axis` (x, y, z, or vector; default y), `angle` (degrees; default 90), and `frames` (default 1). `rock N` or `wobble M` options initiate continuous back-and-forth or figure-eight motions over N or M frames per cycle, respectively (use `stop` to halt). `center` specifies rotation center (default current cofr, can be point or atom-spec). `coordinateSystem` pins axis/center interpretation. Can rotate specific `models`/`atoms` or the whole scene (default). Atom movements are not undoable. Commands continue to be processed while the requested motion is in progress. To pause command processing",
+  "related": "`turn` and `roll` are similar, differing mainly in default angle/frames. `move` translates, `zoom` scales. `cofr` sets the center of rotation used by default. `stop` halts ongoing `turn`/`rock`/`wobble` motions. `wait` pauses script execution until the motion finishes. `mousemode` allows interactive rotation. `view` can save/restore orientations achieved via `turn`. `torsion` rotates around a spec"
+ },
+ "ui": {
+  "purpose": "Show/hide tools and control the graphical interface (ui tool show Log).",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "undo": {
+  "purpose": "Reverses (`undo`) or reapplies (`redo`) recent actions from a specific, limited set of commands and manipulations, primarily related to display settings, selections, and simple model movements.",
+  "keywords": [
+   "undo",
+   "redo",
+   "reverse action",
+   "revert change",
+   "step back",
+   "step forward"
+  ],
+  "nl_queries": [
+   "undo last action",
+   "redo that change",
+   "undo selection",
+   "undo view change"
+  ],
+  "notes": "Only a limited set of actions are undoable (up to 10). Actions performed via GUIs are only undoable if they trigger one of the listed commands internally. Does not work for file operations, model creation/deletion, most calculations, or complex structure modifications. Actions performed with graphical interfaces (menus, icons, and tools) will also be undoable if they use the commands listed above. Examples include Build Structure bond rotations and most of the Molecule Display icon actions. The same stack of actions can be navigated by using the Edit menu or the keyboard shortcuts shown in tha",
+  "related": "`undo`/`redo` operate on a stack containing recent actions from a specific list of commands (e.g., `show`, `hide`, `color`, `coulombic`, `mlp`, `size`, `style`, `cartoon`, `nucleotides`, `angle`, `torsion`, `select`, `tile`, `view`, `move`, `turn`, `roll`) and some mouse mode actions. Many commands (e.g., `open`, `close`, `save`, `surface`, `volume`, `label`, `addh`, `delete`, `split`, `combine`, "
+ },
+ "unitcell": {
+  "purpose": "Generates crystallographic unit cells, including multiple cells or specific symmetry-related copies (crystallographic or non-crystallographic), based on symmetry information present in PDB or mmCIF files. Can also display the unit cell outline.",
+  "keywords": [
+   "unit cell",
+   "crystallography",
+   "crystal symmetry",
+   "space group",
+   "non-crystallographic symmetry",
+   "NCS",
+   "crystal packing",
+   "unit cell outline",
+   "PDB symmetry",
+   "mmCIF symmetry"
+  ],
+  "nl_queries": [
+   "show unit cell",
+   "unitcell #1",
+   "generate 2x2x2 unit cells",
+   "show unit cell outline",
+   "apply NCS operators",
+   "unitcell info #1",
+   "delete unit cell copies"
+  ],
+  "notes": "Reads symmetry from PDB (CRYST1, SCALE, SMTRY, MTRIX) or mmCIF (_symmetry, _struct_ncs_oper). Options control whether to use crystallographic (`symFromFile`, `spacegroup`), non-crystallographic (`ncs`), or packing (`pack`). `outline` shows the cell box. `origin` shifts the cell origin. `cells` specifies the number of cells to generate (e.g., `cells 2,2,1`). `offset` positions the block of cells relative to the original. `unitcell delete` removes generated copies. One or more atomic models can be specified . Subcommands:. * unitcell info – report symmetry information in the Log * unitcell outli",
+  "related": "`unitcell` uses symmetry information often loaded by `open` from PDB/mmCIF files. It creates full atomic copies of the asymmetric unit. `sym` can also generate symmetry copies, but `unitcell` specifically uses crystallographic metadata. `crystalcontacts` finds contacts between symmetry copies, often generated by `unitcell`. The `Unit Cell` tool provides a GUI interface. `unitcell info` reports sym"
+ },
+ "usage": {
+  "purpose": "Displays a concise summary of a specified command's usage, including its main arguments and options, directly in the Log window.",
+  "keywords": [
+   "usage",
+   "command help",
+   "command syntax",
+   "command options",
+   "arguments",
+   "command summary"
+  ],
+  "nl_queries": [
+   "usage for command 'color'",
+   "show usage of volume",
+   "usage turn"
+  ],
+  "notes": "Takes the name of the command (or subcommand, e.g., `volume gaussian`) as input. Output is sent to the Log. Useful for quick syntax checks. Includes explanations for common specification terms like `atoms`, `models`, etc. Explains the flexibility of using keyword arguments. Examples: > usage set > usage volume gaussian The usage descriptions in the Log include the following terms for commonly used target specifications : * atoms - atomic models and/or their subparts (atoms, residues, chains, etc. ) * objects - could include atomic models, parts of atomic models, or other kinds of models * mode",
+  "related": "`usage` provides a brief syntax summary in the `log`. `help` provides more comprehensive documentation, often opening a separate browser window. `log` displays output from `usage` and other commands."
+ },
+ "version": {
+  "purpose": "Reports the version number and build information for the currently running ChimeraX application, and optionally for installed tool bundles or underlying Python packages.",
+  "keywords": [
+   "version",
+   "build info",
+   "release date",
+   "bundle versions",
+   "package versions",
+   "ChimeraX version"
+  ],
+  "nl_queries": [
+   "what version of chimerax is this?",
+   "version verbose",
+   "list bundle versions",
+   "show package versions"
+  ],
+  "notes": "No arguments reports basic version/date. `verbose` adds time/branch/commit. `bundles` adds bundle versions (like `verbose` + bundles). `packages` adds Python package versions (like `verbose` + packages). Output goes to the Log. See also: log",
+  "related": "`version` reports information to the `log`. `toolshed list installed` also lists bundle information, potentially with more detail than `version bundles`."
+ },
+ "view": {
+  "purpose": "Controls the camera view and model positions. Allows focusing on specific items, saving/restoring named views (including model positions and clipping), resetting orientation, aligning axes, and applying transformations using matrices.",
+  "keywords": [
+   "view",
+   "camera",
+   "focus",
+   "center view",
+   "orient",
+   "standard orientation",
+   "named view",
+   "save view",
+   "restore view",
+   "model position",
+   "transformation matrix",
+   "z-align",
+   "initial view"
+  ],
+  "nl_queries": [
+   "view selection",
+   "focus on ligand",
+   "save view as 'binding_site'",
+   "restore view 'binding_site'",
+   "view all",
+   "reset view",
+   "orient view",
+   "view initial",
+   "align axis C along Z",
+   "view matrix ..."
+  ],
+  "notes": "`view spec` centers, zooms, and adjusts clipping (unless `clip false`). `pad` controls padding around viewed items. `cofr true` (default) adjusts center of rotation. `orient` resets to standard xyz orientation. `zalign` aligns specified items with screen Z. `initial` resets model transformations. Named views (`view name`, `view <name>`) save/restore camera, clipping, and relative model positions. `position ... sameAsModels` copies transformations. `matrix` allows precise setting via 4x4 matrices. Transitions between views (`frames > 1`) interpolate camera, clipping, and model positions.",
+  "related": "`view` controls the overall scene composition. `turn`, `roll`, `move`, `zoom` perform specific camera/model transformations. `cofr` controls the center of rotation, which `view` can modify. `clip` controls clipping planes, whose positions are saved/restored by named `view`s. `fly` smoothly traverses multiple named views. `getcrd` can report model positions saved by `view`. `matchmaker`, `align`, `"
+ },
+ "viewdockx": {
+  "purpose": "Controls the ViewDockX tool, which facilitates viewing and analyzing docked ligands within a receptor binding site, allowing users to easily step through different poses or compounds.",
+  "keywords": [
+   "viewdockx",
+   "docking",
+   "ligand docking",
+   "pose viewing",
+   "binding site analysis",
+   "ViewDockX tool"
+  ],
+  "nl_queries": [
+   "start viewdockx",
+   "viewdockx model #2-10",
+   "viewdockx up",
+   "viewdockx down"
+  ],
+  "notes": "The command can start the tool for all open docked compounds or a specified subset. Assigning a `name` allows controlling multiple ViewDockX instances. `up`/`down` subcommands navigate the list of poses displayed in the tool. The tool itself provides features for sorting, selecting, calculating interactions, etc. By default ( open command with showTool true ), opening a file of docking results will automatically start the ViewDockX tool. Alternatively, one or more such files can be opened with showTool false , and subsequently (in a separate step) the tool can be started from the Binding Analy",
+  "related": "`viewdockx` starts or interacts with the ViewDockX tool (GUI). Docking result files (e.g., Mol2, SDF) are typically opened using the `open` command, which often starts ViewDockX automatically (if `showTool true`, default). `viewdockx up`/`down` commands replicate the function of arrow keys when the ViewDockX list has focus, or the `next docked` mouse mode. Calculations within the ViewDockX tool (l"
+ },
+ "volume": {
+  "purpose": "Controls the display and manipulation of volume data (density maps, electrostatic potentials, etc.). Handles loading, saving, displaying (isosurface, mesh, image/solid, single plane), coloring, thresholding, sampling, cropping, filtering, measuring, and other operations on 3D gridded data.",
+  "keywords": [
+   "volume",
+   "density map",
+   "map display",
+   "isosurface",
+   "mesh",
+   "image display",
+   "volume rendering",
+   "contour level",
+   "threshold",
+   "volume sampling",
+   "step size",
+   "volume filtering",
+   "map operations",
+   "cryoEM map",
+   "electron density",
+   "electrostatic potential",
+   "Volume Viewer"
+  ],
+  "nl_queries": [
+   "show volume #1 as surface at level 1.5",
+   "volume #2 style mesh level 5",
+   "color volume #3 blue",
+   "volume hide",
+   "set volume threshold",
+   "resample volume #1 grid spacing 1.0",
+   "crop volume #2",
+   "filter map #1 gaussian",
+   "volume measure correlation #1 #2",
+   "volume defaultvalues saveSettings true"
+  ],
+  "notes": "A highly versatile command with numerous options and subcommands. Controls display style (`surface`, `mesh`, `image`/`solid`, `orthoplanes`), thresholds (`level`, `rmsLevel`, `sdLevel`), coloring (`color`, `mapcolor`, `palette`), sampling (`step`, `subregion`, `zone`), dimensions (`origin`, `axisPermutation`, `scale`), filtering (`gaussian`, `median`, `bilateral`), and many mathematical/editing operations. Default display depends on map size and preferences. Initial contour levels often set heuristically. `volume channels` groups multiple volumes. `volume settings` reports current parameters. ",
+  "related": "`open` loads volume data. `save` saves volume data. `show`/`hide`/`toggle` control visibility. `color` and `transparency` modify appearance. `vseries` handles time series of volumes. `molmap` creates density maps from atomic models. `fitmap`, `resfit`, `measure correlation` fit models or compare maps. `surface` operations can modify isosurfaces derived from volumes. `sym` can apply symmetry. `meas"
+ },
+ "vseries": {
+  "purpose": "Manipulates and analyzes volume series, which are ordered sequences of 3D volume data sets (e.g., time-series microscopy data or map series). Actions include playback, alignment, measurement tracking, and saving.",
+  "keywords": [
+   "volume series",
+   "vseries",
+   "time series map",
+   "map sequence",
+   "align maps",
+   "play series",
+   "volume playback",
+   "measure map series",
+   "save series"
+  ],
+  "nl_queries": [
+   "play volume series #1",
+   "align maps in series #1",
+   "save series #2 as cmap",
+   "measure volume over series #1",
+   "stop series playback",
+   "vseries slider #1"
+  ],
+  "notes": "Input is a `volume-spec` identifying any member of the series. Actions include `align`, `play`, `stop`, `slider`, `measure`, `save`. `play` has options for direction, looping, range, speed (`maxFrameRate`, `pauseFrames`), caching (`cacheFrames`), normalizing levels (`normalize`), and synchronizing/coloring by markers (`markers`, `colorRange`). `align` aligns maps based on values above a threshold (set by `encloseVolume` or `fastEncloseVolume`). `measure` tracks area/volume/centroid vs. time. `save` can align, crop, resample, threshold, and normalize during saving to .cmap format. Examples: > v",
+  "related": "`vseries` operates on sequences of `volume` models. `volume` controls individual map display. `vseries play` animates the display through the series. `volume morph` interpolates between two volumes. `resfit` fits atomic models into maps, potentially across a series. `mseries` handles series of atomic models. `marker` commands can create markers used by `vseries play markers` to track paths. `vseri"
+ },
+ "wait": {
+  "purpose": "Pauses command script execution for a specified number of display frames. Allows multi-frame commands (like rotations or translations) to complete before the next command starts. Can also be used to insert pauses or duplicate frames in movies.",
+  "keywords": [
+   "wait",
+   "pause",
+   "delay",
+   "synchronize commands",
+   "wait for motion",
+   "movie pause",
+   "duplicate frames"
+  ],
+  "nl_queries": [
+   "wait 10 frames",
+   "wait for rotation to finish",
+   "pause script execution",
+   "wait"
+  ],
+  "notes": "Takes an optional integer `wait-frames`. If omitted, it automatically waits for specific preceding commands (`move`, `turn`, etc.). If `wait-frames` is given, it waits exactly that many frames. Essential for scripting sequences of motions or ensuring intermediate states are displayed. Unlike Chimera, ChimeraX does *not* implicitly wait between command lines in a script. Following certain multi-frame commands, wait without a number will automatically wait the needed number of frames for the command to finish: move , turn , rock , roll , zoom , 2dlabels , view , and fly . Other commands require ",
+  "related": "`wait` synchronizes command execution with display frame updates. It is often used after multi-frame commands like `move`, `turn`, `roll`, `zoom`, `fly`, `view` (with frames > 1), `2dlabels` (animated). `wait` without arguments automatically waits for the preceding multi-frame command from this list to finish. `stop` halts ongoing motions, whereas `wait` allows them to complete. `movie duplicate` "
+ },
+ "windowsize": {
+  "purpose": "Sets the size (width and optionally height) of the main ChimeraX graphics window in pixels. Also reports the current size if run without arguments.",
+  "keywords": [
+   "window size",
+   "window dimensions",
+   "graphics window",
+   "image size",
+   "movie size",
+   "set resolution"
+  ],
+  "nl_queries": [
+   "set window size to 800 600",
+   "windowsize 1024 768",
+   "what is the window size?"
+  ],
+  "notes": "Takes optional `width` and `height` in pixels. If only `width` is given, height remains unchanged. No arguments reports current dimensions to status bar and Log. Affects default output resolution for images/movies. Whether to restore the graphics window size when restoring a session is set in the Window preferences . See also: save image , movie , view , making images , making movies , ChimeraX window",
+  "related": "`windowsize` sets the dimensions of the graphics window. This size is then used as the default by `save image` and `movie` recording unless overridden by options within those commands. `view` adjusts the camera framing within the window but doesn't change the window size itself. Window preferences control whether this size is restored with sessions."
+ },
+ "wobble": {
+  "purpose": "Rotates models or the entire scene in a continuous figure-eight (infinity symbol) motion around a specified axis and center.",
+  "keywords": [
+   "wobble",
+   "figure eight motion",
+   "rotate",
+   "rotation",
+   "animation",
+   "view motion"
+  ],
+  "nl_queries": [
+   "wobble the view",
+   "wobble model #1 around X axis",
+   "wobble angle 15 cycle 200"
+  ],
+  "notes": "Takes `axis` (default y), `angle` amplitude (default 30°), `frames` (default forever), `cycle` frames per figure-eight (default 136), `aspect` ratio (minor/major rotation amplitude, default 0.3). `center` and `coordinateSystem` options define the rotation point/frame. Can rotate specific `models`/`atoms` or the whole scene (default). Use `stop` to halt the default infinite motion. Atom movements are not undoable. Commands continue to be processed while the requested motion is in progress. To pause command processing until the motion is finished, use the wait command.",
+  "related": "`wobble` is a specialized rotation command. `turn` and `roll` can replicate the wobble motion using their `wobble` and `wobbleAspect` options, but `wobble` has different defaults. `rock` performs a back-and-forth rocking motion. `stop` halts ongoing `wobble` motion. `wait` pauses script execution until a specified number of wobble frames complete (if `frames` was specified). `cofr`, `move`, `zoom`"
+ },
+ "zone": {
+  "purpose": "Displays atomic details (full atom representation, labels) and optionally restricts volume display to a defined zone (spherical region) around a specified residue of interest. Hides details outside the zone, potentially showing distant parts as a narrow ribbon.",
+  "keywords": [
+   "zone",
+   "focus residue",
+   "local view",
+   "show nearby",
+   "label nearby",
+   "volume zone",
+   "zone selection"
+  ],
+  "nl_queries": [
+   "zone on residue 50",
+   "zone /A:123",
+   "show zone around ligand",
+   "zone clear",
+   "set zone residue distance 6"
+  ],
+  "notes": "Operates around a *single* specified residue. Hides non-zone atoms/labels, optionally shows distant parts as a narrow ribbon (`ribbons true` default). Restricts volume display based on `surfaceDistance`. Cutoff distances persist until changed. `zone clear` restores the previous display state. `zone setting` adjusts label colors/backgrounds. The cutoff values remain in effect for automatic application with the zone command and/or zone mouse mode until they are explicitly changed or ChimeraX is exited. The label option indicates whether to show zone residue labels (default true ; false removes a",
+  "related": "`zone` modifies display using underlying commands like `show`, `hide`, `label`, `cartoon`, and `volume` (specifically subregion/zone). It uses distance cutoffs (`residueDistance`, `labelDistance`, `surfaceDistance` for volume) relative to the specified residue. `select zone` and the `zone` atom specification select atoms within a distance, while `zone` command controls display. `surface zone` perf"
+ },
+ "zoom": {
+  "purpose": "Adjusts the magnification (zoom level) of the view, making objects appear larger or smaller. Can zoom by a relative factor or set an absolute scale (pixel size).",
+  "keywords": [
+   "zoom",
+   "scale",
+   "magnification",
+   "enlarge view",
+   "shrink view",
+   "pixel size",
+   "view scale"
+  ],
+  "nl_queries": [
+   "zoom in",
+   "zoom out",
+   "zoom factor 2",
+   "set pixel size to 1 Angstrom",
+   "zoom 1.2 frames 20",
+   "what is the current scale?"
+  ],
+  "notes": "Zooms by `factor` ( >1 enlarge, <1 shrink) relative to current view, or sets absolute `pixelSize` (length units per pixel at center of rotation). Can occur over multiple `frames`. No arguments reports current pixel size at center of rotation. Moves the camera, does not change model coordinates. Adjusts active clipping planes. The zoom command moves the camera toward or away from the scene. It does not change model coordinates.",
+  "related": "`zoom` changes the camera's distance/magnification. `view` can also adjust zoom level as part of focusing on objects. `camera` controls other camera parameters like mode (perspective/orthographic). `scalebar` displays a bar indicating the current scale. `mousemode` allows interactive zooming. `turn`, `roll`, `move` perform other view transformations."
+ },
+ "hide": {
+  "purpose": "Hide atoms, cartoons, surfaces, ribbons for a specifier.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "echo": {
+  "purpose": "Echo text to the log.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "contacts": {
+  "purpose": "Find atoms in contact (within a distance) between specified sets.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rainbow": {
+  "purpose": "Color sequentially along chains (blue to red).",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "time": {
+  "purpose": "Time how long a command takes.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "mousemode": {
+  "purpose": "Assign functions to mouse buttons.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ }
+}

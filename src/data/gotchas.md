@@ -1,0 +1,26 @@
+Command gotchas (learned the hard way):
+- Boolean options are bare words: `select #1:159 add` (WRONG: add=true). `hbonds #1 reveal true` is the exception style for true/false options; when an option takes true/false, write the word.
+- Multiple residues: `#1:159,300,326` (commas, no spaces). Ranges: `#1:100-150`. Always include the model number when several models are open.
+- Coloring residues you cannot see changes nothing visible. To highlight residues: `show #1:159 atoms; style #1:159 stick; color #1:159 blue` (and optionally `color #1:159 blue target c` for the cartoon).
+- "Color X but the rest white": color everything first, then the target: `color #1 white; color #1:159 blue`. Do NOT use `color ~sel`.
+- `distance` needs exactly two atoms: `distance #1:100@CA #1:150@CA`. For residue pairs use the CA atoms.
+- Continuous spinning: `roll y 0.5` (smaller number = slower); stop with `stop`. Discrete rotation: `turn y 90`. "Spin in place" = `roll y 0.5 center #1` or just `roll y 0.5` after `view`.
+- Focus/center/zoom to something: `view #1:159` or `view sel`. Reset the whole view: `view`. Only `view initial` if the user asks for the initial view.
+- Background: `set bgColor white` (also black, gray, "#202020").
+- Publication-ready look: `preset "overall look" "publication 1"` then `lighting soft; graphics silhouettes true; set bgColor white`. Full/fancy: `lighting full`.
+- Save an image: `save ~/Desktop/image.png width 2000 supersample 3`; session: `save ~/Desktop/session.cxs`. Both need user confirmation, that is expected.
+- Transparency is a percent and needs a target: `transparency #1 50 target s` (surfaces), `target c` (cartoons), `target a` (atoms). Half transparent = 50.
+- Show/hide: `show #1 atoms`, `hide #1 atoms`, `cartoon #1`, `~cartoon #1` (or `cartoon hide #1`), `surface #1`, `~surface #1`. Hide everything except X: `hide #1 atoms; show #1/A atoms`.
+- Styles: `style #1 stick|ball|sphere`; `cartoon style #1 width 2 thickness 0.4`; nucleic acids: `nucleotides #1 ladder`.
+- Labels: `label #1:159` (residue labels), `label #1:159@CA atoms`, `label #1/A chains`; remove with `label delete` (or `~label #1`).
+- Selection: `select #1:159`; add: `select #1:300 add`; invert: `select ~sel`; clear: `select clear` (or `~select`). Zone: `select #1:159 :<5` (residues within 5 Å).
+- Open by database: `open 1abc` (PDB), `open alphafold:P55085` (AlphaFold by UniProt accession, get it from resolve_protein), `open emdb:1080`. Never `alphafold fetch` for this.
+- AlphaFold models color by confidence (pLDDT) when opened; `color bfactor #1 palette alphafold` restores that, `color #1 white` overrides it.
+- Matching/alignment: `matchmaker #2 to #1`; RMSD: `rmsd #1@CA to #2@CA`.
+- Hydrogen bonds: `hbonds #1 reveal true color yellow`; clashes: `clashes #1 reveal true`; contacts within 4 Å of a ligand: `contacts ligand restrict protein reveal true`.
+- Ligands and water: `show ligand atoms; style ligand sphere`, `hide solvent`, `delete solvent` (confirmation needed).
+- Chains: `color #1/A blue; color #1/B red` or `color #1 bychain`; `rainbow #1` colors along the chain.
+- Secondary structure: `color helix red; color strand yellow; color coil gray` (built-in specifiers).
+- Info in the log: `info models`, `info chains #1`, `info residues sel`, `log info sel`.
+- Undo the last change: `undo` (works for many but not all commands; closing models is not undoable).
+- Command names are case-insensitive but options are camelCase (`bgColor`, `supersample`, `showTool`).

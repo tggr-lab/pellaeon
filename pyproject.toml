@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Pellaeon"
+license = { text = "MIT" }
+authors = [{ name = "Pellaeon contributors" }]
+description = "Control ChimeraX in plain English with local or cloud AI models"
+dependencies = ["ChimeraX-Core ~=1.9", "ChimeraX-UI ~=1.0"]
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Pellaeon adds a chat panel to ChimeraX. Describe what you want in plain
+English ("open the AlphaFold model of F2RL1 and color residue 159 blue") and
+Pellaeon runs the ChimeraX commands for you, shows exactly what it ran, and
+fixes its own mistakes. Works with Ollama (local, free), Anthropic Claude,
+Google Gemini, OpenAI and any OpenAI-compatible server."""
+
+[project.urls]
+Home = "https://github.com/pellaeon-chimerax/pellaeon"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+module-name-override = "pellaeon"
+min-session-version = 1
+max-session-version = 1
+categories = ["General"]
+classifiers = ["Development Status :: 4 - Beta"]
+
+[tool.chimerax.tool.Pellaeon]
+category = "General"
+description = "AI assistant: control ChimeraX in plain English"
+
+[tool.chimerax.command.pellaeon]
+category = "General"
+description = "Run a plain-English request through Pellaeon"
+
+[tool.chimerax.package-data]
+"src/ui/" = ["*.html", "*.css", "*.js", "*.svg"]
+"src/data/" = ["*.json", "*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q -p no:cacheprovider"

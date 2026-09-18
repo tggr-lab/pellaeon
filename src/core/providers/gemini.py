@@ -1,0 +1,146 @@
+"""Google Gemini adapter (generateContent REST API, SSE streaming)."""
+from __future__ import annotations
+
+import json
+import threading
+from typing import Any, Dict, List, Optional, Tuple
+
+from ..http import request_json, stream_lines, iter_sse, HttpError
+from ..schema import Message, TextPart, ToolCall, ToolSpec, Usage, new_id
+from .base import Provider, ProviderError, OnDelta
+
+DEFAULT_MODEL = "gemini-2.5-flash"
+
+
+def _clean_schema(schema: Any) -> Any:
+    """Gemini rejects some JSON-schema keywords; strip them recursively."""
+    if isinstance(schema, dict):
+        return {k: _clean_schema(v) for k, v in schema.items()
+                if k not in ("default", "additionalProperties", "$schema", "examples")}
+    if isinstance(schema, list):
+        return [_clean_schema(v) for v in schema]
+    return schema
+
+
+class GeminiProvider(Provider):
+    name = "gemini"
+    label = "Google Gemini"
+    supports_vision = True
+
+    @classmethod
+    def default_base_url(cls) -> str:
+        return "https://generativelanguage.googleapis.com"
+
+    def _headers(self) -> Dict[str, str]:
+        return {"Content-Type": "application/json", "x-goog-api-key": self.api_key}
+
+    def _to_contents(self, messages: List[Message]) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        last_user = max((i for i, m in enumerate(messages) if m.role == "user"), default=-1)
+        for i, m in enumerate(messages):
+            if m.role == "user":
+                text = self.user_text(m) if i == last_user else m.text()
+                out.append({"role": "user", "parts": [{"text": text or "(empty)"}]})
+            elif m.role == "assistant":
+                parts: List[Dict[str, Any]] = []
+                for p in m.parts:
+                    if isinstance(p, TextPart) and p.text.strip():
+                        parts.append({"text": p.text})
+                    elif isinstance(p, ToolCall):
+                        parts.append({"functionCall": {"name": p.name, "args": p.args}})
+                if parts:
+                    out.append({"role": "model", "parts": parts})
+            elif m.role == "tool":
+                parts = []
+                for r in m.tool_results_list():
+                    parts.append({"functionResponse": {"name": r.name,
+                                                       "response": {"result": self.result_text(r),
+                                                                    "error": bool(r.is_error)}}})
+                    if r.image_png_b64:
+                        parts.append({"inlineData": {"mimeType": "image/png", "data": r.image_png_b64}})
+                out.append({"role": "user", "parts": parts})
+        return out
+
+    def stream(self, system, messages, tools, on_delta: Optional[OnDelta] = None,
+               cancel: Optional[threading.Event] = None) -> Tuple[Message, Usage]:
+        if not self.api_key:
+            raise ProviderError("No Gemini API key. Get a free one at aistudio.google.com and add it in Settings.")
+        body: Dict[str, Any] = {
+            "system_instruction": {"parts": [{"text": system}]},
+            "contents": self._to_contents(messages),
+            "generationConfig": {"temperature": float(self.options.get("temperature", 0.2))},
+        }
+        if tools:
+            body["tools"] = [{"function_declarations": [
+                {"name": t.name, "description": t.description, "parameters": _clean_schema(t.parameters)}
+                for t in tools]}]
+        url = "%s/v1beta/models/%s:streamGenerateContent?alt=sse" % (self.base_url, self.model)
+        text_parts: List[str] = []
+        calls: List[ToolCall] = []
+        usage = Usage()
+        try:
+            lines = stream_lines("POST", url, headers=self._headers(), body=body,
+                                 timeout=self.timeout, cancel=cancel)
+            for _event, data in iter_sse(lines):
+                try:
+                    chunk = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+                if "error" in chunk:
+                    raise ProviderError("Gemini: %s" % chunk["error"].get("message", chunk["error"]))
+                um = chunk.get("usageMetadata") or {}
+                if um:
+                    usage = Usage(int(um.get("promptTokenCount", 0) or 0), int(um.get("candidatesTokenCount", 0) or 0),
+                                  int(um.get("cachedContentTokenCount", 0) or 0))
+                for cand in chunk.get("candidates") or []:
+                    if cand.get("finishReason") in ("SAFETY", "RECITATION", "PROHIBITED_CONTENT"):
+                        raise ProviderError("Gemini blocked the response (%s)." % cand["finishReason"])
+                    for part in (cand.get("content") or {}).get("parts") or []:
+                        if part.get("thought"):
+                            continue
+                        if "text" in part and part["text"]:
+                            text_parts.append(part["text"])
+                            if on_delta:
+                                on_delta(part["text"])
+                        fc = part.get("functionCall")
+                        if fc:
+                            calls.append(ToolCall(new_id(), fc.get("name", ""), dict(fc.get("args") or {})))
+        except HttpError as e:
+            raise ProviderError(self._explain(e))
+        except ConnectionError as e:
+            raise ProviderError("Could not reach %s: %s" % (self.base_url, e))
+        parts: List[Any] = []
+        text = "".join(text_parts)
+        if text:
+            parts.append(TextPart(text))
+        parts.extend(calls)
+        return Message("assistant", parts), usage
+
+    @staticmethod
+    def _explain(e: HttpError) -> str:
+        try:
+            msg = json.loads(e.body).get("error", {}).get("message", e.body)
+        except Exception:
+            msg = e.body
+        if e.status in (401, 403):
+            return "Gemini rejected the API key (%d). Check it in Settings." % e.status
+        if e.status == 404:
+            return "Gemini: model not found. %s" % msg
+        if e.status == 429:
+            return "Gemini rate limit (429). The free tier allows a limited number of requests per minute. %s" % msg
+        return "Gemini HTTP %d: %s" % (e.status, str(msg)[:300])
+
+    def list_models(self) -> List[str]:
+        if not self.api_key:
+            raise ProviderError("No Gemini API key.")
+        try:
+            data = request_json("GET", self.base_url + "/v1beta/models?pageSize=200", headers=self._headers(), timeout=20)
+        except HttpError as e:
+            raise ProviderError(self._explain(e))
+        except ConnectionError as e:
+            raise ProviderError("Could not reach %s: %s" % (self.base_url, e))
+        names = []
+        for m in data.get("models", []):
+            if "generateContent" in (m.get("supportedGenerationMethods") or []):
+                names.append(m.get("name", "").replace("models/", ""))
+        return sorted(names)

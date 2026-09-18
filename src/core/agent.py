@@ -1,0 +1,334 @@
+"""The agent loop: user text -> model -> tool calls -> executor -> ... -> reply.
+
+Runs in a worker thread. Everything that must happen on ChimeraX's main
+thread is behind the ``Executor`` and the UI callbacks; the agent itself
+never imports ChimeraX.
+"""
+from __future__ import annotations
+
+import json
+import threading
+import traceback
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
+
+from . import prompt as prompt_mod
+from .safety import AUTONOMY_AUTO, needs_confirmation, split_commands
+from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens)
+from .tools import tool_specs
+from .providers.base import Provider, ProviderError
+
+MAX_TOOL_ROUNDS = 12
+MAX_CONSECUTIVE_ERRORS = 3
+COMPACT_AFTER_MESSAGES = 40
+COMPACT_AFTER_TOKENS = 60000
+
+
+class TurnCancelled(Exception):
+    pass
+
+
+@dataclass
+class AgentConfig:
+    autonomy: str = AUTONOMY_AUTO
+    allow_python: bool = False
+    vision: bool = False
+    docs_per_turn: int = 6
+    max_tool_rounds: int = MAX_TOOL_ROUNDS
+
+
+@dataclass
+class Callbacks:
+    """UI hooks. All are optional; all are called from the worker thread."""
+    on_text_delta: Optional[Callable[[str], None]] = None
+    on_tool_start: Optional[Callable[[ToolCall], None]] = None
+    on_tool_result: Optional[Callable[[ToolCall, ToolResult, Any], None]] = None
+    # confirm(commands, reasons) -> approved commands list, or None if user skipped
+    on_confirm: Optional[Callable[[List[str], List[str]], Optional[List[str]]]] = None
+    on_ask_user: Optional[Callable[[str, List[str]], None]] = None
+    on_status: Optional[Callable[[str], None]] = None
+
+
+@dataclass
+class TurnResult:
+    reply: str
+    messages_added: int
+    usage: Usage = field(default_factory=Usage)
+    asked_user: bool = False
+    error: Optional[str] = None
+
+
+class Agent:
+    def __init__(self, provider: Provider, executor, knowledge=None,
+                 config: Optional[AgentConfig] = None, callbacks: Optional[Callbacks] = None,
+                 system_prompt: Optional[str] = None,
+                 directory=None, gotchas: Optional[str] = None, recipes=None):
+        self.provider = provider
+        self.executor = executor
+        self.knowledge = knowledge
+        self.config = config or AgentConfig()
+        self.cb = callbacks or Callbacks()
+        self.conversation: List[Message] = []
+        self.summary: str = ""
+        self.total_usage = Usage()
+        self._system = system_prompt or prompt_mod.build_system_prompt(
+            directory=directory, gotchas=gotchas, recipes=recipes,
+            allow_python=self.config.allow_python,
+            vision=self.config.vision and getattr(provider, "supports_vision", False))
+
+    # ------------------------------------------------------------ public
+    @property
+    def system_prompt(self) -> str:
+        if self.summary:
+            return self._system + "\n\nEarlier in this conversation (summary):\n" + self.summary
+        return self._system
+
+    def reset(self) -> None:
+        self.conversation = []
+        self.summary = ""
+
+    def run_turn(self, user_text: str, cancel: Optional[threading.Event] = None) -> TurnResult:
+        cancel = cancel or threading.Event()
+        start_len = len(self.conversation)
+        usage = Usage()
+        try:
+            self._status("Thinking…")
+            context = self._build_context(user_text)
+            self.conversation.append(Message.user(user_text, context))
+            tools = tool_specs(self.config.allow_python,
+                               self.config.vision and getattr(self.provider, "supports_vision", False))
+            consecutive_errors = 0
+            for _round in range(self.config.max_tool_rounds + 1):
+                if cancel.is_set():
+                    raise TurnCancelled()
+                reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
+                                                on_delta=self.cb.on_text_delta, cancel=cancel)
+                usage.add(u)
+                self.conversation.append(reply)
+                calls = reply.tool_calls()
+                if not calls:
+                    break
+                results: List[ToolResult] = []
+                asked = False
+                any_error = False
+                for call in calls:
+                    if cancel.is_set():
+                        raise TurnCancelled()
+                    if call.name == "ask_user":
+                        q = str(call.args.get("question", "")).strip()
+                        opts = [str(o) for o in (call.args.get("options") or [])]
+                        if self.cb.on_ask_user:
+                            self.cb.on_ask_user(q, opts)
+                        results.append(ToolResult(call.id, call.name, "Question shown to the user; wait for their answer."))
+                        asked = True
+                        continue
+                    res, payload = self._dispatch(call)
+                    any_error = any_error or res.is_error
+                    results.append(res)
+                self.conversation.append(Message.tool_results(results))
+                if asked:
+                    self.total_usage.add(usage)
+                    return TurnResult(reply.text(), len(self.conversation) - start_len, usage, asked_user=True)
+                if any_error:
+                    consecutive_errors += 1
+                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                        self.conversation.append(Message.user(
+                            "(system) Several attempts failed. Stop trying; explain briefly what failed and ask the user how to proceed."))
+                        reply, u = self.provider.stream(self.system_prompt, self.conversation, [],
+                                                        on_delta=self.cb.on_text_delta, cancel=cancel)
+                        usage.add(u)
+                        self.conversation.append(reply)
+                        if not reply.text().strip():
+                            last = self.executor.get_state().get("last_error", "") if hasattr(self.executor, "get_state") else ""
+                            self.conversation.append(Message.assistant(
+                                "I could not complete this request after several attempts. Last error: %s" % (last or "unknown")))
+                        break
+                else:
+                    consecutive_errors = 0
+            else:
+                self.conversation.append(Message.assistant("I stopped after too many steps. Tell me how you'd like to continue."))
+            self.total_usage.add(usage)
+            self._maybe_compact()
+            final = self._last_assistant_text()
+            return TurnResult(final, len(self.conversation) - start_len, usage)
+        except TurnCancelled:
+            self.conversation.append(Message.assistant("(stopped)"))
+            return TurnResult("(stopped)", len(self.conversation) - start_len, usage, error="cancelled")
+        except ProviderError as e:
+            self.conversation.append(Message.assistant("Error: %s" % e))
+            return TurnResult(str(e), len(self.conversation) - start_len, usage, error=str(e))
+        except Exception as e:  # never let the worker die silently
+            tb = traceback.format_exc()
+            self.conversation.append(Message.assistant("Unexpected error: %s" % e))
+            return TurnResult("Unexpected error: %s" % e, len(self.conversation) - start_len, usage, error=tb)
+        finally:
+            self._status("")
+
+    def answer_question(self, answer: str, cancel: Optional[threading.Event] = None) -> TurnResult:
+        """Continue after an ask_user: the answer is just the next user turn."""
+        return self.run_turn(answer, cancel)
+
+    # ------------------------------------------------------------ internals
+    def _status(self, msg: str) -> None:
+        if self.cb.on_status:
+            self.cb.on_status(msg)
+
+    def _build_context(self, user_text: str) -> str:
+        state: Dict[str, Any] = {}
+        try:
+            state = self.executor.get_state()
+        except Exception as e:
+            state = {"error": str(e)}
+        docs: List[Dict[str, Any]] = []
+        if self.config.docs_per_turn > 0:
+            try:
+                docs = self.executor.search_docs(user_text, self.config.docs_per_turn)
+            except Exception:
+                docs = []
+        return prompt_mod.build_context(state, docs)
+
+    def _dispatch(self, call: ToolCall):
+        if self.cb.on_tool_start:
+            self.cb.on_tool_start(call)
+        name = call.name
+        args = call.args or {}
+        payload: Any = None
+        try:
+            if name == "run_commands":
+                res = self._run_commands(call)
+                payload = res
+                result = ToolResult(call.id, name, json.dumps(res, ensure_ascii=False),
+                                    is_error=not res.get("ok", False))
+            elif name == "get_state":
+                payload = self.executor.get_state()
+                result = ToolResult(call.id, name, prompt_mod.format_state(payload))
+            elif name == "command_usage":
+                text = self.executor.command_usage(str(args.get("name", "")))
+                result = ToolResult(call.id, name, text or "No usage found for that command.")
+            elif name == "search_docs":
+                k = int(args.get("k", 5) or 5)
+                hits = self.executor.search_docs(str(args.get("query", "")), k)
+                payload = hits
+                txt = "\n\n".join("[%s | %s]\n%s" % (h.get("title"), h.get("section"), h.get("text")) for h in hits)
+                result = ToolResult(call.id, name, txt or "No matching documentation.")
+            elif name == "resolve_protein":
+                payload = self.executor.resolve_protein(str(args.get("query", "")), str(args.get("organism", "human") or "human"))
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+            elif name == "protein_features":
+                payload = self.executor.protein_features(str(args.get("accession", "")), args.get("kinds"))
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+            elif name == "run_python":
+                code = str(args.get("code", ""))
+                approved = self._confirm([code], ["runs Python code inside ChimeraX"])
+                if approved is None:
+                    result = ToolResult(call.id, name, "The user declined to run this code.", is_error=True)
+                else:
+                    payload = self.executor.run_python(approved[0] if approved else code)
+                    result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error=not payload.get("ok", False))
+            elif name == "look_at_view":
+                payload = self.executor.look_at_view()
+                result = ToolResult(call.id, name, payload.get("text", "Screenshot attached."),
+                                    image_png_b64=payload.get("png_b64"))
+            else:
+                result = ToolResult(call.id, name, "Unknown tool: %s" % name, is_error=True)
+        except Exception as e:
+            result = ToolResult(call.id, name, "Tool failed: %s" % e, is_error=True)
+        if self.cb.on_tool_result:
+            self.cb.on_tool_result(call, result, payload)
+        return result, payload
+
+    def _confirm(self, commands: List[str], reasons: List[str]) -> Optional[List[str]]:
+        if self.cb.on_confirm is None:
+            return commands
+        return self.cb.on_confirm(commands, reasons)
+
+    def _run_commands(self, call: ToolCall) -> Dict[str, Any]:
+        raw = call.args.get("commands") or []
+        if isinstance(raw, str):
+            raw = [raw]
+        commands: List[str] = []
+        for c in raw:
+            commands.extend(split_commands(str(c)))
+        if not commands:
+            return {"ok": False, "results": [], "error": "No commands given."}
+        pending = needs_confirmation(commands, self.config.autonomy)
+        if pending:
+            reasons = []
+            for cmd in commands:
+                match = [p for p in pending if p.command == cmd]
+                reasons.append(match[0].reason if match else "")
+            approved = self._confirm(commands, reasons)
+            if approved is None:
+                return {"ok": False, "results": [], "error": "The user chose not to run these commands.", "skipped": True}
+            commands = approved
+            if not commands:
+                return {"ok": False, "results": [], "error": "The user removed all commands.", "skipped": True}
+        results = self.executor.run_commands(commands)
+        ok = all(r.get("ok") for r in results) and len(results) == len(commands)
+        out: Dict[str, Any] = {"ok": ok, "results": results}
+        if not ok:
+            failed = [r for r in results if not r.get("ok")]
+            if failed:
+                out["error"] = failed[0].get("error", "command failed")
+                out["failed_command"] = failed[0].get("command")
+            remaining = commands[len(results):]
+            if remaining:
+                out["not_run"] = remaining
+        return out
+
+    def _last_assistant_text(self) -> str:
+        for m in reversed(self.conversation):
+            if m.role == "assistant":
+                t = m.text().strip()
+                if t:
+                    return t
+        return ""
+
+    # ------------------------------------------------------------ memory
+    def _estimated_tokens(self) -> int:
+        n = estimate_tokens(self.system_prompt)
+        for m in self.conversation:
+            for p in m.parts:
+                if isinstance(p, TextPart):
+                    n += estimate_tokens(p.text)
+                elif isinstance(p, ToolResult):
+                    n += estimate_tokens(p.content)
+                elif isinstance(p, ToolCall):
+                    n += estimate_tokens(json.dumps(p.args))
+            n += estimate_tokens(m.meta.get("context", ""))
+        return n
+
+    def _maybe_compact(self) -> None:
+        if len(self.conversation) < COMPACT_AFTER_MESSAGES and self._estimated_tokens() < COMPACT_AFTER_TOKENS:
+            return
+        # keep the last 8 messages verbatim; summarise the rest
+        keep = 8
+        old, recent = self.conversation[:-keep], self.conversation[-keep:]
+        # make sure we do not cut between an assistant tool call and its results
+        while recent and recent[0].role == "tool":
+            old.append(recent.pop(0))
+        transcript = []
+        for m in old:
+            if m.role == "user":
+                transcript.append("User: " + m.text())
+            elif m.role == "assistant":
+                t = m.text()
+                calls = ["%s(%s)" % (c.name, json.dumps(c.args)[:200]) for c in m.tool_calls()]
+                transcript.append("Assistant: " + t + (" [called: " + "; ".join(calls) + "]" if calls else ""))
+            elif m.role == "tool":
+                transcript.append("Results: " + "; ".join(
+                    ("ERROR " if r.is_error else "") + r.content[:200] for r in m.tool_results_list()))
+        try:
+            msg = Message.user("Summarize the following conversation in under 200 words, keeping model numbers, "
+                               "accessions, residue numbers and the current state of the scene:\n\n" + "\n".join(transcript))
+            reply, u = self.provider.stream(self._system, [msg], [], on_delta=None, cancel=None)
+            self.total_usage.add(u)
+            new_summary = reply.text().strip()
+        except Exception:
+            new_summary = "\n".join(transcript)[-3000:]
+        self.summary = (self.summary + "\n" + new_summary).strip() if self.summary else new_summary
+        # strip context blocks from retained old messages to save tokens
+        for m in recent:
+            if m.role == "user" and m is not recent[-1]:
+                m.meta.pop("context", None)
+        self.conversation = recent

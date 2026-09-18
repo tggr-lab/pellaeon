@@ -1,0 +1,153 @@
+"""Tool definitions exposed to the model, and the Executor protocol.
+
+The agent never touches ChimeraX directly: it calls an ``Executor``. Inside
+ChimeraX the executor is ``bridge.ChimeraXExecutor`` (runs on the main
+thread); in tests it is a fake.
+"""
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional, Protocol
+
+from .schema import ToolSpec
+
+
+class Executor(Protocol):
+    def run_commands(self, commands: List[str]) -> List[Dict[str, Any]]: ...
+    def get_state(self) -> Dict[str, Any]: ...
+    def command_usage(self, name: str) -> str: ...
+    def search_docs(self, query: str, k: int = 5) -> List[Dict[str, Any]]: ...
+    def resolve_protein(self, query: str, organism: str = "human") -> Dict[str, Any]: ...
+    def protein_features(self, accession: str, kinds: Optional[List[str]] = None) -> Dict[str, Any]: ...
+    def run_python(self, code: str) -> Dict[str, Any]: ...
+    def look_at_view(self) -> Dict[str, Any]: ...
+
+
+RUN_COMMANDS = ToolSpec(
+    "run_commands",
+    "Run one or more ChimeraX commands in order. Put several related commands in ONE call. "
+    "Execution stops at the first failing command; you get each command's log output, "
+    "warnings and the exact error text.",
+    {
+        "type": "object",
+        "properties": {
+            "commands": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "ChimeraX commands, one per item, e.g. [\"open alphafold:P55085\", \"color white\", \"color :159 blue\"]",
+            }
+        },
+        "required": ["commands"],
+    },
+)
+
+GET_STATE = ToolSpec(
+    "get_state",
+    "Describe what is currently open in ChimeraX: model ids and names, chains with residue "
+    "counts, the current selection, background color. Call it after opening structures or when "
+    "the user refers to 'it', 'this', 'the selected', 'the other one'.",
+    {"type": "object", "properties": {}},
+)
+
+COMMAND_USAGE = ToolSpec(
+    "command_usage",
+    "Get the exact syntax (usage line and options) of a ChimeraX command from the running "
+    "ChimeraX. Use it when a command fails with a syntax/keyword error or you are unsure of an option.",
+    {
+        "type": "object",
+        "properties": {"name": {"type": "string", "description": "Command name, e.g. 'color', 'cartoon style', 'distance'"}},
+        "required": ["name"],
+    },
+)
+
+SEARCH_DOCS = ToolSpec(
+    "search_docs",
+    "Search the ChimeraX user documentation (commands, atom specifiers, color names) for a topic. "
+    "Returns the most relevant passages. Use it for unfamiliar tasks or options.",
+    {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "What you want to know, e.g. 'measure distance between two residues'"},
+            "k": {"type": "integer", "description": "Number of passages (default 5)", "default": 5},
+        },
+        "required": ["query"],
+    },
+)
+
+RESOLVE_PROTEIN = ToolSpec(
+    "resolve_protein",
+    "Look up a protein by gene symbol or name in UniProt and return its accession (needed for "
+    "'open alphafold:ACCESSION'), gene, full name, organism and length. NEVER guess accessions; "
+    "always call this first when the user names a gene or protein.",
+    {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "Gene symbol or protein name, e.g. 'F2RL1', 'PAR2', 'human insulin receptor'"},
+            "organism": {"type": "string", "description": "Organism name or NCBI taxon id; default 'human'", "default": "human"},
+        },
+        "required": ["query"],
+    },
+)
+
+PROTEIN_FEATURES = ToolSpec(
+    "protein_features",
+    "Fetch UniProt sequence annotations for an accession as residue ranges: domains, "
+    "transmembrane/topological regions, binding sites, disulfides, glycosylation, variants. "
+    "Use these ranges to color or select regions (e.g. 'color the transmembrane helices').",
+    {
+        "type": "object",
+        "properties": {
+            "accession": {"type": "string", "description": "UniProt accession, e.g. P55085"},
+            "kinds": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Optional filter, e.g. [\"Transmembrane\", \"Domain\", \"Binding site\"]",
+            },
+        },
+        "required": ["accession"],
+    },
+)
+
+ASK_USER = ToolSpec(
+    "ask_user",
+    "Ask the user a short clarifying question when the request is genuinely ambiguous "
+    "(e.g. which of two open models). Offer options when possible. This ends your turn.",
+    {
+        "type": "object",
+        "properties": {
+            "question": {"type": "string"},
+            "options": {"type": "array", "items": {"type": "string"}, "description": "Optional short choices"},
+        },
+        "required": ["question"],
+    },
+)
+
+RUN_PYTHON = ToolSpec(
+    "run_python",
+    "Run Python code inside ChimeraX with the variable `session` available (and `run(session, cmd)`). "
+    "Only for things commands cannot do (custom calculations, loops over residues). "
+    "The user must approve it. Print what you want returned.",
+    {
+        "type": "object",
+        "properties": {"code": {"type": "string"}},
+        "required": ["code"],
+    },
+)
+
+LOOK_AT_VIEW = ToolSpec(
+    "look_at_view",
+    "Take a screenshot of the current 3D view so you can check how it looks.",
+    {"type": "object", "properties": {}},
+)
+
+ALL_TOOLS = [RUN_COMMANDS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+             PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
+
+
+def tool_specs(allow_python: bool = False, vision: bool = False) -> List[ToolSpec]:
+    specs = [RUN_COMMANDS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+             PROTEIN_FEATURES, ASK_USER]
+    if allow_python:
+        specs.append(RUN_PYTHON)
+    if vision:
+        specs.append(LOOK_AT_VIEW)
+    return specs
