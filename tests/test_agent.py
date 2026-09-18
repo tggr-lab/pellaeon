@@ -310,3 +310,11 @@ def test_identical_failed_command_is_not_rerun():
     assert ex.ran.count("colr red") == 1
     tr = json.loads(agent.conversation[4].tool_results_list()[0].content)
     assert tr.get("repeated") and "already ran" in tr["error"]
+
+
+def test_resolve_protein_with_pdb_id_gives_hint():
+    prov = ScriptedProvider([{"calls": [("resolve_protein", {"query": "4ake"})]}, "ok"])
+    agent = Agent(prov, FakeExecutor())
+    agent.run_turn("open 4ake")
+    tr = agent.conversation[2].tool_results_list()[0]
+    assert "open 4ake" in tr.content and not tr.is_error

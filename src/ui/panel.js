@@ -348,6 +348,21 @@
     scrollDown();
   }
 
+  // ---------------------------------------------------------------- selection bar
+  let currentSel = null;
+  function showSelection(m) {
+    const bar = $("selbar");
+    if (!m.spec) { bar.hidden = true; currentSel = null; return; }
+    currentSel = m;
+    const what = m.n === 1 ? (m.name + " " + m.number + " (chain " + m.chain + ", " + m.model + ")") : m.n + " residues: " + m.spec;
+    $("sel-text").innerHTML = "Selected: <b>" + esc(what) + "</b>";
+    bar.hidden = false;
+  }
+  function describeSel() {
+    if (!currentSel) return "the selection";
+    return currentSel.n === 1 ? "residue " + currentSel.number + " (" + currentSel.name + ") of chain " + currentSel.chain + " in " + currentSel.model : "the selected residues " + currentSel.spec;
+  }
+
   // ---------------------------------------------------------------- input
   function submit(text) {
     text = (text || "").trim();
@@ -439,6 +454,9 @@
       el.className = "hints " + (m.finished ? "ok" : "");
     },
     history(m) { renderHistory(m.conversations || []); },
+    selection(m) { showSelection(m); },
+    picked(m) { showSelection({spec: m.pick.spec, n: 1, name: m.pick.name, number: m.pick.number, chain: m.pick.chain, model: m.pick.model});
+                $("input").value = "Tell me about residue " + m.pick.number + " (" + m.pick.name + ") of chain " + m.pick.chain + " in " + m.pick.model + ". "; autosize(); $("input").focus(); },
     conversation(m) { loadConversation(m); },
   };
   function updateConfigLine() {
@@ -472,6 +490,10 @@
     $("btn-history").onclick = () => showPage("history");
     $("btn-new").onclick = () => send("new_chat");
     $("btn-export").onclick = () => send("export_cxc");
+    $("sel-ask").onclick = () => submit("Tell me about " + describeSel() + ": what is it, what does UniProt say about it, and what is it interacting with?");
+    $("sel-near").onclick = () => submit("What residues and ligands are within 5 A of " + describeSel() + "? Show them as sticks and label them.");
+    $("sel-color").onclick = () => submit("Highlight " + describeSel() + ": show its atoms as sticks in yellow and focus the view on it.");
+    $("chip-bind").onclick = () => send("bind_click");
     $("btn-cancel-settings").onclick = () => showPage("chat");
     $("btn-cancel-history").onclick = () => showPage("chat");
     $("autonomy").onchange = () => send("set_autonomy", {mode: $("autonomy").value});

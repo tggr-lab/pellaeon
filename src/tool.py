@@ -71,6 +71,17 @@ class PellaeonTool(HtmlToolInstance):
         self._confirms: Dict[str, Dict[str, Any]] = {}
         self._conv_id = ""
         self._last_state_push = 0.0
+        self._sel_handler = None
+        try:
+            self._sel_handler = session.triggers.add_handler("selection changed", self._selection_changed)
+        except Exception:
+            pass
+        try:
+            from .analysis import AskMouseMode
+            mode = AskMouseMode.make(session, lambda info: self.session.ui.thread_safe(self._picked, info))
+            session.ui.mouse_modes.add_mode(mode)
+        except Exception as e:  # noqa: BLE001
+            session.logger.info("Pellaeon: click-to-ask mouse mode unavailable: %s" % e)
         html = pathlib.Path(os.path.dirname(os.path.abspath(__file__)), "ui", "panel.html")
         from Qt.QtCore import QUrl
         self.html_view.setUrl(QUrl.fromLocalFile(str(html)))
@@ -96,8 +107,39 @@ class PellaeonTool(HtmlToolInstance):
         """Send a message to the page from any thread."""
         self.session.ui.thread_safe(self.push, obj)
 
+    def _selection_changed(self, trigger_name, data):
+        try:
+            from chimerax.atomic import selected_residues
+            from .bridge import _residues_spec
+            res = selected_residues(self.session)
+            if 0 < len(res) <= 3:
+                r = res[0]
+                self.push({"type": "selection", "spec": _residues_spec(res), "n": len(res),
+                           "name": r.name, "number": int(r.number), "chain": r.chain_id, "model": "#" + r.structure.id_string})
+            else:
+                self.push({"type": "selection", "spec": "", "n": len(res)})
+        except Exception:
+            pass
+
+    def _picked(self, info):
+        self.tool_window.shown = True
+        self.push({"type": "picked", "pick": info})
+
+    def _act_bind_click(self, params, payload):
+        from chimerax.core.commands import run
+        try:
+            run(self.session, 'ui mousemode alt leftMode "pellaeon ask"', log=True)
+            self.push({"type": "toast", "kind": "ok", "text": "Alt+click any atom to ask about it"})
+        except Exception as e:  # noqa: BLE001
+            self.push({"type": "toast", "kind": "error", "text": "Could not bind mouse mode: %s" % e})
+
     def delete(self):
         self._deleted = True
+        if self._sel_handler is not None:
+            try:
+                self.session.triggers.remove_handler(self._sel_handler)
+            except Exception:
+                pass
         self._cancel.set()
         for c in self._confirms.values():
             c["event"].set()
@@ -664,6 +706,16 @@ def _summarize_tool(call, result, payload) -> str:
     if name == "protein_features":
         n = payload.get("count", 0) if isinstance(payload, dict) else 0
         return "Fetched %d UniProt features for %s" % (n, a.get("accession", ""))
+    if name == "compare_structures":
+        if isinstance(payload, dict) and not payload.get("error"):
+            return "Compared %s to %s: %d residues paired, mean shift %s A, %d residues moved over 2 A" % (
+                payload.get("compared"), payload.get("reference"), payload.get("paired_residues", 0),
+                payload.get("mean_displacement"), payload.get("residues_over_2A", 0))
+        return "Comparison failed"
+    if name == "annotate":
+        if isinstance(payload, dict) and not payload.get("error"):
+            return "Annotated %d %s feature(s) from UniProt %s" % (payload.get("count", 0), a.get("kind", ""), a.get("accession", ""))
+        return "Annotation failed"
     if name == "run_python":
         return "Ran Python code" + ("" if not result.is_error else " (failed)")
     if name == "look_at_view":

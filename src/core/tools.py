@@ -19,6 +19,8 @@ class Executor(Protocol):
     def resolve_protein(self, query: str, organism: str = "human") -> Dict[str, Any]: ...
     def protein_features(self, accession: str, kinds: Optional[List[str]] = None) -> Dict[str, Any]: ...
     def run_python(self, code: str) -> Dict[str, Any]: ...
+    def compare_structures(self, reference: str, other: str, chain: Optional[str] = None) -> Dict[str, Any]: ...
+    def annotate(self, model: str, accession: str, kind: str, color: str = "orange", label: bool = True) -> Dict[str, Any]: ...
     def look_at_view(self) -> Dict[str, Any]: ...
 
 
@@ -139,13 +141,40 @@ LOOK_AT_VIEW = ToolSpec(
     {"type": "object", "properties": {}},
 )
 
-ALL_TOOLS = [RUN_COMMANDS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+COMPARE = ToolSpec(
+    "compare_structures",
+    "Superpose one model onto another (matchmaker), compute per-residue CA displacement, color the moved model by "
+    "displacement (gray unchanged -> red 6 A) and return RMSD, mean/max displacement, the most shifted residues and "
+    "contiguous moving regions. Use for 'what changed between these two structures'.",
+    {"type": "object", "properties": {
+        "reference": {"type": "string", "description": "reference model spec, e.g. '#1'"},
+        "other": {"type": "string", "description": "model to superpose and color, e.g. '#2'"},
+        "chain": {"type": "string", "description": "optional chain id to restrict the comparison, e.g. 'A'"}},
+     "required": ["reference", "other"]},
+)
+
+ANNOTATE = ToolSpec(
+    "annotate",
+    "Overlay UniProt annotations on a model: color the residues and label them. kind: 'variant' (natural variants), "
+    "'disease' (variants linked to a disease), 'domain', 'transmembrane', 'topology', 'binding', 'active', 'site', "
+    "'glycosylation', 'disulfide', 'modified', 'ptm', 'region', 'motif'. Needs the UniProt accession (resolve_protein). "
+    "Numbering matches AlphaFold models; PDB entries may be offset.",
+    {"type": "object", "properties": {
+        "model": {"type": "string", "description": "model spec, e.g. '#1'"},
+        "accession": {"type": "string"},
+        "kind": {"type": "string"},
+        "color": {"type": "string", "description": "color name, default orange"},
+        "label": {"type": "boolean", "description": "add labels (default true)"}},
+     "required": ["model", "accession", "kind"]},
+)
+
+ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 
 def tool_specs(allow_python: bool = False, vision: bool = False) -> List[ToolSpec]:
     specs = [RUN_COMMANDS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
-             PROTEIN_FEATURES, ASK_USER]
+             PROTEIN_FEATURES, COMPARE, ANNOTATE, ASK_USER]
     if allow_python:
         specs.append(RUN_PYTHON)
     if vision:

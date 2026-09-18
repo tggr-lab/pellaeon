@@ -158,3 +158,7 @@ a { color: var(--accent); }
 .toast { background: var(--ink); color: var(--bg); padding: 6px 12px; border-radius: 999px; font-size: 12px; box-shadow: var(--shadow); opacity: 0; transform: translateY(6px); transition: all .2s; }
 .toast.show { opacity: .95; transform: none; }
 .toast.error { background: var(--err); color: #fff; } .toast.warn { background: var(--warn); color: #111; }
+
+.selbar { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+.selbar b { color: var(--ink); }
+.secondary.small { padding: 2px 8px; font-size: 11px; }

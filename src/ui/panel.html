@@ -49,6 +49,12 @@
       </div>
     </div>
     <div class="composer">
+      <div class="selbar" id="selbar" hidden>
+        <span id="sel-text"></span>
+        <button class="secondary small" id="sel-ask">What is this?</button>
+        <button class="secondary small" id="sel-near">What is nearby?</button>
+        <button class="secondary small" id="sel-color">Highlight</button>
+      </div>
       <div class="chips" id="chips">
         <button data-text="make it look publication ready">Publication look</button>
         <button data-text="color by chain">Color by chain</button>
@@ -56,6 +62,10 @@
         <button data-text="show hydrogen bonds">H-bonds</button>
         <button data-text="reset the view">Reset view</button>
         <button data-text="undo the last change">Undo</button>
+        <button data-text="compare the two open models and tell me what changed">Compare models</button>
+        <button data-text="show the disease-linked variants on this model">Disease variants</button>
+        <button data-text="color the domains and transmembrane regions">Domains</button>
+        <button id="chip-bind" title="Bind Alt+click to ask about an atom">Alt+click = ask</button>
       </div>
       <div class="input-row">
         <textarea id="input" rows="2" placeholder="What should ChimeraX do?  (Enter to send, Shift+Enter for a new line)"></textarea>

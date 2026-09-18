@@ -363,10 +363,23 @@ class Agent:
                 txt = "\n\n".join("[%s | %s]\n%s" % (h.get("title"), h.get("section"), h.get("text")) for h in hits)
                 result = ToolResult(call.id, name, txt or "No matching documentation.")
             elif name == "resolve_protein":
-                payload = self.executor.resolve_protein(str(args.get("query", "")), str(args.get("organism", "human") or "human"))
+                q = str(args.get("query", "")).strip()
+                if re.match(r"^[0-9][A-Za-z0-9]{3}$", q):
+                    payload = {"hint": "'%s' is a PDB id, not a gene. Just run: open %s" % (q, q.lower())}
+                else:
+                    payload = self.executor.resolve_protein(q, str(args.get("organism", "human") or "human"))
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "protein_features":
                 payload = self.executor.protein_features(str(args.get("accession", "")), args.get("kinds"))
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+            elif name == "compare_structures":
+                payload = self.executor.compare_structures(str(args.get("reference", "#1")), str(args.get("other", "#2")),
+                                                           args.get("chain") or None)
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+            elif name == "annotate":
+                payload = self.executor.annotate(str(args.get("model", "#1")), str(args.get("accession", "")),
+                                                 str(args.get("kind", "variant")), str(args.get("color", "orange") or "orange"),
+                                                 bool(args.get("label", True)))
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "run_python":
                 code = str(args.get("code", ""))

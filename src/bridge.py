@@ -224,6 +224,16 @@ class ChimeraXExecutor:
     def protein_features(self, accession: str, kinds: Optional[List[str]] = None) -> Dict[str, Any]:
         return self.uniprot.features(accession, kinds)
 
+    def compare_structures(self, reference: str, other: str, chain: Optional[str] = None) -> Dict[str, Any]:
+        from .analysis import compare_structures
+        return _run_on_main_thread(self.session, lambda: compare_structures(
+            self.session, self._run_commands_main, reference, other, chain))
+
+    def annotate(self, model: str, accession: str, kind: str, color: str = "orange", label: bool = True) -> Dict[str, Any]:
+        from .analysis import annotate
+        return _run_on_main_thread(self.session, lambda: annotate(
+            self.session, self._run_commands_main, self.uniprot, model, accession, kind, color, label))
+
     def run_python(self, code: str) -> Dict[str, Any]:
         def f():
             import contextlib

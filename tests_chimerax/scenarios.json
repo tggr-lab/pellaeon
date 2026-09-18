@@ -395,5 +395,37 @@
   "expected": "green coloring",
   "check_type": "state_expr",
   "check": "all(a.color[1] > a.color[0] + 50 and a.color[1] > a.color[2] + 50 for a in atoms if a.name=='CA')"
+ },
+ {
+  "id": "compare-models",
+  "category": "analysis",
+  "setup_commands": [
+   "open 4ake",
+   "open 1ake"
+  ],
+  "request": "compare these two models and tell me what changed",
+  "expected": "compare_structures called, reply mentions moving regions",
+  "check_type": "state_expr",
+  "check": "any(c[0]=='compare_structures' for c in record['calls']) and ('30' in reply or '117' in reply or 'LID' in reply or 'region' in reply.lower())"
+ },
+ {
+  "id": "annotate-tm",
+  "category": "annotation",
+  "setup_commands": [
+   "open alphafold:P55085"
+  ],
+  "request": "color the transmembrane regions orange",
+  "expected": "annotate or explicit ranges",
+  "check_type": "state_expr",
+  "check": "any(c[0]=='annotate' for c in record['calls']) or any(re.search('72-101|:47', c) for c in ran)"
+ },
+ {
+  "id": "pdb-id-not-gene",
+  "category": "open",
+  "setup_commands": [],
+  "request": "open 4ake and 1ake",
+  "expected": "opens both without asking",
+  "check_type": "state_expr",
+  "check": "len(models) >= 2 and not record['asks']"
  }
 ]
