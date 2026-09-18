@@ -60,6 +60,7 @@ NUDGE_ONLY_CHIMERA = ("(system) The user said ONLY, but nothing was hidden. In c
                       "the part: run_commands([\"~display #0\", \"~ribbon #0\", \"ribbon :.B\", \"display :.B\"]) for 'only chain B' "
                       "(chain goes after the residue with a dot), or [\"~display #0\", \"ribbon #0\"] for 'only the ribbon'. Do it now.")
 _ONLY_RE = re.compile(r"\bonly\b|\bjust (the |chain )", re.I)
+_HIDE_RE_CHIMERA = re.compile(r"^\s*(~|show\b|close|delete)", re.I)   # classic Chimera's `show` = display ONLY these
 _HIDE_RE = re.compile(r"^\s*(hide|~|cartoon hide|surface hide|close|delete|undisplay)", re.I)
 
 NUDGE_AA = ("(system) The user asked to color by amino-acid/residue TYPE. ChimeraX has no built-in scheme for that "
@@ -174,7 +175,8 @@ class Agent:
                         nudge = NUDGE          # words but no action
                     elif outcome.get("ended_after_error"):
                         nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
-                    elif _ONLY_RE.search(user_text) and not any(_HIDE_RE.match(c) for c in ran):
+                    elif _ONLY_RE.search(user_text) and not any(
+                            (_HIDE_RE_CHIMERA if self.config.edition == "chimera" else _HIDE_RE).match(c) for c in ran):
                         nudge = NUDGE_ONLY_CHIMERA if self.config.edition == "chimera" else NUDGE_ONLY
                     elif _AA_TYPE_RE.search(user_text) and ran and not any(_AA_CLASS_RE.search(c) for c in ran):
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
