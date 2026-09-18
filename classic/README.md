@@ -7,15 +7,20 @@ the command knowledge (Chimera's Midas-style syntax, models numbered from #0, `:
 
 ## Install and run
 
-1. Python 3.9 or newer (python.org; on Windows tick "Add Python to PATH"). No other packages.
+1. Python 3.9 or newer (python.org; on Windows tick "Add Python to PATH"). Nothing else to install.
 2. Download `pellaeon-classic.zip` from the releases page and unzip it anywhere.
-3. `python run.py` (Windows: double-click `run.py`). Your browser opens `http://127.0.0.1:8765`.
-4. In the settings page: choose an AI provider as in the ChimeraX edition, then under **UCSF Chimera connection**
-   press **Launch Chimera** (it starts Chimera with `--start RESTServer` and picks up the port automatically),
-   or start Chimera yourself, open **Tools ▸ Utilities ▸ RESTServer**, type the port shown in the Reply Log and press **Test Chimera**.
+3. Windows: double-click **Start Pellaeon Classic.cmd**. macOS: double-click **Start Pellaeon Classic.command**. Linux: `./start.sh`.
+   A small launcher window opens (panel address, Chimera status, **Launch Chimera**, **Test**, activity log) and your
+   browser opens the Pellaeon panel at `http://127.0.0.1:8765`.
+4. Press **Launch Chimera** in the launcher (it starts Chimera with `--start RESTServer` and picks up the port
+   automatically; the executable is auto-detected in `C:\Program Files\Chimera*`, `/Applications/Chimera*.app`,
+   `~/.local/UCSF-Chimera*`, or use **Browse…**). Or start Chimera yourself, open **Tools ▸ Utilities ▸ RESTServer**, type the
+   port from its Reply Log and press **Test**.
+5. In the browser panel choose an AI provider once (same settings page as the ChimeraX edition), then type requests.
+6. Optional: `python install.py` puts a **Pellaeon Classic** shortcut on the desktop and in the Start menu (Windows),
+   a `.command` on the desktop (macOS) or an applications-menu entry (Linux).
 
-Chimera path auto-detection covers `C:\Program Files\Chimera*`, `/Applications/Chimera*.app` and `~/.local/UCSF-Chimera*`;
-enter the path to the `chimera` executable if yours is elsewhere.
+`python run.py --console` runs without the launcher window (terminal only); `--no-browser` skips opening the browser.
 
 ## Differences from the ChimeraX edition
 

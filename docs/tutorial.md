@@ -118,7 +118,7 @@ Works for domains, transmembrane regions, binding and active sites, glycosylatio
 
 ## Using the classic Chimera (1.x)?
 
-Pellaeon Classic is a separate small program for old Chimera: unzip `pellaeon-classic.zip`, run `python run.py`, and the same panel opens in your browser. In its settings press **Launch Chimera** (or start Chimera's REST server yourself under Tools ▸ Utilities ▸ RESTServer and type the port). Requests work the same way; Pellaeon speaks Chimera's own command syntax there. Details in `classic/README.md`.
+Pellaeon Classic is a separate small program for old Chimera: install Python 3, unzip `pellaeon-classic.zip`, and double-click **Start Pellaeon Classic** (`.cmd` on Windows, `.command` on macOS). A small launcher window appears and the same panel opens in your browser. Press **Launch Chimera** in the launcher (or start Chimera's REST server yourself under Tools ▸ Utilities ▸ RESTServer and type the port). Requests work the same way; Pellaeon speaks Chimera's own command syntax there. `python install.py` adds a desktop shortcut. Details in `classic/README.md`.
 
 ## Troubleshooting
 
