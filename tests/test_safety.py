@@ -26,3 +26,11 @@ def test_modes():
 
 def test_split():
     assert split_commands("open 1abc; color red ;; # comment") == ["open 1abc", "color red"]
+
+
+def test_abbreviations_and_remote_scripts_need_confirmation():
+    for cmd in ["clo #1", "del solvent", "sav x.png", "exi", "open https://example.org/evil.py",
+                "open https://example.org/run.cxc", "log save ~/log.html", "movie record", "snapshot"]:
+        assert classify(cmd).confirm, cmd
+    for cmd in ["open https://files.rcsb.org/download/4hhb.cif", "open https://x.org/map.mrc.gz", "log clear", "select #1"]:
+        assert not classify(cmd).confirm, cmd

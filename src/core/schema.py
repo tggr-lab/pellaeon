@@ -28,6 +28,7 @@ class ToolCall:
     id: str
     name: str
     args: Dict[str, Any] = field(default_factory=dict)
+    meta: Dict[str, Any] = field(default_factory=dict)  # provider extras that must be echoed back
     kind: str = "tool_call"
 
 

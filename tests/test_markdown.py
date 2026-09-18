@@ -20,3 +20,8 @@ def test_link():
     html = render("see [docs](https://example.org/x) now")
     assert '<a href="https://example.org/x" target="_blank">docs</a>' in html
     assert "<a" not in render("[x](javascript:alert(1))")
+
+
+def test_link_href_is_quote_escaped():
+    html = render('[x](https://a.b/c"onclick="alert(1))')
+    assert "<a " not in html  # a URL containing a quote is not turned into a link at all

@@ -6,6 +6,7 @@ OpenRouter, Groq, Mistral, LM Studio, vLLM, llama.cpp, Cerebras, Together...
 from __future__ import annotations
 
 import json
+import re
 import threading
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -39,21 +40,23 @@ class OpenAICompatProvider(Provider):
             if m.role == "user":
                 out.append({"role": "user", "content": self.user_text(m) if i == last_user else m.text()})
             elif m.role == "assistant":
-                d: Dict[str, Any] = {"role": "assistant", "content": m.text() or None}
                 calls = m.tool_calls()
+                d: Dict[str, Any] = {"role": "assistant", "content": m.text() if (m.text() or not calls) else None}
                 if calls:
                     d["tool_calls"] = [{"id": c.id, "type": "function",
                                         "function": {"name": c.name, "arguments": json.dumps(c.args)}}
                                        for c in calls]
                 out.append(d)
             elif m.role == "tool":
+                images = []
                 for r in m.tool_results_list():
-                    content: Any = self.result_text(r)
-                    out.append({"role": "tool", "tool_call_id": r.call_id, "content": content})
+                    out.append({"role": "tool", "tool_call_id": r.call_id, "content": self.result_text(r)})
                     if r.image_png_b64:
-                        out.append({"role": "user", "content": [
-                            {"type": "text", "text": "Screenshot from tool %s:" % r.name},
-                            {"type": "image_url", "image_url": {"url": "data:image/png;base64," + r.image_png_b64}}]})
+                        images.append((r.name, r.image_png_b64))
+                for name, b64 in images:  # images go after ALL tool messages (tool_calls -> tool adjacency)
+                    out.append({"role": "user", "content": [
+                        {"type": "text", "text": "Screenshot from tool %s:" % name},
+                        {"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}}]})
         return out
 
     def stream(self, system, messages, tools, on_delta: Optional[OnDelta] = None,
@@ -62,8 +65,9 @@ class OpenAICompatProvider(Provider):
             "model": self.model,
             "messages": self._to_messages(system, messages),
             "stream": True,
-            "temperature": float(self.options.get("temperature", 0.2)),
         }
+        if not re.match(r"^(gpt-5|o\d)", self.model):  # reasoning models reject temperature
+            body["temperature"] = float(self.options.get("temperature", 0.2))
         if self.options.get("include_usage", True):
             body["stream_options"] = {"include_usage": True}
         if tools:

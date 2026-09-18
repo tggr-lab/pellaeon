@@ -28,3 +28,5 @@ Command gotchas (learned the hard way):
 - Valid built-in `color` schemes are only: byatom, bychain, byelement, byhetero, byidentity, bymodel, bynucleotide, bypolymer, random (plus `color bfactor`, `color byattribute`, `color sequential`/`rainbow`, `color zone`, `color electrostatic`).
 - "Only": ChimeraX has no 'only' keyword. Hide everything first, then show the part: `hide #1 target acs; cartoon #1/B; show #1/B atoms` (only chain B); `cartoon #1; hide #1 atoms` (only the cartoon); `hide #1 target acs; show ligand atoms` (only the ligand).
 - "Reset the view" means `view` (no arguments). Use `view initial` only if the user says "initial".
+- "Make it white / red" with a model open means color the model (`color #1 white`); change the background only when the user says background.
+- Repeating a command that just failed is never useful; change it or change approach.

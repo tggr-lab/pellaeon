@@ -47,7 +47,10 @@ class GeminiProvider(Provider):
                     if isinstance(p, TextPart) and p.text.strip():
                         parts.append({"text": p.text})
                     elif isinstance(p, ToolCall):
-                        parts.append({"functionCall": {"name": p.name, "args": p.args}})
+                        part: Dict[str, Any] = {"functionCall": {"name": p.name, "args": p.args}}
+                        if p.meta.get("thoughtSignature"):
+                            part["thoughtSignature"] = p.meta["thoughtSignature"]
+                        parts.append(part)
                 if parts:
                     out.append({"role": "model", "parts": parts})
             elif m.role == "tool":
@@ -90,11 +93,17 @@ class GeminiProvider(Provider):
                     raise ProviderError("Gemini: %s" % chunk["error"].get("message", chunk["error"]))
                 um = chunk.get("usageMetadata") or {}
                 if um:
-                    usage = Usage(int(um.get("promptTokenCount", 0) or 0), int(um.get("candidatesTokenCount", 0) or 0),
+                    usage = Usage(int(um.get("promptTokenCount", 0) or 0),
+                                  int(um.get("candidatesTokenCount", 0) or 0) + int(um.get("thoughtsTokenCount", 0) or 0),
                                   int(um.get("cachedContentTokenCount", 0) or 0))
                 for cand in chunk.get("candidates") or []:
-                    if cand.get("finishReason") in ("SAFETY", "RECITATION", "PROHIBITED_CONTENT"):
-                        raise ProviderError("Gemini blocked the response (%s)." % cand["finishReason"])
+                    fr = cand.get("finishReason")
+                    if fr in ("SAFETY", "RECITATION", "PROHIBITED_CONTENT"):
+                        raise ProviderError("Gemini blocked the response (%s)." % fr)
+                    if fr in ("MALFORMED_FUNCTION_CALL", "UNEXPECTED_TOOL_CALL"):
+                        raise ProviderError("Gemini produced an invalid tool call (%s); try again or switch model." % fr)
+                    if fr == "MAX_TOKENS":
+                        text_parts.append("\n\n(Response was cut off by the output limit.)")
                     for part in (cand.get("content") or {}).get("parts") or []:
                         if part.get("thought"):
                             continue
@@ -104,7 +113,8 @@ class GeminiProvider(Provider):
                                 on_delta(part["text"])
                         fc = part.get("functionCall")
                         if fc:
-                            calls.append(ToolCall(new_id(), fc.get("name", ""), dict(fc.get("args") or {})))
+                            meta = {"thoughtSignature": part["thoughtSignature"]} if part.get("thoughtSignature") else {}
+                            calls.append(ToolCall(new_id(), fc.get("name", ""), dict(fc.get("args") or {}), meta))
         except HttpError as e:
             raise ProviderError(self._explain(e))
         except ConnectionError as e:

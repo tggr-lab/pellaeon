@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import io
+import re
 import os
 import queue
 import threading
@@ -60,8 +61,11 @@ def app_dirs():
 
 
 def pellaeon_dir(kind: str = "data") -> str:
+    """Pellaeon's own folder, outside ChimeraX's per-version directory so keys and chats survive upgrades."""
     d = app_dirs()
     base = {"data": d.user_data_dir, "config": d.user_config_dir, "cache": d.user_cache_dir}[kind]
+    if re.match(r"^\d+(\.\d+)*$", os.path.basename(base.rstrip("/\\"))):
+        base = os.path.dirname(base.rstrip("/\\"))
     path = os.path.join(base, "Pellaeon")
     os.makedirs(path, exist_ok=True)
     return path
@@ -178,7 +182,8 @@ class ChimeraXExecutor:
                     entry["traceback"] = traceback.format_exc()[-1500:]
             # ChimeraX calls the info level "note"; drop the command echo line
             infos = cap.by_level.get("note", []) + cap.by_level.get("info", [])
-            entry["info"] = [m.strip() for m in infos if m.strip() and not m.startswith("Executing:")][:20]
+            entry["info"] = [m.strip() for m in infos
+                             if m.strip() and not m.startswith("Executing:") and m.strip() != cmd.strip()][:20]
             entry["warnings"] = [m.strip() for m in cap.by_level.get("warning", []) if m.strip()][:10]
             errs = [m.strip() for m in cap.by_level.get("error", []) + cap.by_level.get("bug", []) if m.strip()]
             if errs and not entry["error"]:

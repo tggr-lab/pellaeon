@@ -173,6 +173,9 @@ class AnthropicProvider(Provider):
                 parts.append(OpaquePart(self.name, data))
             elif btype == "redacted_thinking":
                 parts.append(OpaquePart(self.name, slot["block"]))
+            elif btype:
+                # unknown block types (e.g. server-side "fallback" markers) must be echoed back verbatim
+                parts.append(OpaquePart(self.name, slot["block"]))
         if stop_reason == "max_tokens":
             parts.append(TextPart("\n\n(Response was cut off by the output limit.)"))
         return Message("assistant", parts), usage

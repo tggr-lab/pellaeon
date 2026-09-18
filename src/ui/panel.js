@@ -31,9 +31,10 @@
     if (name === "settings") fillSettings();
     if (name === "history") send("history");
   }
-  function scrollDown() {
+  function scrollDown(force) {
     const t = $("transcript");
-    t.scrollTop = t.scrollHeight;
+    const nearBottom = t.scrollHeight - t.scrollTop - t.clientHeight < 120;
+    if (force || nearBottom) t.scrollTop = t.scrollHeight;
   }
   function setBusy(b) {
     state.busy = b;
@@ -50,7 +51,7 @@
     el.className = "msg user";
     el.textContent = text;
     $("transcript").appendChild(el);
-    scrollDown();
+    scrollDown(true);
   }
   function assistantStart(id) {
     const el = document.createElement("div");
@@ -71,6 +72,7 @@
       t.el.appendChild(t.textEl);
       t.segText = "";
     }
+    t.lastTextEl = t.textEl;
     return t.textEl;
   }
   function assistantDelta(id, text) {
@@ -86,11 +88,11 @@
     const t = turn(id);
     const th = t.el.querySelector(".thinking");
     if (th) th.remove();
-    // replace the last streamed text segment with the rendered version of the whole final reply
-    if (html) {
-      if (t.textEl && t.textEl === t.el.lastElementChild) {
-        t.textEl.className = "text rendered";
-        t.textEl.innerHTML = html;
+    // replace the last streamed text segment with the rendered version of the final reply
+    if (html && error !== "cancelled") {
+      if (t.lastTextEl) {
+        t.lastTextEl.className = "text rendered";
+        t.lastTextEl.innerHTML = html;
       } else {
         const el = document.createElement("div");
         el.className = "text rendered";
@@ -122,7 +124,8 @@
       el = document.createElement("details");
       el.className = "tool";
       el.open = true;
-      const cmds = (args && args.commands) || [];
+      let cmds = (args && args.commands) || [];
+      if (!Array.isArray(cmds)) cmds = [String(cmds)];
       el.innerHTML = '<summary><span class="dot run"></span><span class="label">Running ' + cmds.length + (cmds.length === 1 ? " command" : " commands") + "…</span></summary>" +
         '<div class="cmds">' + cmds.map((c) => cmdRow(c, "run")).join("") + "</div>";
     } else {
@@ -227,7 +230,7 @@
     const models = st.models || [];
     if (!models.length) { el.innerHTML = "<b>Nothing open</b> — the <i>Chimaera</i> awaits orders. Try: open 4hhb"; return; }
     const parts = models.slice(0, 6).map((m) => "<b>" + esc(m.id) + "</b> " + esc(m.name) +
-      (m.chains && m.chains.length ? " (" + m.chains.slice(0, 6).map((c) => c.id).join(",") + (m.chains.length > 6 ? "…" : "") + ")" : ""));
+      (m.chains && m.chains.length ? " (" + m.chains.slice(0, 6).map((c) => esc(c.id)).join(",") + (m.chains.length > 6 ? "…" : "") + ")" : ""));
     let s = parts.join(" · ");
     if (models.length > 6) s += " · +" + (models.length - 6) + " more";
     const sel = st.selection || {};
@@ -280,6 +283,7 @@
     $("s-model").value = s.model || (presetById(s.preset) || {}).model || "";
     $("s-url").value = s.base_url || (presetById(s.preset) || {}).base_url || "";
     $("s-key").value = "";
+    $("s-key").dataset.clear = "";
     $("s-key").dataset.unchanged = state.keyMasked ? "1" : "";
     $("key-note").textContent = state.keyMasked ? "Saved key: " + state.keyMasked + " (" + state.keySource + "). Leave empty to keep it." : "";
     $("s-autonomy").value = s.autonomy || "auto";
@@ -295,13 +299,14 @@
       preset: $("presets").dataset.selected || "ollama",
       model: $("s-model").value.trim(),
       base_url: $("s-url").value.trim(),
-      api_key: key ? key : ($("s-key").dataset.unchanged ? "__unchanged__" : ""),
+      api_key: key,
       autonomy: $("s-autonomy").value,
       allow_python: $("s-python").checked,
       vision: $("s-vision").checked,
       think: $("s-think").checked,
       effort: $("s-effort").value,
-      temperature: parseFloat($("s-temp").value) || 0.2,
+      temperature: isNaN(parseFloat($("s-temp").value)) ? 0.2 : parseFloat($("s-temp").value),
+      clear_key: !!$("s-key").dataset.clear,
     };
   }
 
@@ -404,7 +409,7 @@
     status(m) { $("status").textContent = m.text || ""; },
     busy(m) { setBusy(!!m.busy); },
     toast(m) { toast(m.text, m.kind); },
-    clear() { $("transcript").innerHTML = ""; Object.keys(state.turns).forEach((k) => delete state.turns[k]); $("usage").textContent = ""; showPage("chat"); },
+    clear() { $("transcript").innerHTML = WELCOME_HTML; wireWelcome(); Object.keys(state.turns).forEach((k) => delete state.turns[k]); $("usage").textContent = ""; showPage("chat"); },
     rerun_result(m) { rerunResult(m.results || []); },
     test_result(m) {
       const el = $("test-result");
@@ -450,14 +455,19 @@
   };
 
   // ---------------------------------------------------------------- wiring
+  let WELCOME_HTML = "";
+  function wireWelcome() { document.querySelectorAll(".examples li").forEach((li) => (li.onclick = () => submit(li.dataset.text))); }
   document.addEventListener("DOMContentLoaded", () => {
+    WELCOME_HTML = $("transcript").innerHTML;
+    $("btn-clearkey").onclick = () => { $("s-key").value = ""; $("s-key").dataset.clear = "1"; $("key-note").textContent = "Key will be removed when you save."; };
+    $("s-key").addEventListener("input", () => { $("s-key").dataset.clear = ""; });
     $("send").onclick = () => (state.busy ? send("stop") : submit($("input").value));
     $("input").addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit($("input").value); }
     });
     $("input").addEventListener("input", autosize);
     $("chips").querySelectorAll("button").forEach((b) => (b.onclick = () => submit(b.dataset.text)));
-    document.querySelectorAll(".examples li").forEach((li) => (li.onclick = () => submit(li.dataset.text)));
+    wireWelcome();
     $("btn-settings").onclick = () => showPage("settings");
     $("btn-history").onclick = () => showPage("history");
     $("btn-new").onclick = () => send("new_chat");

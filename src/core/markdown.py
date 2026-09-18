@@ -12,7 +12,7 @@ import re
 _INLINE_CODE = re.compile(r"`([^`\n]+)`")
 _BOLD = re.compile(r"\*\*(.+?)\*\*")
 _ITALIC = re.compile(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])")
-_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
+_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)\"'<>]+)\)")
 
 
 def _inline(text: str) -> str:
@@ -20,7 +20,7 @@ def _inline(text: str) -> str:
     text = _INLINE_CODE.sub(lambda m: "<code>%s</code>" % m.group(1), text)
     text = _BOLD.sub(lambda m: "<strong>%s</strong>" % m.group(1), text)
     text = _ITALIC.sub(lambda m: "<em>%s</em>" % m.group(1), text)
-    text = _LINK.sub(lambda m: '<a href="%s" target="_blank">%s</a>' % (m.group(2), m.group(1)), text)
+    text = _LINK.sub(lambda m: '<a href="%s" target="_blank">%s</a>' % (html.escape(m.group(2), quote=True), m.group(1)), text)
     return text
 
 

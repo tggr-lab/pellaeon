@@ -1,0 +1,3641 @@
+{
+ "workflows": [
+  {
+   "name": "Get help on a command",
+   "goal": "Open the documentation page for a ChimeraX command inside the built-in browser.",
+   "requests": [
+    "how does the style command work?",
+    "show me the help page for color",
+    "whats the syntax for the volume cmd"
+   ],
+   "commands": [
+    "help style"
+   ],
+   "notes": "'help <command>' opens that command's page. Typing a command name alone in the command line and clicking it in the Log also opens its help. Command names and keywords can be truncated to unique prefixes.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "name": "Open a tutorial web page inside ChimeraX",
+   "goal": "Show an HTML tutorial in the ChimeraX browser so its cxcmd links execute commands when clicked.",
+   "requests": [
+    "open this tutorial inside ChimeraX so I can click the commands",
+    "load a web page in the ChimeraX browser",
+    "open the chimerax mole tutorial page in chimerax"
+   ],
+   "commands": [
+    "open https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+   ],
+   "notes": "Any http(s) URL of an HTML page opens in the ChimeraX Browser; cxcmd: links run when clicked. The built-in browser cannot download files. Menu Help / Tutorials lists the official ones.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Open a PDB entry and inspect chains, ligands and metadata",
+   "goal": "Fetch a structure by PDB ID, see its chain/ligand tables in the Log, show a chain sequence and print citation/resolution metadata.",
+   "requests": [
+    "Open 6n2y and tell me what chains and ligands it has",
+    "Fetch PDB 2hyy and show me what's in it",
+    "load 7kkj and whats its resolution"
+   ],
+   "commands": [
+    "open 6n2y",
+    "sequence chain #1/A",
+    "log metadata #1",
+    "select /A",
+    "select :ADP"
+   ],
+   "notes": "The Log lists chains, non-standard residues and mmCIF assemblies; clicking a chain ID runs 'select /A', a ligand name 'select :ADP' (green outline). Ions like CL may be hidden until 'show :CL'. Hover an atom for chain/residue/atom name.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Close models or the whole session, clear the Log, quit",
+   "goal": "Remove some or all models, reset the session, empty the Log, or exit ChimeraX.",
+   "requests": [
+    "Close everything and start fresh",
+    "close model 2 only",
+    "clear the log and quit chimerax"
+   ],
+   "commands": [
+    "close #2",
+    "close",
+    "close session",
+    "log clear",
+    "exit"
+   ],
+   "notes": "'close' alone closes all models but keeps tools; 'close session' also closes tools such as the Sequence Viewer. Background and silhouettes are not reset by close (see publication look). No confirmation is asked; save a .cxs session first if needed.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Show, hide and close models by number",
+   "goal": "Control which open models are displayed and remove models no longer needed.",
+   "requests": [
+    "Hide model 3 but keep it open",
+    "Close models 2 through 4",
+    "show model 1 again pls"
+   ],
+   "commands": [
+    "hide #3 model",
+    "show #1 model",
+    "show #1 atoms,model",
+    "hide #2 models",
+    "close #2,3",
+    "close #2-4"
+   ],
+   "notes": "'#2-4' is a range, '#2,3' a list. 'hide #3 model' hides the whole model (not just atoms). Same as the Model Panel eye checkboxes and close button. '#!1' means model 1 but not its submodels.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Set the working folder",
+   "goal": "Choose the directory used for later open/save commands so no full paths are needed.",
+   "requests": [
+    "Set my working directory to my project folder",
+    "let me pick a folder so I dont have to type paths",
+    "change the working folder"
+   ],
+   "commands": [
+    "cd browse"
+   ],
+   "notes": "Opens a folder chooser; menu equivalent File / Set Working Folder. Afterwards 'save domains.png' writes into that folder.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Run a ChimeraX command script (.cxc)",
+   "goal": "Execute commands stored one per line in a plain-text .cxc file.",
+   "requests": [
+    "run my command file",
+    "execute the commands in gbpmovie.cxc",
+    "open a cxc script"
+   ],
+   "commands": [
+    "open ~/Desktop/gbpmovie.cxc"
+   ],
+   "notes": "Opening a .cxc runs its lines in order, like typing them separated by semicolons. Every GUI action echoes its command in the Log, so scripts can be built by copying from the Log. 'runscript file.cxc arg1 arg2' passes $1,$2 arguments.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "name": "Save a session",
+   "goal": "Save the whole state (models, colors, named selections, views) to a .cxs file, then close models.",
+   "requests": [
+    "Save my session",
+    "save everything as a cxs file",
+    "close all models after saving"
+   ],
+   "commands": [
+    "hide protein atoms",
+    "show c",
+    "save EJC_ALY_hexamer_w_AF_models.cxs",
+    "close #1-2,4-5",
+    "close all"
+   ],
+   "notes": "ChimeraX does not auto-save and asks no confirmation when closing. 'c' is short for cartoon. Reopen with 'open file.cxs'. In Preferences > Window tick 'Resize graphics window on session restore' for consistent figure sizes.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Startup aliases and tools for long commands",
+   "goal": "Define aliases (or syntax reminders via echo) and startup tools in Preferences > Startup.",
+   "requests": [
+    "Make a shortcut for a long command I use all the time",
+    "Show all my aliases",
+    "how do i make an alias in chimerax"
+   ],
+   "commands": [
+    "alias my_abbreviation mutationscores define avg fromScore amiss setAttribute true combine mean mutationSet #1",
+    "alias my_abbreviation echo \"mutationscores define avg fromScore amiss setAttribute true combine mean mutationSet #1\"",
+    "alias run_myscript runscript /path/to/script.cxc",
+    "alias selbetween ks ri",
+    "ui tool show CliX",
+    "alias list"
+   ],
+   "notes": "Paste alias lines into 'Execute these commands at startup' (Preferences > Startup). The echo variant only prints the text. CliX (Toolshed) adds autocompletion. 'ks ri' selects residues between a clicked and ctrl-clicked residue.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Reusable script with arguments (AlphaMissense mapping)",
+   "goal": "Save a workflow as a .cxc script taking $1/$2 arguments and call it through an alias.",
+   "requests": [
+    "Make a script I can rerun for any UniProt ID",
+    "Automate the missense coloring for a given chain",
+    "script that takes arguments in chimerax"
+   ],
+   "commands": [
+    "alphafold fetch $1",
+    "open $1 fromDatabase alpha_missense format amiss",
+    "mutationscores structure $2 mutationSet $1",
+    "mutationscores label $2 amiss height 3 mutationSet $1",
+    "mutationscores define avg fromScore amiss setAttribute true combine mean mutationSet $1",
+    "color byattribute r:avg $2 target csab palette bluered range full",
+    "cartoon byattribute r:avg $2",
+    "alias map_missense runscript /Users/matthias.vorlaender/Documents/ChimeraX_scripts/map_missense.cxc $1 $2",
+    "map_missense Q86V81 #1"
+   ],
+   "notes": "Lines 1-7 are the contents of map_missense.cxc; $1/$2 are replaced by arguments given after the script name. 'mutationSet $1' is needed when the script runs several times in one session. Put the alias line in Preferences > Startup; adjust the path.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Create a custom display preset script",
+   "goal": "Save a .cxc style script in the presets folder so it appears in the Presets menu and can be applied by command.",
+   "requests": [
+    "Set up my own default style preset",
+    "make a preset with round helices, silhouettes and white bg",
+    "apply my custom preset"
+   ],
+   "commands": [
+    "graphics selection color black width 5",
+    "hide",
+    "show nucleic",
+    "hide protein|solvent|H",
+    "surf hide",
+    "style (protein|nucleic|solvent) & @@draw_mode=0 stick",
+    "size protein stickRadius 0.3",
+    "size nucleic stickRadius 0.5",
+    "show cartoon",
+    "cartoon style ~(nucleic|strand) x round",
+    "cartoon style (nucleic|strand) x rect",
+    "cartoon style modeH tube",
+    "lighting shadows false",
+    "light soft",
+    "camera ortho",
+    "graphics silhouettes true",
+    "graphics silhouettes depthJump 0.1",
+    "cofr center showpivot false",
+    "windowsize 800 800",
+    "set bgColor white",
+    "nucleotides fill",
+    "style nucleic stick",
+    "preset my_custom_style"
+   ],
+   "notes": "Lines 1-22 are an example my_custom_style.cxc. Set the presets folder in Preferences > Startup; scripts there show up in the Presets menu, or run 'preset my_custom_style'. Preset names can be truncated.",
+   "topic": "presentation",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Split a multichain structure into one model per chain",
+   "goal": "Separate chains into submodels so they can be compared or superimposed individually.",
+   "requests": [
+    "Split 1t2p into separate models by chain",
+    "make each chain of model 1 its own model",
+    "split the chains up"
+   ],
+   "commands": [
+    "split #1"
+   ],
+   "notes": "Result: #1.1, #1.2, #1.3 for chains A, B, C. Splitting dissociates chains from Sequence Viewer sequences; run 'seq assoc #1.2' before tools like Model Loops.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "name": "Duplicate a model and rainbow-color the copy",
+   "goal": "Copy a model to apply a different coloring (N-to-C rainbow), then discard it.",
+   "requests": [
+    "Make a copy of model 1 colored rainbow from N to C",
+    "duplicate my structure so I can color it differently",
+    "close the copied model"
+   ],
+   "commands": [
+    "combine #1",
+    "rainbow #3",
+    "close #3"
+   ],
+   "notes": "'combine' with one model makes a copy as a new model; check the Log/Models panel for its number before rainbow/close. 'rainbow' goes blue (N-term) to red (C-term); 'rainbow #3 structures' colors per copy, 'rainbow polymer palette BuPu' per chain.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Save, restore and zoom views",
+   "goal": "Store the current orientation under a name, return to it later, and zoom to everything or to a selection.",
+   "requests": [
+    "Remember this camera view so I can come back to it",
+    "Zoom to fit everything in the window",
+    "focus the view on my selection"
+   ],
+   "commands": [
+    "view name interfaces_clean",
+    "view interfaces_clean",
+    "view",
+    "view sel",
+    "view resist clip false",
+    "view initial #2",
+    "view matrix"
+   ],
+   "notes": "'view' alone fits all models (toolbar icon runs 'view cofr false'). 'view <spec>' zooms onto it; 'clip false' turns off near/far clipping. Named views live in the session; 'view matrix' prints camera/model matrices to reuse elsewhere. 'view initial #2' restores a model's initial view.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Move the view: rotate, translate, zoom, center of rotation",
+   "goal": "Reposition the view by command and pivot rotations around a ligand.",
+   "requests": [
+    "rotate it 45 degrees around y and zoom in",
+    "center the view on the ligand and rotate around it",
+    "turn the molecule a bit"
+   ],
+   "commands": [
+    "turn y 45",
+    "move x 15",
+    "zoom 2",
+    "view",
+    "zoom 15",
+    "cofr ligand"
+   ],
+   "notes": "Mouse: left-drag rotates, middle/right-drag (or Alt/Cmd+drag) translates, scroll zooms. 'cofr ligand' sets the center of rotation; 'ligand' is a built-in specifier. 'mousemode' alone lists current button assignments.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Atom specification basics (model/chain/residue/atom)",
+   "goal": "Refer to parts of a structure with hierarchical specifiers and logical combinations.",
+   "requests": [
+    "Select residues 45 to 55 in chain A of model 3",
+    "select all lysines in chain B",
+    "how do I say everything except nucleic acid"
+   ],
+   "commands": [
+    "select #1",
+    "select #2/B",
+    "select #3/A:45-55",
+    "select :lys",
+    "select #1/A@ca",
+    "select #1/B:lys",
+    "select @ca,n,c,o",
+    "select #1/A,B",
+    "select #1:10,20",
+    "select ~nucleic",
+    "select #1 & nucleic",
+    "select #1 &~ nucleic",
+    "name list builtins true"
+   ],
+   "notes": "Levels: # model, / chain, : residue, @ atom; omitted levels mean all. ',' = OR, '&' = AND, '~' = NOT, '|' = OR between groups. Built-ins: protein, nucleic, ligand, solvent, helix, strand, elements (C, N...). Most commands take specs directly (color #1/A red). Element symbols must be capitalized.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Select by distance (zones)",
+   "goal": "Select atoms or whole residues within a cutoff of a reference set.",
+   "requests": [
+    "Select residues within 5 Angstroms of the ligand",
+    "select everything within 8 A of model 1.2 as whole residues",
+    "select the stuff around residue 50 incl residue 50"
+   ],
+   "commands": [
+    "select zone ligand 4.5 protein",
+    "select zone #1.2 8",
+    "select zone #1.2 8 residues true",
+    "select zone #1/A:50 5 extend true",
+    "select ligand :<5.5"
+   ],
+   "notes": "Syntax: select zone ref cutoff [other-spec] [extend t/f] [residues t/f]. 'residues true' selects whole residues; 'extend true' includes the reference. The ':<5.5' shorthand (residue level) and '@<6.3' (atom level) work in any spec, e.g. 'show ligand :< 5'.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Create and manage named selections",
+   "goal": "Give reusable names to specs (dynamic) or to the current selection (frozen); list or delete them.",
+   "requests": [
+    "Name residues 34-64 of chain A 'tm1' and color it",
+    "save the pocket around the ligand as a named selection",
+    "list my named selections"
+   ],
+   "commands": [
+    "name tm1 /A:34-64",
+    "color tm1 medium blue",
+    "name frozen leucines :leu",
+    "select ligand :<5.5",
+    "~select solvent",
+    "name frozen pocket sel",
+    "color pocket red",
+    "name list",
+    "name delete all"
+   ],
+   "notes": "Dynamic names re-evaluate the spec (also for models opened later); frozen names refer only to items present when defined. 'name delete <name>' removes one. Names are saved in sessions; define them in Startup preferences to have them always. '~select' deselects.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Define a named residue set and highlight it",
+   "goal": "Name a set of residues (e.g. drug-resistance mutation sites), show them as gold balls, label and zoom to them.",
+   "requests": [
+    "Highlight residues 250, 253, 256, 315 and 351 as gold balls",
+    "name a set of residues so I can refer to them later",
+    "show these mutation sites and zoom in on them"
+   ],
+   "commands": [
+    "name resist :250,253,256,301,315,317,320,351,373,381",
+    "color resist & C gold target al",
+    "show resist",
+    "style resist ball",
+    "label resist",
+    "view resist clip false",
+    "label height 1.0"
+   ],
+   "notes": "'target al' colors atoms and labels only, leaving ribbons unchanged. 'view resist clip false' zooms to the set and turns off clipping. 'label height 1.0' sets 3D label height in Angstroms. 'seq chain /A' then 'select resist' shows them as green boxes in the Sequence Viewer.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Select an atom and expand or narrow the selection",
+   "goal": "Select an atom by specifier, broaden to residue/secondary structure/chain, act only on the selection, then clear.",
+   "requests": [
+    "select the NZ atom of Lys 43 then expand to the whole residue",
+    "how do I grow my selection to the whole chain?",
+    "clear the selection"
+   ],
+   "commands": [
+    "select /A:43@NZ",
+    "select up",
+    "select up",
+    "hide sel atoms",
+    "show sel cartoon",
+    "color sel gold",
+    "select down",
+    "select clear"
+   ],
+   "notes": "Ctrl-click an atom selects it; shift-ctrl-click adds; up-arrow ('select up') broadens atom -> residue -> secondary structure -> chain, down-arrow narrows. Toolbar buttons act only on the selection when one exists. Ctrl-click empty space or 'select clear' clears. 'sel' refers to the selection in any command.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Select the same residue on many chains with a wildcard",
+   "goal": "Select one residue number on all chains matching a pattern and show them as colored spheres.",
+   "requests": [
+    "Show Glu56 on all the c chains as red spheres",
+    "select residue 56 in every c subunit",
+    "highlight residue 56 accross all chains starting with c"
+   ],
+   "commands": [
+    "select /c*:56",
+    "style sel sphere",
+    "color sel red"
+   ],
+   "notes": "'/c*' matches chain IDs starting with c (c0..c9 in 6n2y). ':56' without a chain applies to every chain. Chain IDs are matched case-insensitively unless both cases exist.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Find and label truncated residues (missing atoms)",
+   "goal": "Select residues whose atoms do not match their template (truncated sidechains) and label them.",
+   "requests": [
+    "Which residues have missing side chain atoms?",
+    "label residues with incomplete coordinates",
+    "find truncated sidechains"
+   ],
+   "commands": [
+    "sel template-mismatch",
+    "label sel height 2",
+    "~sel",
+    "label delete"
+   ],
+   "notes": "'template-mismatch' is a built-in specifier for residues with missing/extra atoms. The Log reports the count. Missing atoms can affect MLP/ESP; repair with 'dockprep #1'.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Show a chain's sequence in the Sequence Viewer",
+   "goal": "Open the sequence of a chain and select residues, which are highlighted in 3D and as green boxes in the sequence.",
+   "requests": [
+    "Show me the sequence of chain A",
+    "open the sequence viewer for chain B and show whats missing",
+    "select residues 62 to 65 of chain A"
+   ],
+   "commands": [
+    "sequence chain /A",
+    "select /A:62-65"
+   ],
+   "notes": "Light blue boxes mark beta strands, yellow helices; black-outlined boxes are residues missing from the structure. Click-drag in the sequence selects residues in 3D and vice versa. Hover a residue for its number. Clicking a chain name in the Log chain table does the same.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Show sidechains of regions that differ after superposition",
+   "goal": "Starting from the matched core selected in the sequence alignment, invert the selection and display sidechains of the differing parts.",
+   "requests": [
+    "Show the side chains of the regions that don't superimpose well",
+    "invert the selection and display the selected protein atoms",
+    "highlight the loop thats different between the two structures"
+   ],
+   "commands": [
+    "select ~sel",
+    "disp sel & protein",
+    "select clear"
+   ],
+   "notes": "First click any light orange box in the Matchmaker sequence alignment to select the residues used in the final fit. 'select ~sel' inverts; 'disp' is a truncation of 'display', an alias of 'show'. Hover one-letter codes in the alignment to see residue numbers.",
+   "topic": "selection",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "name": "Select the narrowest part of a channel and show lining residues",
+   "goal": "Select MOLE channel spheres below a radius cutoff and display protein residues near them.",
+   "requests": [
+    "Which residues line the narrowest part of the pore?",
+    "select channel spheres with radius under 2 A and show residues within 2.5 A",
+    "show the constriction of the channel"
+   ],
+   "commands": [
+    "sel #2 & @@radius<2",
+    "show protein & sel :<2.5",
+    "size stickrad .4",
+    "~sel"
+   ],
+   "notes": "'@@radius<2' tests the atom attribute radius of the MOLE dummy atoms (model #2); ':<2.5' expands to whole residues within 2.5 A. For 1bl8 this shows Val 76/Gly 77 (selectivity filter). Backbone atoms stay hidden under cartoon unless 'cartoon suppressBackbone false'.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Standard colorings: by chain, heteroatom, rainbow, original look",
+   "goal": "Apply common colorings and reset to the appearance at opening.",
+   "requests": [
+    "Color each chain differently",
+    "color by element but keep the carbon colors",
+    "rainbow the ribbon N to C and then put it back how it was"
+   ],
+   "commands": [
+    "open 2bbv",
+    "color bychain",
+    "color byhetero",
+    "rainbow",
+    "preset original"
+   ],
+   "notes": "byhetero makes O red, N blue, leaves carbons. Rainbow goes blue (N-term) to red (C-term), best with ribbons. 'preset original' (menu Presets / Original Look) restores colors, styles and shown atoms. 'color list' prints all named colors.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Change atom display style (stick, ball, sphere)",
+   "goal": "Set stick, ball-and-stick or sphere style for all atoms, one chain, a ligand or solvent.",
+   "requests": [
+    "Show chain B as sticks",
+    "show the ligand as spheres",
+    "make the waters big red balls"
+   ],
+   "commands": [
+    "style stick",
+    "style /b stick",
+    "style ball",
+    "style :STI sphere",
+    "style ligand sphere",
+    "style solvent sphere",
+    "color solvent red",
+    "preset sticks"
+   ],
+   "notes": "'style' with no spec applies to all atoms. Residue names are case-insensitive (:sti works). 'preset sticks' shows all atoms as sticks. Waters are balls by default; 'solvent' is a built-in specifier.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Cartoon versus atom display, for all or one chain",
+   "goal": "Switch between ribbon and atom representations, for the whole structure or single chains.",
+   "requests": [
+    "Show the protein as ribbons only",
+    "hide chain C atoms and show its ribbon",
+    "show only chain A ribbon and nothing else"
+   ],
+   "commands": [
+    "hide atoms",
+    "show cartoons",
+    "hide /c",
+    "ribbon /c",
+    "show /A ribbon only",
+    "show /A atoms",
+    "hide",
+    "hide ribbon"
+   ],
+   "notes": "'hide' with no arguments hides atoms. 'ribbon /c' = 'show /c cartoon'. The 'only' keyword hides that type for everything else. Ligands become invisible after 'hide atoms'; show them with 'show ligand'. Toolbar Molecule Display buttons do the same.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "name": "Apply display presets",
+   "goal": "Switch the whole scene to a built-in look: sticks, cylinders, ribbons, licorice, original look.",
+   "requests": [
+    "Show the helices as cylinders",
+    "apply the sticks preset then go back to ribbons",
+    "reset to how it looked when i opened it"
+   ],
+   "commands": [
+    "preset cylinders",
+    "preset ribbons",
+    "preset sticks",
+    "preset \"original look\"",
+    "preset cartoons/nucleotides licorice/ovals",
+    "preset cartoons/nucleotides ribbons/slabs"
+   ],
+   "notes": "Equivalent to the Presets menu. Names can be truncated and are case-insensitive (preset orig, preset pub, preset inter). Presets restyle the whole scene, so re-apply custom styling afterwards; newly opened structures get the default style.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Show, color, hide and close a molecular surface",
+   "goal": "Display the solvent-excluded surface, color it like the atoms, hide parts, or delete it.",
+   "requests": [
+    "show the surface of the structure",
+    "make the surface match the atom colors",
+    "get rid of the surface"
+   ],
+   "commands": [
+    "surface #1",
+    "color /n fromatoms",
+    "color fromatoms",
+    "hide /A,B,C,G,H surface",
+    "surface close"
+   ],
+   "notes": "One surface per chain; waters/ligands are excluded. Clear any selection first or 'surface' acts only on selected atoms. 'color fromatoms' copies atom colors onto the surface. 'surface hide' hides, 'surface close' deletes. Surfaces are submodels (#1.1...).",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "name": "Show only the surface around a ligand pocket",
+   "goal": "Restrict the surface to the neighborhood of a ligand, keep the largest patch, and view ligand-pocket complementarity.",
+   "requests": [
+    "Only show the surface within 8 A of the ligand",
+    "how well does the drug fill its pocket? show it as spheres in a transparent pocket",
+    "trim the surface to the binding site"
+   ],
+   "commands": [
+    "surface zone #1 near :fpp dist 8 max 1",
+    "hide ~:fpp target ar",
+    "surface ligand @<6.3 visiblePatches 1",
+    "style :EJ4 sphere",
+    "surface :EJ4 :< 4",
+    "transparency 50"
+   ],
+   "notes": "'max 1' / 'visiblePatches 1' keep only the largest connected piece. 'target ar' hides atoms and ribbons but not surfaces. 'surface :EJ4 :< 4' computes the surface only for residues within 4 A of the ligand. 'transparency 50' applies to displayed surfaces.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Clip a surface to reveal an interior pocket",
+   "goal": "Enable a clipping plane that cuts the surface but not the atoms, so a buried ligand becomes visible.",
+   "requests": [
+    "Cut the surface open so I can see the ligand inside",
+    "clip the surface but keep the ligand atoms unclipped",
+    "show the buried pocket in 1g74"
+   ],
+   "commands": [
+    "open 1g74",
+    "surface",
+    "clip",
+    "clip model #!1 off",
+    "hide ~:ola targ ar",
+    "color :ola & C green"
+   ],
+   "notes": "'clip' enables near/far planes through the center. '#!1' is model 1 without submodels, so the atoms are unclipped while the surface (#1.1) stays clipped; the cap is submodel #1.1.1. Drag planes with the clip mouse mode (Right Mouse toolbar). 'clip off' disables.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Color a clipped surface and its cap by MLP or electrostatics",
+   "goal": "Color the outer surface and the planar clip cap by lipophilicity or Coulombic potential and make the cap semi-transparent.",
+   "requests": [
+    "Color the cut surface and the cap by hydrophobicity",
+    "the cap isnt colored, color it by electrostatics too",
+    "make the clip cap 30% transparent"
+   ],
+   "commands": [
+    "mlp",
+    "mlp protein surface #1.1.1",
+    "transparency #1.1.1 30",
+    "coulombic protein",
+    "coulombic protein surf #1.1.1 offset 0"
+   ],
+   "notes": "The cap (#1.1.1) is not colored with the outer surface; name it explicitly. 'offset 0' evaluates the potential on the cap plane instead of 1.4 A outward. Coulombic palette: red -10, white 0, blue +10 kcal/(mol e); MLP: cyan hydrophilic to goldenrod lipophilic.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Style DNA as a smooth tube with nucleotide stubs",
+   "goal": "Draw nucleic acid backbones as uniform round tubes with short base stubs.",
+   "requests": [
+    "Make the DNA a tan tube",
+    "show the DNA backbone as a round cartoon with base stubs",
+    "simplify the nucleic acid display"
+   ],
+   "commands": [
+    "color nucleic tan",
+    "cartoon style nucleic xsection round width 1.5 thick 1.5",
+    "nuc stubs"
+   ],
+   "notes": "Equal width/thickness with a round cross-section gives a tube. 'nuc stubs' replaces base atoms with stubs; 'nucleotides atoms' shows atoms, 'nucleotides fill' filled bases.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Highlight a ligand: color carbons, heteroatoms, thicker sticks",
+   "goal": "Make a bound ligand stand out by coloring its carbons, keeping element colors for N/O/S, and fattening its sticks.",
+   "requests": [
+    "Color the imatinib carbons salmon",
+    "make the ligand orange but keep oxygens red and nitrogens blue",
+    "make the ligand sticks fatter"
+   ],
+   "commands": [
+    "color :sti & C salmon",
+    "color :EJ4 orange",
+    "color byhet",
+    "size :ber stickrad .7",
+    "color list"
+   ],
+   "notes": "Element symbols must be capitalized (C). 'color byhet' recolors non-carbons by element and leaves carbons, so run it after the ligand color. Default stick radius is 0.2 A. 'select ligand' then 'color sel magenta' is the GUI-style route.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Show only the binding site around a ligand",
+   "goal": "Center on the ligand and display only it and residues within a few Angstroms, hiding everything else.",
+   "requests": [
+    "Zoom in on the ligand and hide the rest of the protein",
+    "show just the residues within 5 A of the ligand",
+    "display only the binding site atoms near EJ4"
+   ],
+   "commands": [
+    "select :sti",
+    "view sel",
+    "hide ~sel",
+    "hide atoms,ribbon",
+    "show ligand :< 5",
+    "clip off",
+    "view ligand",
+    "label ligand"
+   ],
+   "notes": "':< 5' means whole residues with any atom within 5 A. 'hide ~sel' hides only atoms; ribbons need 'hide ribbon'. GUI: ctrl-click a ligand atom, press up-arrow to grow the selection, or menu Select / Residues / STI. 'clip off' removes clip planes.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "name": "Show a ligand with nearby residues of a superimposed model",
+   "goal": "Hide one structure except its ligand, then show only residues of a second aligned structure within 5 A of that ligand.",
+   "requests": [
+    "Show the drug from 2fwz with the 1ah8 residues around it",
+    "display only residues of the aligned model near the other model's ligand",
+    "hide glycerol and water"
+   ],
+   "commands": [
+    "hide #1 ribbon",
+    "hide #1 & ~ligand",
+    "show #4 & #1:H71 :< 5",
+    "hide :GOL | solvent"
+   ],
+   "notes": "'#4 & #1:H71 :< 5' = atoms of #4 within 5 A (residue level) of residue H71 in #1. '|' is OR. Requires the models to be superimposed first (mm #4 to #1).",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "name": "Change cartoon thickness",
+   "goal": "Make ribbons thin tubes for an uncluttered fold view, or fat so coils are visible, then revert.",
+   "requests": [
+    "Make the cartoon thinner",
+    "thicker ribbons so the loops are visible",
+    "go back to default ribbon style"
+   ],
+   "commands": [
+    "cartoon style width .5 thick .5",
+    "cartoon style protein thick 3.5 width 3.5",
+    "preset cartoons/nucleotides ribbons/slabs"
+   ],
+   "notes": "Values are in Angstroms. Other cartoon style keywords: xsection (round/rect/oval), modeHelix tube, arrows. The preset restores defaults.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Show backbone atoms of residues drawn as cartoon",
+   "goal": "Turn off the cartoon's suppression of backbone atoms so backbone N/O of displayed residues appear.",
+   "requests": [
+    "Show the backbone atoms too, not just side chains",
+    "why are backbone atoms hidden when cartoon is on?",
+    "display backbone atoms along with the ribbon"
+   ],
+   "commands": [
+    "cartoon suppressBackbone false"
+   ],
+   "notes": "By default showing cartoon hides backbone atoms of that residue. Needed e.g. to see backbone H-bond donors/acceptors ('cartoon suppress false' is the same). Revert with 'cartoon suppressBackbone true'.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Hide or show atoms, cartoons and surfaces of a chain",
+   "goal": "Remove one chain from view (all representations) to look inside, or hide just its cartoon.",
+   "requests": [
+    "Hide chain A so I can see the pore inside",
+    "hide the nanobody cartoon",
+    "hide the ribbons of chains A B C"
+   ],
+   "commands": [
+    "hide /A targ acs",
+    "show /A targ acs",
+    "hide /N cartoons",
+    "hide /A,B,C ribbon"
+   ],
+   "notes": "'targ acs' = atoms, cartoons, surfaces in one command; 'hide /A' alone hides only atoms. 'hide /A model' would hide the whole model instead.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Make ribbons, surfaces or maps transparent",
+   "goal": "Set percent transparency on cartoons, surfaces or map surfaces to see overlaid models.",
+   "requests": [
+    "Make chain B see-through",
+    "set the map 30 percent transparent",
+    "make chain B opaque again"
+   ],
+   "commands": [
+    "transparency #1/B 65 target r",
+    "transparency #1/B 0 target r",
+    "transparency #1 30",
+    "transparency #3&~asu 100 target ca",
+    "volume #1 transparency 0.5"
+   ],
+   "notes": "Number is percent (0 opaque, 100 invisible). 'target r' ribbons, 'c' cartoons, 'a' atoms, 's' surfaces; default is surfaces. For maps 'volume #1 transparency 0.5' uses a 0-1 fraction; the Map toolbar Transparent button is equivalent.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "name": "Switch to orthographic projection",
+   "goal": "Turn off perspective so distant objects are not drawn smaller.",
+   "requests": [
+    "Switch to orthographic view",
+    "turn off perspective",
+    "use ortho camera"
+   ],
+   "commands": [
+    "camera ortho",
+    "camera mono"
+   ],
+   "notes": "'camera mono' returns to perspective projection. Useful for measuring-style figures and 2D-like views.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Publication look: background color and silhouettes",
+   "goal": "Set a white (or other) background with black outlines for figures, or revert to the interactive black look.",
+   "requests": [
+    "give me a white background with black outlines",
+    "make the background light cyan and add outlines",
+    "go back to the black background"
+   ],
+   "commands": [
+    "preset pub",
+    "set bg white",
+    "set silhouettes true",
+    "set bgColor light cyan",
+    "graphics sil true depth .01",
+    "preset interactive"
+   ],
+   "notes": "'preset pub' = white background + silhouettes (menu Presets / Publication 1). 'graphics silhouettes depthJump' controls how much depth change draws an outline (smaller = more lines). 'preset interactive' restores black background without silhouettes. 'close' does not reset these.",
+   "topic": "presentation",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "name": "Save an image",
+   "goal": "Write a PNG of the current view, optionally larger, supersampled or with transparent background.",
+   "requests": [
+    "save a picture of this view to my desktop",
+    "save a 1000 pixel wide image with transparent background",
+    "export a high res png of this"
+   ],
+   "commands": [
+    "save ~/Desktop/2bbv.png",
+    "save spike.png width 1000 transparent true",
+    "save missense_worms.png supersample 4 tr true pixelSize 0.1",
+    "windowsize 600 600"
+   ],
+   "notes": "Extension picks the format (.png/.jpg). Without a directory the file goes to the working folder. 'tr' abbreviates transparentBackground. 'windowsize' fixes the graphics size so labels/keys land consistently. Toolbar Snapshot saves at screen size.",
+   "topic": "presentation",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Lighting presets: simple, soft, full, flat",
+   "goal": "Choose lighting for speed (simple) or quality (soft ambient occlusion, full with shadows, flat).",
+   "requests": [
+    "Turn on soft lighting with shadows",
+    "use simpler lighting, its slow",
+    "make the shading less smudgy"
+   ],
+   "commands": [
+    "light simple",
+    "light soft",
+    "light full",
+    "light flat",
+    "light default",
+    "light soft multishadow 512",
+    "lighting shadows false"
+   ],
+   "notes": "soft = shadows from 64 directions approximating ambient occlusion (pockets visible); full adds a directional shadow; simple/default are fastest for morph playback and clip dragging. multishadow up to 1024 gives smoother gradations but slows rendering. Home toolbar has Lighting buttons.",
+   "topic": "presentation",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "name": "Play through coordinate sets or models with a slider",
+   "goal": "Step through NMR ensemble conformers, trajectory frames or a set of models.",
+   "requests": [
+    "Show a slider to play through the NMR models",
+    "step through the 10 conformers of 8r4w",
+    "slider to compare my alphafold models"
+   ],
+   "commands": [
+    "mseries slider #1",
+    "mseries slider #3-7"
+   ],
+   "notes": "NMR ensembles open as one model with several coordinate sets; the slider steps or plays them. For several separate models (#3-7) the slider shows one at a time. 'coordset #1 1,21' plays frames by command.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "name": "Clip planes: slab view, mouse mode, Side View",
+   "goal": "Look at a thin slab of map and model using near/far clip planes, drag them with the mouse, and turn clipping off.",
+   "requests": [
+    "Clip the view to a 10 A slab",
+    "let me drag the clip planes with the mouse",
+    "turn clipping off"
+   ],
+   "commands": [
+    "tool show \"Side View\"",
+    "clip near -5 far 5",
+    "mousemode right clip",
+    "clip near 1 far 1",
+    "clip off"
+   ],
+   "notes": "Offsets are relative to the center of rotation. Side View (Tools / General) shows planes as draggable lines. With clip on the right button, right-drag moves the near plane; shift-drag moves near and far together (Mac: cmd-drag). Simple lighting speeds up dragging.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "name": "Clip a surface with an explicit plane position and axis",
+   "goal": "Cut open a molecular surface with front/back planes placed by coordinates to expose internal channels.",
+   "requests": [
+    "Show the surface and cut it open so I can see the proton channel",
+    "set up front and back clip planes through the membrane region",
+    "clip perpendicular to the symmetry axis"
+   ],
+   "commands": [
+    "surface #1",
+    "mousemode right clip",
+    "light simple",
+    "clip position 163,163,194 axis -.99,-.08,-.13 coord #1",
+    "clip back 0 position 147,162,192 axis .99,.08,.13 coord #1",
+    "light soft",
+    "clip off",
+    "clip axis 0.03,0.13,-0.99 position 164,161,206 coord #1"
+   ],
+   "notes": "Positions/axes are specific to 6n2y; 'coord #1' means model #1 coordinates. In clip mouse mode hold alt to move the back plane. Use simple lighting while dragging, then soft lighting for a darker, legible cavity.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Label residues and adjust label size",
+   "goal": "Add 3D residue labels, set their height or background, and remove them.",
+   "requests": [
+    "Label the residues of chain A and make the labels bigger",
+    "label all residues whose atoms are visible",
+    "remove all the labels"
+   ],
+   "commands": [
+    "label ligand",
+    "label @@display",
+    "label /A",
+    "label height 1.5",
+    "label :46,50,51,53 height 3",
+    "label sel bgcolor black",
+    "hide H",
+    "label delete"
+   ],
+   "notes": "Default label height 0.7 A; 'label height 1.5' resizes existing labels. '@@display' labels residues with displayed atoms. 3D labels move with the structure; use 2D labels for publication captions. '~label ~interface' removes labels outside a named set.",
+   "topic": "presentation",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "name": "Clean up selection, labels and pseudobonds, reset the view",
+   "goal": "Clear the selection, delete labels, remove H-bond, clash and distance pseudobonds, and refit the view.",
+   "requests": [
+    "Clear everything and reset the view",
+    "remove all labels and H-bond lines and zoom out",
+    "get rid of the hbonds and clashes"
+   ],
+   "commands": [
+    "select clear",
+    "label delete",
+    "~hbonds",
+    "~clashes",
+    "~distance",
+    "~contacts",
+    "view"
+   ],
+   "notes": "'~command' deletes the pseudobonds that command created. 'view' with no arguments fits all displayed items. Several commands can go on one line separated by ';'.",
+   "topic": "display",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "name": "Add a color key and 2D text labels to a figure",
+   "goal": "Draw a color key matching a coloring plus captions, positioned by mouse or by fractional window coordinates.",
+   "requests": [
+    "Add a color key for the electrostatic potential",
+    "put a legend and title on this figure",
+    "add a text label saying Conservation and move it bottom left"
+   ],
+   "commands": [
+    "coulombic protein key true",
+    "key red:-10 white:0 blue:10 pos .51,.09 size .32,.04",
+    "key labelSide left/top",
+    "2dlab text 'electrostatic potential'",
+    "2dlab text 'electrostatic potential' xpos .53 ypos .15",
+    "2dlabels xpos 0.021 ypos 0.021"
+   ],
+   "notes": "'key true' on coulombic/mlp/color byattribute draws a key and opens the Color Key tool ('Adjust key with mouse'). Positions/sizes are fractions of the window; set 'windowsize' first. '2dlabels' without a name changes all 2D labels; the 'move label' mouse mode drags them. Compose the image before adding keys.",
+   "topic": "presentation",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Color chains",
+   "goal": "Color one or several chains with a named color, by spec or via selection.",
+   "requests": [
+    "Color chain N teal",
+    "color chains B, E and F gold",
+    "make the two protofilaments different colours"
+   ],
+   "commands": [
+    "color /n teal",
+    "color /H red",
+    "color /B,E,F gold",
+    "color /D,E,F,I,J tan",
+    "color /A,B,C,G,H pink",
+    "select /D",
+    "color sel yellow"
+   ],
+   "notes": "Chain specs use /ID with commas for several chains. Coloring applies to atoms, ribbons and surfaces unless 'target' limits it (e.g. 'target al'). Hover a ribbon to read the chain ID. 'color #3.2 lightblue' colors a submodel.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Highlight residues by number",
+   "goal": "Color specific residues (e.g. mutation sites) to mark them, optionally on one model only.",
+   "requests": [
+    "Color residue 166 orange and residues 21 and 50 lime",
+    "highlight residues 46, 50, 51 and 53 in yellow and label them",
+    "color residues 73 90 95 of model 2 red"
+   ],
+   "commands": [
+    "color :166 orange",
+    "color :21,50 lime",
+    "color #2:73,90,95,108,131,143,268,309,323 red",
+    "color :46,50,51,53 yellow",
+    "label :46,50,51,53 height 3"
+   ],
+   "notes": "Residue lists are comma-separated without spaces. Specs without a model number apply to all open models and all chains. Add '& C' to recolor only carbons.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "name": "Color a surface by hydrophobicity (MLP)",
+   "goal": "Compute molecular lipophilicity potential and color the protein surface to reveal hydrophobic pockets or membrane belts.",
+   "requests": [
+    "Color the surface by hydrophobicity",
+    "where does this membrane protein sit in the bilayer?",
+    "show a lipophilicity surface with a color key"
+   ],
+   "commands": [
+    "open 4xt3",
+    "mlp",
+    "mlp #3/A key true"
+   ],
+   "notes": "'mlp' creates the surface if needed; palette dark cyan (hydrophilic) - white - dark goldenrod (lipophilic). Transmembrane proteins show a goldenrod belt. Same as the Molecule Display toolbar Hydrophobic button. Missing sidechain atoms slightly affect results.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Color a surface by Coulombic electrostatic potential",
+   "goal": "Color protein surfaces by electrostatic potential computed on the fly, optionally only protein chains in a nucleic-acid complex.",
+   "requests": [
+    "Show the electrostatic potential surface",
+    "color the protein by charge but leave the DNA as cartoon",
+    "electrostatic surface of chain A with a key"
+   ],
+   "commands": [
+    "open 3d6y from rcsb_bio maxAssemblies 1",
+    "hide :gol",
+    "hide solvent",
+    "hide protein",
+    "coulombic protein",
+    "coulombic #3/A key true"
+   ],
+   "notes": "No APBS needed; hydrogens are added internally. Red -10, white 0, blue +10 kcal/(mol e). 'coulombic protein' restricts surface creation and coloring to protein. 'from rcsb_bio' fetches the biological assembly directly. Toolbar Electrostatic button is equivalent.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Color by B-factor",
+   "goal": "Color atoms/ribbons by B-factor to see flexible regions, with optional palette and range.",
+   "requests": [
+    "Color the protein by B-factor",
+    "show which parts of the structure are most flexible",
+    "color by bfactor with a rainbow palette from 25 to 75 then undo"
+   ],
+   "commands": [
+    "color bfactor",
+    "color bfactor #1",
+    "color byattribute bfactor palette rainbow range 25,75",
+    "undo"
+   ],
+   "notes": "Default blue (low) - white - red (high). In cryoEM entries the B-factor column may hold local-resolution-like values. Toolbar B-factor button is equivalent. Follow with 'color zone' to transfer colors onto a map.",
+   "topic": "coloring",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "name": "Color residues by a custom attribute from a .defattr file",
+   "goal": "Load per-residue values (e.g. NMR chemical shift perturbations) and color with a white-to-red palette.",
+   "requests": [
+    "Color residues by chemical shift perturbation from my defattr file",
+    "map NMR chemical shift changes onto the structure",
+    "render by a custom attribute white to red"
+   ],
+   "commands": [
+    "open ~/Downloads/Hsp90_NTD_PU-H71_csp.defattr",
+    "color byattribute r:csp #4 palette 0,white:0.2,red"
+   ],
+   "notes": "'r:csp' = residue attribute csp. Palette 'value,color:value,color' maps explicit values. GUI: Tools / Depiction / Render by Attribute. 'save file.defattr attrName avg' writes an attribute out.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "name": "Color a map to match nearby atoms",
+   "goal": "Color the map surface by the colors of atoms within a distance, to show what the model explains (or B-factor on the map).",
+   "requests": [
+    "Color the density that matches the model",
+    "which part of the map is not covered by the atomic model?",
+    "color the map by the bfactors of the atoms"
+   ],
+   "commands": [
+    "transparency 0",
+    "color zone #2 near #1 distance 5",
+    "color zone #4 near #1 distance 10",
+    "hide #1 model"
+   ],
+   "notes": "Make the map opaque first. Uncolored regions are density not accounted for by the model. Run 'color bfactor #1' first to effectively show B-factor on the map. Map toolbar 'Color near atoms' is equivalent. Blob coloring is lost when the level changes.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Color a structure by sequence conservation",
+   "goal": "Open a multiple sequence alignment that associates with the structure and color residues by the seq_conservation attribute with palette, range, novalue color and key.",
+   "requests": [
+    "Color my structure by conservation from this alignment",
+    "load the ConSurf alignment for 121p and color by conservation",
+    "conservation colouring cyan to maroon with a key"
+   ],
+   "commands": [
+    "open 121p",
+    "hide solvent",
+    "style ligand ball",
+    "open https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/121p-consurf.aln",
+    "color byattr seq_conservation",
+    "color byattr seq_conservation palette blue:red:yellow",
+    "color byattr seq_conservation palette cyanmaroon range -1.4,1.4",
+    "color byattr seq_conservation protein palette cyanmaroon range -1.4,1.4 novalue yellow",
+    "color byattr seq_conservation palette cyanmaroon range -2,3 novalue silver key true"
+   ],
+   "notes": "Auto-association shows as a colored box around the sequence name; the Log reports the value range. Residues in gappy columns, ligands and unassociated chains have no value (keep their color unless 'novalue'). 'protein' limits recoloring. Gap tolerance: right-click sequence > Settings > Headers.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "name": "Manually associate an alignment sequence with a chain",
+   "goal": "Associate a structure chain with its best-matching sequence when auto-association fails, then color that chain by conservation.",
+   "requests": [
+    "Associate chain R with the alignment",
+    "the alignment didnt link to my structure, connect it to chain R",
+    "color just the receptor chain by conservation"
+   ],
+   "commands": [
+    "open 3sn6",
+    "preset cylinders",
+    "open https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/81321.ali",
+    "sequence associate /R 81321.ali",
+    "color byattr seq_conservation /R & protein range -1.5,3 novalue gray",
+    "show ::seq_conservation>2"
+   ],
+   "notes": "No colored box around a sequence name means no association. GUI: right-click sequence > Structure > Associations. Red boxes mark mismatches, which do not prevent association. 'seq dissoc #2' / 'seq assoc #1.2' manage associations by model.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "name": "Show and label highly conserved residues; find residues without values",
+   "goal": "Display and label residues above a conservation cutoff, and select residues lacking a conservation value.",
+   "requests": [
+    "Show only residues with conservation above 1.8 and label them",
+    "which residues have no conservation value?",
+    "label the most conserved residues"
+   ],
+   "commands": [
+    "hide protein",
+    "show ::seq_conservation>1.8",
+    "label ::seq_conservation>1.8",
+    "label height 1.3",
+    "select ~::seq_conservation",
+    "select clear"
+   ],
+   "notes": "'::attr>value' is an attribute-based residue spec; '~::seq_conservation' selects residues without the attribute (gappy columns, ligands, unassociated chains). Raising the AL2CO gap fraction (Sequence Viewer Settings > Headers) gives more residues values.",
+   "topic": "selection",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "name": "Color a channel surface by radius",
+   "goal": "Color a MOLE channel surface by the radius attribute of its spheres using a built-in or custom palette.",
+   "requests": [
+    "Color the channel by its radius",
+    "show where the pore is narrow versus wide",
+    "color the MOLE surface with my own colors"
+   ],
+   "commands": [
+    "surf #2",
+    "hide #2",
+    "color byattribute radius #2 palette puor",
+    "color byattribute radius #2 palette darkslateblue:red:yellow"
+   ],
+   "notes": "The surface must exist ('surf #2') since coloring applies to the surface, not the spheres. Custom palettes are colon-separated color names; ColorBrewer names (puor, BuPu...) work. Add 'key true' for a legend.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Color a channel surface by protein MLP or electrostatics",
+   "goal": "Compute lipophilicity or Coulombic potential from the protein atoms and map it onto a separate channel surface.",
+   "requests": [
+    "Color the pore surface by the protein's lipophilicity",
+    "show the charge inside the channel",
+    "map the protein's coulombic potential onto the MOLE surface"
+   ],
+   "commands": [
+    "surf #2",
+    "mlp protein surfaces #2",
+    "coulombic protein surfaces #2 offset -1"
+   ],
+   "notes": "First argument = atoms used for the calculation; 'surfaces #2' = surface to color. 'offset -1' samples inside the channel surface (default 1.4 A outward). Optionally repair sidechains first with 'dockprep #1'.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Style a large complex and color chains by description",
+   "goal": "Apply a large-structure preset, name all copies of a protein via its chain description, and color chains, protein and nucleic acid distinctly.",
+   "requests": [
+    "Give every chain a different color with a nice palette",
+    "color all copies of THOC4 yellow regardless of chain ID",
+    "show the RNA in black"
+   ],
+   "commands": [
+    "view",
+    "preset cartoons/nucleotides cylinders/stubs",
+    "name ALYs //description='*THO complex subunit 4'",
+    "rainbow polymer palette BuPu",
+    "color ALYs yellow",
+    "color nucleic black"
+   ],
+   "notes": "'//description=...' selects chains by their mmCIF description, avoiding chain-ID lookup and working across structures; the leading * handles fusion prefixes. Any ColorBrewer palette works with rainbow.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Measure buried surface area and SASA",
+   "goal": "Compute the buried area between two chains or models and the total solvent-accessible area.",
+   "requests": [
+    "how much surface area is buried between chains A and B?",
+    "calculate the SASA of the protein without waters",
+    "is this crystal contact a real interface? measure buried area between copies 4 and 7"
+   ],
+   "commands": [
+    "measure buriedarea /a with /b",
+    "measure sasa #1 & ~solvent",
+    "measure buriedarea #3.4 with #3.7"
+   ],
+   "notes": "Results go to the Log (e.g. 2bbv: 1900 A^2 between /a and /b). Rule of thumb: biological interfaces bury > 500 A^2 per side. '& ~solvent' excludes waters. 'with' abbreviates withAtoms2.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "name": "Chain contact graph and interface residues",
+   "goal": "Show which chains contact each other, then select, display, label and list residues at an interface.",
+   "requests": [
+    "which chains are in contact with each other?",
+    "show the interface residues as ball and stick with hydrogen bonds",
+    "list the contact residues so I can design mutants"
+   ],
+   "commands": [
+    "interfaces #1 & protein",
+    "select zone ALYs 5 residues true",
+    "name frozen inters sel",
+    "show inters atoms",
+    "style inters ball",
+    "label inters",
+    "color byhetero",
+    "hbonds inters reveal true",
+    "info residues inters"
+   ],
+   "notes": "'interfaces' opens a plot of chains with buried areas; right-click a chain node for 'Select Contact Residues'. 'info residues ... saveFile path' writes the list. 'ALYs' is a named selection; replace with your chain spec.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Find hydrogen bonds involving a ligand",
+   "goal": "Show H-bonds between a ligand and protein/water as dashed lines, reveal partner residues, list them, and remove them.",
+   "requests": [
+    "Show hydrogen bonds between imatinib and the protein",
+    "which residues H-bond to the ligand?",
+    "find hbonds to the selected ligand and log them"
+   ],
+   "commands": [
+    "hbonds :sti reveal true log true",
+    "cartoon suppress false",
+    "hbonds ligand reveal true",
+    "select :FPS",
+    "hbonds sel restrict cross reveal true log true",
+    "~hbonds"
+   ],
+   "notes": "'reveal true' displays hidden atoms of partners; H-bond pseudobonds only show when both atoms are displayed. 'restrict cross' with sel keeps bonds with exactly one end selected. Structures without hydrogens use inferred positions. GUI: Tools / Structure Analysis / H-Bonds.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Hydrogen bonds between two chains or a selection and the rest",
+   "goal": "Find H-bonds across an interface or from selected residues, label the partners, and relax the distance criterion for salt bridges.",
+   "requests": [
+    "Show hydrogen bonds between the nanobody and the spike",
+    "find residues H-bonded to residues 217-232 and label them",
+    "show the salt bridge between D128 and the peptide"
+   ],
+   "commands": [
+    "hbonds",
+    "select /F",
+    "hbonds sel restrict cross reveal true",
+    "hbonds sel reveal true restrict cross interModel false select true",
+    "label sel",
+    "hbonds /C distSlop 0.6",
+    "~hbonds"
+   ],
+   "notes": "'hbonds' alone can be crowded. 'interModel false' ignores other models; 'select true' replaces the selection with the H-bonded atoms so 'label sel' labels partners. 'distSlop 0.6' loosens the distance cutoff by 0.6 A. Results table appears in the Log.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Find contacts of a ligand and list contacting residues",
+   "goal": "Identify residues in van der Waals contact with a ligand, display and label them, and list them without drawing pseudobonds.",
+   "requests": [
+    "Which residues contact the ligand?",
+    "list the protein residues that touch the FPS ligand",
+    "find all contacts of the selected ligand"
+   ],
+   "commands": [
+    "contacts :sti makePseudobonds false reveal true log true",
+    "label @@display",
+    "hide solvent",
+    "select :FPS",
+    "contacts sel restrict cross reveal t log t select t",
+    "~sel ~protein",
+    "info residues sel",
+    "~contacts"
+   ],
+   "notes": "'select t' selects contacting atoms; '~sel ~protein' then drops non-protein so 'info residues sel' lists protein residues. Log sorts by VDW overlap (positive = intersecting). GUI: Tools / Structure Analysis / Contacts.",
+   "topic": "analysis",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "name": "Check clashes",
+   "goal": "Count internal clashes of a model, or monitor clashes of one residue continuously while moving its sidechain.",
+   "requests": [
+    "Check the loop models for clashes",
+    "how many self clashes does model 3.3 have?",
+    "live clash detection for Tyr 248 while I rotate it"
+   ],
+   "commands": [
+    "clashes #3.1 restrict #3.1 make f",
+    "view :248",
+    "select :248",
+    "clashes sel restrict cross reveal t continuous t",
+    "~clashes"
+   ],
+   "notes": "'restrict' to the same model limits to self-clashes; 'make f' skips pseudobonds (count in Log/status). 'continuous t' updates as coordinates change (clashes in purple). GUI: 'tool show Clashes'.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "name": "Measure, set and interactively rotate torsion angles",
+   "goal": "Report chi1/chi2 of a sidechain, set a torsion to an exact value, or rotate a bond with the mouse.",
+   "requests": [
+    "What are the chi1 and chi2 angles of Tyr 248?",
+    "let me rotate the Tyr 248 sidechain with the mouse",
+    "put residue 248 back to its original chi angles"
+   ],
+   "commands": [
+    "torsion :248@n,ca,cb,cg",
+    "torsion :248@ca,cb,cg,cd1",
+    "mouse right bond",
+    "torsion :248@n,ca,cb,cg -106.801",
+    "torsion :248@ca,cb,cg,cd1 -142.054"
+   ],
+   "notes": "Four atoms without a value just report the angle; adding a value sets it. 'mouse right bond' assigns bond rotation to the right button (right-drag on the CA-CB bond changes chi1). Combine with continuous clash checking.",
+   "topic": "analysis",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "name": "Measure distances between atoms",
+   "goal": "Display atom-atom distances as labeled dashed lines and remove them.",
+   "requests": [
+    "Measure the distance between Ser 21 OG and O1B of residue 302",
+    "what is the spacing between layers in this fibril?",
+    "remove all distance measurements"
+   ],
+   "commands": [
+    "distance :21@OG :302@O1B",
+    "distance /H:38@HD12 /G:38@HD12",
+    "~distance"
+   ],
+   "notes": "Atom spec is /chain:residue@atom. GUI: ctrl-click one atom, shift-ctrl-double-click the second, choose Distance; or the distance mouse mode. Fibril layer spacing in 6h6b is ~4.90 A.",
+   "topic": "analysis",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "name": "Superimpose structures with Matchmaker",
+   "goal": "Align one or more models onto a reference (whole models or specific chains), optionally showing the sequence alignment.",
+   "requests": [
+    "Align 2zco onto 3w7f",
+    "superimpose chain A of model 1 onto chain F of model 2",
+    "overlay these structures and show the alignment"
+   ],
+   "commands": [
+    "open 2zco",
+    "matchmaker #2 to #1",
+    "matchmaker #3-5 to #6",
+    "mm #1/A to #2/F",
+    "mm #2 to #1 showAlignment true",
+    "sequence header conservation show"
+   ],
+   "notes": "'mm' abbreviates matchmaker. Sequence alignment (residue type + secondary structure) then iterative CA fit; RMSD in Log. The 'to' model stays fixed. 'bring #3' moves another model (e.g. a map) along. Restrict to a rigid domain with a named selection for stable fits. GUI: Tools / Structure Analysis / Matchmaker.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Compare superimposed structures: tile, pick residues, report transformation",
+   "goal": "Lay aligned models side by side, locate a differing residue, or align a copy with 'align' to report rotation and shift (e.g. fibril twist).",
+   "requests": [
+    "show the two structures side by side",
+    "find where residue 41 differs between the two structures",
+    "what is the twist angle between the two protofilaments?"
+   ],
+   "commands": [
+    "tile",
+    "select #2:41",
+    "open 6h6b",
+    "align #2/G toAtoms #1/I reportMatrix true",
+    "close #2"
+   ],
+   "notes": "'tile' arranges models in a grid. 'align' fits exact atom pairs and with reportMatrix logs rotation angle and shift along axis (6h6b: 179.5 deg, 2.45 A = half a layer). Clicking a residue in the Matchmaker alignment selects it in 3D.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "name": "Show crystal packing with unit cells",
+   "goal": "Generate symmetry copies filling unit cells, color each copy, and measure buried area between neighbors.",
+   "requests": [
+    "Show the crystal packing for 7rfw",
+    "display two unit cells and color each copy differently",
+    "is this crystal contact biological?"
+   ],
+   "commands": [
+    "unitcell #1 cells 1,1,2",
+    "rainbow #3 structures",
+    "measure buriedarea #3.4 with #3.7",
+    "measure buriedarea #3.4 with #3.8"
+   ],
+   "notes": "Copies become submodels of a new model (#3.1, #3.2...) plus an outline box. GUI: Tools / Higher-Order Structure / Unit Cell. 7rfw: 1857 A^2 for the real dimer vs 467 A^2 for a crystal contact. Close the copies before building the biological assembly.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "name": "Build a biological assembly",
+   "goal": "List the mmCIF assemblies and build one as a new model or in place, or fetch it directly.",
+   "requests": [
+    "what biological assemblies does this structure have?",
+    "generate the biological assembly for 2hyy and drop the asymmetric unit",
+    "show the pentamer of the capsid"
+   ],
+   "commands": [
+    "sym #1",
+    "sym #1 assembly 1",
+    "sym #1 assembly 1 copies true",
+    "close #1",
+    "sym #1 assembly 3 newmodel false copies false",
+    "open 3d6y from rcsb_bio maxAssemblies 1"
+   ],
+   "notes": "'sym #1' lists assemblies in the Log; clicking a number there runs 'sym #1 assembly N'. Default makes copies in a new model (#2 or next free); 'newmodel false copies false' transforms in place (reverse with 'close #2; show #1 model'). 'color #3.2 lightblue' colors one copy.",
+   "topic": "modeling",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "name": "Delete chains, residues, solvent or hydrogens",
+   "goal": "Remove parts of a structure: a redundant chain, a fusion domain, waters, everything except some chains.",
+   "requests": [
+    "Delete chain B",
+    "remove the fusion domain residues 1002 to 1106",
+    "delete the waters and everything except chains I and G"
+   ],
+   "commands": [
+    "delete /B",
+    "delete #4/B",
+    "delete :1002-1106",
+    "delete solvent",
+    "del /a-n,X",
+    "delete #1 & ~/I,G",
+    "delete #3:1-27,337-end",
+    "delete H"
+   ],
+   "notes": "Deletion is permanent for the session (reopen to restore). 'end' means the last residue. Chain IDs are case-sensitive when both cases exist. Hide surfaces before deleting to avoid stale patches. Check the Log chain table first.",
+   "topic": "modeling",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "name": "Add hydrogens or run dock prep",
+   "goal": "Add hydrogens (optimizing H-bonding), or repair truncated sidechains and add charges with dockprep.",
+   "requests": [
+    "Add hydrogens to the structure",
+    "protonate the model",
+    "repair the missing side chains and add hydrogens"
+   ],
+   "commands": [
+    "addh",
+    "dockprep #1",
+    "hide H"
+   ],
+   "notes": "Experimental structures usually lack hydrogens. dockprep also adds charges and completes sidechains. 'hide H' hides hydrogens; 'delete H' removes them (e.g. before comparing to density).",
+   "topic": "modeling",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "name": "BLAST a chain or region against the PDB",
+   "goal": "Find related experimental structures by sequence and load hits superimposed on the query.",
+   "requests": [
+    "Blast chain B against the PDB",
+    "find other structures similar to this helix",
+    "search the pdb for homologs of my selection"
+   ],
+   "commands": [
+    "blast #1/B",
+    "blast cterm database pdb"
+   ],
+   "notes": "Runs on a web server; the Blast Protein table lists hits (sort by column, NMR entries lack resolution). Double-click or select rows and 'Load Structures' to open hits matched onto the query. 'cterm' is a named selection. Cannot restrict by species.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "name": "Find structural homologs with Similar Structures (Foldseek) and copy their ligands",
+   "goal": "Run a shape-based search, show and cluster backbone traces of hits, and transfer ligands from selected hits onto the query.",
+   "requests": [
+    "Find structures similar in shape to my protein",
+    "run a foldseek search and show the hits",
+    "which drugs bind to homologs of this protein?"
+   ],
+   "commands": [
+    "open 8xps",
+    "delete /B",
+    "ui tool show \"Similar Structures\"",
+    "hide #3:HOH,CA,SO4,MAN,NAG,BMA,FUL,FUC"
+   ],
+   "notes": "GUI in the tool: Search, then Traces / Clusters buttons; sort by Species, select rows, tick 'for selected rows only' and press Ligands (copies land in a new model, e.g. #3). Hide waters, ions and sugars to find real ligands. Searches 200M AlphaFold models too.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "name": "Open an NMR ensemble with its distance restraints",
+   "goal": "Load a multi-model NMR entry and overlay PDB distance restraints colored by whether they are satisfied.",
+   "requests": [
+    "Show the NOE restraints for 8r4w",
+    "which NMR restraints are violated in this ensemble?",
+    "open 8jr6 with its nmr constraints"
+   ],
+   "commands": [
+    "open 8r4w",
+    "open 8r4w from pdb_nmr",
+    "open 8jr6 from pdb_nmr structures #3",
+    "hide cartoon ; show atoms ; nucleotides atoms"
+   ],
+   "notes": "Green = satisfied, yellow = too long in the current model. Most restraints involve hydrogens, so show plain atoms (not cartoon/slabs) to see them. 'structures #3' attaches restraints to a specific model. Needs the NMR-STAR reader (ChimeraX 1.7 daily or Toolshed).",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "name": "Show UniProt annotations on a structure",
+   "goal": "Associate UniProt sequence features with a chain so the Feature Viewer highlights annotated regions.",
+   "requests": [
+    "Show the UniProt annotated domains on my model",
+    "map uniprot features onto chain A",
+    "open the feature viewer for this protein"
+   ],
+   "commands": [
+    "open Q86V81 fromDatabase uniprot associate #1/A"
+   ],
+   "notes": "GUI: click the UniProt name in the Log chain table. Clicking a feature selects those residues. Works for any model, not only AlphaFold ones.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Open MOLEonline channel results as spheres or a surface",
+   "goal": "Load a MOLE JSON results file so the channel appears as spheres, then surface it for coloring.",
+   "requests": [
+    "Open my MOLE channel JSON file",
+    "show the pore computed by MOLE as a smooth surface",
+    "load MOLEonline results"
+   ],
+   "commands": [
+    "open 1bl8",
+    "hide #1",
+    "cartoon style width .5 thick .5",
+    "open browse format mole",
+    "surf #2",
+    "hide #2"
+   ],
+   "notes": "Generate the JSON on the MOLEonline site (Pore mode, Download > JSON). 'open browse' opens a file dialog; or give the path with 'format mole'. Spheres are dummy atoms with a radius attribute; 'surf #2' is required before mlp/coulombic/byattribute coloring.",
+   "topic": "analysis",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "name": "Mutate a residue and choose rotamers",
+   "goal": "Swap a residue for another amino acid with the best rotamer, or inspect rotamers interactively by H-bonds and clashes.",
+   "requests": [
+    "Mutate residue 128 to asparagine",
+    "model the A53E mutation in chains I and G",
+    "show tyrosine rotamers for Tyr 248"
+   ],
+   "commands": [
+    "swapaa #2:128 ASN",
+    "swapaa interactive #2:128 ASN",
+    "swapaa /I,G:53 GLU",
+    "select :248",
+    "tool show Rotamers"
+   ],
+   "notes": "'swapaa' picks the rotamer avoiding clashes / optimizing H-bonds; 'interactive' opens a table (Dunbrack library) with probabilities; add H-Bonds/Clashes columns and 'Use Chosen Rotamer'. Pick by interactions, not just probability. Residue names are 3-letter codes.",
+   "topic": "modeling",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "name": "Model a missing loop with Modeller (Model Loops)",
+   "goal": "Fill an internal missing segment by generating several Modeller loop conformations and comparing their scores.",
+   "requests": [
+    "Model the missing loop in chain B with Modeller",
+    "fill in the gap in chain B of 1t2p",
+    "rerun loop modelling with more flexible residues"
+   ],
+   "commands": [
+    "open 1t2p",
+    "seq chain /B",
+    "ui tool show 'Model Loops'",
+    "seq dissoc #2",
+    "seq assoc #1.2",
+    "color #3 hot pink"
+   ],
+   "notes": "Menu Tools / Sequence / Model Loops: number of models 3, 'internal missing structure', adjacent flexible residues 1-2, Modeller license key (free academic). Results open as #2.1-2.3; most negative zDOPE is best. Before rerunning, dissociate the new models and reassociate the original chain.",
+   "topic": "modeling",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "name": "Fetch an AlphaFold Database model by UniProt ID",
+   "goal": "Retrieve a precomputed AlphaFold prediction colored by confidence, optionally with its PAE plot.",
+   "requests": [
+    "Fetch the AlphaFold model for O51E2_HUMAN",
+    "get the alphafold prediction for this uniprot entry with the PAE plot",
+    "open an alphafold structure of my protein"
+   ],
+   "commands": [
+    "alphafold fetch O51E2_HUMAN",
+    "alphafold fetch Q86V81 pae true"
+   ],
+   "notes": "Colored by pLDDT: blue high (>90), red low (<50, may be disordered). GUI: Tools / Structure Prediction / AlphaFold (Fetch; Predict runs ColabFold for mutated sequences, ~13 min). The PAE window can color by pLDDT or PAE domains.",
+   "topic": "alphafold",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "name": "Fetch AlphaFold models matching open chains",
+   "goal": "Find the AlphaFold DB prediction for a chain's sequence and open it superimposed, optionally untrimmed and restyled like the experiment.",
+   "requests": [
+    "Get the AlphaFold prediction for chain B and overlay it",
+    "show what parts of my crystal structure are missing using AlphaFold",
+    "alphafold match for chains A to D"
+   ],
+   "commands": [
+    "alphafold match #1/B",
+    "alphafold match INSR_MOUSE",
+    "alphafold match #3/A-D trim false",
+    "mcopy #3 to #5",
+    "matchmaker #5 to #3 show true"
+   ],
+   "notes": "Matches by sequence (identity reported), superimposes and colors by pLDDT. 'trim false' keeps full-length predictions. 'mcopy' copies style/colors from one model to another. 'show true' opens the alignment. The DB lacks multimers.",
+   "topic": "alphafold",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "name": "Show the AlphaFold PAE plot and color by PAE domains",
+   "goal": "Display predicted aligned error and color the model by rigid domains inferred from the PAE.",
+   "requests": [
+    "Show the predicted aligned error plot",
+    "color the AlphaFold prediction by its PAE domains",
+    "which parts of this model are reliably packed together?"
+   ],
+   "commands": [
+    "alphafold pae #3 uniprot INSR_MOUSE",
+    "alphafold pae #3 colorDomains true",
+    "alphafold pae last-opened file AF_predictions/fold_model_full_data_1.json"
+   ],
+   "notes": "AlphaFold is not confident about relative packing of different domains, so fit them into maps separately. Dragging in the PAE plot selects residues. 'file' attaches a local PAE JSON (AF3 output).",
+   "topic": "alphafold",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "name": "Fit an AlphaFold model into a cryoEM map",
+   "goal": "Trim a prediction to one domain, smooth the map, place the model by hand, optimize the rigid fit and compare with the deposited structure.",
+   "requests": [
+    "Fit the AlphaFold model into the density",
+    "dock the predicted structure into the EM map and refine",
+    "compare my fitted model with 8f76"
+   ],
+   "commands": [
+    "open 8f76",
+    "open 28896 from emdb",
+    "hide #1 model",
+    "alphafold fetch O51E2_HUMAN",
+    "volume gaussian #2 sDev 2",
+    "ui mousemode right \"translate selected models\"",
+    "select #3",
+    "view matrix models #3,0.40692,0.60876,0.68104,119.26,-0.29794,0.79324,-0.53104,111.11,-0.86351,0.013184,0.50416,91.549",
+    "fit #3 in #4",
+    "volume #4 hide",
+    "show #1 model,cartoon ; hide #1 atoms"
+   ],
+   "notes": "Map #2, AlphaFold #3, smoothed map #4. Hand placement: right-drag translates, shift-drag rotates the selected model; the view matrix line reproduces the tutorial's placement. 'delete #3:1-27,337-end' trims to a domain first when PAE shows separate domains. ISOLDE can refine further.",
+   "topic": "alphafold",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "name": "Load AlphaMissense scores and color/label by pathogenicity",
+   "goal": "Fetch AlphaMissense predictions for a human protein, show substitution matrices, color and thicken the cartoon by mean score, and export values.",
+   "requests": [
+    "Show AlphaMissense pathogenicity on my AlphaFold model",
+    "color the protein by average missense pathogenicity",
+    "make ribbon thickness reflect mutation sensitivity"
+   ],
+   "commands": [
+    "open Q86V81 fromDatabase alpha_missense format amiss",
+    "mutationscores structure #1",
+    "mutationscores label #1 amiss height 3 palette bluered",
+    "mutationscores define avg fromScore amiss setAttribute true combine mean",
+    "color byattribute r:avg #!1 palette bluered key true",
+    "cartoon byattribute r:avg #!1",
+    "label delete",
+    "save ALY_mutations_scores.defattr attrName avg"
+   ],
+   "notes": "Human proteins only. Blue tolerated, red sensitive. High scores in disordered regions often mark binding motifs. Add 'mutationSet #1' when several score sets are loaded. Render by Attribute GUI is an alternative.",
+   "topic": "alphafold",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Analyze an AlphaFold 3 prediction folder for interfaces",
+   "goal": "Read an AF3 output directory, summarize confident inter-chain contacts, open the best model with PAE and keep the interface selection.",
+   "requests": [
+    "Look at my AlphaFold 3 prediction and show the interface",
+    "which of my AF3 models has the most confident contacts?",
+    "load the best alphafold multimer result"
+   ],
+   "commands": [
+    "close all",
+    "cd browse",
+    "alphafold interfaces ./AF_predictions",
+    "name frozen interface sel",
+    "rainbow chain palette BuPu"
+   ],
+   "notes": "Folder is the unpacked AF3 server zip; dimers only for now. Check the Log summary and click the link to open the PAE plot and best model. Interface residues are selected and contact lines drawn colored by PAE; name the selection before clicking elsewhere.",
+   "topic": "alphafold",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Compute AlphaFold inter-chain contacts colored by PAE",
+   "goal": "Open an AF3 model, attach its PAE file, and draw or export predicted contacts between chains.",
+   "requests": [
+    "Show the contacts between chain A and the other chains colored by PAE",
+    "write the predicted contacts to a text file",
+    "attach the pae json to my alphafold model"
+   ],
+   "commands": [
+    "open AF_predictions/fold_2025_01_30_14_44_eif4a3_aly_model_2.cif",
+    "alphafold pae last-opened file AF_predictions/fold_2025_01_30_14_44_eif4a3_aly_full_data_1.json",
+    "alphafold contacts last-opened&/A",
+    "alphafold contacts last-opened&/A output contacts.txt",
+    "alphafold contacts last-opened & /A toAtoms last-opened & /B distance 4.0 maxPae 5.0"
+   ],
+   "notes": "'last-opened' refers to the most recently opened model (script-friendly); or 'open file id 1000'. One chain spec maps contacts to all others; no spec includes intra-chain. The last form is what 'alphafold interfaces' runs.",
+   "topic": "alphafold",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Tidy a close-up of a predicted interface",
+   "goal": "Switch to a thin-cartoon preset, keep labels only on interface residues, show their atoms and focus the view.",
+   "requests": [
+    "Clean up the view so only the interface residues are labeled",
+    "zoom in on the interface and color side chains by element",
+    "thinner cartoon for a close up"
+   ],
+   "commands": [
+    "hide #!2 models",
+    "preset cartoons/nucleotides licorice/ovals",
+    "~label ~interface",
+    "show interface atoms",
+    "view interface",
+    "colour byhetero"
+   ],
+   "notes": "'interface' is a named selection. '~label ~interface' removes labels outside it. 'colour' is accepted for 'color'. '#!2' is model 2 without submodels.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Overlay multiple predictions, copy coloring and browse with a slider",
+   "goal": "Open all AF3 models from a run, apply one model's coloring to the rest, align them on a rigid domain and step through them.",
+   "requests": [
+    "Open all five AlphaFold models and align them",
+    "apply the same coloring to all my predictions",
+    "slider to compare the predicted conformations"
+   ],
+   "commands": [
+    "open AF_predictions/*.cif",
+    "mcopy #1 to #3-7",
+    "hide #!1",
+    "name RecA1 /A:47-240",
+    "mm #3-7&RecA1 to #1&RecA1",
+    "view",
+    "mseries slider #3-7"
+   ],
+   "notes": "'*.cif' opens every CIF in the folder. A dynamic name matches the residues in every model. Aligning on a small rigid domain gives a stable superposition. Check the Log for assigned model numbers.",
+   "topic": "alphafold",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Open a cryoEM map from EMDB, alone or with its PDB model",
+   "goal": "Fetch a density map by EMDB ID, optionally together with the atomic model built into it, and view them together.",
+   "requests": [
+    "Open EMDB map 25428",
+    "open 8f76 and its cryoEM map",
+    "fetch emd 1080 and turn on shadows"
+   ],
+   "commands": [
+    "open 1080 from emdb",
+    "open emdb:1273",
+    "light full",
+    "open 8f76",
+    "open 28896 from emdb",
+    "hide #1 model",
+    "open 4994 from emdb",
+    "view initial #2",
+    "transparency #3 50",
+    "show #2 atoms,model"
+   ],
+   "notes": "Both 'N from emdb' and 'emdb:N' work. The Log 'more info' link of a PDB entry gives its EMDB ID. Deposited models open already positioned in the map. Large maps (>100 MB) are slow to fetch; they open subsampled (step 2). Model numbers follow opening order.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "name": "Adjust map threshold, step, style, dust and transparency",
+   "goal": "Set the contour level (by value, mouse or enclosed volume), show full resolution, switch to mesh, hide small blobs and make the map see-through.",
+   "requests": [
+    "set the threshold to 0.9",
+    "my map looks blocky, show it at full resolution",
+    "hide the noise specks and make the map transparent"
+   ],
+   "commands": [
+    "volume #1 level 0.9",
+    "volume #2 step 1",
+    "volume #2 style mesh",
+    "mousemode right contour",
+    "vol #1 enclose 1e6 step 1 color tan",
+    "surface dust #2 size 8.1",
+    "transparency 50",
+    "volume #1 transparency 0.5"
+   ],
+   "notes": "'vol' abbreviates volume; options combine in one command. Hover the map to read the level; drag the Volume Viewer histogram bar to change it. 'enclose' picks the level enclosing a volume in A^3. Map toolbar has Hide Dust, Transparent, Mesh buttons.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "name": "Place a model by hand and fit it into a map (rigid body)",
+   "goal": "Move a model into the density with the mouse or by command, then locally optimize the fit.",
+   "requests": [
+    "fit 1grl into the EMD-1080 map",
+    "let me drag the spike model into the EM map then refine",
+    "dock my model in the density"
+   ],
+   "commands": [
+    "open 1grl",
+    "ui mousemode right \"translate selected models\"",
+    "select /A:953",
+    "move x -50 model #1",
+    "turn z 180 model #1",
+    "fit #2 in #1",
+    "fitmap #1 inMap #2",
+    "select clear"
+   ],
+   "notes": "'fit' = fitmap; it is a LOCAL optimization so start from a rough manual placement. Move mode: ctrl-click an atom to select the model, right-drag translates, shift-drag rotates (Mac: option+trackpad). Map toolbar Fit button is equivalent. Correlation is reported in the Log.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Fit into a Gaussian-smoothed map for a larger convergence radius",
+   "goal": "When fine detail traps the fit, smooth the map, fit into the smoothed copy, then discard it.",
+   "requests": [
+    "The fit gets stuck, smooth the map and fit again",
+    "apply a gaussian filter to the density with width 3",
+    "blur the map so I can see the helices"
+   ],
+   "commands": [
+    "fit #3 in #2",
+    "volume gaussian #2 sdev 3",
+    "fit #3 in #4",
+    "close #4",
+    "show #2 model"
+   ],
+   "notes": "'volume gaussian' makes a new map model (#4) and hides the original. GUI: Tools / Volume Data / Map Filter. Fitting does not resolve pseudo-symmetry; choose the correct symmetry-related placement manually.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Fit a second component into unexplained density",
+   "goal": "Open another structure, strip extra copies and waters, place it by hand in density not covered by the first model, and fit.",
+   "requests": [
+    "Fit the nanobody 7kkj into the EM map",
+    "delete chain C and the waters from model 3 then fit it",
+    "place a ligand structure into the leftover density"
+   ],
+   "commands": [
+    "open 7kkj",
+    "delete #3/C",
+    "delete solvent",
+    "ui mousemode right \"translate selected models\"",
+    "fit #3 in #2"
+   ],
+   "notes": "Spike #1, map #2, nanobody #3. First 'color zone #2 near #1 distance 5' to see unexplained density. Ctrl-click an atom of #3, right-drag to move (shift to rotate), then fit once per placement. Orientation is hard; repeat for symmetry copies.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "name": "Simulate a map from a model and subtract it from the experimental map",
+   "goal": "Create a simulated density from the fitted model, show it as mesh, and subtract to reveal unexplained density.",
+   "requests": [
+    "make a simulated map from my model at 10 angstroms",
+    "subtract the model density from the experimental map",
+    "show the difference density after fitting"
+   ],
+   "commands": [
+    "molmap #2 10",
+    "vol #3 style mesh",
+    "vol subtract #1 #3 minrms t",
+    "vol #4 color pink transparency 0",
+    "hide atoms",
+    "show ribbon"
+   ],
+   "notes": "molmap creates a new map (#3); vol subtract creates another (#4). 'minrms t' scales the subtracted map to minimize RMS difference. Numbers assume map #1 and structure #2.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "name": "Open an X-ray density map from the EDS with its model",
+   "goal": "Fetch the crystallographic map for a PDB entry, show it as mesh, and extend it by symmetry to cover an assembly.",
+   "requests": [
+    "open the electron density for 1a0m",
+    "show the x-ray map for 7rfw and cover the whole dimer",
+    "get the density from EDS as mesh"
+   ],
+   "commands": [
+    "open 1a0m from eds",
+    "open 1a0m",
+    "hide ribbon",
+    "show atoms",
+    "vol #1 level 1.0 style mesh",
+    "open 7rfw from eds",
+    "volume #4 showOutlineBox true",
+    "volume cover #4 atom #3",
+    "volume #4 hide"
+   ],
+   "notes": "Map opens before the model here, so map #1, model #2. 'volume cover' makes a NEW map using crystal symmetry, so later commands target it. Delete hydrogens ('delete H') before comparing. EDS server availability may change.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "name": "Show map density only near atoms or a ligand (zone)",
+   "goal": "Restrict the displayed map to within a distance of atoms, tune level and transparency, and undo the zone.",
+   "requests": [
+    "only show density within 2 angstroms of the atoms",
+    "zone the map around the ligand as a transparent mesh",
+    "remove the zone and show the whole map again"
+   ],
+   "commands": [
+    "vol zone #1 near #2 range 2",
+    "vol #1 level 0.5 transp 0.6",
+    "volume zone #2 near :EJ4 range 6 newmap false",
+    "surface zone #2 near ligand dist 8",
+    "surface zone #5 nearAtoms sel distance 5",
+    "volume unzone",
+    "surface unzone #2"
+   ],
+   "notes": "'volume zone' and 'surface zone' hide parts of the map surface, they do not crop data. Map toolbar Zone and Tools / Volume Data / Surface Zone are equivalent. Increase the distance to include neighboring side chains. Use 'volume #3 region i,j,k,i2,j2,k2' for a thin slab of planes.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "name": "Close-up of a helix with zoned mesh density and residue labels",
+   "goal": "Show one residue range as sticks colored by element with the map zoned around it as transparent mesh and labeled residues.",
+   "requests": [
+    "Zoom in on helix S4 residues 217-232 with density mesh and labels",
+    "show the density as a mesh around residues 8-19 of chain D only",
+    "how well does the map fit this helix?"
+   ],
+   "commands": [
+    "hide #1 cartoon",
+    "select #1/A:217-232",
+    "show sel",
+    "style #1 stick",
+    "color #1 tan",
+    "color #1 byhet",
+    "volume zone #4 nearAtoms sel range 3",
+    "volume #4 style mesh",
+    "transparency #4 50",
+    "label sel bgcolor black",
+    "select clear"
+   ],
+   "notes": "Model #1, map #4 here; 'hide ~sel ribbon' isolates a helix in a bigger complex. 'color byhet' keeps carbons tan. Restore with 'volume unzone ; volume style surface'.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "name": "Examine density around a ligand at different contour levels",
+   "goal": "Center on a ligand, change the map threshold and mesh style to judge how well density supports it.",
+   "requests": [
+    "Zoom in on the ADP and show me the density around it",
+    "is there density for the phosphate? lower the contour",
+    "check whether the ligand fits the map"
+   ],
+   "commands": [
+    "show atoms",
+    "style stick",
+    "volume #2 step 1",
+    "view :ADP",
+    "volume #2 level 3",
+    "volume #2 style mesh",
+    "view :PO4",
+    "volume #2 level 1",
+    "view"
+   ],
+   "notes": "Level values are specific to EMDB 9333; adjust on the Volume Viewer histogram otherwise. Tentative ligands may only appear at lower levels. 'color byhetero' helps side-chain fitting.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Show a thin slab of a cryoEM map as mesh",
+   "goal": "Restrict the displayed map to a range of grid planes and show it as mesh.",
+   "requests": [
+    "Show just a thin slice of the map",
+    "crop the density to a few planes and show it as mesh",
+    "set the map threshold to 0.01 and use mesh style"
+   ],
+   "commands": [
+    "volume #3 region 0,0,145,279,279,164",
+    "volume #3 level 0.01",
+    "volume #3 style mesh"
+   ],
+   "notes": "region is imin,jmin,kmin,imax,jmax,kmax in grid indices. Alternative: the crop mouse mode in the Right Mouse toolbar. 'volume #3 region all' restores everything.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "name": "Make a finer map mesh with triangle subdivision",
+   "goal": "Subdivide mesh triangles for a smoother density mesh, then turn it off to keep rendering fast.",
+   "requests": [
+    "Make the mesh smoother",
+    "subdivide the mesh triangles on the map",
+    "turn off the fine mesh its slow"
+   ],
+   "commands": [
+    "volume #2 style mesh",
+    "volume #2 subdivide true subdivisionlevels 2",
+    "volume #2 level 1.5",
+    "vol #2 subdivide false"
+   ],
+   "notes": "Subdivision multiplies triangle count; switch it off afterwards to avoid slow surface calculations.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Step through residues in density with Residue Fit",
+   "goal": "Open the Residue Fit tool to view each residue in its map in sequence and optionally record it.",
+   "requests": [
+    "check how well each residue fits the density",
+    "step through the residues in the map",
+    "record a movie of the residue fit"
+   ],
+   "commands": [
+    "resfit #1 map #2"
+   ],
+   "notes": "Drag the slider or press play; the tool's record button writes resfit.mp4 to the Desktop and its stop button ends recording early. Structure #1, map #2.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "name": "Open a tomogram and browse it as slices or the full volume",
+   "goal": "Load a large tomogram from EMDB, page through single planes, or show all planes with an outline box.",
+   "requests": [
+    "Open the EMD-4191 tomogram and let me look through the slices",
+    "show the whole tomogram instead of one slice",
+    "open emdb 1273"
+   ],
+   "commands": [
+    "open 4191 from emdb",
+    "open emdb:1273",
+    "volume #1 region all showOutline true"
+   ],
+   "notes": "Large maps open as a single grayscale plane; the Volume Viewer Plane slider steps through slices and dragging the histogram curve adjusts brightness. 'region all' shows everything. EMD-4191 is 240 MB, EMD-1273 ~200 MB.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "name": "Invert tomogram map values",
+   "goal": "Multiply the map by -1 so dense features appear bright, then discard the original.",
+   "requests": [
+    "Invert the density of this tomogram so proteins look white",
+    "flip the sign of the map values",
+    "the tomogram contrast is backwards"
+   ],
+   "commands": [
+    "volume scale #1 factor -1",
+    "close #1"
+   ],
+   "notes": "Tomogram low values = high density. 'volume scale' makes a new model (#2) and leaves the original, hence close #1. Later model numbers shift accordingly.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "name": "Place markers on a tomogram, extract a box, save map and markers",
+   "goal": "Mark particles on a slice, cut out a subvolume around a marker, and save the box (MRC) and markers (.cmm).",
+   "requests": [
+    "Let me drop markers on particles I see in the tomogram",
+    "extract a 32-voxel box around the marker I placed",
+    "save the cropped map and the markers"
+   ],
+   "commands": [
+    "mousemode right \"mark plane\"",
+    "volume box #2 center #1 isize 32",
+    "save ~/Desktop/proteasome1.mrc model #3",
+    "save ~/Desktop/proteasomes.cmm model #1"
+   ],
+   "notes": "Markers toolbar Plane button = mark plane mode; right-click (Mac cmd-click) places markers (new model #1 after closing the original). #2 inverted tomogram, #3 boxed map. 'isize 32' = 32x32x32 grid points. .cmm is an XML marker file.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "name": "Tomogram isosurface: threshold, hide dust, measure blobs",
+   "goal": "Show a tomogram as a surface at a level, remove tiny blobs, and click a blob to report its volume and dimensions.",
+   "requests": [
+    "Show the tomogram as a surface at level 780",
+    "hide the noise specks on the map surface",
+    "how big is this proteasome blob?"
+   ],
+   "commands": [
+    "volume #2 style surface level 780",
+    "surface dust #2 size 200",
+    "mousemode right \"pick blobs\""
+   ],
+   "notes": "Level 780 suits the inverted EMDB 4191 map. 'size' is the minimum extent in A. Pick blobs (Right Mouse toolbar Blob) reports volume, area and principal-axis sizes in the Log; coloring is lost when the level changes.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "name": "Morph between two maps",
+   "goal": "Interpolate between two aligned density maps (e.g. subtomogram averages) with a slider and record it.",
+   "requests": [
+    "Morph between EMDB 3913 and 3916",
+    "show me the differences between these two averaged maps",
+    "interpolate between two cryo-ET maps"
+   ],
+   "commands": [
+    "close",
+    "open 3913 from emdb",
+    "open 3916 from emdb",
+    "volume morph #1,2"
+   ],
+   "notes": "Maps should already be aligned. A slider panel appears; its record button saves a movie to the Desktop.",
+   "topic": "cryoem",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "name": "Record a 360-degree spin movie",
+   "goal": "Rotate a full turn and save an MP4, via the toolbar shortcut or an explicit record/roll/encode line.",
+   "requests": [
+    "record a spinning movie of my structure",
+    "spin the view 360 degrees and save a video",
+    "make a rotation movie"
+   ],
+   "commands": [
+    "preset pub",
+    "ks vd",
+    "roll y 1 360 center #4",
+    "movie record ; roll y 1 360 center #4 ; wait 360 ; movie encode s4_spin.mp4"
+   ],
+   "notes": "'ks vd' is the toolbar video icon shortcut (movie.mp4 on the Desktop). 'roll y 1 360' = 1 degree/frame for 360 frames; 'center #4' spins about that model. 'wait' must match the frame count before encode. Test the motion without recording first.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "name": "Rock the view and record a movie",
+   "goal": "Oscillate the scene about the vertical axis and save the motion as an MP4.",
+   "requests": [
+    "rock the molecule back and forth and record it",
+    "make a rocking animation of the density",
+    "wobble the view side to side"
+   ],
+   "commands": [
+    "turn y 25 300 rock 150",
+    "movie record ; turn y 25 300 rock 150 ; wait 300 ; movie encode ~/Desktop/movie2.mp4",
+    "rock angle 90 cycle 600 frames 600",
+    "movie record ; rock angle 90 center #4 cycle 600 frames 600 ; wait 600 ; movie encode map_bfactor.mp4"
+   ],
+   "notes": "Semicolons chain commands on one line. 'turn ... rock 150' oscillates with a 150-frame cycle over 300 frames; 'rock angle 90 cycle 600 frames 600' swings 90 degrees total. Set 'cofr ligand' first to rock about a site.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "name": "Morph between two conformations and play it",
+   "goal": "Superimpose two structures of the same protein, compute an interpolated trajectory and replay it forward and backward.",
+   "requests": [
+    "morph between the bound and unbound structures",
+    "animate the conformational change from 4n6h to 6pt2",
+    "morph the NMR ensemble"
+   ],
+   "commands": [
+    "open 2fw0",
+    "matchmaker #2 to #1",
+    "morph #1,2",
+    "coordset #3 1,21 ; wait 21 ; coordset #3 21,1",
+    "morph #1,2 same true",
+    "morph #2",
+    "close #3"
+   ],
+   "notes": "Align first. The morph is a new model with a slider; 'same true' skips sequence alignment for identical sequences. Only atoms in both structures are included (ligands drop out). 'morph #2' morphs an NMR ensemble's members. Morph works on whole models: delete unwanted chains first. Atom style and simple lighting speed playback.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "name": "Morph through several states or loop back to the start",
+   "goal": "Morph across three conformations returning to the first, or wrap a two-state morph, and play all frames.",
+   "requests": [
+    "Morph through all three conformations and return to the start",
+    "make a looping morph from bound to empty and back",
+    "morph 3w7f and 2zco with 60 frames"
+   ],
+   "commands": [
+    "morph #1,2,3 wrap true same true",
+    "coordset #4 1,61",
+    "morph #1,2 wrap true frames 60"
+   ],
+   "notes": "'wrap true' returns to the starting model (3 states = 61 frames). Move the slider to the start before recording. 'close #2-4' then 'show #1 model' cleans up.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "name": "Fix mismatched chain IDs and recompute a morph",
+   "goal": "Rename chains so equivalent chains share IDs when a morph sends molecules flying, then remake it.",
+   "requests": [
+    "The morph is going crazy, some chains fly across, fix the chain IDs",
+    "swap chain IDs C and G and D and H in model 1 and redo the morph",
+    "rename chains so they match the other structure"
+   ],
+   "commands": [
+    "changechains #1 C,G,D,H G,C,H,D",
+    "close #3",
+    "morph #1,2"
+   ],
+   "notes": "Morph pairs chains by ID. Hover chains to read IDs. Close the bad morph first so the new one reuses its model number.",
+   "topic": "modeling",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "name": "Record a morph movie (bounce, loop, supersampled)",
+   "goal": "Play a morph while recording, with looping/bouncing, pauses and high-quality encoding.",
+   "requests": [
+    "record a movie of the morph",
+    "loop the morph back and forth 3 times and record it",
+    "smooth high quality movie of the conformational change"
+   ],
+   "commands": [
+    "light simple",
+    "coordset #3 1,51 bounce true loop 3",
+    "movie record ; coordset #3 1,51 bounce true loop 3 ; wait 310 ; movie encode morph3.mp4",
+    "movie record supersample 3 ; coordset #3 1,21 ; wait 40 ; coordset #3 21,1 ; wait 40 ; movie encode ~/Desktop/movie3.mp4 quality high",
+    "movie record ; coordset #5 ; wait 50 ; movie encode"
+   ],
+   "notes": "The slider's red record button also works but has no loop option. 'pause 3' holds at bounce ends. 'wait' must cover all frames. 'supersample 3' antialiases; 'movie encode' without a name writes a default file. Put the same lines in a .cxc to rerun.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "name": "Show a ligand from the original structure alongside a morph",
+   "goal": "Display the ligand from the bound model with morph residues near it, since morphs contain no ligand.",
+   "requests": [
+    "show the ligand and the residues near it in the morph",
+    "display the galactose from model 1 on top of the trajectory",
+    "turn model 1 back on but only its ligand"
+   ],
+   "commands": [
+    "show #1 model",
+    "hide #1 atoms,ribbons",
+    "show #1 & ligand & ~ H",
+    "select zone ligand 5 #3 residues true",
+    "show sel",
+    "select clear",
+    "show #3:lys"
+   ],
+   "notes": "Morph model #3. 'select zone ligand 5 #3 residues true' selects whole residues of #3 within 5 A of the ligand. Atoms of the morph are controlled like any structure.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "name": "Multi-part movie script with crossfades",
+   "goal": "One script that spins a model with its map, fades to the morph, plays it, fades in another map and spins again.",
+   "requests": [
+    "Write a movie script that fades between models, plays the morph and spins",
+    "make a movie combining maps and morph with crossfades",
+    "record s4_fancy.mp4 from a script"
+   ],
+   "commands": [
+    "hide #2,3,5 models",
+    "show #1,4 models",
+    "coordset #3 1",
+    "movie record",
+    "wait 50",
+    "roll y 1 360 center #4",
+    "wait 360",
+    "movie crossfade 50",
+    "show #3 model",
+    "hide #1 model",
+    "wait 50",
+    "movie crossfade 50",
+    "hide #4 model",
+    "wait 25",
+    "coordset #3 1,51",
+    "wait 51",
+    "wait 25",
+    "movie crossfade 50",
+    "show #5 model",
+    "wait 50",
+    "movie crossfade 50",
+    "hide #3 model",
+    "show #2 model",
+    "wait 25",
+    "roll y 1 360 center #5",
+    "wait 360",
+    "wait 50",
+    "movie encode s4_fancy.mp4"
+   ],
+   "notes": "Save as .cxc and open it after a session with styles set up. #1/#2 structures, #3 morph, #4/#5 maps. 25 fps so wait 50 = 2 s. 'movie crossfade 50' fades over 50 frames into whatever display change follows.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "name": "Save scenes and record a movie from them",
+   "goal": "Capture display states as numbered scenes, save the session, then record a movie restoring scenes with crossfades.",
+   "requests": [
+    "Save scenes for the key points of my movie",
+    "record a movie that crossfades between my saved scenes",
+    "snapshot the display states so I can restore them"
+   ],
+   "commands": [
+    "scene save 1",
+    "show #3 model",
+    "hide #1 model",
+    "scene save 2",
+    "hide #4 model",
+    "scene save 3",
+    "coordset #3 51",
+    "scene save 4",
+    "show #5 model",
+    "scene save 5",
+    "hide #3 model",
+    "show #2 model",
+    "scene save 6",
+    "save s4_scenes.cxs",
+    "scene restore 1",
+    "movie record",
+    "wait 50",
+    "roll y 1 360 center #4",
+    "wait 360",
+    "movie crossfade 50",
+    "scene restore 2",
+    "wait 50",
+    "movie crossfade 50",
+    "scene restore 3",
+    "wait 25",
+    "coordset #3 1,51",
+    "wait 51",
+    "movie crossfade 50",
+    "scene restore 5",
+    "wait 50",
+    "movie crossfade 50",
+    "scene restore 6",
+    "wait 25",
+    "roll y 1 360 center #5",
+    "wait 360",
+    "movie encode s4_scenes.mp4"
+   ],
+   "notes": "Scenes need a ChimeraX daily build from Oct 2025 or newer and do not yet cover molecular surfaces (GUI: Tools / Depiction / Scenes). Scene 4 is not restored; coordset plays the morph there. Reopen the session and rerun the script to change resolution or background.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "name": "Record a movie flying between named views",
+   "goal": "Define named views and record smooth transitions between them.",
+   "requests": [
+    "Make a movie that flies between several interfaces",
+    "record a video going from view to view",
+    "fly through my saved views"
+   ],
+   "commands": [
+    "view name start",
+    "view name contact1",
+    "view name contact2",
+    "view start",
+    "movie record",
+    "view contact1 50",
+    "view contact2 50",
+    "view start 50",
+    "movie encode our_movie.mp4"
+   ],
+   "notes": "Orient the model by hand before each 'view name'. The number after a view name is the transition frame count. Typed interactively this works; in a script add 'wait N' after every step or commands overlap.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Scripted movie with rotation, transparency and waits",
+   "goal": "A .cxc that rotates the structure, fades non-asymmetric-unit chains, reveals interface residues, and encodes the result.",
+   "requests": [
+    "Write a movie script that rotates 360 then zooms on the interfaces",
+    "make everything except the asymmetric unit transparent in my movie",
+    "script a movie with proper waits"
+   ],
+   "commands": [
+    "view start",
+    "sel clear",
+    "hide",
+    "movie record",
+    "tr 0 target c",
+    "wait 20",
+    "turn y -2 180",
+    "wait 230",
+    "view contact1 50",
+    "wait 60",
+    "transparency #3&~asu 100 target ca",
+    "wait 25",
+    "show inters",
+    "wait 20",
+    "view contact2 50",
+    "wait 75",
+    "view start 50",
+    "wait 70",
+    "tr 0 target ca",
+    "movie encode ALY_EJC_interfaces.mp4 quality good",
+    "save movie.cxs"
+   ],
+   "notes": "Always 'wait' after each step. 'turn y -2 180' = 2 deg/frame for 180 frames. 'asu' and 'inters' are named selections you must define first. 'tr' abbreviates transparency; target c/ca = cartoon / cartoon+atoms.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "name": "Record a 360-degree stereo VR movie",
+   "goal": "Set a 360 top-bottom stereo camera centered on a ligand and record a high-resolution still movie for YouTube VR.",
+   "requests": [
+    "record a 360 video for YouTube VR",
+    "make a virtual reality movie of the binding site",
+    "set the camera to 360 stereo"
+   ],
+   "commands": [
+    "close",
+    "open 3gbp",
+    "camera 360tb eyeSeparation 0.05",
+    "windowsize 600 600",
+    "view",
+    "zoom 15",
+    "cofr ligand",
+    "movie record size 4096,4096 ; wait 5 ; movie encode ~/Desktop/gbp.mp4 framerate 1"
+   ],
+   "notes": "360tb = left eye top half, right eye bottom; needs a 1:1 window. Records 5 motionless frames at 4096x4096, 1 fps. Then inject spherical+stereoscopic metadata with Google's 360 Video Metadata app before uploading. 'camera mono' returns to normal.",
+   "topic": "movies",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "name": "Open DICOM data: local folder or TCIA series",
+   "goal": "Load CT/MRI/PET DICOM data from a directory or fetch a TCIA series by its Series Instance UID.",
+   "requests": [
+    "Open my CT scan DICOM folder",
+    "load this directory of DICOM images",
+    "open this TCIA series UID in chimerax"
+   ],
+   "commands": [
+    "open /path/to/dicom_folder format dicom",
+    "open 1.3.6.1.4.1.9328.50.1.298748100008818908989408006815250397386 fromDatabase tcia format dicom"
+   ],
+   "notes": "Menu: File / Open DICOM Folder. Substitute the real directory path; the UID example is from RIDER Lung CT. Requires the MedicalImaging bundle from the Toolshed (not bundled as of ChimeraX 1.13). Data matching an open patient/study is merged under the same model.",
+   "topic": "medical",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "name": "Download DICOM data from TCIA with the Download DICOM tool",
+   "goal": "Browse Cancer Imaging Archive datasets, drill down to a series, and download/open it.",
+   "requests": [
+    "Download a sample CT dataset from TCIA",
+    "get some public DICOM data to try segmentation",
+    "open the download dicom tool"
+   ],
+   "commands": [
+    "ui tool show 'Download DICOM'",
+    "ui tool hide 'Download DICOM'"
+   ],
+   "notes": "Menu Tools / Medical Imaging / Download DICOM; accept the one-time TCIA terms. Click a dataset, Drill Down to Studies, then Series, then Download and Open (ChimeraX freezes during download). RIDER Lung CT is recommended.",
+   "topic": "medical",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "name": "Browse DICOM patients, studies, series and tag metadata",
+   "goal": "Open the DICOM Browser hierarchy and show DICOM header tags for a series.",
+   "requests": [
+    "Show me the patients and studies in the DICOM data I opened",
+    "what is the metadata of this CT series?",
+    "show the dicom header tags"
+   ],
+   "commands": [
+    "ui tool show 'DICOM Browser'",
+    "ui tool hide 'DICOM Metadata'",
+    "ui tool hide 'DICOM Browser'"
+   ],
+   "notes": "Also Tools / Medical Imaging / DICOM Browser, or select a Patient/Study/Series in the Model Panel and click Info. In the browser click a series then 'Show Metadata'; double-clicking a tag opens its DICOM spec definition.",
+   "topic": "medical",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "name": "Open the Segmentations tool and paint on 2D slices",
+   "goal": "Start interactive medical-image segmentation with slice views plus 3D, drawing regions with the mouse.",
+   "requests": [
+    "Open the segmentation tool for my CT scan",
+    "segment the tumor by drawing on the slice views",
+    "how do I erase part of my segmentation?"
+   ],
+   "commands": [
+    "ui tool show segmentations",
+    "ui view fourup guidelines true"
+   ],
+   "notes": "Menu Tools / Volume Data / Segmentations; layout becomes axial/coronal/3D/sagittal. On a slice: left-drag marks, SHIFT+left-drag erases, SHIFT+scroll resizes the cursor, middle-drag pans, scroll zooms; first click creates a segmentation. Opacity via Volume Viewer.",
+   "topic": "medical",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "name": "Change the slice/3D view layout",
+   "goal": "Switch between layouts of 2D slices and the 3D view, with optional crosshair guidelines, or back to 3D only.",
+   "requests": [
+    "Show the axial, coronal and sagittal slices alongside the 3D view",
+    "turn on crosshairs so I can see where the other slices cut",
+    "go back to just the 3D view"
+   ],
+   "commands": [
+    "ui view fourup",
+    "ui view overunder",
+    "ui view sidebyside",
+    "ui view fourup guidelines true",
+    "ui view default"
+   ],
+   "notes": "Works with any open volume data. Slices are added to the Volume Viewer for independent windowing; arrow keys (SHIFT = 10 slices) move a focused slice. 'guidelines true' works with any layout. Closing all models resets to default.",
+   "topic": "display",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "name": "Create and edit a segmentation by command",
+   "goal": "Make an empty segmentation for a volume and add circular (2D) or spherical (3D) regions by grid coordinates.",
+   "requests": [
+    "Create a new segmentation for model #1.1.1",
+    "add a circle of radius 10 at pixel 100,100 on axial slice 100",
+    "add a sphere of radius 10 at voxel 100,100,100 to my segmentation"
+   ],
+   "commands": [
+    "segmentations create #1.1.1",
+    "segmentations add #2 center 100,100 radius 10 slice 100 axis axial",
+    "segmentations add #2 center 100,100,100 radius 10"
+   ],
+   "notes": "#1.1.1 is the DICOM volume (see Model Panel); the new segmentation is #2. Two center indices = 2D on a slice (axis axial/coronal/sagittal), three = 3D sphere. 'segmentations remove' has the same syntax; minIntensity/maxIntensity limit the voxels.",
+   "topic": "medical",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "name": "Segment in 3D or VR with mouse and hand controller modes",
+   "goal": "Turn on segmentation mouse modes for the 3D view (sphere cursor) or VR hand-controller modes, then restore normal controls.",
+   "requests": [
+    "Segment in 3D by clicking on the volume",
+    "segment this CT scan in VR",
+    "give me my normal right-click back after segmenting"
+   ],
+   "commands": [
+    "ui view default",
+    "segmentations mouseModes on",
+    "segmentations mouseModes off",
+    "segmentations handModes on",
+    "segmentations handModes off"
+   ],
+   "notes": "Toolbar: Medical Image / Segmentation Controls. 3D: right-click adds, SHIFT+right-click removes, SHIFT+middle-drag moves the sphere, SHIFT+scroll resizes. VR right controller: grip moves cursor, A adds, B removes, thumbstick resizes. Modes reset when the tool closes.",
+   "topic": "medical",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  }
+ ],
+ "tips": [
+  {
+   "tip": "This page is ChimeraX-only: it describes ChimeraX as the successor to Chimera, and none of its command syntax (e.g. /b chain specifiers, 'vol', 'sym ... assembly') should be assumed to work in legacy Chimera; a Chimera edition would need Chimera's own documentation as its source.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Use 'help <command>' (e.g. help style) to open the documentation for any command.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "The command links on the page only execute when the page is shown in the ChimeraX internal browser (Help > Quick Start Guide in the ChimeraX menu).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Several commands can be entered on one line separated by semicolons (e.g. hide atoms; show ribbon).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Atom specifiers: /x = chain, :n = residue number, @name = atom name, #n = model; 'sel' refers to the current selection, 'solvent' and 'protein' are built-in categories, '&' intersects and '~' negates (e.g. #1 & ~solvent).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Selection with the mouse: ctrl-click an atom; shift-ctrl-click adds; ctrl-click the background clears; up-arrow and down-arrow keys expand and unexpand the selection (same as 'select up').",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Mouse navigation: rotate by dragging, translate with the middle button or option-drag on Mac; the right-button function is set from the toolbar's Right Mouse tab (or the mousemode command); with a Mac one-button mouse, drag while pressing the command key.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Structures fetched from the PDB arrive in mmCIF format and are cached locally.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "After 'sym #1' lists assemblies, do not click the links in the Log; if an assembly was generated by mistake, reverse it with 'close #2; show #1 model'.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Model numbers are sequential: opening a map first makes it #1, a structure #2, molmap output #3, vol subtract output #4; adjust commands if the order differs.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Hovering the mouse over a map reports its contour level in the status line.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Very large maps (e.g. a 200 MB tomogram) open as a single grayscale plane; use 'volume #1 region all' to show all planes and 'step 1' for full resolution.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "'vol' abbreviates 'volume', 'transp' abbreviates 'transparency', and 't' means true (e.g. minrms t).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "'light full' gives shadows; 'light default' is simpler lighting without shadows.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "'close' with no arguments closes all models but does not reset background or silhouettes; use 'set bg black' and 'set silhouettes false' to restore defaults.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "The toolbar video camera icon (command 'ks vd') records a spin movie saved on the Desktop as movie.mp4.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html"
+  },
+  {
+   "tip": "Capitalization of residue names in the command line is optional, but element symbols always need to be capitalized (e.g. ':sti & C').",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "Ctrl-click an atom then press the keyboard up arrow to promote the selection to the whole residue; if the initial pick is a bond rather than an atom, press up arrow twice.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "Ctrl-click in empty space (or 'select clear') clears the selection.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "Tables in the Log are clickable: chain IDs select chains, non-standard residue names select ligands, and mmCIF assembly numbers generate assemblies as new models.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "Pseudobonds representing H-bonds or contacts are only displayed when both endpoint atoms are displayed, so use 'reveal true' to show the partner residues.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "The structures have no explicit hydrogens; hbonds and coulombic use inferred hydrogen positions internally.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "Ribbon display suppresses backbone atoms by default; use 'cartoon suppress false' to see backbone N and O atoms participating in H-bonds.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "In 'surface zone', 'max 1' limits display to the largest surface component and hides disconnected bits.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "'#!1' addresses model 1 itself but not its submodels, so 'clip model #!1 off' leaves the surface (#1.1) clipped while atoms are unclipped.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "The planar cap of a clipped surface (submodel #1.1.1) is not automatically colored with the outer surface and needs its own mlp/coulombic command; use 'offset 0' for coulombic on the cap.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "MLP coloring can differ from per-residue hydrophobicity lookup scales such as Kyte-Doolittle because all amino acids contain both polar and nonpolar atoms.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "'coulombic protein' restricts surface creation and coloring to protein chains; hide protein atoms first so only surface, DNA and ligand remain.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "When making a figure, compose the rest of the image before adding a color key or 2D labels.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "With 'Adjust key with mouse' checked in the Color Key tool, mouse drags move the key instead of the structure; uncheck it to rotate again.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "Selections appear as green boxes in the Sequence Viewer, and clicking or dragging in the sequence selects the corresponding residues in 3D.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "'close' closes models only, while 'close session' also closes associated tools such as the Sequence Viewer.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html"
+  },
+  {
+   "tip": "Conservation values are only assigned to residues of structures associated with the alignment; solvent, ligands, ions and unassociated chains lack seq_conservation and are affected by the novalue option unless you restrict the spec (e.g. 'protein' or '/R & protein').",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "Alignment columns with a high proportion of gaps get no conservation value, so termini and loops may stay their original color; raise the Gap fraction in Sequence Viewer Settings > Headers to cover more residues.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "The full range of conservation values is reported in the Log after 'color byattr'; use the range option to emphasize extremes, and values outside the range get the end colors of the palette.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "Automatic sequence-structure association is indicated by a colored box around the sequence name; if none appears, associate manually with 'sequence associate' or the sequence window context menu Structure > Associations.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "Small mismatches (red boxes in the alignment) between structure and alignment sequence do not prevent association.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "3D labels move with the structure; use 2D labels for publication images.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "'light soft multishadow 512' improves ambient shadows but a high number of directions can slow interactive manipulation.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "Sizes and positions for the color key and 2D labels are window-relative, so appropriate values depend on the graphics window dimensions.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "Changes in Sequence Viewer conservation settings apply immediately (histogram updates), but you must rerun 'color byattr seq_conservation' to recolor; Save stores settings as preferences, Reset restores factory defaults.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "The default conservation measure is the AL2CO entropy-based method; variance-based and sum-of-pairs measures are also available in the Headers settings.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "This page contains only ChimeraX commands, so an old-Chimera edition cannot be derived faithfully from it; the equivalent Chimera workflow uses different tools and syntax and would need a separate source.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+  },
+  {
+   "tip": "Hydrogen atoms are usually omitted from experimental structures because they are too small to resolve; use addh to add them, and they are positioned to optimize hydrogen bonding.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "Most hydrogen bonds with the ligand in 4n6h are to water molecules, so a ligand-restricted hbonds display may show few protein contacts.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "Model numbers shift during the session: 4n6h is #1, the EDS density map is #2, after close #2 the 6pt2 structure becomes #2, and the morph trajectory is #3.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "Mouse over chain ends in the graphics window to read residue numbers before deleting a crystallization fusion domain (1002-1106 in 4n6h, 999-1106 in 6pt2).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "Clip planes are set in the GUI (Tools / General / Side View, drag the vertical lines) and must be removed with clip off before zoning or viewing the whole structure.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "Density map contour level can be set by dragging the bar on the Volume Viewer histogram or with volume level.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "A morph only includes atoms present in both structures, so ligands are not part of the morph.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "Delete hydrogens (delete H) before comparing atoms to x-ray density so they do not clutter the view.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "The most probable rotamer from swapaa is not necessarily the one that preserves a key hydrogen bond; check the interactive rotamer table.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "Two intracellular alpha helices move about 10 Angstroms between the inactive (4n6h) and active (6pt2) delta opioid receptor states.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "This page contains no old-Chimera (1.x) commands; an old-Chimera edition would have to be authored separately since several steps (mlp, light soft, open from eds, morph with same true, swapaa interactive) have no one-to-one Chimera command syntax on the page.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html"
+  },
+  {
+   "tip": "A Modeller license key is required to run Model Loops; academic users can obtain one free by registering at the Modeller website, and it is remembered in ChimeraX preferences.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "Only 3 loop models are calculated in the tutorial for expediency; for most research purposes a higher number is recommended.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "The longer the segment being modeled, the more likely some results are poor (over 50 percent poor predictions for segments of 10+ residues).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "The best zDOPE score in the Modeller Results dialog is the most negative; choosing rows shows those models and hides the others.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "Model Loops models every structure associated with the sequence, so dissociate new loop models (seq dissoc) and reassociate the original chain (seq assoc) before re-running.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "Splitting a model with 'split' dissociates its chains from the Sequence Viewer, so reassociate the chain of interest afterwards.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "Closing models in the Model Panel cannot be undone except by reopening or recalculating them.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "Selection is shown with a bright green outline; clear it by Ctrl-clicking empty space.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "Model Loops calculations take a minute or two to run.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "The AlphaFold Database does not cover all of UniProt and does not include multimeric protein structures.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "In a real research situation, search for related structures (e.g. with Blast) before modeling a missing segment.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "The tutorial is written for ChimeraX only (Modeller v10.1, November 2021) and contains no legacy Chimera commands, so an old-Chimera edition cannot be derived faithfully from this page.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html"
+  },
+  {
+   "tip": "The tutorial targets ChimeraX 1.9; if opened inside ChimeraX via Help / Tutorials, the command links on the page can be clicked to run them directly.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "Model numbers in the commands (#1, #2, #3, #4) reflect the order models were opened in the tutorial; after closing a model its number is reused, so check the Model Panel and adjust specifiers to your own session.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "'mm' is an accepted abbreviation for 'matchmaker', and 'sel' refers to the current selection.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "':< 5' is a residue-level zone specifier (whole residues within 5 Å); '~' means NOT, '&' means AND, '|' means OR in atom specifiers.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "The Log panel's chain table and 'more info' links identify chains (e.g. antibodies, G-proteins, nanobodies) and give the EMDB map id or fetch command for a PDB entry.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "Large EM maps may open subsampled; use 'volume #N step 1' to show full resolution, and raise the contour level or use Hide Dust to suppress noise.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "Smooth a map (volume gaussian) before placing a model by hand so helices are clearly visible, then run 'fit' against the smoothed map.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "AlphaFold models are colored by confidence: blue means high confidence; predicting a mutated sequence from scratch takes about 13 minutes.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "About 2/3 of Foldseek hits can have under 10% sequence identity and would be missed by sequence searches; copying ligands from hits fetches the PDB entries (about 20 s, 5 s if cached).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "Downloaded attribute files (.defattr) must be opened from their local path (the page uses ~/Downloads/...), and the attribute name is referenced as r:name in 'color byattribute'.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "Toolbar buttons (Hydrophobic, Sphere, Hide Dust, Fit) and the Similar Structures panel are described on the page as GUI actions without stated command equivalents.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "The page contains only ChimeraX syntax; no classic (old) Chimera commands appear, so an old-Chimera edition cannot be derived from this page without separate translation.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html"
+  },
+  {
+   "tip": "The tutorial was written for ChimeraX 1.7 (January 2024); model numbers #1-#5 assume you follow the steps in order, including deleting the unit-cell copies and outline before generating the biological assembly.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "If the tutorial is opened inside ChimeraX (menu Help / Tutorials), each command link can be clicked to run it.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "Clear the selection before running 'surface' or 'color' without a target, otherwise they act only on the selected atoms.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "Buried surface area above about 500 A**2 is typical of biological interfaces; smaller contacts are usually crystal packing.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "'volume cover' and 'volume gaussian' create new map models with new numbers; subsequent volume, zone and fit commands must target the new model, not the original.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "'surface zone' only hides parts of the map surface near chosen atoms; it does not crop or change the map data.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "Large cryoEM maps open at step 2; use 'volume #N step 1' for full resolution.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "Noise in a cryoEM map can be removed either by raising the contour level or by keeping the recommended level and using Hide Dust (surface dust) with a size in Angstroms.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "AlphaFold models are colored by pLDDT confidence; blue means high confidence.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "'fit' (fitmap) is a local optimization, so hand-place the model in the density first, ideally in a Gaussian-smoothed map where helices are clear.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "Fetching PDB NMR distance constraints ('open ID from pdb_nmr') requires the NMR-STAR file reader, available in daily builds from Jan 9 2024 or via Tools / More Tools on ChimeraX 1.7.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "NMR distance constraints to hydrogens are only drawn when the hydrogen atoms are displayed, so hide cartoon and show atoms (nucleotides atoms) to see them.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "Clip-plane mouse modifiers are given for Mac only (cmd-drag moves the front plane, shift-cmd-drag moves both planes).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "The page contains no legacy Chimera (1.x) command syntax at all, so a faithful old-Chimera edition cannot be derived from this source; several commands (matchmaker, measure buriedArea, volume level/step, clip, sym) have Chimera namesakes with different syntax, which would need a Chimera-specific source.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/methods-jan2024/methods.html"
+  },
+  {
+   "tip": "The tutorial requires ChimeraX 1.5 or newer; the MOLE JSON reader (format mole) is not available in older versions.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "The channel must be surfaced (surf #2) before mlp or coulombic with the surfaces option will color it; the spheres themselves are never colored.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "For coloring a channel interior by ESP use a negative offset (offset -1); the default positive offset (1.4 A) is for the outside of a protein surface.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "MOLE spheres are dummy atoms; their size is stored in the atom attribute radius, so use @@radius<2 in specifiers and color byattribute radius.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "Showing cartoon suppresses display of backbone atoms; use cartoon suppressBackbone false to see them.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "Missing sidechain atoms (sel template-mismatch) can affect MLP/ESP calculations; dockprep #1 repairs them and adds hydrogens, but the tutorial says it makes little difference here.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "hide /A hides only atoms; add targ acs to also hide cartoons and surfaces.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "Coloring commands (color byattribute, mlp, coulombic) apply to models that already exist; open the protein first (#1) then the MOLE file (#2) so model numbers match the tutorial.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "The page contains no old-Chimera notes; the MOLE JSON format, mlp, coulombic surfaces and color byattribute commands used here are ChimeraX-specific and have no direct equivalents on this page for old Chimera.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
+  },
+  {
+   "tip": "Open the tutorial with 'open <url>' inside ChimeraX: its cxcmd: links run commands only in the ChimeraX browser, not in a normal web browser.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "Several commands can be typed on one line separated by semicolons; put a 'wait N' whose N matches the motion's frame count between the motion and 'movie encode' so the recording captures the whole motion.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "Commands can be stored one per line in a plain-text .cxc file (e.g. on the Desktop) and run with 'open ~/Desktop/file.cxc'.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "Toolbar icons are just commands: preset pub = set bg white + set silhouettes true; preset interactive = set bg black + set silhouettes false; view-all icon = view cofr false; hide/style icons act on selAtoms.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "Model numbers are assumed in order: structure #1, density map #2 (or second structure #2), morph #3; adjust ids if your session differs.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "The page's click-link for 'select far atoms' (sel zone :309 10 extend true) actually selects atoms near the galactose, so 'hide sel' after it hides the binding site; the intended step is a ctrl-drag box selection of the far atoms.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "Recording in the Residue Fit tool is done with the tool's own record/stop buttons, not with commands.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "The ChimeraX browser cannot handle download links; use a normal browser for the YouTube 360 Video Metadata app and YouTube upload.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "A 360° VR video needs a 1:1 window aspect ratio and must have spherical + stereoscopic metadata injected before uploading to YouTube.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "~/Desktop paths in movie encode expand to the home directory; movie1.mp4, movie2.mp4, movie3.mp4, resfit.mp4 and gbp.mp4 all land on the Desktop.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "'ligand' is a built-in atom specifier; in 3gbp the galactose is residue :309.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "The page contains only ChimeraX commands; its linked 'original' March 2017 version is also a ChimeraX tutorial, so no old-Chimera (1.x) edition can be derived from this source.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html"
+  },
+  {
+   "tip": "The tutorial targets ChimeraX 1.2 or newer; its command links execute directly when the page is opened inside ChimeraX via Help / Tutorials.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Toolbar buttons (Show Atoms, Hide Cartoon, H-bonds, etc.) act only on the current selection when one exists, otherwise on everything; clear the selection (ctrl-click background or 'select clear') to act on all.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Model numbers in the commands assume the tutorial's open order (e.g. atomic model #1, map #2, nanobody #3); check the Models panel and adjust ids.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Chain and ligand links in the Log panel are shortcuts for 'select' commands; ions like CL are hidden until you 'show' them.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Hydrogen atoms are present in 7kkj but not visible in density; use 'hide H' to reduce clutter when comparing to maps.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "The up/down arrow keys broaden or narrow a selection (atom -> residue -> secondary structure -> chain).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Rainbow coloring runs N (blue) to C (red); beta sheets are not contiguous in sequence so strands of one sheet get different colors.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Molecular surfaces are per chain, solvent-excluded, and do not enclose waters or ligands.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Sequence Viewer residues with a black outline box have no atom coordinates (e.g. the C-terminal His tag).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "The full EMD-22910 map is 226 MB; use the 7 MB trimmed file unless you have a fast (>100 Mbit/s) connection.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "In the move-model mouse mode a residue or atom of the model must be selected so only that model moves; pressing or releasing Shift toggles between translating and rotating.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "fitmap / fit is a local rigid optimization, so the model must be placed roughly by hand first; correctly orienting a small nanobody is very challenging.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Snapshot saves the on-screen size; use 'save file.png width N' for higher resolution and 'transparent true' when overlaying on other images.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "Next step after rigid fitting would be flexible refinement with ISOLDE (no commands given on the page).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "This page contains only ChimeraX commands and no legacy Chimera equivalents, so an old-Chimera edition cannot be derived from it without inventing commands.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
+  },
+  {
+   "tip": "In tomograms, lower map values correspond to higher density, so invert with volume scale factor -1 to make proteins appear bright.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "volume scale creates a copy in memory and does not modify the original map, so close the original afterwards; model numbers then shift (scaled map #2, markers #1, boxed map #3).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "The full EMDB 4191 tomogram is 240 MB; a 25 MB middle-third file is provided for faster download.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "Marker placement uses the right mouse button (Cmd+click on Mac) after choosing the Plane button on the Markers toolbar.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "Blob mouse mode reports lengths along the principal axes of inertia, and blob coloring is lost when the surface level is changed.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "The record button on the volume morph slider saves the morph movie to the Desktop.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "Guo's subtomogram average proteasome maps are half-proteasomes, so extra chains of the atomic model must be deleted before fitting.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "fit (fitmap) only performs rigid rotation and translation from the current position, so place the model manually first with the Move Model mouse mode (shift to rotate, no shift to translate).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "Several steps are GUI-only on the page (Volume Viewer plane style, yellow brightness curve, Plane slider, Move Model mouse mode); they have no explicit command in the tutorial.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "The page contains ChimeraX commands only; no old-Chimera (Chimera 1.x) syntax appears on it, so an old-Chimera edition cannot be derived faithfully from this page.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/proteasomes.html"
+  },
+  {
+   "tip": "The tutorial was written for ChimeraX 0.91 daily build (Sept 2019); command syntax is still valid but default model numbers, colors and log output may differ slightly in current versions.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "Model numbers (#1, #2, #3) depend on the order things were opened; the cryoEM section assumes 6h6b is #1, 6rt0 is #2 and the EMDB map is #3, so check the Models panel before copying commands.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "The page contains only ChimeraX commands; no legacy UCSF Chimera syntax is shown, so a faithful Chimera edition cannot be derived from it.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "Only residues 38-95 of alpha-synuclein are in the 6h6b atomic model; the rest are disordered and not seen in the cryoEM map, so specs like :30 will match nothing.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "In the sequence panel, black outline boxes mark residues absent from the atomic model and a blue background marks beta strands; selections are mirrored between the sequence panel and the 3D structure.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "Ctrl-click a ribbon to select a residue, press up-arrow to extend the selection to the whole secondary-structure element, and ctrl-click the background to clear.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "Several commands can be put on one line separated by a semicolon, e.g. 'surface close ; hide ribbon'.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "'show surfaces' and 'mlp' have Molecule Display toolbar buttons that do the same thing.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "mlp colors surfaces yellow for hydrophobic and blue for hydrophilic; hbonds draws dashed blue lines and ~hbonds removes them.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "In cryoEM PDB entries the B-factor column often holds a local-resolution-like quantity rather than true B-factors; 'color bfactor' gives blue for best and red for worst.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "The distance mouse mode in the toolbar (click two atoms) is an alternative to the 'distance' command; '~distance' removes all distance monitors.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "'align ... reportMatrix true' prints the rotation angle and shift along the axis in the Log, which is how the fibril twist (179.5 degrees) and half-layer offset (2.45 A) were obtained.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "matchmaker handles sequence differences by doing a sequence alignment first, so it can superimpose different polymorphs.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "morph works on whole models, so delete all chains except the ones you want to morph first; 'delete #1 & ~/I,G' means delete model #1 except chains I and G.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "Press the red circle button at the right of the morph slider to record the morph as a movie.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "swapaa places the new side chain to avoid clashes or optimize hydrogen bonds, but molecular dynamics in other software may be needed afterward to relieve remaining clashes.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "'volume region' takes grid indices imin,jmin,kmin,imax,jmax,kmax; the crop mouse mode is the interactive alternative for showing a thin slab.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "At 3.1 A map resolution it can be difficult to position side chains correctly; disordered regions are averaged out of the 3D map.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/rml-sep2019/synuclein.html"
+  },
+  {
+   "tip": "The tutorial uses ChimeraX 1.10.1, except Scenes, which need a ChimeraX daily build from October 2025 or newer.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Scenes currently handle atomic models and maps but not molecular surfaces.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "The morph command pairs chains by matching chain identifiers; wild motion of some chains means the superimposed chains do not share IDs, so rename them with changechains and recompute the morph.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Hover the mouse over chains to read their chain identifiers.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "The morph slider has no loop option; use coordset with bounce true and loop N to play it repeatedly.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Simple lighting (light simple) makes morph playback faster than soft lighting.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "When recording with movie record ... wait N ... movie encode, the wait frame count must cover the whole motion (e.g. 310 for a 51-frame morph bounced 3 times, 360 for a 360-frame roll, 600 for a 600-frame rock).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Movies are recorded at 25 frames per second, so wait 50 pauses for 2 seconds.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "EMDB map 48725 is 75 MB compressed and can be slow to fetch; the tutorial provides a trimmed 22 MB version (data/trimmed_maps.zip) instead.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Morphing truncates the mutated residue R221E, so show the original 9my3 and 9my4 structures at the beginning and end of the movie.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Use movie crossfade to fade models in and out gradually between depiction changes.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Prepare a session with all colors, styles, labels and map zones first, then drive the movie from a .cxc command script.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Save a session containing the scenes so the movie can be re-recorded later with changes such as a black background or higher resolution.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "The red circle button on the morph slider records a movie directly from the GUI.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Model numbering in the tutorial: 9my3 = #1, 9my4 = #2, morph = #3, active-state map = #4, intermediate-state map = #5.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "A new animation timeline tool (menu Tools / General / Animations in daily builds) lets you drag scenes onto a timeline but does not yet do rolls, morphs or fades; expected in the Spring 2026 release.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Opening the tutorial HTML in ChimeraX (or via Help / Tutorials) makes its command links executable with a click.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+  },
+  {
+   "tip": "Model numbers are assumed throughout the tutorial: map #1, PDB 7sth #2, AlphaFold model #3, PDB 7sl1 #4, morph #5; adapt specifiers if models were opened in a different order.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "Almost every GUI step on the page has a command equivalent shown right after it (Models panel -> hide/show model, Molecule Display toolbar -> color bychain/surface/style, Actions/Color menu -> color sel, Tools/Volume Data/Surface Zone -> volume zone).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "Large EMDB maps may open at a coarser step; 'volume #N step 1' shows the full resolution at the cost of speed.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "The displayed command 'save irmap.png' actually runs 'save ~/Desktop/irmap.png' when clicked on the page; a bare filename saves to the current working directory.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "Ctrl-click a ribbon then press the up-arrow key to expand the selection to the whole secondary-structure element; ctrl-click empty background clears the selection.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "'volume zone ... near sel range 3' hides map outside 3 A of the selection; use 'volume unzone' to restore the full map before fitting or general viewing.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "AlphaFold confidence coloring is blue = high, red = low; differently colored PAE domains have uncertain relative packing, so fit domains into the map individually.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "Delete regions of a predicted model that are not in the map (e.g. the cytoplasmic kinase) before fitting.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "fitmap performs a local rigid-body optimization, so first drag the model roughly into place with the 'translate selected models' mouse mode (right mouse; Mac: Option + trackpad drag; Shift to rotate).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "Mouse-move modes act only on selected models, so select the model before dragging.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "Before 'morph', roughly superimpose the second conformation on the first by hand; 'same true' requires identical residue/atom naming in both models.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "Semicolons chain multiple commands on one line; 'wait 50' is used so movie recording captures the full morph playback before 'movie encode'.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "The page contains ChimeraX commands only; no legacy Chimera command syntax appears anywhere, so a Chimera edition could not be derived from this source without inventing commands.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+  },
+  {
+   "tip": "Command links on the tutorial page only execute inside ChimeraX when the page is opened via Help / Documentation Index > Tutorials; in an external browser they are plain text.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Model numbers in the tutorial (#1 model, #2 map, #3 x-ray, #4 morph or smoothed map) assume the exact open order; check the Model Panel and substitute the right ids in your own session.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Morphing and clip-plane dragging are much faster with atom (not cartoon) style and 'light simple'; switch to soft/full lighting only after positioning.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "In morph, 'wrap true' returns to the starting conformation and 'same true' skips sequence alignment by assuming identical sequences (faster, but only valid for the same protein).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Large maps open subsampled; use 'volume #N step 1' to see full resolution.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Contour levels are map-specific: weak features such as a tentatively assigned phosphate may only appear at a lower level, so hand-adjust on the Volume Viewer histogram.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Mesh subdivision ('volume subdivide true', up to subdivisionlevels 2) looks finer but slows surface calculations; turn it off with 'vol #N subdivide false' when done.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Fine detail in a high-resolution map can prevent 'fit' from finding a global optimum; make a Gaussian-smoothed copy ('volume gaussian #N sdev 3') and fit into that for a larger radius of convergence.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Fitting will not choose between symmetry-related placements (e.g. 6-fold); the correct alignment of asymmetric parts must be set by hand.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Fit in Map needs a rough hand placement first: select the model, then use the 'translate selected models' / 'rotate selected models' right-mouse modes.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Ctrl-click a ribbon selects one residue; pressing the up-arrow key expands the selection to the whole chain.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "In clip mouse mode, hold the alt key to move the far (back) clip plane, and click without dragging to turn clipping off.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Wildcard chain specs such as '/c*' match all chains whose IDs start with that letter (c0..c9 here).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "On a Mac trackpad: 2-finger rotate, 3-finger translate, 4-finger (or pinch) zoom; disable 3-finger Mission Control in System Preferences > Trackpad > More Gestures.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "Center of rotation is on the surface when zoomed in close and at the model center when zoomed out.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "This page contains only ChimeraX syntax; an old-Chimera edition cannot be derived from it (commands such as morph, preset, volume subdivide, color zone and mousemode have different or no equivalents there), so that would need a separate Chimera source.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-jul2019/tutorial2.html"
+  },
+  {
+   "tip": "The tutorial was tested on ChimeraX 1.9 and is written for Mac path conventions; it contains no legacy Chimera syntax, so no old-Chimera edition can be derived from this page.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Every GUI action prints its equivalent command in the Log; copy those lines into a .cxc file to make any workflow reproducible.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Set a working folder with 'cd' (or File > Set Working Folder) so save/open commands need no full paths.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Multiple commands can be typed on one line separated by semicolons.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Many commands and keywords accept short forms: tr = transparency, c = cartoon, a = atoms, s = surface, mm = matchmaker.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "ChimeraX does not auto-save and never asks for confirmation before closing models or quitting.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "In movie scripts add a 'wait' after every step, otherwise the next command runs while the previous one is still animating.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Named views are stored in the session but cannot be moved between sessions; use 'view matrix' to capture coordinates for reuse.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "'name frozen X sel' pins a name to the currently selected items; names without 'frozen' are dynamic and apply to models opened later too.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "The 'last-opened' model specifier avoids knowing model numbers in scripts; alternatively give an explicit unlikely id such as 'open 7ZNJ id 1000'.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "'alphafold interfaces' on an AF3 folder is currently limited to dimeric predictions and reports in the Log rather than changing the display.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "AlphaMissense scores exist only for human proteins; folded domains tend to light up entirely while hits in disordered regions often mark contact motifs.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Every newly opened structure gets the default display style; re-apply presets after loading.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "'mcopy #A to #B' copies all style attributes (colors, representation) from one model to another.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "The '~' prefix negates a command or spec: '~label ~interface' removes labels from everything outside the named selection.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Chain-description selectors like //description='*THO complex subunit 4' find all copies of a protein without knowing chain IDs.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "The ChimeraX BLAST tool cannot restrict to a single species; use the Similar Structures tool for fast structure-based search of the whole AlphaFold database.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "If you forget syntax, type the command without arguments and click it in the Log to open the help; 'alias list' shows all aliases, and an alias with 'echo' just prints a reminder.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Use 'name list builtins true' to see all built-in selection groups.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "Arrow keys broaden (up), narrow (down) or invert (left/right; shift for all models) the current selection; hovering over a residue shows its identifier.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "In Preferences > Window, enable 'Resize graphics window on session restore' for consistent figure sizes across sessions.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "The Toolshed (Tools > More Tools) provides extensions such as ISOLDE, ArtiaX, XMAS and the CliX autocompleting command line.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/vorlander-jan2025/ChimeraX_tutorial.html"
+  },
+  {
+   "tip": "As of ChimeraX 1.13 the DICOM/medical-image features (Download DICOM, DICOM Browser, Segmentations, etc.) are no longer bundled and must be installed as the MedicalImaging bundle from the ChimeraX Toolshed.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "The tutorial's click-to-execute links only work when the page is viewed in the ChimeraX Browser (open its URL with the open command).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Download DICOM shows a one-time TCIA terms-of-use disclaimer and then caches dataset info so it starts faster next time.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "'Download and Open' in the Download DICOM tool is a blocking operation: ChimeraX freezes until the download finishes and the data opens.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "RIDER Lung CT is the recommended TCIA dataset for this tutorial; other datasets may cause problems (file a bug report or email chimerax-users).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "When new DICOM data is opened, ChimeraX merges it into any already-open matching patient, study, or series model, and the DICOM Browser updates automatically.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Selecting a Patient or Study in the Model Panel and clicking 'Info' opens the DICOM Browser, but selecting a series opens the per-file DICOM Metadata tool instead.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Before 'segmentations create', look up the DICOM image's model number (e.g. #1.1.1) in the Model Panel or Volume Viewer; the new segmentation gets its own model number (e.g. #2).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Clicking a 2D slice with no segmentation present creates one automatically.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Opening the Segmentations tool switches the 3D view to surface style and adds the 2D slices to the Volume Viewer, where they can be windowed and leveled independently of the 3D model.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Use the arrow keys (SHIFT+arrow for ten slices) or the slice slider to move through slices when a 2D view is in focus.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "All views share the same segmentation data, so changing a segmentation's opacity in the Volume Viewer affects every view; the factory default opacity is 80% and can be changed in the tool's options menu.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "While adding to or removing from a segmentation in 3D, ChimeraX renders it at slightly lower resolution for speed and restores full resolution when the operation stops.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Closing the Segmentations tool or closing all models automatically resets the mouse modes; closing all models also closes the tool and resets the view to the default 3D-only layout.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Segmentations can be saved to disk in DICOM format and are re-associated with their source patient and study when next opened (the tutorial gives no explicit save command).",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "The tutorial (May 2024) uses 'segmentations setMouseModes' / 'segmentations resetMouseModes', while the current command reference documents 'segmentations mouseModes on|off' and 'segmentations handModes on|off'; try the reference form if the tutorial form is not recognized.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "In VR, other controller buttons keep their defaults: left trigger, left grip, or right trigger still move the reference data, and the Y button summons the ChimeraX UI.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "Old-Chimera note (not from the page): every feature in this tutorial (Download DICOM/TCIA, DICOM Browser, DICOM Metadata, Segmentations tool, ui view layouts, segmentations command, VR hand modes) is ChimeraX-only with no command-level equivalent in legacy Chimera, so an old-Chimera edition of this tutorial is not feasible.",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "tip": "The page is a reveal.js shell; the actual slides are at .../chimerax-comp-structures/module.html, and every command is embedded as a cxcmd: link.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "Default label height is 0.7 Angstroms; use 'label height N' to change it.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "'@@display' in an atom spec refers to the atom-level 'display' attribute, so 'label @@display' labels residues that have displayed atoms.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "Dashed lines for non-covalent interactions are pseudobonds: purple = metal coordination, yellow = distances, light blue = H-bonds, bright purple = clashes; remove them with ~distance, ~hbonds, ~contacts, ~clashes.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "Hover the cursor over an atom, bond or pseudobond in the graphics window to see a balloon with identity and length.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "'sel restrict cross' in hbonds/contacts/clashes finds interactions with exactly one end in the selection; 'reveal t' displays partner atoms, 'log t' writes details to the Log, 'select t' selects the interacting atoms.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "Clashes are unfavorable too-close contacts; contacts are all direct interactions (polar, nonpolar, favorable, unfavorable) including clashes, listed in the Log by decreasing VDW overlap.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "Ctrl-click picks an atom; the up arrow key promotes the selection to the whole residue (press twice if a bond was picked).",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "'torsion' with four atoms only reports the angle; adding a value after the atoms sets it.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "Rotamer probabilities in the Rotamers tool depend only on the residue's backbone phi/psi, not on interactions with the rest of the structure; use the dialog's H-Bonds and Clashes options to evaluate them in context.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "'mouse right bond' assigns bond rotation to the right mouse button (trackpad + Alt on Windows, trackpad + Command on Mac).",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "'mlp' both creates the molecular surface and colors it: dark cyan hydrophilic, white, dark goldenrod lipophilic.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "'color byattribute bfactor' maps blue (low) to red (high) by default; 'palette' and 'range' options change the mapping, and residue or model attributes can also be used.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "After 'preset original' with two models, the first is tan and the second sky blue; check the Model Panel to see model numbers and colors.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "'mm' is short for 'matchmaker'; clicking a light orange box in the sequence alignment selects the residue pairs used in the final fit (the common core).",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "Multiple commands can be combined on one line separated by semicolons, e.g. '~hbonds; ~clashes'.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "A morph only includes atoms present in both input structures, so a ligand present in one structure is excluded; re-show it from the original model with 'show #1 models' and 'show #1:fps,mg'.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "To record a whole morph trajectory as a movie from the slider interface, move the slider back to the beginning first.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  },
+  {
+   "tip": "Old-Chimera edition: a sibling module exists at .../modules/chimera-comp-structures/module.html but contains no commands, only a pointer to the Chimera 'Structure Analysis and Comparison' tutorial (https://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/squalene.html) using structures 2gbp/2fw0/1hxx; its command syntax differs from ChimeraX and was not extracted.",
+   "source": "https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html"
+  }
+ ]
+}

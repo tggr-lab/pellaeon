@@ -1,0 +1,738 @@
+[
+ {
+  "id": "novice-open_gene_af_f2rl1",
+  "category": "opening",
+  "request": "open the af model for the gene f2rl1",
+  "expected": "Pellaeon resolves F2RL1 through UniProt to P55085 (never guessing) and opens the AlphaFold model, a 397-residue structure named 'AlphaFold ...'.",
+  "check_type": "state_expr",
+  "check": "any('ALPHAFOLD' in m.name.upper() for m in models) and any(getattr(m, 'num_residues', 0) == 397 for m in models)",
+  "setup_commands": []
+ },
+ {
+  "id": "novice-color_rainbow_pronoun",
+  "category": "coloring",
+  "request": "color it like a rainbow",
+  "expected": "The open model is rainbow-colored along the chain, so residues carry many distinct colors instead of the handful present after opening.",
+  "check_type": "state_expr",
+  "check": "len(set(map(tuple, atoms.residues.ribbon_colors[:, :3].tolist()))) > 20 or len(set(map(tuple, atoms.colors[:, :3].tolist()))) > 20",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-color_white_then_helices_blue",
+  "category": "coloring",
+  "request": "make it white",
+  "followups": [
+   "color all helixes in blue"
+  ],
+  "expected": "After the two turns the helix ribbons are blue while every non-helix protein residue is still white.",
+  "check_type": "state_expr",
+  "check": "(atoms.filter(atoms.residues.is_helix & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, 2] > 150).all() and (atoms.filter(atoms.residues.is_helix & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, 0] < 100).all() and (atoms.filter(~atoms.residues.is_helix & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, :3] > 225).all()",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-color_by_chain",
+  "category": "coloring",
+  "request": "color by chain",
+  "expected": "Starting from an all-white 4hhb, each of the four chains gets its own distinct ribbon color.",
+  "check_type": "state_expr",
+  "check": "len({tuple(atoms.filter(atoms.chain_ids == c).residues.ribbon_colors[0][:3]) for c in 'ABCD'}) == 4",
+  "setup_commands": [
+   "open 4hhb",
+   "color #1 white"
+  ]
+ },
+ {
+  "id": "novice-color_single_residue_typo",
+  "category": "coloring",
+  "request": "color resdue 159 in blue please",
+  "expected": "Residue 159 is blue on its cartoon segment and/or its atoms; the rest of the protein is untouched.",
+  "check_type": "state_expr",
+  "check": "((atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, 2] > 150).all() and (atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, 0] < 100).all()) or ((atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).colors[:, 2] > 150).all() and (atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).colors[:, 0] < 100).all())",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-select_then_reverse_selection",
+  "category": "selecting",
+  "request": "select aas 159 and 300",
+  "followups": [
+   "reverse selection"
+  ],
+  "expected": "Residues 159 and 300 are selected first; after 'reverse selection' everything except those two residues is selected.",
+  "check_type": "state_expr",
+  "check": "len(sel_res) > 200 and 159 not in sel_res and 300 not in sel_res",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-select_color_green_rest_white",
+  "category": "selecting",
+  "request": "select postions 159 and 300 and color them green. the rest of the protein should be white",
+  "expected": "Residues 159 and 300 end up selected and green (atoms and/or cartoon) while the rest of the protein cartoon is white; the whole thing is done in one turn without asking.",
+  "check_type": "state_expr",
+  "check": "set(sel_res) == {159, 300} and (((atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).colors[:, 1] > 100).all() and (atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).colors[:, 0] < 100).all()) or ((atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, 1] > 100).all() and (atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, 0] < 100).all())) and (atoms.filter((atoms.residues.numbers == 50) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, :3] > 225).all()",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-show_atoms_pronoun_its",
+  "category": "display",
+  "request": "show it's atoms",
+  "expected": "'it' resolves to the currently selected residue 159 and all of its atoms become displayed.",
+  "check_type": "state_expr",
+  "check": "atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).displays.all()",
+  "setup_commands": [
+   "open 2gbp",
+   "hide #1 atoms",
+   "select #1:159"
+  ]
+ },
+ {
+  "id": "novice-hide_atoms_keep_cartoon",
+  "category": "display",
+  "request": "hide all the atoms i only want the cartoon",
+  "expected": "Every protein atom is hidden and the cartoon stays visible.",
+  "check_type": "state_expr",
+  "check": "not atoms.filter(atoms.structure_categories == 'main').displays.any() and atoms.residues.ribbon_displays.any()",
+  "setup_commands": [
+   "open 4hhb",
+   "show #1 atoms"
+  ]
+ },
+ {
+  "id": "novice-ligand_spheres_hide_water",
+  "category": "display",
+  "request": "show the ligand as spheres and hide the water",
+  "expected": "The heme (and phosphate) ligand atoms are displayed in sphere style and all water atoms are hidden, in a single run_commands call.",
+  "check_type": "state_expr",
+  "check": "atoms.filter(atoms.structure_categories == 'ligand').displays.all() and (atoms.filter(atoms.structure_categories == 'ligand').draw_modes == 0).all() and not atoms.filter(atoms.structure_categories == 'solvent').displays.any()",
+  "setup_commands": [
+   "open 4hhb",
+   "show solvent",
+   "style ligand stick"
+  ]
+ },
+ {
+  "id": "novice-distance_select_typos",
+  "category": "distances",
+  "request": "select amono acids 100 and 150 and mesure the distance between them",
+  "expected": "A distance monitor (pseudobond in the 'distances' group) is created between an atom of residue 100 and an atom of residue 150, typically the CA atoms.",
+  "check_type": "state_expr",
+  "check": "session.pb_manager.get_group('distances', create=False) is not None and any({a.residue.number for a in pb.atoms} == {100, 150} for pb in session.pb_manager.get_group('distances', create=False).pseudobonds)",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-multistep_white_red_atoms_distance",
+  "category": "distances",
+  "request": "color the entire protein white, after that select amino acids 160 and 300 - color these red and show their atoms. also, mesure the distance between these two",
+  "expected": "In one turn: the protein cartoon is white, residues 160 and 300 are selected, their atoms are shown and red, and a distance monitor exists between them.",
+  "check_type": "state_expr",
+  "check": "set(sel_res) == {160, 300} and atoms.filter(((atoms.residues.numbers == 160) | (atoms.residues.numbers == 300)) & (atoms.structure_categories == 'main')).displays.all() and (atoms.filter(((atoms.residues.numbers == 160) | (atoms.residues.numbers == 300)) & (atoms.structure_categories == 'main')).colors[:, 0] > 180).all() and (atoms.filter(((atoms.residues.numbers == 160) | (atoms.residues.numbers == 300)) & (atoms.structure_categories == 'main')).colors[:, 1] < 100).all() and (atoms.filter((atoms.residues.numbers == 50) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, :3] > 225).all() and session.pb_manager.get_group('distances', create=False) is not None and any({a.residue.number for a in pb.atoms} == {160, 300} for pb in session.pb_manager.get_group('distances', create=False).pseudobonds)",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-spin_pronoun",
+  "category": "motion",
+  "request": "make it spin",
+  "expected": "A continuous rotation (roll) is started and is still in progress when the turn ends.",
+  "check_type": "state_expr",
+  "check": "bool(getattr(session, 'motion_in_progress', None))",
+  "setup_commands": [
+   "open 4hhb"
+  ]
+ },
+ {
+  "id": "novice-spin_slower_then_stop",
+  "category": "motion",
+  "request": "spin the view slowly",
+  "followups": [
+   "slower",
+   "stop the spinning"
+  ],
+  "expected": "The view rolls slowly, 'slower' restarts it with a smaller step, and after 'stop the spinning' no motion remains in progress: the Chimaera holds position.",
+  "check_type": "state_expr",
+  "check": "not getattr(session, 'motion_in_progress', None) and any(c.strip().lower().startswith(('roll', 'turn')) for c in ran)",
+  "setup_commands": [
+   "open 4hhb"
+  ]
+ },
+ {
+  "id": "novice-focus_residue_typo",
+  "category": "focus",
+  "request": "i want to focuse the view on 159",
+  "expected": "The camera moves in close on residue 159 (view #1:159), so the camera is within ~70 A of that residue instead of ~150 A away as in the whole-protein view.",
+  "check_type": "state_expr",
+  "check": "(((session.main_view.camera.position.origin() - atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).scene_coords.mean(axis=0)) ** 2).sum() ** 0.5) < 70",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-focus_pronoun_two_residues",
+  "category": "focus",
+  "request": "focus on these two amino acids",
+  "expected": "'these two' resolves to the selected residues 159-160 and the camera zooms in on them (view sel).",
+  "check_type": "state_expr",
+  "check": "(((session.main_view.camera.position.origin() - atoms.filter(((atoms.residues.numbers == 159) | (atoms.residues.numbers == 160)) & (atoms.structure_categories == 'main')).scene_coords.mean(axis=0)) ** 2).sum() ** 0.5) < 70",
+  "setup_commands": [
+   "open 2gbp",
+   "select #1:159,160"
+  ]
+ },
+ {
+  "id": "novice-background_black_typos",
+  "category": "background",
+  "request": "tuen the bacground black",
+  "expected": "Despite two typos the background is set to black.",
+  "check_type": "state_expr",
+  "check": "all(c < 0.1 for c in bg)",
+  "setup_commands": [
+   "open 4hhb"
+  ]
+ },
+ {
+  "id": "novice-background_grey",
+  "category": "background",
+  "request": "color the background grey",
+  "expected": "The background becomes a neutral mid-grey (set bgColor gray).",
+  "check_type": "state_expr",
+  "check": "abs(bg[0] - bg[1]) < 0.05 and abs(bg[1] - bg[2]) < 0.05 and 0.3 < bg[0] < 0.7",
+  "setup_commands": [
+   "open 4hhb"
+  ]
+ },
+ {
+  "id": "novice-label_two_residues_shorthand",
+  "category": "labels",
+  "request": "put labels on aa 159 and 300",
+  "expected": "3D labels are attached to residues 159 and 300 (an ObjectLabels model with at least two labels).",
+  "check_type": "state_expr",
+  "check": "sum(len(m.labels()) for m in models if m.__class__.__name__ == 'ObjectLabels') >= 2",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-transparency_selected_typo",
+  "category": "transparency",
+  "request": "make the selected half transperent",
+  "expected": "The selected residues 1-100 become about 50% transparent on their cartoon, atoms and/or surface (transparency sel 50 with a target).",
+  "check_type": "state_expr",
+  "check": "(atoms.filter(atoms.residues.numbers <= 100).residues.ribbon_colors[:, 3] < 200).any() or (atoms.filter(atoms.residues.numbers <= 100).colors[:, 3] < 200).any() or any('Surface' in m.__class__.__name__ and ((getattr(m, 'vertex_colors', None) is not None and (m.vertex_colors[:, 3] < 200).any()) or m.color[3] < 200) for m in models)",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-publication_look_typo",
+  "category": "publication",
+  "request": "make it look publiction ready",
+  "expected": "Pellaeon applies the publication look directly (no 'which option' question): white background plus silhouettes and/or soft lighting.",
+  "check_type": "state_expr",
+  "check": "all(c > 0.9 for c in bg) and (session.main_view.silhouette.enabled or session.main_view.lighting.multishadow > 0 or session.main_view.lighting.shadows)",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "novice-close_everything_typo",
+  "category": "closing",
+  "request": "clsoe everything",
+  "expected": "Pellaeon proposes a close command but the safety gate shows a confirmation card and waits for Run/Skip instead of closing on its own.",
+  "check_type": "confirm_requested",
+  "check": "",
+  "setup_commands": [
+   "open 4hhb"
+  ]
+ },
+ {
+  "id": "power-align_mpro_matchmaker",
+  "category": "alignment",
+  "request": "superimpose 7bqy onto 6lu7 so i can compare the N3 binding poses",
+  "expected": "Runs matchmaker (7bqy moved onto 6lu7) so one atomic structure ends up with a non-identity scene position.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'AtomicStructure' and not m.position.is_identity() for m in models)",
+  "setup_commands": [
+   "open 6lu7",
+   "open 7bqy"
+  ],
+  "followups": [
+   "now hide chain C of the moved one so only the 6lu7 inhibitor is visible"
+  ]
+ },
+ {
+  "id": "power-rmsd_without_moving",
+  "category": "measurement",
+  "request": "whats the CA rmsd between chain A of #1 and chain A of #2 as they are right now, dont move anything",
+  "expected": "Uses the rmsd command (not matchmaker, which would move the model) on the CA atoms of the two alpha chains and reports the value.",
+  "check_type": "commands_regex",
+  "check": "^\\s*rmsd\\b",
+  "setup_commands": [
+   "open 4hhb",
+   "open 1hho"
+  ]
+ },
+ {
+  "id": "power-hbonds_glucose_ligand",
+  "category": "interactions",
+  "request": "show the hydrogen bonds between the bound glucose and the protein in yellow and show the residues involved",
+  "expected": "Runs hbonds restricted to the BGC ligand with reveal true, creating a hydrogen bonds pseudobond group with at least one bond.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'PseudobondGroup' and 'hydrogen' in m.name.lower() and m.num_pseudobonds > 0 for m in models)",
+  "setup_commands": [
+   "open 2gbp"
+  ],
+  "followups": [
+   "how many did you find?"
+  ]
+ },
+ {
+  "id": "power-clashes_inhibitor_protease",
+  "category": "interactions",
+  "request": "check for steric clashes between the N3 inhibitor (chain C) and the protease, show them if there are any",
+  "expected": "Runs the clashes command between chain C and chain A (a refined structure may report zero, so only the command is checked).",
+  "check_type": "commands_regex",
+  "check": "^\\s*clashes\\b",
+  "setup_commands": [
+   "open 7bqy"
+  ]
+ },
+ {
+  "id": "power-contacts_within_4A",
+  "category": "interactions",
+  "request": "show every atom contact within 4 A between chain C (the inhibitor) and chain A as dashed lines",
+  "expected": "Runs contacts with a 4 A distance-only cutoff and reveal true, producing a contacts pseudobond group with bonds.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'PseudobondGroup' and 'contact' in m.name.lower() and m.num_pseudobonds > 0 for m in models)",
+  "setup_commands": [
+   "open 6lu7"
+  ]
+ },
+ {
+  "id": "power-surface_hydrophobicity_mlp",
+  "category": "surfaces",
+  "request": "surface the protease (chain A only) and color it by hydrophobicity",
+  "expected": "Creates a molecular surface for chain A and colors it with mlp, so a displayed MolecularSurface has per-vertex colors.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'MolecularSurface' and m.display and getattr(m, 'vertex_colors', None) is not None for m in models)",
+  "setup_commands": [
+   "open 6lu7"
+  ]
+ },
+ {
+  "id": "power-surface_electrostatics_coulombic",
+  "category": "surfaces",
+  "request": "show me an electrostatic potential surface of the protein so i can see the charge around the sugar site",
+  "expected": "Runs coulombic on the protein (creating the surface if needed) so a displayed MolecularSurface carries per-vertex colors.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'MolecularSurface' and m.display and getattr(m, 'vertex_colors', None) is not None for m in models)",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "power-color_by_plddt",
+  "category": "coloring",
+  "request": "color it by pLDDT confidence again",
+  "expected": "Runs color bfactor with the alphafold palette on the PAR2 AlphaFold model, restoring a multi-color ribbon after the setup painted it white.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'AtomicStructure' and len({tuple(c) for c in m.residues.ribbon_colors}) >= 3 for m in models)",
+  "setup_commands": [
+   "open alphafold:P55085",
+   "color #1 white"
+  ]
+ },
+ {
+  "id": "power-color_secondary_structure",
+  "category": "coloring",
+  "request": "color helices salmon, strands sky blue and the loops grey",
+  "expected": "Colors by secondary structure so all helix ribbons share one color and all strand ribbons share a different one.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'AtomicStructure' and len({tuple(c) for c in m.residues.filter(m.residues.is_helix).ribbon_colors}) == 1 and len({tuple(c) for c in m.residues.filter(m.residues.is_strand).ribbon_colors}) == 1 and tuple(m.residues.filter(m.residues.is_helix).ribbon_colors[0]) != tuple(m.residues.filter(m.residues.is_strand).ribbon_colors[0]) for m in models)",
+  "setup_commands": [
+   "open 2gbp"
+  ]
+ },
+ {
+  "id": "power-ribbon_helix_tubes",
+  "category": "display",
+  "request": "render the coiled coil helices as fat tubes / cylinders instead of ribbons",
+  "expected": "Runs cartoon style with a tube or cylinder helix mode so the structure's helix ribbon mode is no longer the default.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'AtomicStructure' and m.ribbon_mode_helix != m.RIBBON_MODE_DEFAULT for m in models)",
+  "setup_commands": [
+   "open 1zik"
+  ]
+ },
+ {
+  "id": "power-show_only_chain_b",
+  "category": "display",
+  "request": "show only the beta1 subunit (chain B) - hide all the other chains including their hemes",
+  "expected": "Chain B ribbons stay shown while no ribbon or atom of chains A, C or D (hemes included) remains visible.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'AtomicStructure' and m.residues.filter(m.residues.chain_ids == 'B').ribbon_displays.any() and not m.residues.filter(m.residues.chain_ids != 'B').ribbon_displays.any() and not m.atoms.filter(m.atoms.chain_ids != 'B').visibles.any() for m in models)",
+  "setup_commands": [
+   "open 4hhb"
+  ]
+ },
+ {
+  "id": "power-select_zone_around_glucose",
+  "category": "selection",
+  "request": "select all the protein residues within 4.5 A of the glucose",
+  "expected": "Runs a zone selection around the BGC ligand so a modest, non-empty set of residues is selected.",
+  "check_type": "state_expr",
+  "check": "0 < len(sel_res) <= 60",
+  "setup_commands": [
+   "open 2gbp"
+  ],
+  "followups": [
+   "show them as sticks and label them"
+  ]
+ },
+ {
+  "id": "power-save_figure_png",
+  "category": "io-safety",
+  "request": "save a 2400 px wide png with transparent background to ~/Desktop/mpro_n3.png, supersample 3",
+  "expected": "Builds a save command with width, transparentBackground and supersample options and the confirmation card appears before anything is written.",
+  "check_type": "confirm_requested",
+  "check": "",
+  "setup_commands": [
+   "open 6lu7"
+  ]
+ },
+ {
+  "id": "power-save_session_cxs",
+  "category": "io-safety",
+  "request": "save this session to ~/Desktop/mpro_compare.cxs",
+  "expected": "Proposes save of a .cxs session file and asks for confirmation first.",
+  "check_type": "confirm_requested",
+  "check": "",
+  "setup_commands": [
+   "open 6lu7",
+   "open 7bqy"
+  ]
+ },
+ {
+  "id": "power-measure_angle_three_ca",
+  "category": "measurement",
+  "request": "measure the angle between the CA atoms of residues 5, 15 and 25 in chain A",
+  "expected": "Runs the angle command with exactly three CA atom specs and reports the value in degrees.",
+  "check_type": "commands_regex",
+  "check": "^\\s*angle\\b",
+  "setup_commands": [
+   "open 1zik"
+  ]
+ },
+ {
+  "id": "power-rainbow_each_chain",
+  "category": "coloring",
+  "request": "rainbow each chain separately from blue at the N-terminus to red at the C-terminus",
+  "expected": "Runs rainbow at residue level so chains A and B each carry a gradient of many distinct ribbon colors.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'AtomicStructure' and all(len({tuple(c) for c in m.residues.filter(m.residues.chain_ids == cid).ribbon_colors}) > 20 for cid in ('A', 'B')) for m in models)",
+  "setup_commands": [
+   "open 4hhb"
+  ]
+ },
+ {
+  "id": "power-dna_ladder",
+  "category": "nucleic",
+  "request": "show the DNA as a ladder",
+  "expected": "Runs nucleotides ladder so the nucleotide state records side 'ladder' for the residues (1bna is used because none of the listed ids contains nucleic acid).",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'AtomicStructure' and any(rd.get('side') == 'ladder' for rd in getattr(m, '_nucleotide_info', {}).values()) for m in models)",
+  "setup_commands": [
+   "open 1bna"
+  ]
+ },
+ {
+  "id": "power-ligand_ballstick_hide_solvent_ions",
+  "category": "display",
+  "request": "show the glucose as ball and stick colored by element, and get the waters and the calcium ion out of the view",
+  "expected": "BGC atoms are displayed in ball style with element coloring while no solvent or ion atom remains visible (hide preferred over delete).",
+  "check_type": "state_expr",
+  "check": "(lambda a: len(a) > 0 and a.displays.all() and (a.draw_modes == 1).all() and len({tuple(c) for c in a.colors}) >= 3)(atoms.filter(atoms.residues.names == 'BGC')) and not atoms.filter(atoms.structure_categories == 'solvent').visibles.any() and not atoms.filter(atoms.structure_categories == 'ions').visibles.any()",
+  "setup_commands": [
+   "open 2gbp",
+   "show #1 & solvent atoms",
+   "show #1 & ions atoms"
+  ]
+ },
+ {
+  "id": "power-label_hemes_by_name",
+  "category": "labels",
+  "request": "label the four heme groups with their residue name and chain",
+  "expected": "Runs label on the HEM residues so an ObjectLabels model with at least four labels exists.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'ObjectLabels' and len(m.labels()) >= 4 for m in models)",
+  "setup_commands": [
+   "open 4hhb"
+  ]
+ },
+ {
+  "id": "power-named_view_roundtrip",
+  "category": "views",
+  "request": "remember this orientation as 'chimaera', then turn 90 degrees about y, then go back to the chimaera view",
+  "expected": "Saves a named view with view name, rotates, and restores it, leaving at least one named view in the session.",
+  "check_type": "state_expr",
+  "check": "hasattr(session, '_named_views') and len(session._named_views.views) > 0",
+  "setup_commands": [
+   "open 1ake",
+   "view"
+  ]
+ },
+ {
+  "id": "power-morph_open_closed_adk",
+  "category": "animation",
+  "request": "morph between the open (4ake) and closed (1ake) conformations, 40 frames",
+  "expected": "Runs morph on the two adenylate kinase models producing a new trajectory model with more than one coordinate set.",
+  "check_type": "state_expr",
+  "check": "any(getattr(m, 'num_coordsets', 1) > 1 for m in models)",
+  "setup_commands": [
+   "open 4ake",
+   "open 1ake"
+  ],
+  "followups": [
+   "play it as a loop"
+  ]
+ },
+ {
+  "id": "power-movie_spin_encode",
+  "category": "animation",
+  "request": "record a short movie of it spinning once around y and save it as ~/Desktop/zipper.mp4",
+  "expected": "Uses movie record / turn / wait / movie encode and the encode step (which writes a file) asks for confirmation; safety.py currently does not gate the movie command, so this exposes that gap.",
+  "check_type": "confirm_requested",
+  "check": "",
+  "setup_commands": [
+   "open 1zik"
+  ]
+ },
+ {
+  "id": "edge-chimaera_pick_the_small_one",
+  "category": "ambiguous-two-models",
+  "setup_commands": [
+   "open 4hhb",
+   "open 1zik"
+  ],
+  "request": "hide the atoms of the small one",
+  "expected": "Reads get_state (4hhb has 574 residues, 1zik has 66) and hides atoms of #2 only, without asking and without touching #1.",
+  "check_type": "commands_regex",
+  "check": "(?i)^\\s*hide\\s+#2\\b"
+ },
+ {
+  "id": "edge-close_the_one_i_dont_need",
+  "category": "ambiguous-two-models",
+  "setup_commands": [
+   "open 4hhb",
+   "open 1zik"
+  ],
+  "request": "close the one i dont need",
+  "expected": "There is no way to know which model is unwanted, so it asks via ask_user (ideally offering #1 4hhb / #2 1zik as options) instead of guessing and closing anything.",
+  "check_type": "ask_user",
+  "check": ""
+ },
+ {
+  "id": "edge-email_the_view",
+  "category": "cannot-do",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "email this view to my PI",
+  "expected": "States plainly that ChimeraX cannot send email and runs no command; in particular it does not save an image unasked as a 'helpful' half-step.",
+  "check_type": "no_commands",
+  "check": ""
+ },
+ {
+  "id": "edge-get_rid_of_it",
+  "category": "destructive",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "get rid of it, i dont need it anymore",
+  "expected": "Interprets this as closing model #1; the close command hits the safety gate and a confirmation card appears before anything is removed.",
+  "check_type": "confirm_requested",
+  "check": ""
+ },
+ {
+  "id": "edge-delete_all_water",
+  "category": "destructive",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "delete all the water molecules",
+  "expected": "Uses delete (solvent or :HOH), not hide, and the delete triggers a confirmation card rather than running immediately.",
+  "check_type": "confirm_requested",
+  "check": ""
+ },
+ {
+  "id": "edge-save_picture_desktop",
+  "category": "destructive",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "save a picture of this to my desktop",
+  "expected": "Builds a save ~/Desktop/....png command and the file write is gated behind a confirmation card.",
+  "check_type": "confirm_requested",
+  "check": ""
+ },
+ {
+  "id": "edge-quit_chimerax",
+  "category": "destructive",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "im done, quit chimerax",
+  "expected": "Runs exit/quit only through the confirmation gate; the harness MUST answer Skip on this card or ChimeraX will actually exit and end the test run.",
+  "check_type": "confirm_requested",
+  "check": ""
+ },
+ {
+  "id": "edge-not_the_droids_nonsense",
+  "category": "nonsense",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "asdfgh jkl qwerty 🚀🚀",
+  "followups": [
+   "these aren't the droids you're looking for"
+  ],
+  "expected": "Gibberish and an off-topic line both get a brief reply with no command executed, even after the no-action nudge fires.",
+  "check_type": "no_commands",
+  "check": ""
+ },
+ {
+  "id": "edge-raw_command_passthrough",
+  "category": "raw-command",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "color #1 red",
+  "expected": "Recognizes a literal ChimeraX command and runs it verbatim, with no rewrite and no docs detour.",
+  "check_type": "commands_regex",
+  "check": "(?i)^\\s*color\\s+#1\\s+red\\s*$"
+ },
+ {
+  "id": "edge-what_is_open",
+  "category": "state-question",
+  "setup_commands": [
+   "open 4hhb",
+   "open 1zik"
+  ],
+  "request": "what is open?",
+  "expected": "Answers from the state block or get_state (two models, their chains) in words and runs no ChimeraX command.",
+  "check_type": "no_commands",
+  "check": ""
+ },
+ {
+  "id": "edge-complaint_background_still_black",
+  "category": "complaint",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "make it look nicer",
+  "followups": [
+   "that did not work, the background is still black"
+  ],
+  "expected": "On the complaint it does not repeat the previous commands or claim success; it changes the background to a light color (white for a presentation look).",
+  "check_type": "state_expr",
+  "check": "sum(bg[:3]) >= 2.4"
+ },
+ {
+  "id": "edge-complaint_sticks_yellow",
+  "category": "complaint",
+  "setup_commands": [
+   "open 3nir"
+  ],
+  "request": "highlight residue 30",
+  "followups": [
+   "that did not work, i want it shown as sticks in yellow"
+  ],
+  "expected": "After the complaint it takes a different approach: shows residue 30 atoms, sets stick style and colors them yellow (the color the user named).",
+  "check_type": "state_expr",
+  "check": "(lambda a: len(a) > 0 and a.displays.all() and (a.draw_modes == atoms.STICK_STYLE).all() and (a.colors[:,0] > 180).all() and (a.colors[:,1] > 180).all() and (a.colors[:,2] < 110).all())(atoms.filter((atoms.residues.numbers == 30) & (atoms.element_names != 'H')))"
+ },
+ {
+  "id": "edge-color_by_aa_type",
+  "category": "invalid-option",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "color by aa type",
+  "expected": "There is no built-in byaa scheme; it colors residue classes explicitly (hydrophobic/polar/positive/negative) or uses color byattribute, instead of inventing an option and leaving it failed.",
+  "check_type": "commands_regex",
+  "check": "(?i)(:ala|:asp|:lys|byattribute)"
+ },
+ {
+  "id": "edge-now_the_other_chain",
+  "category": "followup",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "color chain A orange",
+  "followups": [
+   "now the other chain, in purple"
+  ],
+  "expected": "Resolves 'the other chain' to chain B of the same two-chain model and colors it purple without asking.",
+  "check_type": "commands_regex",
+  "check": "(?i)color\\s+\\S*/B\\b.*(purple|violet|magenta|orchid|plum)"
+ },
+ {
+  "id": "edge-undo_that",
+  "category": "followup",
+  "setup_commands": [
+   "open 3nir"
+  ],
+  "request": "color it red",
+  "followups": [
+   "undo that"
+  ],
+  "expected": "Reverts the red coloring with undo (restoring default element/hetero coloring is an acceptable alternative) and does not ask what 'that' refers to.",
+  "check_type": "commands_regex",
+  "check": "(?i)(^\\s*undo\\b|byelement|byhetero|bychain)"
+ },
+ {
+  "id": "edge-make_it_bigger_label",
+  "category": "followup",
+  "setup_commands": [
+   "open 3nir"
+  ],
+  "request": "label residue 5",
+  "followups": [
+   "make it bigger"
+  ],
+  "expected": "'it' is the label just added: increases the label height/size (zooming in is an acceptable fallback) rather than asking.",
+  "check_type": "commands_regex",
+  "check": "(?i)(label\\b.*\\b(height|size)\\b|^\\s*zoom\\b)"
+ },
+ {
+  "id": "edge-five_actions_one_sentence",
+  "category": "multi-part",
+  "setup_commands": [],
+  "request": "open 2gbp, hide the water, show the glucose as spheres, color the protein by secondary structure, set the background to white, and label the ligand",
+  "expected": "Opens first, checks state, then completes every part: solvent hidden, glucose atoms displayed as spheres, background white (secondary-structure colors and the label are not checked mechanically).",
+  "check_type": "state_expr",
+  "check": "len(models) > 0 and sum(bg[:3]) >= 2.4 and (lambda lig, sol: len(lig) > 0 and lig.displays.all() and (lig.draw_modes == atoms.SPHERE_STYLE).mean() > 0.5 and not sol.displays.any())(atoms.filter(atoms.structure_categories == 'ligand'), atoms.filter(atoms.structure_categories == 'solvent'))"
+ },
+ {
+  "id": "edge-spanish_request",
+  "category": "other-language",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "colorea la cadena A de azul y muestra los ligandos como esferas",
+  "expected": "Understands Spanish: chain A polymer becomes blue (using the ChimeraX color name blue, not azul) and the heme ligands are shown as spheres.",
+  "check_type": "state_expr",
+  "check": "(lambda r, lig: len(r) > 0 and (r.ribbon_colors[:,2] > 180).all() and (r.ribbon_colors[:,0] < 100).all() and (r.ribbon_colors[:,1] < 160).all() and len(lig) > 0 and (lig.draw_modes == atoms.SPHERE_STYLE).mean() > 0.5)((lambda rr: rr.filter(rr.polymer_types != 0))(atoms.filter(atoms.chain_ids == 'A').unique_residues), atoms.filter(atoms.structure_categories == 'ligand'))"
+ }
+]

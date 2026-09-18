@@ -58,7 +58,8 @@ class SecretStore:
 
     def _save(self, data: Dict[str, str]) -> None:
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        with open(self.path, "w", encoding="utf-8") as f:
+        fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, stat.S_IRUSR | stat.S_IWUSR)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f)
         try:
             os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)

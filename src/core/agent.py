@@ -16,8 +16,9 @@ from typing import Any, Callable, Dict, List, Optional
 from . import prompt as prompt_mod
 from .fixups import suggest
 from .safety import AUTONOMY_AUTO, first_word, needs_confirmation, split_commands
-from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens)
+from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens, new_id)
 from .tools import tool_specs
+from .http import Cancelled
 from .providers.base import Provider, ProviderError
 
 MAX_TOOL_ROUNDS = 12
@@ -56,6 +57,13 @@ NUDGE_ONLY = ("(system) The user said ONLY, but nothing was hidden. Hide everyth
               "or [\"cartoon #1\", \"hide #1 atoms\"] for 'only the cartoon'. Do it now.")
 _ONLY_RE = re.compile(r"\bonly\b|\bjust (the |chain )", re.I)
 _HIDE_RE = re.compile(r"^\s*(hide|~|cartoon hide|surface hide|close|delete)", re.I)
+
+NUDGE_AA = ("(system) The user asked to color by amino-acid/residue TYPE. ChimeraX has no built-in scheme for that "
+            "(byelement/bychain are wrong). Run: color #1:ala,val,ile,leu,met,phe,trp,pro,gly white ; "
+            "color #1:ser,thr,asn,gln,cys,tyr green ; color #1:lys,arg,his blue ; color #1:asp,glu red")
+_AA_TYPE_RE = re.compile(r"\b(by|per)\s+(the\s+)?(type\s+of\s+)?(aa|amino\s*acids?|residues?)(\s+type)?\b|\bresidue[- ]type\b|hydrophobic", re.I)
+_AA_CLASS_RE = re.compile(r":(ala|asp|lys|ser|glu|arg|leu|val)\b|byattr", re.I)
+_ANNOUNCE_RE = re.compile(r"\b(i'?ll|i will|let me|i am going to|i'm going to|going to)\b", re.I)
 
 _COMPLAINT_RE = re.compile(
     r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
@@ -117,6 +125,7 @@ class Agent:
         self.config = config or AgentConfig()
         self.cb = callbacks or Callbacks()
         self.conversation: List[Message] = []
+        self._failed_this_turn: set = set()
         self.archived: List[Message] = []   # messages folded into `summary` (kept for the transcript on disk)
         self.summary: str = ""
         self.total_usage = Usage()
@@ -143,6 +152,7 @@ class Agent:
         usage = Usage()
         try:
             self._status("Thinking…")
+            self._failed_this_turn = set()
             context = self._build_context(user_text)
             self.conversation.append(Message.user(user_text, context))
             tools = tool_specs(self.config.allow_python,
@@ -151,25 +161,37 @@ class Agent:
             if outcome.get("asked"):
                 self.total_usage.add(usage)
                 return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
-            nudge = None
-            if self.config.nudge_on_no_action and looks_like_action_request(user_text):
-                if not outcome.get("called_tool"):
-                    nudge = NUDGE          # words but no action
-                elif outcome.get("ended_after_error"):
-                    nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
-                elif _ONLY_RE.search(user_text) and not any(_HIDE_RE.match(c) for c in self._commands_since(start_len)):
-                    nudge = NUDGE_ONLY     # "only X" without hiding the rest
-            if nudge:
+            for attempt in range(2):
+                nudge = None
+                if self.config.nudge_on_no_action and looks_like_action_request(user_text):
+                    ran = self._commands_since(start_len)
+                    if not outcome.get("called_tool"):
+                        nudge = NUDGE          # words but no action
+                    elif outcome.get("ended_after_error"):
+                        nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
+                    elif _ONLY_RE.search(user_text) and not any(_HIDE_RE.match(c) for c in ran):
+                        nudge = NUDGE_ONLY     # "only X" without hiding the rest
+                    elif _AA_TYPE_RE.search(user_text) and ran and not any(_AA_CLASS_RE.search(c) for c in ran):
+                        nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
+                if not nudge:
+                    break
+                if attempt == 1 and not _ANNOUNCE_RE.search(self._last_assistant_text()):
+                    break  # second try only when the model keeps announcing instead of acting
                 self.conversation.append(Message.user(nudge))
                 outcome = self._loop(tools, cancel, usage)
                 if outcome.get("asked"):
                     self.total_usage.add(usage)
                     return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
+                if outcome.get("asked"):
+                    self.total_usage.add(usage)
+                    return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
+            self._canned_fallbacks(user_text, start_len)
             self.total_usage.add(usage)
             self._maybe_compact()
             final = self._last_assistant_text()
             return TurnResult(final, len(self.conversation) - start_len, usage)
-        except TurnCancelled:
+        except (TurnCancelled, Cancelled):
+            self._close_dangling_tool_calls("Cancelled by the user before this tool ran.")
             self.conversation.append(Message.assistant("(stopped)"))
             return TurnResult("(stopped)", len(self.conversation) - start_len, usage, error="cancelled")
         except ProviderError as e:
@@ -177,6 +199,7 @@ class Agent:
             return TurnResult(str(e), len(self.conversation) - start_len, usage, error=str(e))
         except Exception as e:  # never let the worker die silently
             tb = traceback.format_exc()
+            self._close_dangling_tool_calls("Tool did not run: %s" % e)
             self.conversation.append(Message.assistant("Unexpected error: %s" % e))
             return TurnResult("Unexpected error: %s" % e, len(self.conversation) - start_len, usage, error=tb)
         finally:
@@ -246,6 +269,32 @@ class Agent:
     def _status(self, msg: str) -> None:
         if self.cb.on_status:
             self.cb.on_status(msg)
+
+    def _canned_fallbacks(self, user_text: str, start_len: int) -> None:
+        """Last resort for requests the model keeps getting wrong: run a known-good recipe ourselves."""
+        ran = self._commands_since(start_len)
+        if _AA_TYPE_RE.search(user_text) and looks_like_action_request(user_text) \
+                and not any(_AA_CLASS_RE.search(c) for c in ran):
+            cmds = ["color #1:ala,val,ile,leu,met,phe,trp,pro,gly white", "color #1:ser,thr,asn,gln,cys,tyr green",
+                    "color #1:lys,arg,his blue", "color #1:asp,glu red"]
+            call = ToolCall(new_id(), "run_commands", {"commands": cmds})
+            self.conversation.append(Message("assistant", [call]))
+            res, _payload = self._dispatch(call)
+            self.conversation.append(Message.tool_results([res]))
+            if res.is_error:
+                self.conversation.append(Message.assistant("I tried the residue-class coloring but it failed: %s" % res.content[:200]))
+            else:
+                self.conversation.append(Message.assistant(
+                    "Colored by residue class: hydrophobic white, polar green, positive (Lys/Arg/His) blue, negative (Asp/Glu) red."))
+
+    def _close_dangling_tool_calls(self, note: str) -> None:
+        """Every tool call needs a result before the next request, even after Stop."""
+        if not self.conversation or self.conversation[-1].role != "assistant":
+            return
+        calls = self.conversation[-1].tool_calls()
+        if calls:
+            self.conversation.append(Message.tool_results(
+                [ToolResult(c.id, c.name, note, is_error=True) for c in calls]))
 
     def _commands_since(self, index: int) -> List[str]:
         out: List[str] = []
@@ -353,6 +402,11 @@ class Agent:
             commands.extend(split_commands(str(c)))
         if not commands:
             return {"ok": False, "results": [], "error": "No commands given."}
+        repeats = [c for c in commands if c.strip() in self._failed_this_turn]
+        if repeats:
+            return {"ok": False, "results": [], "error": "You already ran exactly this command in this turn and it failed: %s. "
+                    "Do not repeat it. Change it according to the usage/suggestion, or use a different approach." % repeats[0],
+                    "repeated": True}
         pending = needs_confirmation(commands, self.config.autonomy)
         if pending:
             reasons = []
@@ -371,6 +425,7 @@ class Agent:
         if not ok:
             failed = [r for r in results if not r.get("ok")]
             if failed:
+                self._failed_this_turn.add(str(failed[0].get("command", "")).strip())
                 out["error"] = failed[0].get("error", "command failed")
                 out["failed_command"] = failed[0].get("command")
                 # attach the real syntax so the model can fix it without guessing

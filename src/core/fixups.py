@@ -14,12 +14,16 @@ _RULES: List[Tuple[str, Optional[str], str]] = [
      "There is no such color scheme. Color residue classes explicitly: "
      "color #1:ala,val,ile,leu,met,phe,trp,pro,gly white ; color #1:ser,thr,asn,gln,cys,tyr green ; "
      "color #1:lys,arg,his blue ; color #1:asp,glu red"),
-    (r"^color\b.*\bby(ss|secondary|structure)\b", None,
+    (r"^color\b.*\b(by(ss|secondary\w*|structure)|byattr\w*\s+(ss|secondary\w*))\b", None,
      "Use built-in specifiers: color #1 & helix red ; color #1 & strand yellow ; color #1 & coil gray"),
     (r"^color\b.*\bby(hydrophobicity|hydrophobic|lipophilicity)\b", None,
      "For a surface use: surface #1 ; mlp #1 . For cartoons color residue classes explicitly."),
     (r"^color\b.*\bby(plddt|confidence|bfactor)\b", None,
      "Use: color bfactor #1 palette alphafold"),
+    (r"^color\s+\S+\s+bfactor\b", None, "Put bfactor right after color: color bfactor #1 palette alphafold"),
+    (r"^morph\b", None, "Model list without repeated #: morph #1,2 frames 40  (after matchmaker #2 to #1)"),
+    (r"^(contacts|clashes)\b.*&", None,
+     "Do not intersect the two sets with &; use restrict: contacts #1/A restrict #1/C distance 4 reveal true"),
     (r"^color\s+~sel\b", None,
      "color does not accept ~sel. Color everything first, then the selection: color #1 white ; color sel blue"),
     (r"^distance\b", r"four atoms|atoms|exactly two|more than",

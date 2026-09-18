@@ -43,7 +43,14 @@ _CONFIRM_FIRST_WORD = {
     "addh": "adds hydrogens (modifies the model)",
     "addcharge": "modifies the model",
     "dockprep": "modifies the model",
+    "movie": "records or writes movie files",
+    "snapshot": "writes an image file",
+    "meeting": "opens a network connection to other computers",
+    "system": "runs a system command",
 }
+_CONFIRM_SUBCOMMANDS = {("log", "save"): "writes a file to disk"}
+_SAFE_URL_SUFFIXES = (".pdb", ".cif", ".mmcif", ".ent", ".mol2", ".sdf", ".mol", ".xyz", ".mrc", ".map", ".ccp4",
+                      ".mtz", ".fasta", ".fa", ".aln", ".msf", ".pir", ".sto", ".gz", ".png", ".jpg", ".html", ".htm", ".pae")
 
 # "open" of a database identifier is safe; opening local files is not.
 _DB_PREFIXES = ("pdb:", "alphafold:", "esmfold:", "emdb:", "uniprot:", "modelcif:",
@@ -87,7 +94,9 @@ def _open_targets(cmd: str) -> List[str]:
 def _is_database_open(target: str) -> bool:
     t = target.strip().strip('"').strip("'")
     if _URL_RE.match(t):
-        return True
+        # ChimeraX runs remote .py/.cxc files; only plain data files are safe
+        path = t.split("?")[0].split("#")[0].lower()
+        return path.endswith(_SAFE_URL_SUFFIXES)
     low = t.lower()
     if any(low.startswith(p) for p in _DB_PREFIXES):
         return True
@@ -96,12 +105,23 @@ def _is_database_open(target: str) -> bool:
     return False
 
 
+def _expand_abbreviation(word: str) -> str:
+    """ChimeraX accepts unique prefixes (clo -> close); map risky prefixes to the full word."""
+    if word in _CONFIRM_FIRST_WORD or len(word) < 2:
+        return word
+    matches = [w for w in _CONFIRM_FIRST_WORD if w.startswith(word)]
+    return matches[0] if matches else word
+
+
 def classify(cmd: str) -> Classification:
-    word = first_word(cmd)
+    word = _expand_abbreviation(first_word(cmd))
     if not word:
         return Classification(cmd, False)
     if word in _CONFIRM_FIRST_WORD:
         return Classification(cmd, True, _CONFIRM_FIRST_WORD[word])
+    toks = cmd.strip().lstrip("~").split()
+    if len(toks) >= 2 and (word, toks[1].lower()) in _CONFIRM_SUBCOMMANDS:
+        return Classification(cmd, True, _CONFIRM_SUBCOMMANDS[(word, toks[1].lower())])
     if word == "open":
         for target in _open_targets(cmd):
             if not _is_database_open(target):

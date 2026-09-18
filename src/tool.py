@@ -143,6 +143,8 @@ class PellaeonTool(HtmlToolInstance):
 
     def _act_stop(self, params, payload):
         self._cancel.set()
+        if not self._busy and getattr(self, "_pull_cancel", None) is not None:
+            self._pull_cancel.set()
         for c in self._confirms.values():
             c["result"] = None
             c["event"].set()
@@ -185,7 +187,15 @@ class PellaeonTool(HtmlToolInstance):
             from chimerax.help_viewer import show_url
             show_url(self.session, url, new_tab=True)
 
+    def _busy_guard(self) -> bool:
+        if self._busy:
+            self.push({"type": "toast", "kind": "warn", "text": "Still working. Press Stop first."})
+            return True
+        return False
+
     def _act_new_chat(self, params, payload):
+        if self._busy_guard():
+            return
         self._save_conversation()
         self._conv_id = ""
         if self.agent:
@@ -203,7 +213,7 @@ class PellaeonTool(HtmlToolInstance):
         self.push(self._settings_message())
 
     def _act_settings_save(self, params, payload):
-        if not isinstance(payload, dict):
+        if not isinstance(payload, dict) or self._busy_guard():
             return
         s = self.settings
         preset = preset_by_id(payload.get("preset", s.preset)) or preset_by_id("ollama")
@@ -220,11 +230,21 @@ class PellaeonTool(HtmlToolInstance):
             s.temperature = float(payload.get("temperature", s.temperature))
         except (TypeError, ValueError):
             pass
-        if "api_key" in payload and payload["api_key"] is not None and payload["api_key"] != "__unchanged__":
+        if payload.get("clear_key"):
+            self.secrets.set(s.preset, "")
+        elif payload.get("api_key"):
             self.secrets.set(s.preset, payload["api_key"])
         s.configured = True
         s.save()
-        self.agent = None  # rebuilt lazily with the new provider
+        # rebuild the agent with the new provider but keep the conversation
+        old = self.agent
+        self.agent = None
+        if old is not None and (old.conversation or old.archived):
+            try:
+                self.agent = self._build_agent()
+                self.agent.conversation, self.agent.archived, self.agent.summary = old.conversation, old.archived, old.summary
+            except Exception as e:  # noqa: BLE001
+                self.push({"type": "toast", "kind": "error", "text": "Could not switch provider: %s" % e})
         self.push(self._settings_message())
         self.push({"type": "toast", "kind": "ok", "text": "Settings saved"})
         self.push({"type": "config", "config": self._config_summary()})
@@ -243,6 +263,7 @@ class PellaeonTool(HtmlToolInstance):
         model = (params.get("model") or "").strip()
         base_url = (params.get("base_url") or "").strip()
         if model:
+            self._pull_cancel = threading.Event()
             threading.Thread(target=self._pull_model, args=(model, base_url), daemon=True).start()
 
     def _act_rebuild_index(self, params, payload):
@@ -252,6 +273,8 @@ class PellaeonTool(HtmlToolInstance):
         self.push({"type": "history", "conversations": self._list_conversations()})
 
     def _act_load_chat(self, params, payload):
+        if self._busy_guard():
+            return
         cid = params.get("id", "")
         self._load_conversation(cid)
 
@@ -346,7 +369,7 @@ class PellaeonTool(HtmlToolInstance):
                 self.push_ts({"type": "pull_progress", "model": model, "status": status,
                               "completed": completed, "total": total, "done": False})
         try:
-            prov.pull(model, progress=progress, cancel=self._cancel)
+            prov.pull(model, progress=progress, cancel=getattr(self, "_pull_cancel", None))
             self.push_ts({"type": "pull_progress", "model": model, "status": "done", "completed": 1, "total": 1, "done": True})
         except Exception as e:  # noqa: BLE001
             self.push_ts({"type": "pull_progress", "model": model, "status": "error: %s" % e, "done": True, "error": True})

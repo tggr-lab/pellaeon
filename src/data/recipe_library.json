@@ -1,0 +1,1100 @@
+{
+ "recipes": [
+  {
+   "name": "AlphaFold database mining for transmembrane cysteines (cyssearch)",
+   "dir": "alphafold_mining",
+   "what": "A stand-alone Python script (no command registered) that scans a whole proteome's UniProt XML annotations for transmembrane regions, opens the matching locally-downloaded AlphaFold database mmCIF models in ChimeraX, and reports proteins with two cysteine SG atoms closer than 5 Å where at least one is transmembrane; the v2/v3 variants instead find proteins with >=4 TM helices having 5+ cysteines in one helix (v2) or CC/CxC/CxxC pairs in two helices within 10 Å (v3) and open those structures with TM helices selected. A biologist wants it for fast structure-feature screening across an entire organism's predicted proteome (C. elegans example ran in 36 s), and as a template to edit for other geometric searches. Page notes: requires pre-downloading the UniProt proteome XML (UP000001940_6239.xml) and the AlphaFold proteome tar (unpacked *.cif into a directory named alphafold_models) and then using ChimeraX 'cd' to that directory before opening the script; the file paths are hard-coded in the script, so it must be edited for other proteomes.",
+   "requests": [
+    "Search all C. elegans AlphaFold models for membrane proteins that have two cysteines close together in the transmembrane region",
+    "Find every protein in a proteome with at least four transmembrane helices and a cluster of cysteines in one helix, and load those AlphaFold structures"
+   ],
+   "how": "Download the UniProt XML and AlphaFold proteome files as described on the page, put the script and the alphafold_models directory together, then in ChimeraX run 'cd ~/af_search' followed by 'open cyssearch.py' (raw script: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/alphafold_mining/cyssearch.py ; variants https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/alphafold_mining/cyssearch_v2.py and https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/alphafold_mining/cyssearch_v3.py). Results print to the ChimeraX Log. Opening the .py directly by URL will fail unless the working directory already contains the XML file and alphafold_models folder.",
+   "kind": "python-script",
+   "commands": [
+    "cd ~/af_search",
+    "open cyssearch.py",
+    "open cyssearch_v2.py",
+    "open cyssearch_v3.py"
+   ]
+  },
+  {
+   "name": "atomsize (atom radius from an attribute)",
+   "dir": "atomsize",
+   "what": "Defines an 'atomsize' command that sets each atom's sphere radius to offset + scale * (an atom or residue attribute such as bfactor) and switches the atoms to sphere style; originally written to show gene-expression values on genome structure models. The page states that beginning with ChimeraX 1.8 the built-in 'size byattribute' command does the same thing, so on current ChimeraX prefer 'size byattr bfactor' (optionally with value:radius pairs like '20:.6 300:9').",
+   "requests": [
+    "Make the atom spheres bigger where the B-factor is higher",
+    "Scale atom sizes by an attribute value such as bfactor or occupancy"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/atomsize/atomsize.py then run 'atomsize <atoms> attribute <name> scale <factor> offset <value>' (defaults: attribute bfactor, scale 0.02, offset 0.0), e.g. 'atomsize #1 attribute bfactor scale 0.03'. On ChimeraX 1.8 or newer the page recommends the built-in equivalent 'size byattr bfactor 20:.6 300:9' or simply 'size byattr bfactor'.",
+   "kind": "command",
+   "commands": [
+    "open atomsize.py",
+    "open 7w91",
+    "atomsize #1 attribute bfactor scale 0.03",
+    "open 7w91",
+    "size byattr bfactor 20:.6 300:9",
+    "size byattr bfactor"
+   ]
+  },
+  {
+   "name": "Color a sliced surface by B-factor (bfactor_clip)",
+   "dir": "bfactor_clip",
+   "what": "A pure ChimeraX command sequence (no Python) that clips a molecular surface, lets ligand atoms protrude through the cut, colors the surface by atomic B-factor with 'color byattribute', and then uses 'color zone' on the surface cap model (#1.2.1) so the flat sliced face is also colored by the nearest atoms' B-factors. Useful when making a cutaway figure of a binding site where the interior cut face should carry the same B-factor coloring as the outer surface; 'update t' keeps the cap colored as the clip plane is moved.",
+   "requests": [
+    "Slice the protein surface at the ligand and color everything, including the cut face, by B-factor",
+    "Why is the clipped cap of my surface gray after coloring by bfactor, and how do I color it too"
+   ],
+   "how": "No script; type the commands from the page (or save them as a .cxc command file and 'open' it). The 'wait 1' line is only needed inside a command file so the surface cap is drawn before 'color zone' runs.",
+   "kind": "other",
+   "commands": [
+    "open 2gbp",
+    "surface",
+    "turn y 70",
+    "clip front 0 position :bgc",
+    "clip model #!1 false",
+    "hide ~ligand target ar",
+    "view ligand :<8 clip false",
+    "style ligand ball",
+    "color C white targ a",
+    "graphics bgColor white",
+    "graphics silhouette true",
+    "color byattribute bfactor protein palette blue:red:yellow:white",
+    "wait 1",
+    "color zone #1.2.1 near protein distance 3 sharp t update t"
+   ]
+  },
+  {
+   "name": "bigalpha (open multi-file AlphaFold models)",
+   "dir": "big_alphafold",
+   "what": "Defines a 'bigalpha' command that opens the overlapping 1400-residue segment files that the AlphaFold database produces for proteins longer than 1400 amino acids, aligns each segment to the previous one on the last 5 CA atoms, deletes the 200 overlapping residues, colors by pLDDT ('color bfactor ... palette alphafold'), and combines the segments into one model (or groups them if 'combine false'). A biologist wants it to view a very large predicted protein such as titin (Q8WZ42, 34350 residues) as a single stitched model; the page warns the result has many clashes and requires the human AlphaFold database download (5 GB, .pdb.gz files named AF-<id>-F<n>-model_v1.pdb.gz) and a ChimeraX newer than August 2021.",
+   "requests": [
+    "Load the AlphaFold prediction of titin, which comes as many segment files, and stitch them into one model",
+    "Open all the AlphaFold fragment files for a large human protein from my downloaded database and align them"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/big_alphafold/bigalpha.py then run 'bigalpha <UniProt id> directory <folder of AlphaFold models>' (comma-separated multiple ids allowed; option 'combine true|false'), e.g. 'bigalpha Q8WZ42 directory /directory/of/alphafold/models'; or 'cd /directory/of/alphafold/models' then 'bigalpha Q8WZ42'.",
+   "kind": "command",
+   "commands": [
+    "open bigalpha.py",
+    "bigalpha Q8WZ42 directory /directory/of/alphafold/models",
+    "cd /directory/of/alphafold/models",
+    "bigalpha Q8WZ42"
+   ]
+  },
+  {
+   "name": "Speed of Biopython vs ChimeraX (biopython)",
+   "dir": "biopython",
+   "what": "Not an extension: a benchmark note explaining why ChimeraX does not use Biopython, timing the 2-million-atom mmCIF 3j3q (ChimeraX 1.1 read it 16x faster, used 3x less memory, listed atoms 100x faster and fetched coordinates 200x faster than Biopython 1.78). Useful when a user asks about using Biopython inside ChimeraX or about performance of reading huge structures.",
+   "requests": [
+    "Is ChimeraX faster than Biopython at reading a huge mmCIF file",
+    "How do I time how long it takes ChimeraX to open a structure"
+   ],
+   "how": "No script to open. The page's ChimeraX timing command is 'time open 3j3q'; the atom/coordinate timings were run in the Python shell (menu Tools / General / Shell) with: s = session.models[0]; from time import time; t0 = time() ; atoms = s.atoms ; t1 = time() ; print ('atoms', t1-t0); t0 = time() ; xyz = atoms.coords ; t1 = time() ; print ('coords', t1-t0). The Biopython comparison code on the page runs outside ChimeraX.",
+   "kind": "other",
+   "commands": [
+    "time open 3j3q"
+   ]
+  },
+  {
+   "name": "box_crossers (select residues crossing periodic box faces)",
+   "dir": "box_crossers",
+   "what": "A stand-alone Python script (no command registered) that, for every open multi-frame trajectory, compares consecutive coordinate sets and selects residues whose first atom jumps more than half the smallest box dimension along any axis, i.e. residues that wrap across a periodic boundary. Useful for cleaning up MD movies: after the script selects the crossers you can hide or delete them, or narrow the selection to solvent.",
+   "requests": [
+    "Select the waters and lipids that jump across the periodic box during my MD trajectory so I can hide them",
+    "Find residues that wrap around the simulation box between frames"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/box_crossers/box_crossers.py (running it selects the boundary-crossing residues in all open trajectories); then act on the selection, e.g. 'sel sel & solvent' to keep only solvent, followed by hide or delete.",
+   "kind": "python-script",
+   "commands": [
+    "open box_crossers.py",
+    "sel sel & solvent"
+   ]
+  },
+  {
+   "name": "readcastp (read CASTp pockets file)",
+   "dir": "castp",
+   "what": "Defines a 'readcastp' command that parses a CASTp web-server .poc file (PDB lines with a pocket number at the end) and defines named atom sets pocket1, pocket2, ... for the atoms lining each pocket (option 'color true' colors each pocket randomly). A biologist wants it to display and color CASTp-predicted pockets as surfaces in ChimeraX, including on very large complexes like 3cx5 (509 pockets) where old Chimera cannot compute surfaces. Old-Chimera note from the page: Chimera reads CASTp .poc files natively, so this script is only needed in ChimeraX; parsing pockets with thousands of atoms can take minutes.",
+   "requests": [
+    "Show the pockets from my CASTp results as colored surfaces on the protein",
+    "Read a CASTp .poc file and highlight pocket 1 and pocket 2"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/castp/read_castp.py then run 'readcastp <path to .poc file>' (option 'color true'), e.g. 'open 3lbw' then 'readcastp ~/Downloads/3lbw/3lbw.poc', then use the names pocket1, pocket2, ... in surface/color commands.",
+   "kind": "command",
+   "commands": [
+    "open read_castp.py",
+    "open 3lbw",
+    "readcastp ~/Downloads/3lbw/3lbw.poc",
+    "surface pocket1 enclose protein visiblePatches 1",
+    "color pocket1 gold surface",
+    "surface pocket2 enclose protein visiblePatches 1 replace false",
+    "color pocket2 steelblue surface",
+    "open 3cx5",
+    "surface",
+    "color gray surface",
+    "readcastp ~/Downloads/3cx5/3cx5.poc color true"
+   ]
+  },
+  {
+   "name": "Show CAVER tunnels (caver)",
+   "dir": "caver",
+   "what": "A command walkthrough plus a tiny Python snippet for displaying CAVER 3.0 tunnel output: open all tun_cl_*.pdb files from results/data/clusters_timeless, show them as spheres, set each sphere radius to its B-factor (CAVER stores tunnel radius there) with set_radius_to_bfactor.py, then rainbow-color tunnels per structure, flip through them with mseries, surface them, and color one tunnel by protein electrostatics or find nearby side chains with 'clashes'. Useful for anyone who ran CAVER and wants publication-style tunnel views in ChimeraX. (The atomsize recipe page notes ChimeraX 1.8+ also has 'size byattr bfactor' for the radius step.)",
+   "requests": [
+    "Display the CAVER tunnels for my potassium channel with the correct tunnel radii",
+    "Show just the central CAVER tunnel colored by electrostatic potential and the side chains lining it"
+   ],
+   "how": "Open the structure and tunnel PDBs, select the tunnels ('select #2-36'), then open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/caver/set_radius_to_bfactor.py to set radii of selected atoms to their B-factor (page example: 'open ~/Downloads/set_radius_to_bfactor.py'); the same three lines can be typed in Tools / General / Shell: from chimerax.atomic import selected_atoms; for a in selected_atoms(session): a.radius = a.bfactor. Model numbers #2-36 and #23 are specific to the 1bl8 example.",
+   "kind": "python-script",
+   "commands": [
+    "open 1bl8",
+    "open ~/Downloads/caver_1bl8/results/data/clusters_timeless/tun*.pdb",
+    "style #2-36 sphere",
+    "select #2-36",
+    "open ~/Downloads/set_radius_to_bfactor.py",
+    "rainbow #2-36 structures",
+    "mseries slider #2-36",
+    "surface #2-36",
+    "hide #2-36 atoms",
+    "hide #!2-36 models",
+    "show #23 model",
+    "coulombic protein surfaces #23 offset -1",
+    "clashes #23 restrict #1 overlapCutoff -1 reveal true",
+    "hide #23 atoms"
+   ]
+  },
+  {
+   "name": "chainimages (save an image of each chain)",
+   "dir": "chain_images",
+   "what": "Defines a 'chainimages' command that, for each chain of the given structure(s), shows only that chain, runs 'view', and saves a PNG to ~/Desktop named <structure name>_chain_<chain id>.png. The chain_images2.py variant takes an atom spec so you can restrict it to specific chains (e.g. #1/A,B,C). Handy for quickly producing one figure per subunit of a multi-chain assembly.",
+   "requests": [
+    "Save a separate picture of every chain in this virus capsid",
+    "Make images of just chains A, B and C one at a time"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/chain_images/chain_images.py then 'chainimages #1' (all chains of model 1); or open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/chain_images/chain_images2.py then 'chainimages #1/A,B,C' for chosen chains. Images go to ~/Desktop.",
+   "kind": "command",
+   "commands": [
+    "open chain_images.py",
+    "chainimages #1",
+    "open chain_images2.py",
+    "chainimages #1/A,B,C"
+   ]
+  },
+  {
+   "name": "closest (find closest pair of atoms)",
+   "dir": "closest",
+   "what": "Defines a 'closest' command that finds the minimum-distance atom pair between two atom sets (fast C++ nearest-point search, default search cutoff 10 Å) and reports it in the Log/status line, e.g. 'Minimum distance 2.27 between /A LYS 45 NZ and /B ASP 522 OD1'; with 'show true' it also draws a distance monitor and zooms the view on the pair. Useful for asking which residues of two chains, domains or molecules come nearest each other.",
+   "requests": [
+    "Which atoms of chain A and chain B are closest to each other",
+    "Show me the shortest contact between the ligand and the protein and zoom in on it"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/closest/closest.py then 'closest <atoms> to <atoms> [maxDist <Å>] [show true|false]' (registered keywords are to_atoms, max_dist and show; the page uses the abbreviation 'to'), e.g. 'open 7LUP' then 'closest /A to /B show true'.",
+   "kind": "command",
+   "commands": [
+    "open closest.py",
+    "open 7LUP",
+    "closest /A to /B show true",
+    "closest /A to /B"
+   ]
+  },
+  {
+   "name": "color smooth",
+   "dir": "color_smooth",
+   "what": "Smooths the sharp boundaries between colored patches on a molecular surface by diffusing each vertex color into its neighbours, so a surface colored by B-factor, conservation or any per-residue attribute gets soft blended edges (as old Chimera showed). Any existing surface coloring can be smoothed; smaller surface triangles (surface gridspacing 0.3) give smoother boundaries, but the code is slow (84 s reported for gridspacing 0.2, 286 residues).",
+   "requests": [
+    "Blur the hard edges between residue colors on my surface colored by conservation",
+    "Make the bfactor coloring on the surface of #1 fade smoothly instead of having sharp patch boundaries"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/color_smooth/color_smooth.py  -- this registers the command \"color smooth <surfaces> [distance <float>] [iterations <int>]\" (defaults distance 0.5, iterations 10). The surface must already have vertex colors (e.g. from color bfactor or color byattribute). Example: color smooth #1",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/color_smooth/color_smooth.py",
+    "open 8vgz",
+    "surface",
+    "color bfactor #1",
+    "color smooth #1",
+    "surface gridspacing 0.3",
+    "color bfactor #1",
+    "color smooth #1"
+   ]
+  },
+  {
+   "name": "connect",
+   "dir": "connect",
+   "what": "Adds bonds between atoms that lie within a cutoff distance (default 2.2 Å), optionally only from one atom set to a second set; written to bond a hydrated iron-oxide (ferrihydrite) crystal built from its asymmetric unit with unitcell + combine, where the file carries no connectivity. The page's full workflow also uses the separate 'overlap' recipe (../overlap/overlap.md) to delete duplicated atoms before bonding, then ~bond, setattr idatm_type and addh to turn O1 into water.",
+   "requests": [
+    "Add bonds between every pair of atoms closer than 2.2 Å in model 3",
+    "My crystal lattice built with unitcell has no bonds, connect the nearby atoms"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/connect/connect.py  -- this registers \"connect <atoms> [toAtoms <atoms>] [distance <float>]\" (keyword to_atoms in the code, default distance 2.2 Å; bonds are made from each atom in <atoms> to atoms in toAtoms, or among <atoms> when toAtoms is omitted). Example: connect #3. Note: 'overlap #3' in the example needs the overlap recipe (https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/overlap/overlap.py) loaded first.",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/connect/connect.py",
+    "open ferrihydrite6_asym_unit.cif",
+    "unitcell #1 cells 4,4,2",
+    "combine #2 name ferrihydrite6_crystal",
+    "overlap #3",
+    "delete sel",
+    "connect #3",
+    "~bond #3@O1 | Fe",
+    "setattr #3@O1 atoms idatm_type O3",
+    "addh #3",
+    "color #3@O1 blue",
+    "save ferrihydrite6_crystal.mol2 model #3"
+   ]
+  },
+  {
+   "name": "convexhull",
+   "dir": "convex_hull",
+   "what": "Creates a surface spanning the convex hull of a set of atom positions (scipy ConvexHull), a very low-triangle 'mineral'-looking shell of an assembly (5000 triangles for human V-ATPase 6wm2 versus 9 million for the molecular surface). Options give sharp faceted edges, mesh display, a fixed color, a model name, or one hull per chain (colored by the chain's mean atom color).",
+   "requests": [
+    "Show a faceted convex hull around each chain of the V-ATPase instead of a molecular surface",
+    "Wrap model 1 in a simple low-polygon shell for an overview figure"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/convex_hull/convex_hull.py  -- this registers \"convexhull <atoms> [sharp true|false] [mesh true|false] [color <color>] [name <string>] [eachChain true|false] [open true|false]\". Example from the page: convexhull #1 sharp true eachChain true (sharp true makes facet edges sharp; eachChain true makes one hull per chain instead of one for all atoms).",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/convex_hull/convex_hull.py",
+    "open 6wm2",
+    "convexhull #1 sharp true eachChain true"
+   ]
+  },
+  {
+   "name": "copycolors",
+   "dir": "copycolors",
+   "what": "Copies ribbon colors from the chains of one structure to the chains with matching chain IDs in another structure (only target ribbons are recolored, not atoms; non-polymer residues are ignored). Useful to color two related structures consistently before tiling them side by side for comparison.",
+   "requests": [
+    "Color the ribbons of #2 the same as the matching chains in #1",
+    "Make the second structure's chain colors match the first one so I can compare them side by side"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/copycolors/copycolors.py  -- this registers \"copycolors <fromAtoms> to <toAtoms>\" (the to argument is required). Example: copycolors #1 to #2",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/copycolors/copycolors.py",
+    "open 6s8e 6s6b",
+    "copycolors #1 to #2",
+    "preset cylinder",
+    "tile #1,2 column 2 spacing 1"
+   ]
+  },
+  {
+   "name": "copycrds",
+   "dir": "copycrds",
+   "what": "Copies all atom coordinates from one structure (conformer) onto another that has the same atoms and residue names, matching atoms by name even if their order differs; it errors if the atom counts differ or the atom/residue identities do not match. By Eric Pettersen.",
+   "requests": [
+    "Copy the coordinates of conformer #1 onto model #2",
+    "Overwrite the atom positions in model 2 with those from model 1 (same molecule, different conformation)"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/copycrds/copycrds.py  -- this registers \"copycrds <structure> to <structure>\" (to is required). Example: copycrds #1 to #2",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/copycrds/copycrds.py",
+    "copycrds #1 to #2"
+   ]
+  },
+  {
+   "name": "cyclic_ribbon (cyclic peptide closed ribbon)",
+   "dir": "cyclic_peptide",
+   "what": "A pure command-script trick to make a cyclic peptide's ribbon look like a closed, seamless loop (ChimeraX does not close the ribbon ends): copy the structure with combine, delete the non-cyclic chain from the copy, renumber the copy to continue the residue numbering, combine both with retainIds so it becomes one doubled chain, then hide 8 residues at each end so the visible ribbon traverses a smooth cycle. If the file has the closing peptide bond it must be deleted first (select it, then ~bond sel); example residue numbers are for a 16-residue chain A (extra residues 17-32, hide 1-8 and 25-32).",
+   "requests": [
+    "My cyclic peptide ribbon has a gap where the ring closes, make it look continuous for a figure",
+    "Show a macrocyclic peptide as a closed ribbon loop"
+   ],
+   "how": "No .py file. Download the command script https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/cyclic_peptide/cyclic_ribbon.cxc together with the example structure https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/cyclic_peptide/cyclic_peptide.pdb into the same folder and run \"open cyclic_ribbon.cxc\" (the script opens cyclic_peptide.pdb by relative name), or run the commands below directly, adapting chain ID, residue range and the 'renumber ... start' value to your own peptide.",
+   "kind": "other",
+   "commands": [
+    "open cyclic_peptide.pdb",
+    "combine #1",
+    "del #2/B",
+    "renumber #2 start 17",
+    "combine #1,2 retainIds true close true",
+    "hide #1/A:1-8,25-32 ribbon",
+    "color #1/A pink"
+   ]
+  },
+  {
+   "name": "ELM_ellipsoid_chimerax.py (rotational diffusion tensor ellipsoid)",
+   "dir": "ellipsoid",
+   "what": "A Python script that draws a rotational diffusion tensor (from ROTDIF software output) as a mesh ellipsoid with latitude and longitude lines, built from the four ROTDIF parameters at the top of the file: center of mass, three semiaxis lengths in Å, color, and three Euler angles in degrees. The built-in 'shape ellipsoid' was not suitable because its spiral triangulation has no lat/long lines; the script registers no command, it just creates a Surface model named 'diffusion ellipsoid' when opened.",
+   "requests": [
+    "Display my ROTDIF rotational diffusion tensor as a mesh ellipsoid over the protein",
+    "Draw an ellipsoid with latitude and longitude lines at a given center, semiaxes and Euler angles"
+   ],
+   "how": "Download https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/ellipsoid/ELM_ellipsoid_chimerax.py, edit the 4 parameter lines at the top (cmx, cmy, cmz = ...; a1,a2,a3 = ...; color = [...]; rotationInput = [...]) with the values from the end of the ROTDIF-generated PyMol script, then in ChimeraX run: open ELM_ellipsoid_chimerax.py. Opening the unedited file (open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/ellipsoid/ELM_ellipsoid_chimerax.py) draws the example ellipsoid (center 20.051, 6.333, -0.915; semiaxes 21.700, 24.645, 16.567; Euler 83.790, 114.370, 179.850); an example.pdb is also in the directory.",
+   "kind": "python-script",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/ellipsoid/ELM_ellipsoid_chimerax.py"
+   ]
+  },
+  {
+   "name": "Helical filament with sym (filament)",
+   "dir": "filament",
+   "what": "Builds a helical filament atomic model three subunits long from a single subunit (PDB 6g19) using the built-in sym command with helical symmetry (46 Å rise per subunit; the page text says 76° rotation per subunit but the command as written uses 74) about an axis derived from the double-stranded RNA: open two copies, align the second copy's RNA (chains X,Y) shifted by one nucleotide onto the first, and 'measure rotation' produces an axis model (#3) that sym then uses. No script is involved; the subunit colors in the figure were changed with the color buttons in the Models panel (GUI only; the RNA color command is given). The filament/chimera subfolder contains only PNG images, no old-Chimera script or instructions.",
+   "requests": [
+    "Build a three-subunit helical filament of 6g19 with a 46 Å rise per subunit along the RNA axis",
+    "Generate helical symmetry copies of my structure about an axis obtained from a measured rotation"
+   ],
+   "how": "No .py file; run the ChimeraX commands from the page (https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/filament/filament.md). Key line: sym #1 H,46,74,3 axis #3 copies true (H,rise,angle,count; axis #3 is the axis model created by 'measure rotation #1 to #2'; copies true makes real atomic copies as model #4).",
+   "kind": "other",
+   "commands": [
+    "open 6g19",
+    "open 6g19",
+    "align #2/X:1-13@P #2/Y:2-14@P to #1/X:2-14@P #1/Y:1-13@P",
+    "measure rotation #1 to #2",
+    "sym #1 H,46,74,3 axis #3 copies true",
+    "color #4/X,Y cornflowerblue"
+   ]
+  },
+  {
+   "name": "fitsearch",
+   "dir": "fit_search",
+   "what": "Runs fitmap with its global search option to place an atomic structure at many random positions in a map, locally optimize each, and then save every fit whose correlation is at least a cutoff as a separate PDB file (use %d in the save path for the fit number). Requires a ChimeraX build newer than July 27, 2021; the example fits GroEL chain A (1grl) into EMDB map 1080 at 11.5 Å simulated resolution, 50 searches, keeping fits with correlation >= 0.9.",
+   "requests": [
+    "Fit chain A of GroEL into the EMD-1080 map 50 times and save every fit with correlation above 0.9 as a PDB",
+    "Do a global fit search of my model in the density and write each good placement to its own file"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/fit_search/fit_search.py  -- this registers \"fitsearch <atoms> in <map> [resolution <float>] [search <int>] [cutoff <float>] [save <filename>]\" (in is required; defaults search 10, cutoff 0.5, resolution 3 x the map's minimum grid step). Example: fitsearch #1 in #2 resolution 11.5 search 50 cutoff 0.9 save ~/Desktop/results/fit_%d.pdb",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/fit_search/fit_search.py",
+    "open 1grl",
+    "delete ~/A",
+    "open 1080 from emdb",
+    "fitsearch #1 in #2 resolution 11.5 search 50 cutoff 0.9 save ~/Desktop/results/fit_%d.pdb"
+   ]
+  },
+  {
+   "name": "flip",
+   "dir": "flip_z",
+   "what": "Negates the z coordinate of the specified atoms (z -> -z), mirroring the structure and thereby inverting its handedness, for example turning all L amino acids into D amino acids. Written for ChimeraX 1.0; note the script file is named flip.py, not flip_z.py.",
+   "requests": [
+    "Mirror model 1 to invert its handedness",
+    "Convert my structure from L to D amino acids by flipping the z coordinates"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/flip_z/flip.py  -- this registers \"flip <atoms>\". Example: flip #1",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/flip_z/flip.py",
+    "flip #1"
+   ]
+  },
+  {
+   "name": "Make atoms for Gaussian cube file",
+   "dir": "gaussian_cube_atoms",
+   "what": "ChimeraX opens the wave-function map in a Gaussian cube file but ignores the atoms listed in it; this script reads those atoms (converting Bohr to Angstrom) and builds an atomic model for every open Gaussian-cube volume, with automatic bond guessing (which may be wrong for inorganic crystals). Wanted when a quantum-chemistry user needs to see nuclei alongside the orbital/density isosurface. ChimeraX-only (uses chimerax.map/chimerax.atomic APIs), so no legacy-Chimera version is possible.",
+   "requests": [
+    "I opened a Gaussian .cube file but only see the density, where are the atoms?",
+    "Show the molecule's atoms together with the orbital isosurface from my cube file"
+   ],
+   "how": "First open the cube file, then open the script (it acts on every open Gaussian-cube volume): open wfc_K001_B329wfc.cube ; open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/gaussian_cube_atoms/make_atoms.py . No command is registered; re-open the script to run it again. Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/gaussian_cube_atoms/gcatoms.md",
+   "kind": "python-script",
+   "commands": [
+    "open wfc_K001_B329wfc.cube",
+    "open make_atoms.py",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/gaussian_cube_atoms/make_atoms.py"
+   ]
+  },
+  {
+   "name": "helixmlp - average lipophilicity of alpha helices",
+   "dir": "helixmlp",
+   "what": "Defines command 'helixmlp' that computes, for each alpha helix in the given residues, the solvent-accessible-surface-area-weighted average lipophilicity (same per-atom values as the ChimeraX mlp command, SASA measured for each helix alone) and stores it as residue and atom attribute 'helix_lipophilicity'. Used to color helices by lipophilicity to guess which are transmembrane (e.g. GPCR 8f76, ryanodine receptor 5j8v). ChimeraX-only (chimerax.mlp / chimerax.surface APIs); no legacy-Chimera version.",
+   "requests": [
+    "Color the helices by how hydrophobic they are so I can see which ones are transmembrane",
+    "Which alpha helices in this GPCR are likely in the membrane?"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/helixmlp/helixmlp.py then: helixmlp #1 (required arg: residues spec). Then color with color byattribute r:helix_lipophilicity #1 palette lipophilicity (or Render by Attribute tool). Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/helixmlp/helixmlp.md",
+   "kind": "command",
+   "commands": [
+    "open helixmlp.py",
+    "open 8f76",
+    "helixmlp #1",
+    "preset cartoon cylinders",
+    "color byattribute r:helix_lipophilicity #1 palette lipophilicity"
+   ]
+  },
+  {
+   "name": "helixwave - morph a phage helical tube contraction as a wave",
+   "dir": "helixwave",
+   "what": "Defines command 'helixwave' that animates a helical protein tube (phage T4 tail sheath, extended 6j0b to contracted 6j0c) changing rise/twist and monomer conformation as a wave that starts at the tip and travels toward the capsid; the layer model must be a single-ring morph centered at the origin with the tube axis along z (built by the accompanying helixalign.cxc). For visualizing contractile injection systems and making movies of sheath contraction. ChimeraX-only (chimerax.geometry, coordset morph APIs); no legacy-Chimera version.",
+   "requests": [
+    "Animate the phage tail sheath contracting from the tip toward the capsid",
+    "Make a movie of a helical tube morphing between two helix pitches as a traveling wave"
+   ],
+   "how": "Usage: helixwave <atomic structures> [numLayers] with keywords time, steps, wavelength (wave_length), uniform, riseStart, riseEnd, twistStart, twistEnd, moveModels (page abbreviates as 'move'). Build inputs with open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/helixwave/helixalign.cxc (produces 6j0b_6j0c_morph.pdb and needle.cif; both also in the repo), then: open needle.cif ; open 6j0b_6j0c_morph.pdb coordset true ; open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/helixwave/helixwave.py ; helixwave #2 28 move #1 . The first call makes 28 copies as a new group (#3) and hides #2, so later movie commands use #3. Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/helixwave/helixwave.md",
+   "kind": "command",
+   "commands": [
+    "open helixalign.cxc",
+    "close",
+    "open needle.cif",
+    "color #1 lightyellow",
+    "open 6j0b_6j0c_morph.pdb coordset true",
+    "color #2 lightgray",
+    "color #2/A,C,E cornflowerblue",
+    "light soft",
+    "open helixwave.py",
+    "helixwave #2 28 move #1",
+    "movie record ; helixwave #3 move #1 ; wait 300 ; movie encode helixwave.mp4",
+    "movie record ; helixwave #3 wavelength 0.2 move #1 ; wait 300 ; movie encode helixwave_0.2.mp4",
+    "movie record ; helixwave #3 uniform true move #1 ; wait 300 ; movie encode helixwave_uniform.mp4"
+   ]
+  },
+  {
+   "name": "hidediagonals - hide diagonal lines of a mesh surface",
+   "dir": "hide_diagonals",
+   "what": "Defines command 'hidediagonals' that sets a surface's edge mask so a mesh only shows edges parallel to the x, y or z axis, turning a triangle mesh (e.g. from shape rectangle + surface style mesh) into a square grid to overlay on light-microscopy data. The page notes this was later built into ChimeraX as 'surface squaremesh', so on current ChimeraX the built-in command can be used without the script. ChimeraX-only (surface.edge_mask API); no legacy-Chimera version.",
+   "requests": [
+    "Show a square grid over my microscopy image instead of a triangle mesh",
+    "Hide the diagonal lines in this mesh surface"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/hide_diagonals/hide_diagonals.py then hidediagonals <surface spec>, e.g. after shape rectangle width 20 height 20 ; surface style #3 mesh run hidediagonals #3 . Built-in equivalent stated on the page: surface squaremesh #3 . Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/hide_diagonals/hide_diagonals.md",
+   "kind": "command",
+   "commands": [
+    "shape rectangle width 20 height 20",
+    "surface style #3 mesh",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/hide_diagonals/hide_diagonals.py",
+    "hidediagonals #3",
+    "surface squaremesh #3"
+   ]
+  },
+  {
+   "name": "hover - run Python code when the mouse hovers over an atom",
+   "dir": "hover",
+   "what": "Shows how the mouse-pause 'identify object' mode fires a 'mouse hover' trigger, and gives a script that adds a handler logging the hovered atom's x,y,z scene coordinates to the status line and Log (e.g. 'Atom /A ASN 72 ND2 position -15.70,-23.42,-0.77'); it is a template for doing anything on hover. Useful when a user wants extra information or custom actions on mouse-over without replacing the normal popup. ChimeraX-only (session.triggers / PickedAtom API); no legacy-Chimera version.",
+   "requests": [
+    "Print the coordinates of whatever atom I hover the mouse over",
+    "Run my own code whenever the mouse pauses over an atom"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/hover/hover.py (registers the callback; no new command). Requires the pause mouse mode to be 'identify object' (default; check with mousemode, set with mousemode pause \"identify object\"). To load automatically at startup the page says to add the open command under Preferences / Startup / Execute these commands at startup (GUI). Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/hover/hover.md",
+   "kind": "python-script",
+   "commands": [
+    "mousemode",
+    "mousemode pause \"identify object\"",
+    "open ~/Downloads/hover.py",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/hover/hover.py"
+   ]
+  },
+  {
+   "name": "Inspecting molecule data structures",
+   "dir": "inspect",
+   "what": "A tutorial page (no script) on inspecting ChimeraX's Python molecular data structures from the Shell tool: list open models, then print a structure's atom/residue/chain counts, an atom's coordinates and B-factor, a residue's atom names, and a chain's ID, description and residue count for PDB 8aie. Points to the Atom/Residue/Chain attribute reference in the programming manual. The Python shown is ChimeraX-specific (session.models, chimerax.atomic); legacy Chimera has its own different Python API, so this recipe does not transfer.",
+   "requests": [
+    "How do I look at atoms, residues and chains from Python inside ChimeraX?",
+    "Print the B-factor and coordinates of an atom using the ChimeraX Python shell"
+   ],
+   "how": "No .py file. Run open 8aie, then open the Python shell via menu Tools / General / Shell (GUI step; command equivalent ui tool show Shell) and type the Python from the page, e.g. session.models.list() ; m = session.models[0] ; print(m.name, m.num_atoms, 'atoms', m.num_residues, 'residues', m.num_chains, 'chains') ; a = m.atoms[50] ; print('Atom', a, 'at', a.coord, 'with bfactor', a.bfactor) ; r = a.residue ; c = r.chain . Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/inspect/inspect.md",
+   "kind": "other",
+   "commands": [
+    "open 8aie",
+    "ui tool show Shell"
+   ]
+  },
+  {
+   "name": "Label secondary structure elements",
+   "dir": "label_ss",
+   "what": "A script that labels every helix and strand in all open atomic structures with α or β plus the element's number within its chain (prefixed by chain ID when a structure has more than one chain), placing each label at the middle residue of the element. Handy for annotating topology figures (example shown for 1zik). ChimeraX-only (chimerax.atomic ss_type/ss_id, issues ChimeraX label commands); no legacy-Chimera version.",
+   "requests": [
+    "Label each helix and strand on my structure with alpha-1, beta-2 and so on",
+    "Put labels on the secondary structure elements of my protein"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/label_ss/label_ss.py (labels all open structures immediately; no command registered). It runs ChimeraX 'label <residues> residues text ... height 2' commands that appear in the Log, so you can copy and prune them. Adjust size later with label height 4 ; remove with label delete . Change the default size by editing label_height = 2 on the first line. Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/label_ss/label_ss.md",
+   "kind": "python-script",
+   "commands": [
+    "open label_ss.py",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/label_ss/label_ss.py",
+    "label height 4",
+    "label delete"
+   ]
+  },
+  {
+   "name": "lightsheet - colored axes, coverslip and timestamp",
+   "dir": "lightsheet",
+   "what": "Defines three commands for light-sheet/3D microscopy images: 'outline' draws a box around a volume with edges colored by axis (x blue, y green, z red) as a marker model named Colored axes; 'coverslip' adds a translucent gray slab at the z=0 face of the volume; 'timestamp' places a 2D label with the current date/time. Wraps shape, marker fromMesh and 2dlabel so positions match the opened image data. ChimeraX-only (chimerax.map, marker APIs); no legacy-Chimera version, though plain shape rectangle and 2dlabels exist there without these helpers.",
+   "requests": [
+    "Draw a colored xyz axis box around my light-sheet image and show a coverslip under it",
+    "Add a time stamp label to my microscopy movie frames"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/lightsheet/lightsheet.py then: outline <map> [edgeRadius r] ; coverslip <map> [thickness t] [color name-or-r,g,b,a] ; timestamp [xpos x] [ypos y] [color c]. Example: open cell15.am ; outline #1 ; coverslip #1 thickness 2 ; timestamp . Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/lightsheet/lightsheet.md",
+   "kind": "command",
+   "commands": [
+    "open lightsheet.py",
+    "open cell15.am",
+    "outline #1",
+    "coverslip #1 thickness 2",
+    "timestamp",
+    "outline #1 edgeRadius .5",
+    "coverslip #1 color lightblue",
+    "coverslip #1 color 90,90,90,30",
+    "timestamp xpos .5 ypos .9 color yellow"
+   ]
+  },
+  {
+   "name": "link - place peptide linkers using molecular dynamics",
+   "dir": "link",
+   "what": "Defines command 'link' that, for each of many linker peptides (separate models), rigidly aligns the linker's start atoms to a matching template chain, picks the nearest unused template end, then runs the ChimeraX tug molecular-dynamics command to pull the linker's ends onto both templates. Written to attach 40 ferritin C-terminal signal peptides to grooves of a 60-copy encapsulin shell (5n5f/7oe2, EMD-12873) when the linkers are unresolved in the EM map. ChimeraX-only (chimerax.tug, align APIs); no legacy-Chimera version.",
+   "requests": [
+    "Build the missing linker peptides connecting my cargo proteins to the encapsulin shell",
+    "Tug many flexible peptide linkers so their ends dock onto nearby template sites"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/link/link.py then link linkerStart <atoms> linkerEnd <atoms> templateStart <atoms> templateEnd <atoms> [forceConstant 1000] [steps 100] [frames 50] (all four atom keywords required; template start/end atoms must be one chain per template and in the same order as the linker atoms). Example with the ChimeraX 1.3 session https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/link/encapsulin_link.cxs : open encapsulin_link.cxs ; link linkerStart #4:92-96@N,CA,C linkerEnd #4:117-125@N,CA,C templateStart #3:92-96@N,CA,C templateEnd #2:917-925@N,CA,C . Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/link/link.md",
+   "kind": "command",
+   "commands": [
+    "open link.py",
+    "open encapsulin_link.cxs",
+    "link linkerStart #4:92-96@N,CA,C linkerEnd #4:117-125@N,CA,C templateStart #3:92-96@N,CA,C templateEnd #2:917-925@N,CA,C"
+   ]
+  },
+  {
+   "name": "markblobs - mark connected pieces of a surface",
+   "dir": "mark_blobs",
+   "what": "Defines command 'markblobs' that places a spherical marker at the area-weighted center of every connected piece of a displayed surface (isosurface blobs), creating a marker set named after the surface; meant for tracking blobs in 3D light microscopy or density maps (example: X-ray density of 1a0m from EDS). The page notes this was later added to ChimeraX as the built-in 'mark connected' command (marker connected, in the marker docs). ChimeraX-only (chimerax.surface connected_pieces, chimerax.markers APIs); no legacy-Chimera version.",
+   "requests": [
+    "Put a marker at the center of each blob in my microscopy surface so I can track them",
+    "Find and mark every separate connected piece of this density isosurface"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/mark_blobs/mark_blobs.py then markblobs <surface> [radius r] [color c]. Example: open 1a0m from eds ; markblobs #1 radius 0.2 color gold . Built-in ChimeraX alternative named on the page: the marker connected command. Page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/mark_blobs/mark_blobs.md",
+   "kind": "command",
+   "commands": [
+    "open ~/Downloads/mark_blobs.py",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/mark_blobs/mark_blobs.py",
+    "open 1a0m from eds",
+    "markblobs #1 radius 0.2 color gold"
+   ]
+  },
+  {
+   "name": "midsurf (Move a surface to highest intensity in 3D microscope image)",
+   "dir": "middle_surface",
+   "what": "Defines a ChimeraX command 'midsurf' that iteratively moves an isosurface's vertices along the map intensity gradient (perpendicular to the surface, with smoothing) so the surface settles at the intensity maximum in the middle of a thick fluorescent shell, e.g. to find the true membrane position in 3D light microscopy where limited resolution makes a labeled membrane look much thicker than it is. Run it repeatedly until the surface converges; afterwards you can heat-map the surface by intensity with 'color sample'. README is at middle_surface/midsurf.md (no README.md). Old Chimera: not usable as-is, it relies on ChimeraX Python APIs (chimerax.map, chimerax.surface, chimerax.map_data) and would need a rewrite.",
+   "requests": [
+    "Move this membrane isosurface from my light microscopy image to the brightest (middle) position of the shell",
+    "Find the center surface of a fluorescently labeled cell membrane in a 3D microscope image and color it by intensity"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/middle_surface/midsurf.py  (this registers the command). Then, with a map isosurface, e.g. after 'open cell14.tif' and 'volume #1.1 level X': 'midsurf #1.1'. Repeat 'midsurf #1.1' several times until it converges. If the surface is not a map isosurface, give the map explicitly: 'midsurf #2 volume #1 steps 100 voxelStep 0.1 smoothingIterations 1 smoothingFactor 0.1'. Options: volume <map>, steps <int, default 100>, voxelStep <fraction of grid spacing per step, default 0.1>, smoothingIterations <int, default 1; try 0 after moving to check smoothing is not pulling it off the maximum>, smoothingFactor <float, default 0.1>. Example data: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/middle_surface/cell14.tif",
+   "kind": "python-script",
+   "commands": [
+    "open midsurf.py",
+    "open cell14.tif",
+    "volume #1.1 level X",
+    "midsurf #1.1",
+    "midsurf #2 volume #1 steps 100 voxelStep 0.1 smoothingIterations 1 smoothingFactor 0.1",
+    "color sample #1.1 map #1.1 palette bluered",
+    "transparency #1.1 50"
+   ]
+  },
+  {
+   "name": "modelcif pae (Plot ModelCIF pairwise residue scores)",
+   "dir": "modelcif_pae",
+   "what": "Defines a ChimeraX command 'modelcif pae' that reads the ma_qa_metric_local_pairwise table from a ModelCIF file (pairwise residue scores, typically AlphaFold predicted aligned error), writes them out as an AlphaFold-style JSON PAE file, and opens the plot with the built-in 'alphafold pae' command. Useful when a predicted complex comes as a ModelCIF (.cif) with embedded PAE rather than a separate JSON. README is at modelcif_pae/modelcif_pae.md. Old Chimera: not portable; it uses chimerax.mmcif and the ChimeraX-only 'alphafold pae' plot.",
+   "requests": [
+    "Show the PAE plot for this ModelCIF model that has the pairwise scores embedded in the cif file",
+    "Plot the predicted aligned error stored inside this AlphaFold ModelCIF file"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/modelcif_pae/modelcif_pae.py  (registers 'modelcif pae'). Then open the ModelCIF structure and run 'modelcif pae #1'. README example (with the files downloaded): 'open ~/Downloads/003-Spombe_H3-H4_tetramer_DPB3.cif', 'open ~/Downloads/modelcif_pae.py', 'modelcif pae #1'. Keyword options defined in the code (ChimeraX exposes them camelCase): metricId <string, default = first metric id found>, defaultScore <float, default 100, fills pairs with no score>, jsonOutputPath <file, default a temp file>. Example ModelCIF: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/modelcif_pae/003-Spombe_H3-H4_tetramer_DPB3.cif",
+   "kind": "python-script",
+   "commands": [
+    "open ~/Downloads/003-Spombe_H3-H4_tetramer_DPB3.cif",
+    "open ~/Downloads/modelcif_pae.py",
+    "modelcif pae #1"
+   ]
+  },
+  {
+   "name": "Record a movie with a static background image",
+   "dir": "movie_background",
+   "what": "A workflow (no script file) for recording a ChimeraX movie whose frames have a transparent background and then compositing them over a static background image with ChimeraX's bundled ffmpeg in a shell. The example spins atomic model 8of8 in front of a still image of its cryoEM map EMD-16850. Wanted when you need a rotating structure over a fixed picture (e.g. a map, a micrograph, a logo) instead of a plain color. The final compositing step is ffmpeg in a terminal, not a ChimeraX command. README is at movie_background/movie_background.md. Old Chimera: the ffmpeg compositing step is independent of ChimeraX, but the ChimeraX 'movie record ... transparentBackground true format png' options are ChimeraX syntax; no Chimera version is given.",
+   "requests": [
+    "Make a movie of my structure rotating in front of a static image of the EM map",
+    "Record movie frames with a transparent background so I can overlay them on a background picture"
+   ],
+   "how": "No .py file; it is a command sequence. First make a directory ~/Desktop/movie. In ChimeraX: 'open 8of8' then 'movie record dir ~/Desktop/movie transparentBackground true format png ; turn y 3 120 ; wait 120 ; movie stop'. Then make the background still: 'open 16850 from emdb' and 'save ~/Desktop/movie/background.png'. Finally, in a shell (Mac example): 'cd ~/Desktop/movie' and '~/Desktop/ChimeraX-1.8.app/Contents/bin/ffmpeg -loop 1 -i background.png -i chimovie_Umkk-%05d.png -filter_complex overlay=shortest=1 movie.mp4' (the chimovie_XXXX prefix is whatever ChimeraX generated). Page: https://rbvi.github.io/chimerax-recipes/movie_background/movie_background",
+   "kind": "command",
+   "commands": [
+    "open 8of8",
+    "movie record dir ~/Desktop/movie transparentBackground true format png ; turn y 3 120 ; wait 120 ; movie stop",
+    "open 16850 from emdb",
+    "save ~/Desktop/movie/background.png"
+   ]
+  },
+  {
+   "name": "Show a time label while playing a volume series",
+   "dir": "movie_time",
+   "what": "Commands for recording a movie that plays through a volume time series (e.g. 30 frames of 3D light microscopy) while a 2D label in the corner shows the elapsed time, updated each frame with 'perframe' driving '2dlabel change'. The example maps 30 frames onto 0-6 seconds with one decimal (format %.1f); dropping 'range'/'format' gives an integer frame counter instead. README is at movie_time/movie_time.md; the recording commands are in cell6.cxc and the scene setup in cell6_setup.cxc. Old Chimera: it also has perframe, 2dlabels, vseries and movie commands, so a Chimera edition is plausible, but the syntax differs and none is given on the page.",
+   "requests": [
+    "Record a movie of my 4D microscopy series with a timestamp in seconds shown in the corner",
+    "Add a frame-number or time label that updates on every frame while playing my volume series"
+   ],
+   "how": "No .py; two .cxc files. Setup (or do it in the GUI and save a session): 'open cell6_1ch*.tif vseries true', 'volume #1 level 130 step 1', 'volume #1 voxelSize .1,.1,.25', 'lighting soft', 'set bgcolor white', 'graphics silhouettes true', 'windowsize 800 600', '2dlabel create timestamp text \"\" xpos 0.9 ypos 0.05', 'save cell6.cxs' (setup script: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/movie_time/cell6_setup.cxc). Record by opening the command file: open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/movie_time/cell6.cxc  (or 'open cell6.cxc' locally), which runs: 'movie record', 'perframe \"2dlabel change timestamp text $1\" frames 30 range 0,6 format %.1f', 'vseries play #1', 'wait 30', 'movie encode cell6.mp4 framerate 5 quality high'. The label must already exist with name 'timestamp' and the series must be model #1. For an integer frame count use 'perframe \"2dlabel change timestamp text $1\" frames 30'.",
+   "kind": "command",
+   "commands": [
+    "open cell6_1ch*.tif vseries true",
+    "volume #1 level 130 step 1",
+    "volume #1 voxelSize .1,.1,.25",
+    "lighting soft",
+    "set bgcolor white",
+    "graphics silhouettes true",
+    "windowsize 800 600",
+    "2dlabel create timestamp text \"\" xpos 0.9 ypos 0.05",
+    "save cell6.cxs",
+    "movie record",
+    "perframe \"2dlabel change timestamp text $1\" frames 30 range 0,6 format %.1f",
+    "vseries play #1",
+    "wait 30",
+    "movie encode cell6.mp4 framerate 5 quality high",
+    "open cell6.cxc",
+    "perframe \"2dlabel change timestamp text $1\" frames 30"
+   ]
+  },
+  {
+   "name": "Read an MRC map file and write out a subregion",
+   "dir": "mrc",
+   "what": "Shows how to crop an MRC/CCP4 density map to a grid-index subregion and save it as a new MRC file, either with three ChimeraX commands (open from EMDB, 'volume ... region', 'save ...mrc') or with a short Python script using chimerax.map_data (mrc.open, GridSubregion, mrc.save) for data-processing without rendering; it also shows how to get the numpy array of the subregion and how to open a map with rendering via chimerax.map.open_map. Useful for cutting a box out of a cryoEM map for further processing. README is at mrc/mrc.md. Old Chimera: its volume command also has a region option and a VolumeData Python module, but the syntax and API differ; nothing Chimera-specific is on the page.",
+   "requests": [
+    "Crop this EM map to grid points 130-190 in x, 100-180 in y, 160-220 in z and save it as a new MRC file",
+    "Give me Python to read an MRC map, extract a sub-box and save it as another MRC without displaying it"
+   ],
+   "how": "Command route: 'open 11997 from emdb', 'volume #1 region 130,100,160,190,180,220', 'save ~/Desktop/subregion.mrc'. Python route: download https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/mrc/read_mrc.py, edit its two hard-coded paths (input map and output file), then run it with 'runscript read_mrc.py' or 'open read_mrc.py'. The script does: from chimerax.map_data import mrc, GridSubregion; g = mrc.open(path)[0]; gbox = GridSubregion(g, ijk_min=(130,100,160), ijk_max=(190,180,220)); mrc.save(gbox, outpath); m = gbox.matrix() for the numpy array. It does not create a displayed Volume model.",
+   "kind": "command",
+   "commands": [
+    "open 11997 from emdb",
+    "volume #1 region 130,100,160,190,180,220",
+    "save ~/Desktop/subregion.mrc"
+   ]
+  },
+  {
+   "name": "overlapped (Select overlapping atoms)",
+   "dir": "overlap",
+   "what": "Defines a ChimeraX command 'overlapped' that selects atoms sitting on top of other atoms (within 0.1 Angstrom by default; 'distance' option changes the tolerance), keeping the first copy unselected so 'delete sel' removes only the duplicates. Written to clean up duplicate atoms produced when building a hematite crystal from the unit cell with 'unitcell' plus 'combine'; bonds can then be rebuilt with the 'connect' recipe. Note: the README example and the code's header comment write 'overlap #3', but the code registers the command name as 'overlapped'. README is at overlap/overlap.md. Old Chimera: not portable as-is (uses chimerax.geometry.find_close_points and the ChimeraX command registry).",
+   "requests": [
+    "Select and delete the duplicate atoms that ended up on top of each other after building the crystal from the unit cell",
+    "Find atoms in this model that are within 0.3 Angstroms of another atom and select the extra copies"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/overlap/overlap.py  (registers 'overlapped'). Then 'overlapped #3' (README writes 'overlap #3'), optionally 'overlapped #1 distance 0.3', followed by 'delete sel'. Full README example: 'open hematite_asym_unit.cif', 'unitcell #1 cells 3,3,1', 'combine #2 name hematite_crystal', 'overlap #3', 'delete sel', then to rebuild bonds '~bond #3', 'connect #3' (connect is a separate recipe), 'save hematite_crystal.mol2 model #3'. Example input: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/overlap/hematite_asym_unit.cif",
+   "kind": "python-script",
+   "commands": [
+    "open overlap.py",
+    "open hematite_asym_unit.cif",
+    "unitcell #1 cells 3,3,1",
+    "combine #2 name hematite_crystal",
+    "overlap #3",
+    "delete sel",
+    "~bond #3",
+    "connect #3",
+    "save hematite_crystal.mol2 model #3",
+    "overlap #1 distance 0.3"
+   ]
+  },
+  {
+   "name": "Mean PAE Values",
+   "dir": "pae_mean",
+   "what": "Not a script or command: it describes two small edits to ChimeraX's own AlphaFold bundle source (ChimeraX 1.9) so that (1) 'alphafold contacts' also reports the average PAE of the found residue pairs, and (2) dragging a rectangle on the PAE plot prints the mean PAE for that box with the residue ranges. Both require editing files inside the ChimeraX installation and restarting. The page also notes the un-modified alternative: use the outputFile option of 'alphafold contacts' and average the PAE column in a spreadsheet. README is at pae_mean/pae_mean.md. Old Chimera: not applicable, there is no AlphaFold/PAE bundle in Chimera.",
+   "requests": [
+    "How do I get the average predicted aligned error between two domains in my AlphaFold model?",
+    "Can ChimeraX report the mean PAE for the region I drag on the PAE plot?"
+   ],
+   "how": "No .py to open. Edit ChimeraX.app/Contents/lib/python3.11/site-packages/chimerax/alphafold/contacts.py: after the lines 'msg = f'Found {len(rapairs)} residue or atom pairs within distance %.3g' % distance' / 'if max_pae is not None: msg += ' with pae <= %.3g' % max_pae' add 'from numpy import mean' and 'msg += ' with average pae %.3g' % mean(pae_values)'. Edit .../chimerax/alphafold/pae.py at the end of _rectangle_select() adding: pae = self._pae; ave = pae.pae_matrix[r3:r4+1,r1:r2+1].mean(); rra = pae.row_residues_or_atoms(); yres = _residue_and_atom_spec(rra[r3:r4+1]); xres = _residue_and_atom_spec(rra[r1:r2+1]); print(f'Mean PAE {\"%.3g\" % ave} in dragged box {xres} aligned to {yres}'). Restart ChimeraX; 'alphafold contacts' then logs e.g. 'Found 5 residue or atom pairs within distance 3 with average pae 4.1', and a drag on the PAE plot logs e.g. 'Mean PAE 5.97 in dragged box /A:139-176 aligned to /A:2-19'. Without editing, use 'alphafold contacts ... outputFile <file>' and average the PAE column externally. Page: https://rbvi.github.io/chimerax-recipes/pae_mean/pae_mean",
+   "kind": "other",
+   "commands": []
+  },
+  {
+   "name": "Record a movie flipping through planes of a microscopy map",
+   "dir": "planes",
+   "what": "A command script that plays through single z-planes of a 3D EM map shown in grayscale image style, with a 2D label showing the plane number on every frame, and records it to an mp4. It uses 'volume ... plane z,N' driven by 'perframe' together with '2dlabel', an orthographic camera so planes keep the same size, and 'movie record/encode'. Example: SARS-CoV-2 spike map EMD-22910, planes 100-300. README is at planes/planes.md; the complete script is planes.cxc. Old Chimera: it has volume planes, perframe, 2dlabels and movie commands too, so a Chimera edition is plausible, but with different syntax; none is given on the page.",
+   "requests": [
+    "Make a movie that slices through my cryoEM map plane by plane with the slice number shown on screen",
+    "Flip through z sections of this tomogram and record it as an mp4 with an orthographic view"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/planes/planes.cxc  runs the whole example (setup + recording, saving ~/Desktop/planes.mp4). Setup commands: 'windowsize 500 500', 'open 22910 from emdb', 'volume #1 style image level -0.4458,0 level 2.326,1 plane z,100', 'view orient', 'zoom 2', 'camera ortho', '2dlabel text \"plane number\" xpos 0.8 ypos 0.1'. Recording: 'movie record size 500,500', 'perframe \"volume #1 plane z,$1 ; 2dlabel #2.1 text $1\" range 100,300', 'wait 201', 'movie encode ~/Desktop/planes.mp4 quality high'. Adjust the plane range, levels and label model id (#2.1) for your own map.",
+   "kind": "command",
+   "commands": [
+    "windowsize 500 500",
+    "open 22910 from emdb",
+    "volume #1 style image level -0.4458,0 level 2.326,1 plane z,100",
+    "view orient",
+    "zoom 2",
+    "camera ortho",
+    "2dlabel text \"plane number\" xpos 0.8 ypos 0.1",
+    "movie record size 500,500",
+    "perframe \"volume #1 plane z,$1 ; 2dlabel #2.1 text $1\" range 100,300",
+    "wait 201",
+    "movie encode ~/Desktop/planes.mp4 quality high"
+   ]
+  },
+  {
+   "name": "Show a binding pocket surface",
+   "dir": "pocket",
+   "what": "A command sequence that renders a clean surface of a protein's ligand-binding pocket using 'measure contactArea' to keep only the protein surface within 3 Angstroms of the ligand surface, made as two thin slabs so inside and outside get different colors (tan and cornflower blue), with small fragments removed by 'surface dust'. Example: PDB 2zcp with ligand FPS. Useful for a pocket figure without jagged surface edges. README is at pocket/pocket.md; the script is 2zcp_pocket.cxc. Old Chimera: it also has 'measure contactArea', but the surface/show/hide/color syntax differs; no Chimera version is on the page.",
+   "requests": [
+    "Show just the surface of the binding pocket around the ligand in 2zcp, colored differently inside and outside",
+    "Make a nice pocket surface figure for my ligand without the whole protein surface"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/pocket/2zcp_pocket.cxc  runs the full example. Commands: 'open 2zcp', 'delete /b', 'surface :fps sharp false', 'surface protein sharp false', 'measure contactArea #1.3 with #1.2 distance 3 slab -.1,0 color tan', 'measure contactArea #1.3 with #1.2 distance 2.99 slab -.11,-.01 color cornflowerblue', 'surface close #1', 'surface dust #2,3 size 1 metric \"size rank\"', 'hide atoms,ribbon', 'show #1:fps,mg', 'color C white', 'set bgcolor gray', 'graphics silhouettes true', 'view'. For another structure replace :fps with the ligand residue name and check that #1.2 is the ligand surface and #1.3 the protein surface.",
+   "kind": "command",
+   "commands": [
+    "open 2zcp",
+    "delete /b",
+    "surface :fps sharp false",
+    "surface protein sharp false",
+    "measure contactArea #1.3 with #1.2 distance 3 slab -.1,0 color tan",
+    "measure contactArea #1.3 with #1.2 distance 2.99 slab -.11,-.01 color cornflowerblue",
+    "surface close #1",
+    "surface dust #2,3 size 1 metric \"size rank\"",
+    "hide atoms,ribbon",
+    "show #1:fps,mg",
+    "color C white",
+    "set bgcolor gray",
+    "graphics silhouettes true",
+    "view"
+   ]
+  },
+  {
+   "name": "pymolview (Show PyMol view direction)",
+   "dir": "pymol_view",
+   "what": "Defines a ChimeraX command 'pymolview' that takes the 18 numbers printed by PyMOL's cmd.get_view() and sets the ChimeraX camera to the same view direction, so a structure can be shown from exactly the orientation used in PyMOL (e.g. to reproduce a collaborator's figure). It does not set clip planes or orthographic projection. README is at pymol_view/pymol_view.md. Old Chimera: not portable as-is (uses chimerax.geometry Place and session.main_view.camera); a Chimera edition would need a rewrite against Chimera's viewer API.",
+   "requests": [
+    "Set the ChimeraX view to match this PyMOL get_view output",
+    "Reproduce the orientation from my PyMOL session in ChimeraX"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/pymol_view/pymol_view.py  (registers 'pymolview'). Then, with the structure open, paste the 18 comma-separated get_view() values: 'pymolview 0.5338886380195618, 0.19662711024284363, 0.8223745822906494, 0.1919989138841629, 0.9189900159835815, -0.34437406063079834, -0.8234677910804749, 0.34175243973731995, 0.452885240316391, 0.0, 0.0, -177.17364501953125, -27.024879455566406, 14.224754333496094, -6.485495567321777, 139.68505859375, 214.6622314453125, -20.0'. README example structure: 'open 4v0x'.",
+   "kind": "python-script",
+   "commands": [
+    "open pymol_view.py",
+    "open 4v0x",
+    "pymolview 0.5338886380195618, 0.19662711024284363, 0.8223745822906494, 0.1919989138841629, 0.9189900159835815, -0.34437406063079834, -0.8234677910804749, 0.34175243973731995, 0.452885240316391, 0.0, 0.0, -177.17364501953125, -27.024879455566406, 14.224754333496094, -6.485495567321777, 139.68505859375, 214.6622314453125, -20.0"
+   ]
+  },
+  {
+   "name": "residues (find_residues Python helper)",
+   "dir": "residues",
+   "what": "A Python helper function find_residues(residues, chain_id_and_res_numbers) that returns the Residues matching a list of (chain_id, residue-number-list) pairs using a numpy mask. It is a faster alternative to parsing a very long `select` command when you have thousands of residue numbers (the page notes the ChimeraX 1.4 command parser is slow for that). It registers no command; it is for use inside your own Python scripts.",
+   "requests": [
+    "I have thousands of residue numbers per chain - pick those residues quickly from Python without building a giant select command",
+    "From Python, get residues 105 and 107 of chain A and 228 and 301 of chain B in model #1"
+   ],
+   "how": "No command is registered. Copy the function from https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/residues/residues.py into your script (or `open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/residues/residues.py` only defines it) and call it, per the page: `from chimerax.atomic import all_structures; structures = all_structures(session); chain_res = [('A', (105,107)), ('B', (228,301))]; residues = find_residues(structures[0].residues, chain_res)`. The command-line equivalent shown on the page (slower for thousands of residues) is `select #1/A:105,107/B:228,301`, or from Python `run(session, 'select #1/A:105,107/B:228,301').residues`.",
+   "kind": "python-script",
+   "commands": [
+    "select #1/A:105,107/B:228,301"
+   ]
+  },
+  {
+   "name": "bands (ribbon_bands)",
+   "dir": "ribbon_bands",
+   "what": "Defines a `bands` command that paints alternating colored rings (bands) of a chosen color on the ribbon of every helix residue in a residue spec by setting per-vertex ribbon colors. It is a demonstration for helices only and the banding is not saved in sessions. Wanted when a figure needs striped/banded helix ribbons.",
+   "requests": [
+    "Draw red stripes on the helices of model #1",
+    "Put colored bands on the ribbon of each helix residue"
+   ],
+   "how": "`open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/ribbon_bands/ribbon_bands.py` registers `bands <residues> [color]` (default color white). Example from the page: `open 9efj`, `color #1 yellow`, `bands #1 red`.",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/ribbon_bands/ribbon_bands.py",
+    "open 9efj",
+    "color #1 yellow",
+    "bands #1 red"
+   ]
+  },
+  {
+   "name": "volume rotate90 (rotate_90)",
+   "dir": "rotate_90",
+   "what": "Adds a `volume rotate90` command that makes a copy of a map whose 3D data array is rotated 90 degrees about the z axis (x axis becomes y, y axis becomes negative x), so the rotation is baked into the data and survives saving to a new map file - simply rotating the model in the graphics does not change the array. Useful to reorient a map (e.g. one with 5-fold dihedral symmetry) for external analysis software. Requires ChimeraX 1.4 or newer; the result is a new model.",
+   "requests": [
+    "Rotate this EM map 90 degrees about z and save the rotated map as an MRC file",
+    "Reorient my map so the x axis becomes the y axis and write it out"
+   ],
+   "how": "`open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/rotate_90/rotate_90.py` then `volume rotate90 #1`; the rotated copy appears as a new model (e.g. #2) which you save with `save 1080_rotated.mrc model #2`.",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/rotate_90/rotate_90.py",
+    "open 1080 from emdb",
+    "volume rotate90 #1",
+    "save 1080_rotated.mrc model #2"
+   ]
+  },
+  {
+   "name": "Rotation slabs (rotation_slabs)",
+   "dir": "rotation_slabs",
+   "what": "A command-only recipe (no Python) for depicting the rotation relating two monomers of a dimer with `measure rotation ... showSlabs true`: open two copies of the structure, superimpose one monomer of copy 2 onto the other monomer of copy 1 with matchmaker, then measure the rotation between the copies to display rotation-axis slabs. The example uses the two 25S rRNAs (chains Aa and 1b) of PDB 6t83 from two touching ribosomes seen in cryoET; other chains are deleted and copy 2 hidden to simplify the picture.",
+   "requests": [
+    "Show the rotation relating the two monomers of this dimer using slabs",
+    "Measure and display the rotation axis between chain Aa and chain 1b of 6t83"
+   ],
+   "how": "No .py file; run the commands from https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/rotation_slabs/slabs.md: `open 6t83`, `open 6t83`, `mm #2/Aa to #1/1b pairing ss matrix nucleic`, `measure rotation #2 to #1 showslabs true`, then optionally `delete ~/Aa,1b` and `hide #2 model`.",
+   "kind": "other",
+   "commands": [
+    "open 6t83",
+    "open 6t83",
+    "mm #2/Aa to #1/1b pairing ss matrix nucleic",
+    "measure rotation #2 to #1 showslabs true",
+    "delete ~/Aa,1b",
+    "hide #2 model"
+   ]
+  },
+  {
+   "name": "rrdist",
+   "dir": "rrdist",
+   "what": "Defines an `rrdist` command that computes all pairwise C-alpha (principal atom) distances between residues of a structure, writes them to a JSON file in AlphaFold PAE format, and displays them as a heatmap in the ChimeraX AlphaFold PAE plot (black lines separate chains; residues run from the upper-left corner; dragging on the plot colors ribbon residues). The page says this stands in for the old Chimera 'RR Distance Maps' tool, which has no ChimeraX equivalent; it suggests `delete ~protein` first to drop non-protein chains.",
+   "requests": [
+    "Show a residue-residue distance map (contact-map style heatmap) for model #1",
+    "Plot the CA-CA distance matrix of this protein like Chimera's RR Distance Maps tool"
+   ],
+   "how": "`open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/rrdist/rrdist.py` then `rrdist <structure> <json-file>`, e.g. `rrdist #1 dist.json`; the plot opens automatically (internally it runs `alphafold pae #1 file dist.json`).",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/rrdist/rrdist.py",
+    "open 8q5h",
+    "delete ~protein",
+    "rrdist #1 dist.json"
+   ]
+  },
+  {
+   "name": "savepaeplot (save_pae_plot)",
+   "dir": "save_pae_plot",
+   "what": "Defines a `savepaeplot` command that saves an image file of the open AlphaFold predicted aligned error (PAE) plot belonging to a given structure, because the PAE plot only has a 'Save image' menu entry and no command. Wanted when scripting the export of many (e.g. 1000) PAE plot images.",
+   "requests": [
+    "Save the PAE plot for model #1 as a PNG file",
+    "Script saving PAE plot images for a large batch of AlphaFold predictions"
+   ],
+   "how": "`open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/save_pae_plot/savepaeplot.py`, open the prediction and its PAE plot, then `savepaeplot <structure> <image-path>`, e.g. `savepaeplot #1 Q9H255_pae.png`.",
+   "kind": "command",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/save_pae_plot/savepaeplot.py",
+    "open Q9H255 from alphafold",
+    "alphafold pae #1 uniprotId Q9H255",
+    "savepaeplot #1 Q9H255_pae.png"
+   ]
+  },
+  {
+   "name": "selectbox (select_box)",
+   "dir": "select_box",
+   "what": "Defines a `selectbox` command that selects the atoms (and their intra-bonds) lying inside the xyz bounds of the currently displayed subregion of a map, converting to map coordinates first in case the model or map was moved, and logs how many atoms were selected. Useful to grab exactly the atoms inside a boxed map region set with `volume ... region`.",
+   "requests": [
+    "Select all atoms of model #1 that fall inside the displayed region of map #2",
+    "Which atoms are inside the map subregion box I set?"
+   ],
+   "how": "`open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/select_box/select_box.py` (the page's example writes `open selectbox.py`, but the file in the repo is select_box.py) then `selectbox <atoms> inMap <map>`, e.g. `selectbox #1 inMap #2`; the .py header abbreviates the keyword as `selectbox #1 in #2`.",
+   "kind": "command",
+   "commands": [
+    "open 7k3v",
+    "open 22657 from emdb",
+    "volume #2 region 184,164,261,246,247,396",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/select_box/select_box.py",
+    "selectbox #1 inMap #2"
+   ]
+  },
+  {
+   "name": "Shadows with a transparent surface (shadows)",
+   "dir": "shadows",
+   "what": "A command-only recipe for making 'soft' lighting (shadows cast from all directions) look right with a transparent map surface: transparent surfaces do not cast shadows by default (so they do not self-shadow and look flat), fixed with `material transparentCastShadows true`; an atomic model inside the surface then looks black, fixed with `lighting model #2 multishadow false`; `light full` (adds a spot light) and `graphics silhouettes true` improve the look further.",
+   "requests": [
+    "My transparent map surface looks flat and horrible with soft lighting - make it cast shadows",
+    "The atomic model inside my transparent surface is black under ambient lighting - fix it"
+   ],
+   "how": "No .py; run the ChimeraX commands from https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/shadows/shadows.md. Key commands: `material transparentCastShadows true` and `lighting model #2 multishadow false`.",
+   "kind": "other",
+   "commands": [
+    "open 1080 from emdb",
+    "light soft",
+    "volume level 0.6",
+    "open 1grl",
+    "preset cylinders",
+    "fitmap #2 in #1",
+    "transparency #1 80",
+    "material transparentCastShadows true",
+    "lighting model #2 multishadow false",
+    "graphics silhouettes true",
+    "set bgColor white",
+    "light full"
+   ]
+  },
+  {
+   "name": "rebuildsidechains / addedatoms / atommotion (sidechains)",
+   "dir": "sidechains",
+   "what": "Three scripts, each defining one command. `rebuildsidechains` runs `swapaa` on every specified residue with its own amino acid type so truncated side chains are replaced with complete ones from the rotamer library (about 0.7 s per residue; original side-chain positions are lost; residues not in the Dunbrack library such as SEP fail; if a density map is open swapaa fits to density instead, which the page found gave worse results with more clashes). `addedatoms` selects atoms in one structure that are absent from another (matched by chain, residue number, atom name) to see what was added, or with the models swapped, deleted. `atommotion` sets an atom attribute `motion` equal to the distance between corresponding atoms of two structures, so you can select atoms that moved more than a cutoff.",
+   "requests": [
+    "Fill in the missing side-chain atoms of this low-resolution PDB model",
+    "Which atoms did the rebuild add, and which moved more than 2 Angstroms from their original positions?"
+   ],
+   "how": "`open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/sidechains/rebuild_sidechains.py` then `rebuildsidechains #1` (the page abbreviates it as `rebuild #1`). To compare with the original, open a second copy, then `open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/sidechains/added_atoms.py` and `addedatoms #2 to #1` (page: `added #2 to #1`; `added #1 to #2` reports deleted atoms). Then `open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/sidechains/atom_motion.py`, `atommotion #2 to #1`, and `select #1 @@motion>2`.",
+   "kind": "command",
+   "commands": [
+    "open 6o9z",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/sidechains/rebuild_sidechains.py",
+    "rebuild #1",
+    "open 6o9z",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/sidechains/added_atoms.py",
+    "added #2 to #1",
+    "added #1 to #2",
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/sidechains/atom_motion.py",
+    "atommotion #2 to #1",
+    "select #1 @@motion>2",
+    "open 0664 from emdb"
+   ]
+  },
+  {
+   "name": "Smooth MD trajectory (smooth_md)",
+   "dir": "smooth_md",
+   "what": "A Python script (registers no command) that rewrites the coordinate sets of every open multi-frame trajectory with weighted averages over neighboring frames (window = 2 frames on each side with triangular weights; stride = 1, raise it to use only every Nth frame and save memory on large trajectories) so playback motions look smoother. Edit `window` and `stride` at the top of the file before running. Tested with a ChimeraX 0.91 daily build (July 2019); usage was described in a chimerax-users mailing list message.",
+   "requests": [
+    "My MD trajectory playback is jittery - smooth the motions by averaging over nearby frames",
+    "Average each frame with its neighbours to make a smoother movie of this trajectory"
+   ],
+   "how": "Open the trajectory first, then `open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/smooth_md/smooth_md.py` (or download it, edit window/stride, and `runscript /path/to/smooth_md.py`); it runs immediately on all open trajectory structures and defines no command.",
+   "kind": "python-script",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/smooth_md/smooth_md.py",
+    "runscript smooth_md.py"
+   ]
+  },
+  {
+   "name": "Spherical harmonic surface (ylm.py)",
+   "dir": "spherical_harmonics",
+   "what": "Python that builds triangulated surfaces whose radius is the real part of a spherical harmonic Y(l=2, m=0,1,2), colored red where the radius is positive and blue where negative; opening it creates three such surfaces side by side. Useful for depicting orientation-dependent quantities such as NMR dipole-dipole coupling tensors on bonded H-C atoms (written for ChimeraX 1.0 using chimerax.* modules, so it does not run in legacy Chimera).",
+   "requests": [
+    "Show me spherical harmonic (l=2) surfaces as 3D shapes in ChimeraX",
+    "Draw an NMR dipolar coupling tensor / Ylm lobe as a surface colored by sign"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/spherical_harmonics/ylm.py — the script registers no command; opening it immediately creates three Surface models (Y20 at the origin, Y21 translated to x=1, Y22 to x=2). To use other harmonics or positions, edit the radius function or the move=translation((x,y,z)) argument in the file and open it again (or use runscript ylm.py). The page also notes several surfaces can be merged into one model with chimerax.surface.combine_geometry_vntc.",
+   "kind": "python-script",
+   "commands": [
+    "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/spherical_harmonics/ylm.py"
+   ]
+  },
+  {
+   "name": "spots — quantify spots in 3D microscopy",
+   "dir": "spots",
+   "what": "Adds a `spots` command that runs Segger watershed segmentation on a map thresholded at mean + N standard deviations and logs (and optionally writes to CSV) each spot's total, mean and max intensity, number of grid points, and grid x,y,z of its maximum. For counting and quantifying fluorescent puncta/foci in 3D light microscopy (or blobs in any volume), including batch processing of hundreds of image files.",
+   "requests": [
+    "Count and measure the bright spots (puncta) in this 3D fluorescence image and save them to a CSV",
+    "Segment the foci in channel 2 of every cell_*.tif in this folder and write a CSV and an image for each"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/spots/spots.py registers `spots <map> [threshold N] [out file.csv] [smoothingSteps N]`, e.g. `spots #1 threshold 10` (threshold = number of standard deviations above the mean map value; smoothingSteps, default 0, merges nearby spots, typical value 3; the full keyword names in the code are thresholdSdev and outputCsv, which the page abbreviates as threshold and out/output). For batch processing put the per-file commands in a .cxc (https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/spots/spots.cxc) and run `open spots.cxc forEachFile cell_*.tif`; $file expands to each file name. The command drives the Segger Segment Map tool (menu Tools / Volume Data / Segment Map), which has no command-line equivalent, so the Python is the only way to script it.",
+   "kind": "command",
+   "commands": [
+    "open 34550 from emdb",
+    "open spots.py",
+    "spots #1 threshold 10",
+    "spots #1.2 threshold 10 output spots.csv",
+    "open spots.cxc forEachFile cell_*.tif",
+    "spots #1.2 threshold 10 out \"$file.csv\"",
+    "volume #1.1 style surface color lightgray transparency 0.8",
+    "hide #1.2-4 model",
+    "view",
+    "save \"$file.png\""
+   ]
+  },
+  {
+   "name": "surfcolor — color surface vertices from a file",
+   "dir": "surface_color",
+   "what": "Adds a `surfcolor` command that colors each vertex of a surface model using one floating-point value per line read from a text file (line count must equal the surface's vertex count), through an optional palette (default: red-white-blue rescaled to the value range). For mapping results of external or custom surface analysis onto a surface such as an imported STL mesh.",
+   "requests": [
+    "Color this surface using per-vertex values I computed in my own script and saved to a text file",
+    "Map a custom scalar field from a file onto my STL mesh with a light-blue-to-gold palette"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/surface_color/surface_color.py registers `surfcolor <surface> values <file> [palette <colormap>]`, e.g. `surfcolor #1 values vertex_values.txt palette -180,lightblue:128.5,lightblue:128.6,gold` (`values` is the abbreviated valuesFile keyword). Example data from the page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/surface_color/example_surface.stl and https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/surface_color/vertex_values.txt (vertex value = polar angle, -180 to 180 degrees).",
+   "kind": "command",
+   "commands": [
+    "open surface_color.py",
+    "cd ~/Downloads",
+    "open example_surface.stl",
+    "surfcolor #1 values vertex_values.txt palette -180,lightblue:128.5,lightblue:128.6,gold"
+   ]
+  },
+  {
+   "name": "Surface-exposed hydrophobic residues",
+   "dir": "surface_residues",
+   "what": "A command sequence (no script) that selects and colors residues that are both solvent-exposed and hydrophobic: `measure sasa` creates a residue `area` attribute, `defattr` assigns a hydrophobicity scale (e.g. Kyte-Doolittle) from a file, and a single `select` intersects the two attributes; the result agrees well with `mlp` surface coloring. Useful for spotting hydrophobic patches on a protein surface, e.g. candidate binding or membrane-contacting sites.",
+   "requests": [
+    "Highlight the hydrophobic residues that are exposed on the surface of my protein",
+    "Select residues with SASA above 25 and positive Kyte-Doolittle hydrophobicity and color them magenta"
+   ],
+   "how": "No file to open (page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/surface_residues/surface_residues.md). Download a hydrophobicity defattr file such as kdHydrophobicity.txt from the ChimeraX defattr example files (http://rbvi.ucsf.edu/chimerax/docs/user/commands/defattr.html#examples), then run: `open 6g2j`, `measure sasa protein`, `defattr ~/Desktop/kdHydrophobicity.txt`, `select ::area>25 & ::kdHydrophobicity>0.0`, `surface protein enclose protein`, `color sel magenta`. Experiment with the area and hydrophobicity cutoffs and the scale used; compare with `mlp surfaces #1.3`. (The page's images are labelled 6gj2 but its commands say 6g2j; copied as written.)",
+   "kind": "command",
+   "commands": [
+    "open 6g2j",
+    "measure sasa protein",
+    "defattr ~/Desktop/kdHydrophobicity.txt",
+    "select ::area>25 & ::kdHydrophobicity>0.0",
+    "surface protein enclose protein",
+    "color sel magenta",
+    "mlp surfaces #1.3"
+   ]
+  },
+  {
+   "name": "Align map symmetry axis with z (symbox)",
+   "dir": "symbox",
+   "what": "A command sequence (no script) that finds a C2 map's symmetry axis by fitting a 180-degree-rotated copy onto the original, tilts the map so that axis lies along z, centers it on a new grid, resamples it there and saves the aligned map. For reorienting a cryo-EM map whose symmetry axis is off the x/y/z axes; the page warns that resampling degrades map quality and recommends having the reconstruction software put the axis on z instead.",
+   "requests": [
+    "My C2 map's symmetry axis is along a diagonal; make a new map with the axis along z",
+    "Rotate and resample this density map so its 2-fold axis points along z and save it as MRC"
+   ],
+   "how": "No file to open (page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/symbox/symbox.md); run the commands from the page, substituting your own numbers. `fit #2 in #1` logs the axis (vx,vy,vz) (example: Axis -0.72099508 -0.69293944 0.00101434); tilt about the perpendicular in-plane axis -vy,vx,0 by acos(vz) degrees (89.942 in the example) with `turn 0.69293944,-0.72099508,0 89.942 models #2 coordinateSystem #1`. `measure center #2` logs the center of mass (example: 8.81, -11.79, -28.81), which is moved to the new grid's origin with `move -8.81,11.79,28.81 models #2 coordinateSystem #3` before `volume resample #2 onGrid #3` and `save aligned.mrc models #4`. The page notes there is no dedicated ChimeraX command for this realignment.",
+   "kind": "command",
+   "commands": [
+    "open 7qa1",
+    "molmap #1 3 gridSpacing 0.8",
+    "close #1",
+    "volume copy #2",
+    "turn 1,1,0 180 model #2",
+    "fit #2 in #1",
+    "turn 0.69293944,-0.72099508,0 89.942 models #2 coordinateSystem #1",
+    "volume new size 256,256,256 gridSpacing 0.5 origin 0,0,0",
+    "volume #3 showOutlineBox true",
+    "volume #3 originIndex 127.5,127.5,127.5",
+    "measure center #2",
+    "move -8.81,11.79,28.81 models #2 coordinateSystem #3",
+    "volume resample #2 onGrid #3",
+    "save aligned.mrc models #4"
+   ]
+  },
+  {
+   "name": "volume variance — per-voxel variance of maps",
+   "dir": "variance",
+   "what": "Adds a `volume variance` command that computes a new map whose value at each grid point is the variance across a series of same-sized maps; coloring one of the original maps by this variance map with `color sample` highlights where the maps differ most. For visualizing conformational differences between cryo-EM maps of different states (example: polyamine transporter EMD-24220 vs EMD-24221). Needs ChimeraX 1.2.5 or newer.",
+   "requests": [
+    "Show me where two cryo-EM maps of different conformations differ the most",
+    "Compute a variance map from a series of maps and color one map by it"
+   ],
+   "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/variance/variance.py registers `volume variance <maps>`, e.g. `volume variance #1,2` or `volume variance #1-5` (all maps must have identical grid sizes; the new map is named 'variance of N maps'). Then color an original map by it: `color sample #2 map #3 palette 0,white:0.02,red`.",
+   "kind": "command",
+   "commands": [
+    "open ~/Desktop/variance.py",
+    "open 24220 24221 from emdb",
+    "volume variance #1,2",
+    "color sample #2 map #3 palette 0,white:0.02,red",
+    "hide #1,3 models",
+    "volume #2 step 1 level 0.2",
+    "volume variance #1-5"
+   ]
+  },
+  {
+   "name": "ViewDockX columns to model attributes (vdx_attrs.py)",
+   "dir": "vdx_attrs",
+   "what": "A Python script that, when opened, converts every column of the ViewDockX docking table into a registered structure (model) attribute named vdx_<column> (e.g. vdx_Energy_score) and logs which names are numeric and which are not, so docking scores can be used with `color byattribute` and other attribute-based commands. For coloring, selecting or ranking docked ligand poses by their scores from the command line.",
+   "requests": [
+    "Color my docked ligand poses by their docking energy score",
+    "Make the ViewDockX score columns available as attributes so I can select ligands below a score cutoff"
+   ],
+   "how": "With docking results already open in ViewDockX, `open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/vdx_attrs/vdx_attrs.py` runs immediately (it registers no command) and prints the generated attribute names in the log. Then use them with attribute commands; the page shows ligands colored by the generated vdx_Energy_score attribute via color byattribute, e.g. `color byattribute vdx_Energy_score` (this example line is built from the attribute name and command the page names, not copied verbatim from it).",
+   "kind": "python-script",
+   "commands": [
+    "open vdx_attrs.py",
+    "color byattribute vdx_Energy_score"
+   ]
+  },
+  {
+   "name": "Measure volume enclosed by a virus capsid",
+   "dir": "virus_volume",
+   "what": "A command sequence (no script) to measure the interior volume of a capsid from an atomic model: build the full capsid with `sym`, make a 12 Angstrom `molmap` so the shell has no holes, set a threshold with no inside-outside connections, color the outer layer with the pick-blob mouse mode, `surface splitbycolor` to separate inner and outer surfaces, and `measure volume` on the inner one (about 2.6 million cubic Angstroms for AAV PDB 1LP3). For estimating the packaging capacity or interior space of a virus or other closed shell.",
+   "requests": [
+    "How much volume is enclosed inside this virus capsid?",
+    "Measure the interior cavity volume of the AAV capsid from PDB 1LP3"
+   ],
+   "how": "No file to open (page: https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/virus_volume/virusvol.md); run the commands from the page. One GUI step is required between `volume #3 level 0.0676` and `surface splitbycolor #3.1`: the page says to choose the \"blob\" mouse mode under the Right Mouse toolbar tab and right-click (command key + trackpad on Mac) the volume surface to color its outer layer; that click cannot be done by a command (the mode is the Pick blobs / measure blobs mouse mode). Then `surface splitbycolor #3.1`, `hide #3,4.1 model`, `measure volume #4.2` (-> 2.6 million cubic Angstroms). The page clipped the view with the `clip` command for its image.",
+   "kind": "command",
+   "commands": [
+    "open 1LP3",
+    "sym #1 assembly 1 copies true",
+    "molmap #2 12",
+    "volume #3 level 0.0676",
+    "surface splitbycolor #3.1",
+    "hide #3,4.1 model",
+    "measure volume #4.2"
+   ]
+  }
+ ]
+}

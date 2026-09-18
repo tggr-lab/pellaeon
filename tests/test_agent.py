@@ -135,8 +135,8 @@ def test_error_feedback_and_stop():
     ex = FakeExecutor(fail={"colr #1 red"})
     agent = Agent(prov, ex)
     res = agent.run_turn("color it red")
-    # after MAX_CONSECUTIVE_ERRORS failures the agent asks the model to stop and explain
-    assert ex.ran.count("colr #1 red") == MAX_CONSECUTIVE_ERRORS
+    # the identical command is refused after its first failure; after MAX_CONSECUTIVE_ERRORS the agent stops
+    assert ex.ran.count("colr #1 red") == 1
     assert "could not" in res.reply
     sys_msgs = [m for m in agent.conversation if m.role == "user" and m.text().startswith("(system)")]
     assert len(sys_msgs) == 1
@@ -245,7 +245,7 @@ def test_complaint_adds_note_with_previous_commands():
     agent = Agent(prov, FakeExecutor())
     agent.run_turn("color by aa type")
     agent.run_turn("you did not")
-    ctx = agent.conversation[-4].meta["context"] if agent.conversation[-4].role == "user" else ""
+    ctx = next(m.meta.get("context", "") for m in agent.conversation if m.role == "user" and m.text() == "you did not")
     assert "<note>" in ctx and "color #1 byelement" in ctx and "Do not repeat" in ctx
 
 
@@ -275,3 +275,38 @@ def test_only_requests_get_a_hide_nudge():
     agent2 = Agent(prov2, FakeExecutor())
     agent2.run_turn("show only chain B")
     assert len(prov2.requests) == 2
+
+
+def test_cancel_closes_dangling_tool_calls():
+    import threading
+    from core.schema import ToolCall
+
+    class SlowExecutor(FakeExecutor):
+        def __init__(self, cancel):
+            super().__init__()
+            self.cancel = cancel
+
+        def run_commands(self, commands):
+            self.cancel.set()  # user presses Stop while the tool runs
+            return super().run_commands(commands)
+
+    cancel = threading.Event()
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open 4hhb"]}), ("get_state", {})]}, "never"])
+    agent = Agent(prov, SlowExecutor(cancel))
+    res = agent.run_turn("open 4hhb", cancel)
+    assert res.error == "cancelled"
+    # every tool call has a matching result before the '(stopped)' message
+    calls = [c.id for m in agent.conversation if m.role == "assistant" for c in m.tool_calls()]
+    results = [r.call_id for m in agent.conversation if m.role == "tool" for r in m.tool_results_list()]
+    assert set(calls) == set(results)
+
+
+def test_identical_failed_command_is_not_rerun():
+    bad = {"calls": [("run_commands", {"commands": ["colr red"]})]}
+    prov = ScriptedProvider([bad, bad, "gave up"])
+    ex = FakeExecutor(fail={"colr red"})
+    agent = Agent(prov, ex, config=AgentConfig(nudge_on_no_action=False))
+    agent.run_turn("color it red")
+    assert ex.ran.count("colr red") == 1
+    tr = json.loads(agent.conversation[4].tool_results_list()[0].content)
+    assert tr.get("repeated") and "already ran" in tr["error"]
