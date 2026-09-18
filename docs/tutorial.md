@@ -116,6 +116,10 @@ Works for domains, transmembrane regions, binding and active sites, glycosylatio
 - **Settings ▸ Advanced:** allow Python code (always asks first), let vision models see a screenshot of the view, Claude effort level, temperature, rebuild the documentation index.
 - **Privacy:** with Ollama nothing leaves your computer. With cloud providers your requests, the list of open models and selected residues, and relevant documentation passages are sent to that provider.
 
+## Using the classic Chimera (1.x)?
+
+Pellaeon Classic is a separate small program for old Chimera: unzip `pellaeon-classic.zip`, run `python run.py`, and the same panel opens in your browser. In its settings press **Launch Chimera** (or start Chimera's REST server yourself under Tools ▸ Utilities ▸ RESTServer and type the port). Requests work the same way; Pellaeon speaks Chimera's own command syntax there. Details in `classic/README.md`.
+
 ## Troubleshooting
 
 | Symptom | Fix |

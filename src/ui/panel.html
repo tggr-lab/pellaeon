@@ -116,6 +116,16 @@
         <div class="progress" id="pull-progress" hidden><div class="bar"></div><span class="ptext"></span></div>
       </div>
 
+      <div class="field" id="f-chimera" hidden>
+        <label>UCSF Chimera connection</label>
+        <div class="row">
+          <input id="s-chimera-port" type="number" placeholder="REST server port" style="max-width:160px">
+          <button id="btn-chimera-test" class="secondary">Test Chimera</button>
+          <button id="btn-chimera-launch" class="secondary" title="Start Chimera with its REST server and connect automatically">Launch Chimera</button>
+        </div>
+        <div class="row"><input id="s-chimera-path" placeholder="path to the chimera executable (auto-detected if empty)"></div>
+        <div class="hints" id="chimera-status">In Chimera: Tools ▸ Utilities ▸ RESTServer, then enter the port shown in its Reply Log. Or press Launch Chimera.</div>
+      </div>
       <div class="row wrap">
         <button id="btn-test" class="secondary">Test connection</button>
         <span id="test-result" class="hints"></span>

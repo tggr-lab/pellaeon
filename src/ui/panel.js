@@ -13,7 +13,17 @@
     const q = new URLSearchParams(params || {});
     if (payload !== undefined) q.set("payload", JSON.stringify(payload));
     q.set("_", String(++seq));
+    if (window.PELLAEON_HTTP) {
+      // classic edition: the panel runs in a normal browser and talks to a local server
+      fetch("/act/" + action + "?" + q.toString(), {method: "POST"}).catch((e) => toast("Lost connection to Pellaeon: " + e.message, "error"));
+      return;
+    }
     $("beacon").src = "pellaeon:" + action + "?" + q.toString();
+  }
+  if (window.PELLAEON_HTTP) {
+    const es = new EventSource("/events");
+    es.onmessage = (e) => { try { window.Pellaeon.push(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+    es.onerror = () => { $("status").textContent = "Reconnecting…"; };
   }
 
   // ---------------------------------------------------------------- helpers
@@ -383,6 +393,18 @@
   // ---------------------------------------------------------------- incoming
   const handlers = {
     init(m) {
+      state.edition = m.edition || "chimerax";
+      if (state.edition === "chimera") {
+        document.title = "Pellaeon Classic";
+        $("f-chimera").hidden = false;
+        $("s-chimera-port").value = m.chimera_port || "";
+        $("s-chimera-path").value = m.chimera_path || "";
+        $("chip-bind").hidden = true;
+        document.querySelectorAll("#chips button[data-text]").forEach((b) => { if (/variants|Domains/.test(b.textContent)) b.hidden = false; });
+        $("s-python").parentElement.hidden = true;
+        $("btn-export").title = "Export this chat's commands as a Chimera command file (.cmd)";
+        const sub = document.querySelector(".welcome .muted"); if (sub) sub.textContent = "Pellaeon Classic drives UCSF Chimera 1.x. Risky commands (close, delete, save…) ask first.";
+      }
       state.presets = m.presets || [];
       state.settings = m.settings || {};
       state.keyMasked = m.key_masked || "";
@@ -454,6 +476,7 @@
       el.className = "hints " + (m.finished ? "ok" : "");
     },
     history(m) { renderHistory(m.conversations || []); },
+    chimera_status(m) { const el = $("chimera-status"); el.textContent = m.text || ""; el.className = "hints " + (m.ok ? "ok" : "err"); if (m.port) $("s-chimera-port").value = m.port; },
     selection(m) { showSelection(m); },
     picked(m) { showSelection({spec: m.pick.spec, n: 1, name: m.pick.name, number: m.pick.number, chain: m.pick.chain, model: m.pick.model});
                 $("input").value = "Tell me about residue " + m.pick.number + " (" + m.pick.name + ") of chain " + m.pick.chain + " in " + m.pick.model + ". "; autosize(); $("input").focus(); },
@@ -502,6 +525,8 @@
     $("btn-models").onclick = () => { $("test-result").textContent = "Fetching models…"; $("test-result").className = "hints"; send("list_models", {}, settingsPayload()); };
     $("btn-pull").onclick = () => send("pull_model", {model: $("s-pull").value.trim(), base_url: $("s-url").value.trim()});
     $("btn-index").onclick = () => { $("index-result").textContent = "Rebuilding…"; send("rebuild_index"); };
+    $("btn-chimera-test").onclick = () => send("chimera_test", {port: $("s-chimera-port").value.trim()});
+    $("btn-chimera-launch").onclick = () => send("chimera_launch", {}, {chimera_path: $("s-chimera-path").value.trim()});
     $("btn-showkey").onclick = () => ($("s-key").type = $("s-key").type === "password" ? "text" : "password");
     $("key-link").onclick = (e) => { e.preventDefault(); if ($("key-link").href && $("key-link").href !== "#") send("open_url", {url: $("key-link").href}); };
     // delegated: copy / rerun buttons and help links inside the transcript

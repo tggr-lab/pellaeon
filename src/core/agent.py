@@ -41,6 +41,7 @@ class AgentConfig:
     compact_after_messages: int = COMPACT_AFTER_MESSAGES
     compact_after_tokens: int = COMPACT_AFTER_TOKENS
     nudge_on_no_action: bool = True   # re-prompt when an action request got words but no tool call
+    edition: str = "chimerax"          # "chimerax" or "chimera" (classic)
 
 
 NUDGE = ("(system) You did not call any tool, so NOTHING changed in ChimeraX. If the user asked you to change "
@@ -55,8 +56,11 @@ NUDGE_AFTER_ERROR = ("(system) The last command failed and you stopped without r
 NUDGE_ONLY = ("(system) The user said ONLY, but nothing was hidden. Hide everything else first, then show the part: "
               "e.g. run_commands([\"hide #1 target acs\", \"cartoon #1/B\", \"show #1/B atoms\"]) for 'only chain B', "
               "or [\"cartoon #1\", \"hide #1 atoms\"] for 'only the cartoon'. Do it now.")
+NUDGE_ONLY_CHIMERA = ("(system) The user said ONLY, but nothing was hidden. In classic Chimera hide everything first, then show "
+                      "the part: run_commands([\"~display #0\", \"~ribbon #0\", \"ribbon :.B\", \"display :.B\"]) for 'only chain B' "
+                      "(chain goes after the residue with a dot), or [\"~display #0\", \"ribbon #0\"] for 'only the ribbon'. Do it now.")
 _ONLY_RE = re.compile(r"\bonly\b|\bjust (the |chain )", re.I)
-_HIDE_RE = re.compile(r"^\s*(hide|~|cartoon hide|surface hide|close|delete)", re.I)
+_HIDE_RE = re.compile(r"^\s*(hide|~|cartoon hide|surface hide|close|delete|undisplay)", re.I)
 
 NUDGE_AA = ("(system) The user asked to color by amino-acid/residue TYPE. ChimeraX has no built-in scheme for that "
             "(byelement/bychain are wrong). Run: color #1:ala,val,ile,leu,met,phe,trp,pro,gly white ; "
@@ -132,7 +136,8 @@ class Agent:
         self._system = system_prompt or prompt_mod.build_system_prompt(
             directory=directory, gotchas=gotchas, recipes=recipes,
             allow_python=self.config.allow_python,
-            vision=self.config.vision and getattr(provider, "supports_vision", False))
+            vision=self.config.vision and getattr(provider, "supports_vision", False),
+            edition=self.config.edition)
 
     # ------------------------------------------------------------ public
     @property
@@ -170,7 +175,7 @@ class Agent:
                     elif outcome.get("ended_after_error"):
                         nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
                     elif _ONLY_RE.search(user_text) and not any(_HIDE_RE.match(c) for c in ran):
-                        nudge = NUDGE_ONLY     # "only X" without hiding the rest
+                        nudge = NUDGE_ONLY_CHIMERA if self.config.edition == "chimera" else NUDGE_ONLY
                     elif _AA_TYPE_RE.search(user_text) and ran and not any(_AA_CLASS_RE.search(c) for c in ran):
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
                 if not nudge:
@@ -296,8 +301,12 @@ class Agent:
         ran = self._commands_since(start_len)
         if _AA_TYPE_RE.search(user_text) and looks_like_action_request(user_text) \
                 and not any(_AA_CLASS_RE.search(c) for c in ran):
-            cmds = ["color #1:ala,val,ile,leu,met,phe,trp,pro,gly white", "color #1:ser,thr,asn,gln,cys,tyr green",
-                    "color #1:lys,arg,his blue", "color #1:asp,glu red"]
+            if self.config.edition == "chimera":
+                cmds = ["color white,a,r :ala,val,ile,leu,met,phe,trp,pro,gly", "color green,a,r :ser,thr,asn,gln,cys,tyr",
+                        "color blue,a,r :lys,arg,his", "color red,a,r :asp,glu"]
+            else:
+                cmds = ["color #1:ala,val,ile,leu,met,phe,trp,pro,gly white", "color #1:ser,thr,asn,gln,cys,tyr green",
+                        "color #1:lys,arg,his blue", "color #1:asp,glu red"]
             call = ToolCall(new_id(), "run_commands", {"commands": cmds})
             self.conversation.append(Message("assistant", [call]))
             res, _payload = self._dispatch(call)
@@ -471,7 +480,7 @@ class Agent:
                         usage = ""
                     if usage:
                         out["usage_of_%s" % word] = usage[:1500]
-                tip = suggest(failed[0].get("command", ""), failed[0].get("error", ""))
+                tip = suggest(failed[0].get("command", ""), failed[0].get("error", "")) if self.config.edition == "chimerax" else None
                 if tip:
                     out["suggestion"] = tip
                 out["hint"] = ("Run a corrected command now (follow the suggestion if there is one, else the usage). "

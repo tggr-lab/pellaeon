@@ -58,6 +58,10 @@ Try it with a fresh session: `open 4hhb`, then "color by chain", "show the ligan
 
 Pellaeon is a normal ChimeraX bundle (pure Python, no extra packages). It runs inside ChimeraX, so it can execute commands directly, read the log output and errors, and inspect the open models and selection. Documentation for the exact ChimeraX version you run is indexed on first launch from the docs that ship with ChimeraX, so the assistant always sees current syntax. Requests are answered by the model you choose through a small tool-calling loop: the model can run commands, check the session state, look up command syntax, search the docs, resolve proteins via UniProt, fetch UniProt annotations, or ask you a question.
 
+## Old Chimera (1.x)
+
+There is a classic edition that drives UCSF Chimera 1.x through its REST server from your browser: see [classic/README.md](classic/README.md). Same assistant, Chimera command syntax, one zip plus Python 3.
+
 ## Development
 
 ```

@@ -47,6 +47,9 @@ _CONFIRM_FIRST_WORD = {
     "snapshot": "writes an image file",
     "meeting": "opens a network connection to other computers",
     "system": "runs a system command",
+    "copy": "writes an image or file",
+    "write": "writes a structure file",
+    "export": "writes a scene file",
 }
 _CONFIRM_SUBCOMMANDS = {("log", "save"): "writes a file to disk"}
 _SAFE_URL_SUFFIXES = (".pdb", ".cif", ".mmcif", ".ent", ".mol2", ".sdf", ".mol", ".xyz", ".mrc", ".map", ".ccp4",

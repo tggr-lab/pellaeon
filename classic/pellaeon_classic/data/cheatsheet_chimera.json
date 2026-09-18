@@ -1,0 +1,1192 @@
+{
+ "2dlabels": {
+  "purpose": "This is useful for annotating images and movies. The labels exist in the X,Y plane (the plane of the screen) and do not have a \u201cdepth\u201d (Z-coordinate);",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ac": {
+  "purpose": "Accelerators are simple keyboard shortcuts for many operations in Chimera. Without arguments, the command ac simply enables use of accelerators. Accel",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "addaa": {
+  "purpose": "Addaa adds an amino acid of type res_type with sequence number res_number to adjacent_res, which must be the first or last residue of a chain. The res",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "addcharge": {
+  "purpose": "Model version] Model version] [method am1 | gas ]] Addcharge is the command-line implementation of Add Charge. It assigns atomic partial charges and A",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "addh": {
+  "purpose": "Addh adds hydrogens to molecules, as well as OXT atoms where missing from peptide C-termini. It is the command-line implementation of AddH. Chimera us",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "adjust": {
+  "purpose": "Side smaller | larger ] atom-spec The adjust command can be used to change a bond angle (valence angle) or bond length. See also: angle, bond, rotatio",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "alias": {
+  "purpose": "Alias assigns to name the specified wordlist. Subsequent occurrences of name (space- and/or semicolon-delimited) in commands will be replaced with wor",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "align": {
+  "purpose": "Align rotates and translates the view to place two atoms, the centroids of two sets of atoms, or the axis of a geometrical object along the line of si",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "angle": {
+  "purpose": "The angle command measures angles: formed by three atoms formed by four atoms (dihedral angle, or if dihedral false is specified, the angle between th",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "aniso": {
+  "purpose": "Aniso is the command-line implementation of Thermal Ellipsoids, which shows atomic anisotropic B-factors as ellipsoids, their principal axes, and/or t",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "apbs": {
+  "purpose": "Like the Chimera APBS tool, the apbs command runs APBS (Adaptive Poisson-Boltzmann Solver) electrostatics calculations. ** Requires installing APBS lo",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "aromatic": {
+  "purpose": "Aromatic controls the display of ring aromaticity: circle - circle outline disk - filled circle (default) off - no aromaticity display (same as using ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "atom_spec": {
+  "purpose": "Atoms can be specified in commands using: hierarchical specifiers zones built-in classifications attributes or combinations of these. Some commands ac",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "background": {
+  "purpose": "The background command sets the graphics window background to a single solid color, a gradient of multiple colors, or an image from a file. These sett",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "bond": {
+  "purpose": "Bond generates a bond between two specified atoms. The atom-spec must contain exactly two atoms, and the atoms must belong to the same model. (Connect",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "bondcolor": {
+  "purpose": "Bondcolor sets bond color independent of the color(s) of the flanking atoms. It is equivalent to color with the ,b specifier. Individual bond color (s",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "bonddisplay": {
+  "purpose": "The bonddisplay command controls how bond display depends on the display of flanking atoms. The mode can be: always or on (displayed regardless of whe",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "bondrepr": {
+  "purpose": "Bondrepr changes the draw modes of bonds according to style. Style can be: wire (as in the wire representation) stick (as in the stick representation)",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "bondzone": {
+  "purpose": "Bondzone specifies that points along any selected bonds (and Volume Tracer links) should be used in addition to any selected atoms (and Volume Tracer ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "cd": {
+  "purpose": "Cd changes the current working directory to path_name. If you are not familiar with the concept of directories and path names, see \"UNIX for Beginners",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "center": {
+  "purpose": "Center places the collective center of the atoms and/or surface pieces in atom-spec at the center of the screen. Surface models and their pieces can b",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "chain": {
+  "purpose": "The chain command draws pseudobonds between the specified atoms (unless they are directly connected by real bonds) and undisplays all other atoms. Thi",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "changechains": {
+  "purpose": "Changechains reassigns chain identifiers, where from-chains is an existing chain identifier or comma-separated list of identifiers and to-chains is th",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "chirality": {
+  "purpose": "Chirality reports R/S configurations in the Reply Log for one or more specified chiral-centers (atoms). The current implementation includes only the s",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "clip": {
+  "purpose": "Center true | false ] [ frames ] Clip can be used to move the hither (front) or yon (back) global clipping plane a specified distance from its current",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "cofr": {
+  "purpose": "If no arguments are supplied, cofr reports the coordinates of the current center of rotation in the laboratory frame of reference. These values are al",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "color": {
+  "purpose": "The color command sets colors of atoms, bonds, ring fill, ribbons, labels (3D), molecular surfaces, VDW surfaces, and nonmolecular surface models. The",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "colordef": {
+  "purpose": "Definitions color name red green blue red 1.0 0.0 0.0 green 0.0 1.0 0.0 blue 0.0 0.0 1.0 cyan 0.0 1.0 1.0 magenta 1.0 0.0 1.0 yellow 1.0 1.0 0.0 white",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "colorkey": {
+  "purpose": "Colorkey is the command-line implementation of Color Key, which shows the relationship between a coloring scheme and the values of a qualitative or qu",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "combine": {
+  "purpose": "The combine command combines multiple molecule models into a single model without repositioning the models or adding bonds. It can also be used to mak",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "conic": {
+  "purpose": "The conic command produces a space-filling rendering of the displayed molecule(s). The current orientation and coloring are retained. Atoms are depict",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "coordset": {
+  "purpose": "Steady atom-spec ] [ load true | false ] Steady atom-spec ] [ loop N ] [ load true | false ] Coordset displays the frames of a trajectory. See the vid",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "copy": {
+  "purpose": "Copy saves the contents of the graphics window as an image, either rendered directly by Chimera or raytraced. Background transparency in Chimera-rende",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "coulombic": {
+  "purpose": "Coulombic is the command-line implementation of Coulombic Surface Coloring, which colors surfaces by electrostatic potential calculated with Coulomb's",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "crystalcontacts": {
+  "purpose": "The crystalcontacts command checks for clashes between copies of a structure when they are positioned according to symmetry information in the input c",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "defattr": {
+  "purpose": "Defattr is the command-line implementation of Define Attribute, a tool for assigning attribute values to atoms, residues, and models. It is possible t",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "define": {
+  "purpose": "The define command calculates and displays geometric objects based on atomic coordinates. It is the command-line implementation of Axes/Planes/Centroi",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "delete": {
+  "purpose": "Delete removes the specified atoms and their bonds, like delete in the Atoms/Bonds section of the Actions menu. The removed items cannot be recovered ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "display": {
+  "purpose": "Display selectively displays the specified atoms. ~Display can be used to remove unwanted atoms from an existing display. See also: chain, show, surfa",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "distance": {
+  "purpose": "The distance command measures the distance between two items: two atoms two geometric objects created with define or Axes/Planes/Centroids one atom an",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "echo": {
+  "purpose": "Echo places the text argument in the status line and Reply Log. Echo may be used in scripts to send messages back to the user.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "export": {
+  "purpose": "The command export saves the graphical scene as a file named filename in the specified format (see limitations): X3D [.x3d] - X3D (default) ChimeraX [",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "fillring": {
+  "purpose": "Fillring controls whether and how rings (up to 6 members only) are shown as filled: thin - \u201cpaper\u201d thin regardless of atom/bond representation thick (",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "findclash": {
+  "purpose": "Findclash identifies interatomic clashes and contacts based on VDW radii and user-specified criteria. It is the command-line implementation of Find Cl",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "findhbond": {
+  "purpose": "",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "fitmap": {
+  "purpose": "The command fitmap fits atomic coordinates into a density map or one density map into another. It is the command-line implementation of Fit in Map, bu",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "fly": {
+  "purpose": "Fly uses cubic interpolation to smoothly traverse a series of positions previously named and saved with savepos. The command reset can also interpolat",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "focus": {
+  "purpose": "Focus adjusts the view and center of rotation based on displayed atoms, bonds, ribbon segments, and/or surfaces. Items that are invisible only because",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "frameatom_spec": {
+  "purpose": "",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "freeze": {
+  "purpose": "Freeze stops all motion on the screen. See also: move, rock, roll, section, select, thickness, turn, movie-related commands",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "getcrd": {
+  "purpose": "The getcrd command reports the coordinates of the specified atom(s) in the Reply Log. The xformed keyword indicates reporting the transformed coordina",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "hbonds": {
+  "purpose": "See the video mini-example. See also: addh, findclash, distance, PseudoBond Reader It is not necessary for hydrogen atoms to be present. All potential",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "help": {
+  "purpose": "Help displays information on the selected command, or if a full pathname to a file (beginning with a \"/\") is given instead, the contents of that file ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "hkcage": {
+  "purpose": "The hkcage command creates a mesh of hexagons and pentagons to represent the arrangement of proteins in an icosahedral virus capsid. The related tool ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "intersurf": {
+  "purpose": "Intersurf is the command-line implementation of the Intersurf tool, which creates and displays an interface surface between two specified sets of atom",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "invert": {
+  "purpose": "The invert command exchanges the positions of two substituents of an atom, potentially inverting a chiral center. Substituents of atoms that are not c",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ksdssp": {
+  "purpose": "Ksdssp is an implementation of the Kabsch and Sander algorithm for defining the secondary structure of proteins, as described in: W. Kabsch and C. San",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "label": {
+  "purpose": "Label displays labels for all atoms in atom-spec. ~Label removes atom labels. The default label information is atom name with any alternate location I",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "labelopt": {
+  "purpose": "Labelopt defines custom labels containing attribute values, alone or in combinations with each other and arbitrary text. For labeling with arbitrary t",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "leap": {
+  "purpose": "The leap command controls the mode of interaction between Chimera and a Leap Motion Controller, which uses two cameras to track finger and hand moveme",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "lighting": {
+  "purpose": "The lighting command provides access to settings in Lighting, including Shininess. It also allows changing the colors and specular contributions of th",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "linewidth": {
+  "purpose": "Linewidth changes the thickness of lines in the wire representation. The width is in pixels (default 1.0). Although any positive number can be given, ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "listen": {
+  "purpose": "Separate programs can control Chimera remotely via tools such as ReadStdin and RESTServer. The following commands are useful for sending information t",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "longbond": {
+  "purpose": "Stretches of residues lacking coordinates are indicated with pseudobonds named missing segments. The command ~longbond hides these pseudobonds, wherea",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "mask": {
+  "purpose": "The mask command extracts a volume data subregion bounded by surfaces (details...). All kinds of surface models can be used, but not surfaces in VRML ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "match": {
+  "purpose": "The match command performs least-squares fitting of specified atoms, moving the first set of atoms (by default, the entire models containing them) ont",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "matchmaker": {
+  "purpose": "",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "matrixcopy": {
+  "purpose": "Matrixcopy applies the transformation matrix (rotation and translation) of a model to another model. Models are indicated by integer model number, wit",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "matrixset": {
+  "purpose": "Matrixget writes the current transformation matrices to a file named filename. Matrixset reads matrices from the file named filename (in the format wr",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "mclip": {
+  "purpose": "The mclip command controls per-model clipping. See the video mini-example. See also: surface, sop cap, volume, clip, movie-related commands The model-",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "mcopy": {
+  "purpose": "Residues true | false ] The mcopy command copies display styles and other attributes from a source molecule model to one or more target molecule model",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "mda": {
+  "purpose": "The command mda (for MultiDomain Assembler) performs several steps toward modeling a multidomain protein: Obtains the protein sequence specified by in",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "measure": {
+  "purpose": "The measure command performs various calculations and sends results to the Reply Log. Possible values of property: area - calculate total area of an e",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "meshmol": {
+  "purpose": "The meshmol command creates a molecule model from a surface. This allows mesh display as cylindrical sticks, whereas surface model meshes can only be ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "minimize": {
+  "purpose": "Minimize is the command-line implementation of Minimize Structure; it energy-minimizes molecule models, optionally holding some atoms fixed. Minimizat",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "mmaker": {
+  "purpose": "Residue types and/or secondary structure information can be used to align the sequences. Fitting uses one point per residue: CA in amino acid residues",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "modelcolor": {
+  "purpose": "Modelcolor assigns color to molecule models at the model (or submodel) level. Atoms and ribbons will only show the model color when they lack color as",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "modeldisplay": {
+  "purpose": "Modeldisplay sets model-level display status (where \"model\" can indicate a submodel or a model that is not subdivided into submodels). If the atom-spe",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "molmap": {
+  "purpose": "The command molmap generates a density map from the specified atoms. Each atom is described as a 3D Gaussian distribution of width proportional to the",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "morph": {
+  "purpose": "Morphing has limitations and the command is difficult to use. The morph command has been improved significantly in ChimeraX, so users may want to take",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "move": {
+  "purpose": "Move translates the specified models by distance along the specified axis at each of a specified number of frames (default 1). If a distance is not gi",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "movie": {
+  "purpose": "Movie is the command-line implementation of Movie Recorder, which captures image frames from Chimera and assembles them into a movie file. See also: m",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "msc": {
+  "purpose": "Msc colors surfaces from Multiscale Models to match nearby atoms. It acts similarly to Color Zone, except that msc will infer symmetry-related atom po",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "msms": {
+  "purpose": "The command surfrepr (msms repr) changes the surface representation, whereas surfcat (msms cat) is used to specify sets or categories of atoms that sh",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "namesel": {
+  "purpose": "The namesel command saves the current selection with the specified name. Omitting name indicates listing the names of previously saved selections in t",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "neon": {
+  "purpose": "The neon command produces a three-dimensional representation of the displayed molecule(s) with appropriate shadows. Molecules can be depicted as space",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "nucleotides": {
+  "purpose": "The nucleotides command generates special representations of nucleotide bases and sugars; it is the command-line implementation of the Nucleotides too",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "objdisplay": {
+  "purpose": "The objdisplay command controls the model-level display of nonmolecular surface models and volume and VRML models. The command modeldisplay has the sa",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "open": {
+  "purpose": "The command open reads local files and fetches data from the Web. Chimera input files may contain structures to be displayed, commands or code to be e",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "pause": {
+  "purpose": "The pause command without arguments suspends command script execution. During the resulting pause, pressing the End or Esc key will abort script execu",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "pdb2pqr": {
+  "purpose": "As of 4/30/2020, the PDB2PQR web service from the National Biomedical Computation Resource (NBCR) has been discontinued. The pdb2pqr command will no l",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "pdbrun": {
+  "purpose": "Pdbrun causes command and cmd_args to be passed to the user's system shell for execution. A set of concatenated PDB files describing the current model",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "perframe": {
+  "purpose": "Width width] [ showCommands true|false ] The perframe command specifies operations to be executed at each subsequent display frame, until a specified ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "pipes": {
+  "purpose": "Pipes is the command-line implementation of PipesAndPlanks, which creates a VRML model of a protein showing helices as \u201cpipes\u201d (cylinders), strands as",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "play": {
+  "purpose": "The play command performs complex motions for creating animations. The operation can be: radial - move multiscale chain surfaces radially wave - move ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "preset": {
+  "purpose": "The preset command can be used to apply a preset or to list the available presets in the Reply Log. See also: alias, represent, ribrepr, ribscale, sur",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rainbow": {
+  "purpose": "The command rainbow colors successive residues, chains, models, or protein secondary structure elements over a specified color range. If atom-spec is ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ramachandran": {
+  "purpose": "The ramachandran command shows the distribution of peptide \u03c6,\u03c8 angles (a Ramachandran plot) for each specified model that contains protein. It is the ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rangecolor": {
+  "purpose": "Rangecolor shows the values of an attribute such as B-factor or hydrophobicity with color gradations. The attribute is specified by name (attr_name) a",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "read": {
+  "purpose": "Read executes a command file without automatically updating the display until the end. It is intended for executing scripts that accomplish some end r",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "represent": {
+  "purpose": "Represent changes the draw modes of the specified atoms (and the bonds connecting them) according to style. Style can be: wire (default) - wire repres",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "reset": {
+  "purpose": "Steady model ] [ moveModels other-models ] Reset restores models to a default position or one previously saved with savepos. See the video mini-exampl",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "resrenumber": {
+  "purpose": "Resrenumber assigns new residue numbers to residues with any atom in atom-spec. It is the command version of Renumber Residues. The specified residues",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ribbackbone": {
+  "purpose": "By default, when ribbon is shown, mainchain atoms (backbone atoms) are hidden and their locations are adjusted to fall on the ribbon. The ribbon resid",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ribbon": {
+  "purpose": "Ribbon shows a ribbon representation of proteins and nucleic acids (and chains of any other residue types for which a ribbon residue class has been de",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ribclass": {
+  "purpose": "Ribclass sets residue class: which atoms in a residue control ribbon path and which are considered part of the backbone. The class-name can be none, i",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ribcolor": {
+  "purpose": "Ribcolor is equivalent to color with the ,r specifier. Ribcolor assigns ribbon colors at the residue level. Even if only particular atoms are specifie",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ribinsidecolor": {
+  "purpose": "Ribinsidecolor specifies a color to be used for the insides of peptide/protein helix ribbon segments. Only a single ribbon inside color can be defined",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ribrepr": {
+  "purpose": "Ribrepr controls ribbon display style. Possible style settings include: flat or ribbon (no thickness) edged or sharp (thick with rectangular edges) ro",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ribscale": {
+  "purpose": "Ribscale controls which scaling (named set of secondary-structure-specific dimensions) is used for ribbons. Possible scaling settings include: Chimera",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "ribspline": {
+  "purpose": "Ribspline sets the method of ribbon path calculation: bspline or default - path smoothed over five successive residues, may not coincide exactly with ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rlabel": {
+  "purpose": "Rlabel displays labels for residues with any atom in atom-spec. ~Rlabel removes residue labels. The default label contents are residue name and specif",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rmfalias": {
+  "purpose": "The rmfalias command creates command-line specifiers for sets of nodes in Rich Molecular Format (RMF) currently open in RMF Viewer. This allows acting",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rmsd": {
+  "purpose": "The rmsd command evaluates the root-mean-square deviation (RMSD) between specified sets of atoms, without any fitting. The related command match perfo",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rna": {
+  "purpose": "The rna command builds rough but potentially large-scale models of single-stranded RNA, given base-pairing information. Nucleotides are laid out schem",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rock": {
+  "purpose": "Rock wags the specified models back and forth around a specified axis (default y) for a specified number of frames (default infinity). A full cycle of",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "roll": {
+  "purpose": "Tilt tilt ] Roll rotates the models by angle degrees (default 1.5) around a specified axis (default y) for a specified number of frames (default infin",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "rotation": {
+  "purpose": "The rotation command activates a torsion (makes a bond rotatable) or adjusts a previously activated torsion (rotates the bond). Active torsions are li",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "runscript": {
+  "purpose": "Runscript allows executing a Python script with command-line arguments from within Chimera. The script file is specified by script, either a pathname ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "save": {
+  "purpose": "Save saves a Chimera session. If session_name is omitted, a dialog for specifying the name and location will appear. A session file consists of Python",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "savepos": {
+  "purpose": "Savepos saves the current position and associates view_name with it. If view_name is missing, the name default is used. Saved positions can be restore",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "scale": {
+  "purpose": "Scale changes the size of the view by factor for the specified number of image update frames (default 1). The scaling factor must be positive; a scali",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "scene": {
+  "purpose": "The scene command saves and restores scenes. ** Scenes are under development and do not include all aspects of Chimera. Including scenes in saved sess",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "scolor": {
+  "purpose": "Scolor colors surface models and their caps. It is the command-line implementation of Surface Color and Color Zone. See also: color, colorkey, rangeco",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "section": {
+  "purpose": "Section moves both global clipping planes in the same direction by the specified distance. The distance is a value in the current display units, usual",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "segment": {
+  "purpose": "The command segment acts on segmentation models, which are surface models and associated information from Segger, and segmentation regions, surface pi",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "select": {
+  "purpose": "The select command has been enhanced in Chimera and now has dual functions. The newer function is selection. The older function is activation for moti",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "set": {
+  "purpose": "The following keywords indicate on/off toggles, where set keyword enables the option and ~set keyword or unset keyword disables it: autoColor - new co",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "setattr": {
+  "purpose": "The command setattr sets an attribute (existing or new) to a specified single value. The attribute may remain multi-valued, however, as the assignment",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "shape": {
+  "purpose": "The shape command creates a surface model of the specified shape. See also: define, mask, meshmol, ribbon, sop, geometric objects Examples: shape sphe",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "show": {
+  "purpose": "Show displays the specified atoms and removes all others in those models from the display. Models not involved in atom-spec will be unaffected. Note t",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "sleep": {
+  "purpose": "Sleep suspends command script execution for number_of_seconds. Such pauses will not be included in any movie that is being recorded, because no new fr",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "solvate": {
+  "purpose": "The solvate command adds solvent around molecule models using AmberTools. It is the command-line implementation of Solvate. Thanks to Wei Zhang for ad",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "sop": {
+  "purpose": "The sop command performs operations on one or more surface models. See also: surface, scolor, setattr, shape, define, mask, volume (surface and mesh o",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "split": {
+  "purpose": "The split command partitions a molecule model into separate submodels, by default according to chain. The model_number(s) argument can be one or more ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "start": {
+  "purpose": "Start invokes the Chimera tool named tool_name. The same pattern of capitalization and spaces (if any) as shown in the Tools menu should be used. Exam",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "stereo": {
+  "purpose": "Stereo controls the camera mode of the graphics window (details...). The command ~stereo restores mono viewing. See also: set, startup option --stereo",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "stop": {
+  "purpose": "Stop ends the current session without saving any of its contents. Whether exiting from Chimera requires confirmation can be controlled in the General ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "struts": {
+  "purpose": "Ribbon true|false ] other-options The struts command adds pseudobonds to a molecular structure to strengthen it for 3D printing. Pairs of atoms within",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "surface": {
+  "purpose": "Radius rad ] [ vertexDensity dens ] [ allComponents true | false ] [ visiblePatches N ] [ warnLarge true | false ] atom-spec The surface command calcu",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "surfcolor": {
+  "purpose": "The command surfcolor does not color surfaces. Commands that color surfaces include color, scolor, rainbow, rangecolor, and coulombic. Instead, surfco",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "surftransparency": {
+  "purpose": "The command surftransparency changes the transparency of a surface to the specified percent, where 0% is completely opaque and 100% is completely tran",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "swapaa": {
+  "purpose": "Swapaa replaces amino acid sidechains using information from a rotamer library; it is the command-line implementation of Rotamers. A residue can be ch",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "swapna": {
+  "purpose": "Every residue with at least one atom in atom-spec is changed to a new_type residue. New_type is a one-letter code representing one of the standard nuc",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "sym": {
+  "purpose": "Quicktime movie) The sym command generates symmetry-related copies of a molecule model. The command ~sym removes the copies. See also: crystalcontacts",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "system": {
+  "purpose": "System executes command under the system shell. Command cannot be an interactive program. If Chimera was started from a shell window, the output will ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "tcolor": {
+  "purpose": "The syntax of the tcolor command is the same as that of the color command. The atom-spec indicates which atoms (and/or associated labels or surfaces) ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "texture": {
+  "purpose": "Texture new creates a new texture with the given name. If num_colors is not given, the texture will be able to contain five distinct colors. If given,",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "thickness": {
+  "purpose": "Thickness changes the separation between the global clipping planes by the specified increment. The increment is a value in the current display units,",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "tile": {
+  "purpose": "Factor f ] [ independentRotation true|false ] [ viewAll true|false ] [ label true|false ] All true|false ] The command tile spreads models out into a ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "topography": {
+  "purpose": "The topography command creates a surface in which height represents the values in a single plane of volume data. The volume data should first be opene",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "transparency": {
+  "purpose": "The transparency command sets transparency to the specified percent, where 0% is completely opaque and 100% is completely transparent. It can affect a",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "turn": {
+  "purpose": "Tilt tilt ] Turn rotates models by angle degrees (default 1.5) around a specified axis (default y) for a specified number of frames (default 1). Turn ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "usageconventions": {
+  "purpose": "In the Usage sections of Chimera command manual pages: keywords to be taken literally are not italicized parameters that should be replaced with an ap",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "vdw": {
+  "purpose": "Vdw displays dot van der Waals surfaces for the atoms in atom-spec. The default radii depend on whether explicit hydrogen atoms are present. When ther",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "vdwdefine": {
+  "purpose": "Vdwdefine changes the VDW radii of the specified atoms. If a plus (+) or minus (\u2013) sign precedes value, the radii are increased or decreased, respecti",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "vdwdensity": {
+  "purpose": "Vdwdensity controls the dot density of the displayed surface. Value is the number of dots per 0.2 \u00c52, and the default is 5 (thus 25 dots/\u00c52). See also",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "version": {
+  "purpose": "Version shows copyright information and what version of Chimera is being used. The Chimera version number should be included in bug reports.",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "viewdock": {
+  "purpose": "The viewdock command starts ViewDock and loads the specified file of docking results (dock-file). Possible dock-type settings are: Dock 4, 5 or 6 (def",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "vina": {
+  "purpose": "Like the Chimera AutoDock Vina tool, the vina command runs single-ligand docking calculations with AutoDock Vina. ** Requires installing AutoDock Vina",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "volume": {
+  "purpose": "Volume is the command-line implementation of many features in Volume Viewer, a tool for visualizing volume data. See also: open, vop, vseries, mask, m",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "vop": {
+  "purpose": "The vop command edits volume data to create a new volume data set. The original map is undisplayed and the new map is displayed with the same threshol",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "vseries": {
+  "purpose": "The vseries command manipulates an ordered sequence of volume data sets. It is the command-line implementation of Volume Series. See also: vop morph, ",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "wait": {
+  "purpose": "Wait suspends command processing for the given number of wait_frames. It is used: \u2022 to enforce the ordered rather than simultaneous execution of comma",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "window": {
+  "purpose": "If no arguments are supplied, window turns off global clipping and adjusts the scale to include all displayed atoms, bonds, ribbon segments, and surfa",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "windoworigin": {
+  "purpose": "Windoworigin sets the location of the Chimera graphics window, where x and y are the pixel offsets of the top left corner of the window from the top l",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "windowsize": {
+  "purpose": "Windowsize adjusts the dimensions of the graphics window to the specified width and height in pixels, thus also controlling the dimensions of images f",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "write": {
+  "purpose": "Write saves the atomic coordinates of the specified molecule model in a file named filename of the specified format. The model_number is optionally pr",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "writesel": {
+  "purpose": "Writesel writes a parsable list of the currently selected (or unselected) items. It is the command-line implementation of Actions... Write List. The o",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ },
+ "zonesel": {
+  "purpose": "The zonesel command selects atoms and/or surface pieces in other-spec that are within a cutoff distance of the atoms and/or surface pieces in ref-spec",
+  "keywords": [],
+  "nl_queries": [],
+  "notes": "",
+  "related": ""
+ }
+}

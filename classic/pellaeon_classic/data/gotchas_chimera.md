@@ -1,0 +1,18 @@
+Classic Chimera command gotchas (Midas syntax; this is NOT ChimeraX):
+- Models are numbered from #0. Chain comes after the residue with a dot: `:159.A`, whole chain `:.A`. Never write `/A`.
+- Color syntax is `color <color>[,targets] <spec>`: `color red :10`, `color blue,r :.A` (r = ribbon, a = atoms, s = surface). `color byelement`, `color byhet`, `rainbow`, `rainbow chain`.
+- Show/hide atoms: `display :10` / `~display :10`; ribbons: `ribbon` / `~ribbon`; surfaces: `surface` / `~surface`; styles: `represent stick|sphere|bs|wire :10`. Everything for one model: `display #0`, `~display #0`.
+- Background: `background solid white`. Publication look: `preset apply publication 1` (also `preset apply interactive 1`). Silhouettes: `set silhouette`.
+- Spin: `turn y 1 360` (one full turn) or `roll y 1` (continuous); stop with `freeze`. Focus: `focus :10`; reset view: `reset`; fit all: `window`.
+- Selection: `select :10,20`, add: `select :30 add`? no; use `select :10,20,30`. Invert: `select invert`; clear: `~select`. Zone: `select :159 z<5`.
+- Distance: `distance :10.A@CA :20.A@CA` (two atoms). Labels: `rlabel :10` (residue), `label :10@CA` (atom); remove: `~rlabel`, `~label`.
+- Hydrogen bonds: `findhbond`; clashes: `findclash :10 test others`; contacts are `findclash ... overlap -0.4 hbond false`.
+- Transparency: `transparency 50 #0` (surfaces); ribbons/atoms via `color red,r` with alpha? use `transparency 50,r #0`.
+- Open by id: `open 1zik` (PDB), AlphaFold: `open https://alphafold.ebi.ac.uk/files/AF-P55085-F1-model_v4.pdb` (get the accession with resolve_protein).
+- Color by B-factor / pLDDT: `rangecolor bfactor,a,r 50 red 70 yellow 90 blue`. Secondary structure: `color red,r helix; color yellow,r strand; color gray,r coil`.
+- Align two models: `matchmaker #1 #0` (or `mm #1 #0`); RMSD only: `rmsd #0:1-100@CA #1:1-100@CA`.
+- Ligands and water: `display ligand; represent sphere ligand`, `~display solvent`, `delete solvent` (asks first).
+- Images: `copy file image.png png supersample 3` (asks first). Sessions: `save session.py` (asks first). Close: `close #0`, `close all` (asks first).
+- Info: `list models`, `list chains #0`, `list residues sel`, `list selection level residue`.
+- "Only X": hide everything then show the part: `~display #0; ~ribbon #0; ribbon :.B; display :.B`.
+- There is no `undo` in Chimera; reopen the structure or reverse the change explicitly.

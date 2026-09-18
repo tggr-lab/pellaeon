@@ -74,15 +74,32 @@ def recipes_text(recipes: List[Dict[str, Any]], max_items: int = 30) -> str:
     return "\n\n".join(out)
 
 
+IDENTITY_CHIMERA = IDENTITY.replace("built into UCSF ChimeraX", "connected to UCSF Chimera 1.x (the classic Chimera, NOT ChimeraX)") \
+    .replace("running ChimeraX commands through your tools", "running Chimera commands through your tools") \
+    .replace("open it with `open alphafold:ACCESSION`", "open it with the AlphaFold URL: `open https://alphafold.ebi.ac.uk/files/AF-ACCESSION-F1-model_v4.pdb`") \
+    .replace("Only ChimeraX (not old Chimera) command syntax counts.", "") \
+    + "\n- Use ONLY classic Chimera command syntax (Midas-style). ChimeraX syntax (`#1/A:10`, `set bgColor`, `cartoon`, `view`) does NOT work here."
+
+ATOMSPEC_CHIMERA = """Atom specification cheat-sheet (classic Chimera; models start at #0):
+- Models: #0, #1. Residues: :10, :10-50, :10,20,30. Chain goes AFTER the residue with a dot: :10.A, :.A (whole chain A). Atoms: @CA, @N,C,O. Combine: #0:159.A@CA.
+- Residue names: :LYS, :HOH. Built-in selectors: protein, nucleic acid, ligand, solvent, ions, helix, strand, backbone, sidechain (e.g. `select ligand`, `display ligand`).
+- Current selection: sel (e.g. `color red sel`). Zones: `select :159 z<5` (within 5 A of residue 159).
+- Ranges across chains need the chain: :10-50.A. Multi-chain models: a bare residue number matches every chain; include `.A`."""
+
+
 def build_system_prompt(directory: Optional[List[Tuple[str, str]]] = None,
                         gotchas: Optional[str] = None,
                         recipes: Optional[List[Dict[str, Any]]] = None,
                         allow_python: bool = False,
-                        vision: bool = False) -> str:
-    sections = [IDENTITY, ATOMSPEC, (gotchas or GOTCHAS_FALLBACK).strip()]
+                        vision: bool = False,
+                        edition: str = "chimerax") -> str:
+    if edition == "chimera":
+        sections = [IDENTITY_CHIMERA, ATOMSPEC_CHIMERA, (gotchas or "").strip()]
+    else:
+        sections = [IDENTITY, ATOMSPEC, (gotchas or GOTCHAS_FALLBACK).strip()]
     if directory:
-        sections.append("ChimeraX commands you can use (name: purpose). Use `command_usage` or `search_docs` for syntax details:\n"
-                        + command_directory_text(directory))
+        sections.append("%s commands you can use (name: purpose). Use `command_usage` or `search_docs` for syntax details:\n%s" % (
+            "Chimera" if edition == "chimera" else "ChimeraX", command_directory_text(directory)))
     if recipes:
         sections.append("Examples of requests and the commands that satisfy them (the user's real phrasing, typos included):\n\n"
                         + recipes_text(recipes))

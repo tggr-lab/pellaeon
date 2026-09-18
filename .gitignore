@@ -8,3 +8,4 @@ dist/
 secrets.json
 *.log
 .DS_Store
+classic/pellaeon_classic/data/chimera_docs/
