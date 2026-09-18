@@ -1,7 +1,7 @@
 """End-to-end test of the classic edition against a stub Chimera REST server (no real Chimera needed).
     python classic/tools/e2e_stub_test.py "open 1zik and color it red"
 """
-import json, os, subprocess, sys, threading, time, urllib.parse, urllib.request
+import json, os, re, subprocess, sys, threading, time, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 KNOWN = set(json.load(open(os.path.join(ROOT, "classic/pellaeon_classic/data/cheatsheet_chimera.json"))))
@@ -27,6 +27,8 @@ class Stub(BaseHTTPRequestHandler):
             STATE["models"].append(cmd.split()[1]); out = "Opened %s" % cmd.split()[1]
         elif word == "close":
             STATE["models"] = []; out = ""
+        elif re.search(r"#\d+/|\btarget\b|\bbgColor\b", cmd):
+            out = "Error: Invalid atom specifier or option (ChimeraX syntax?): %s" % cmd
         elif word in KNOWN or word in ("mm", "rlabel", "sel"):
             out = ""
         else:
