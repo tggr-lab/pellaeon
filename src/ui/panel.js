@@ -185,6 +185,7 @@
     const card = document.createElement("div");
     card.className = "card";
     const why = msg.reasons.map((r, i) => (r ? "• " + msg.commands[i] + " — " + r : "")).filter(Boolean).join("\n");
+    card.dataset.confirm = msg.confirm_id;
     card.innerHTML = "<b>Pellaeon wants to run these commands. OK?</b>" +
       (why ? '<div class="why">' + esc(why) + "</div>" : "") +
       "<textarea>" + esc(msg.commands.join("\n")) + "</textarea>" +
@@ -392,6 +393,10 @@
     tool_start(m) { toolStart(m.id, m.call_id, m.name, m.args); },
     tool_result(m) { toolResult(m); },
     confirm(m) { confirmCard(m); },
+    confirm_done(m) {
+      const card = document.querySelector('.card[data-confirm="' + m.confirm_id + '"]');
+      if (card) { card.classList.add("done"); card.querySelectorAll("button, textarea").forEach((b) => (b.disabled = true)); }
+    },
     question(m) { questionCard(m); },
     status(m) { $("status").textContent = m.text || ""; },
     busy(m) { setBusy(!!m.busy); },

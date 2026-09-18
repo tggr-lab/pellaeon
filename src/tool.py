@@ -160,6 +160,7 @@ class PellaeonTool(HtmlToolInstance):
         else:
             c["result"] = None
         c["event"].set()
+        self.push({"type": "confirm_done", "confirm_id": cid, "decision": decision})
 
     def _act_rerun(self, params, payload):
         cmds = payload if isinstance(payload, list) else [params.get("command", "")]

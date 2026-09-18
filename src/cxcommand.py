@@ -9,7 +9,7 @@ from __future__ import annotations
 from chimerax.core.commands import CmdDesc, RestOfLine, StringArg, register
 
 
-def pellaeon_cmd(session, request):
+def pellaeon_cmd(session, request=None):
     request = (request or "").strip()
     if not request:
         from .tool import show_panel
