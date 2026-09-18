@@ -137,8 +137,10 @@
     scrollDown();
   }
   function cmdRow(cmd, status, error, info) {
+    const word = (String(cmd).trim().replace(/^~/, "").match(/^[A-Za-z][A-Za-z0-9_]*/) || [""])[0].toLowerCase();
     return '<div class="cmd"><span class="dot ' + status + '"></span><code>' + esc(cmd) + '</code>' +
-      '<span class="actions"><button title="Copy" data-copy="' + esc(cmd) + '">copy</button><button title="Run again" data-rerun="' + esc(cmd) + '">rerun</button></span></div>' +
+      '<span class="actions"><button title="Copy" data-copy="' + esc(cmd) + '">copy</button><button title="Run again" data-rerun="' + esc(cmd) + '">rerun</button>' +
+      (word ? '<button title="ChimeraX documentation for ' + esc(word) + '" data-help="' + esc(word) + '">?</button>' : "") + '</span></div>' +
       (error ? '<div class="cmd-err">' + esc(error) + "</div>" : "") +
       (info && info.length ? '<div class="cmd-info">' + esc(info.join("\n")) + "</div>" : "");
   }
@@ -459,6 +461,7 @@
     $("btn-settings").onclick = () => showPage("settings");
     $("btn-history").onclick = () => showPage("history");
     $("btn-new").onclick = () => send("new_chat");
+    $("btn-export").onclick = () => send("export_cxc");
     $("btn-cancel-settings").onclick = () => showPage("chat");
     $("btn-cancel-history").onclick = () => showPage("chat");
     $("autonomy").onchange = () => send("set_autonomy", {mode: $("autonomy").value});
@@ -474,6 +477,7 @@
       const b = e.target.closest("button");
       if (b && b.dataset.copy) { send("copy", {text: b.dataset.copy}); return; }
       if (b && b.dataset.rerun) { send("rerun", {}, [b.dataset.rerun]); return; }
+      if (b && b.dataset.help) { send("open_url", {url: "help:user/commands/" + b.dataset.help + ".html"}); return; }
       const a = e.target.closest("a");
       if (a && a.href) { e.preventDefault(); send("open_url", {url: a.getAttribute("href")}); }
     });

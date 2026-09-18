@@ -262,6 +262,42 @@ class PellaeonTool(HtmlToolInstance):
             os.remove(path)
         self.push({"type": "history", "conversations": self._list_conversations()})
 
+    def _act_export_cxc(self, params, payload):
+        """Save every successfully executed command of this chat as a .cxc script."""
+        if not self.agent or not (self.agent.archived or self.agent.conversation):
+            self.push({"type": "toast", "kind": "warn", "text": "Nothing to export yet."})
+            return
+        lines = ["# ChimeraX command script exported by Pellaeon", ""]
+        for m in self.agent.archived + self.agent.conversation:
+            if m.role == "user" and not m.text().startswith("(system)"):
+                lines.append("# " + m.text().replace("\n", " ")[:200])
+            elif m.role == "tool":
+                for r in m.tool_results_list():
+                    if r.name != "run_commands":
+                        continue
+                    try:
+                        res = json.loads(r.content)
+                    except Exception:
+                        continue
+                    for x in res.get("results", []):
+                        if x.get("ok"):
+                            lines.append(x["command"])
+        if len(lines) <= 2:
+            self.push({"type": "toast", "kind": "warn", "text": "No commands were run in this chat."})
+            return
+        from Qt.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getSaveFileName(self.session.ui.main_window, "Export commands", "pellaeon_session.cxc",
+                                              "ChimeraX command script (*.cxc)")
+        if not path:
+            return
+        if not path.lower().endswith(".cxc"):
+            path += ".cxc"
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+        self.session.logger.info("Pellaeon: exported %d commands to %s (open it with: open %s)" % (
+            sum(1 for l in lines if l and not l.startswith("#")), path, path))
+        self.push({"type": "toast", "kind": "ok", "text": "Saved " + os.path.basename(path)})
+
     def _act_log(self, params, payload):
         self.session.logger.info("Pellaeon UI: %s" % params.get("text", ""))
 

@@ -77,3 +77,18 @@ def test_knowledge_cache_roundtrip():
         hits = k2.search("foo bar", 3)
         assert hits and hits[0]["command"] == "foo"
         assert len(k2.command_directory()) > 100
+
+
+def test_workflow_and_recipe_chunks_are_searchable():
+    from core.knowledge import workflow_chunks, recipe_library_chunks
+    wf = [{"name": "Color a surface by electrostatic potential", "goal": "show charge on the surface",
+           "requests": ["color the surface by charge", "electrostatics"], "commands": ["surface #1", "coulombic #1"],
+           "notes": "needs hydrogens for accuracy", "source": "https://x/tutorial.html"}]
+    rl = [{"name": "pocket", "dir": "pocket", "what": "Find pockets on a surface", "requests": ["find binding pockets"],
+           "how": "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/pocket/pocket.py", "kind": "command", "commands": ["pocket #1"]}]
+    idx = BM25Index()
+    idx.build(_chunks("color") + workflow_chunks(wf) + recipe_library_chunks(rl))
+    top = idx.search("color the surface by charge", 3)
+    assert top and top[0][1].kind == "tutorial"
+    top = idx.search("find binding pockets", 3)
+    assert top and top[0][1].kind == "recipe"

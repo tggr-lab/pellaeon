@@ -136,8 +136,19 @@ class ChimeraXExecutor:
             except Exception:
                 pass
             entries = _run_on_main_thread(self.session, lambda: registry_usage_entries(self.session))
+            workflows, recipe_library = [], []
+            for name, target in (("tutorials.json", "workflows"), ("recipe_library.json", "recipes")):
+                try:
+                    data = load_json(data_path(name))
+                    if target == "workflows":
+                        workflows = data.get("workflows", data) if isinstance(data, dict) else data
+                    else:
+                        recipe_library = data.get("recipes", data) if isinstance(data, dict) else data
+                except Exception:
+                    pass
             self._knowledge = Knowledge(pellaeon_dir("cache"), chimerax_version(), docs_dirs(),
-                                        cheatsheet=cheat, registry_entries=entries, log=self._log)
+                                        cheatsheet=cheat, registry_entries=entries,
+                                        workflows=workflows, recipe_library=recipe_library, log=self._log)
         return self._knowledge
 
     def ensure_index(self, progress=None):

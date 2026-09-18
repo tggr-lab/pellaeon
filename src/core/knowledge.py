@@ -365,6 +365,34 @@ def cheatsheet_chunks(cheatsheet: Dict[str, Dict[str, Any]]) -> List[Chunk]:
     return chunks
 
 
+def workflow_chunks(workflows: List[Dict[str, Any]]) -> List[Chunk]:
+    """Tutorial-derived workflows: name, goal, example requests, exact commands."""
+    chunks = []
+    for w in workflows:
+        cmds = [str(c) for c in (w.get("commands") or [])]
+        if not cmds:
+            continue
+        text = "Workflow: %s\nGoal: %s\nRequests: %s\nCommands:\n%s\n%s" % (
+            w.get("name", ""), w.get("goal", ""), "; ".join(w.get("requests") or []),
+            "\n".join(cmds[:25]), ("Notes: " + w["notes"]) if w.get("notes") else "")
+        first = cmds[0].split()[0].lower() if cmds[0].split() else "workflow"
+        chunks.append(Chunk(0, first, w.get("name", "workflow"), "tutorial workflow", text.strip()[:2500],
+                            w.get("source", "") or "help:user/index.html", "tutorial", 1.5))
+    return chunks
+
+
+def recipe_library_chunks(recipes: List[Dict[str, Any]]) -> List[Chunk]:
+    """Community recipes (RBVI chimerax-recipes): what they do and how to use them."""
+    chunks = []
+    for r in recipes:
+        text = "Recipe: %s\nWhat: %s\nRequests: %s\nHow to use: %s\n%s" % (
+            r.get("name", ""), r.get("what", ""), "; ".join(r.get("requests") or []), r.get("how", ""),
+            ("Example: " + " ; ".join(r.get("commands") or [])) if r.get("commands") else "")
+        chunks.append(Chunk(0, "recipe", r.get("name", "recipe"), "community recipe", text.strip()[:2000],
+                            "https://rbvi.github.io/chimerax-recipes/%s/" % r.get("dir", ""), "recipe", 1.2))
+    return chunks
+
+
 # ------------------------------------------------------------------ facade
 class Knowledge:
     """Builds/loads the index and answers searches. ChimeraX-agnostic."""
@@ -372,18 +400,23 @@ class Knowledge:
     def __init__(self, cache_dir: str, version_key: str, docs_dirs: List[str],
                  cheatsheet: Optional[Dict[str, Any]] = None,
                  registry_entries: Optional[Dict[str, str]] = None,
+                 workflows: Optional[List[Dict[str, Any]]] = None,
+                 recipe_library: Optional[List[Dict[str, Any]]] = None,
                  log=None):
         self.cache_dir = cache_dir
         self.version_key = re.sub(r"[^A-Za-z0-9_.-]", "_", version_key)
         self.docs_dirs = docs_dirs
         self.cheatsheet = cheatsheet or {}
         self.registry_entries = registry_entries or {}
+        self.workflows = workflows or []
+        self.recipe_library = recipe_library or []
         self.index: Optional[BM25Index] = None
         self.log = log or (lambda msg: None)
 
     @property
     def cache_path(self) -> str:
-        return os.path.join(self.cache_dir, "index-%s.json.gz" % self.version_key)
+        data_key = "%d-%d-%d-%d" % (len(self.cheatsheet), len(self.workflows), len(self.recipe_library), INDEX_FORMAT)
+        return os.path.join(self.cache_dir, "index-%s-%s.json.gz" % (self.version_key, data_key))
 
     def ensure(self, progress=None) -> BM25Index:
         if self.index is not None:
@@ -415,6 +448,8 @@ class Knowledge:
             if progress and i % 10 == 0:
                 progress(i + 1, len(files))
         chunks.extend(cheatsheet_chunks(self.cheatsheet))
+        chunks.extend(workflow_chunks(self.workflows))
+        chunks.extend(recipe_library_chunks(self.recipe_library))
         for name, usage in self.registry_entries.items():
             chunks.append(Chunk(0, name.split()[0], name, "usage", usage,
                                 "help:user/commands/%s.html" % name.split()[0], "registry", 1.2))
