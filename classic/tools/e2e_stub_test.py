@@ -40,7 +40,7 @@ if os.environ.get("PELLAEON_REAL_PORT"):   # test against a real Chimera REST se
 else:
     stub = HTTPServer(("127.0.0.1", 0), Stub); sport = stub.server_address[1]
     threading.Thread(target=stub.serve_forever, daemon=True).start()
-app = subprocess.Popen([sys.executable, "run.py", "--no-browser", "--port", "8799", "--chimera-port", str(sport)],
+app = subprocess.Popen([sys.executable, "run.py", "--console", "--no-browser", "--port", "8799", "--chimera-port", str(sport)],
                        cwd=os.path.join(ROOT, "dist", "pellaeon-classic"), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 time.sleep(2.0)
 B = "http://127.0.0.1:8799"

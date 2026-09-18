@@ -70,11 +70,17 @@ class ClassicPanel(panel_base.PanelBase):
         self.secrets = SecretStore(self.dirs["config"])
         self.executor = ChimeraRestExecutor(int(self.settings.chimera_port or 0), DATA_DIR, self.dirs["cache"], log=self.log)
         self.clients: List["queue.Queue"] = []
+        self.listeners: List[Any] = []      # callables(obj) for a native launcher window
         self.lock = threading.Lock()
         self._chimera_proc = None
 
     # ---- host hooks ----
     def push(self, obj: Dict[str, Any]) -> None:
+        for fn in list(self.listeners):
+            try:
+                fn(obj)
+            except Exception:
+                pass
         if not self._page_ready:
             self._queued.append(obj)
             return
@@ -91,6 +97,11 @@ class ClassicPanel(panel_base.PanelBase):
 
     def log(self, msg):
         print(msg, flush=True)
+        for fn in list(self.listeners):
+            try:
+                fn({"type": "log", "text": str(msg)})
+            except Exception:
+                pass
 
     def _act_copy(self, params, payload):
         self.push({"type": "toast", "kind": "warn", "text": "Select the command text and copy it (clipboard access is browser-only)."})
@@ -246,21 +257,45 @@ class Handler(BaseHTTPRequestHandler):
             self._send(500, str(e).encode("utf-8"), "text/plain")
 
 
-def main(argv=None):
+def start_server(port: int = 8765, chimera_port: int = 0):
+    """Create the panel and start the local web server in a background thread. Returns (server, panel, url)."""
     global PANEL
+    PANEL = ClassicPanel(chimera_port)
+    srv = None
+    for p in [port] + [port + i for i in range(1, 20)]:
+        try:
+            srv = ThreadingHTTPServer(("127.0.0.1", p), Handler)
+            port = p
+            break
+        except OSError:
+            continue
+    if srv is None:
+        raise RuntimeError("No free port near %d" % port)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, PANEL, "http://127.0.0.1:%d/" % port
+
+
+def main(argv=None):
     ap = argparse.ArgumentParser(description="Pellaeon Classic: plain-English control of UCSF Chimera 1.x")
     ap.add_argument("--port", type=int, default=8765, help="port for the panel web page (default 8765)")
     ap.add_argument("--chimera-port", type=int, default=0, help="port of Chimera's REST server (or set it in the panel)")
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--console", action="store_true", help="no launcher window; run in the terminal")
     args = ap.parse_args(argv)
-    PANEL = ClassicPanel(args.chimera_port)
-    srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    url = "http://127.0.0.1:%d/" % args.port
+    if not args.console:
+        try:
+            from pellaeon_classic.launcher import run_launcher
+        except Exception:  # no Tk available: console mode
+            run_launcher = None
+        if run_launcher is not None:
+            return run_launcher(port=args.port, chimera_port=args.chimera_port, open_browser=not args.no_browser)
+    srv, panel, url = start_server(args.port, args.chimera_port)
     print("Pellaeon Classic is running at %s  (Ctrl+C to stop)" % url, flush=True)
     if not args.no_browser:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     try:
-        srv.serve_forever()
+        while True:
+            time.sleep(3600)
     except KeyboardInterrupt:
         pass
 
