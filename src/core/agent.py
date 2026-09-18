@@ -14,7 +14,8 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
 from . import prompt as prompt_mod
-from .safety import AUTONOMY_AUTO, needs_confirmation, split_commands
+from .fixups import suggest
+from .safety import AUTONOMY_AUTO, first_word, needs_confirmation, split_commands
 from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens)
 from .tools import tool_specs
 from .providers.base import Provider, ProviderError
@@ -41,8 +42,23 @@ class AgentConfig:
     nudge_on_no_action: bool = True   # re-prompt when an action request got words but no tool call
 
 
-NUDGE = ("(system) You did not call any tool. If the user asked you to change something in ChimeraX, do it now "
-         "with run_commands (and only then describe the result). If it was just a question or a remark, answer it briefly.")
+NUDGE = ("(system) You did not call any tool, so NOTHING changed in ChimeraX. If the user asked you to change "
+         "something, do it now with run_commands and only then describe the result. Do not claim it was already done. "
+         "If it was just a question or a remark, answer it briefly.")
+
+NUDGE_AFTER_ERROR = ("(system) The last command failed and you stopped without running a corrected one, so the user's "
+                     "request is NOT done. Run the corrected commands now with run_commands (use the suggestion/usage in "
+                     "the error result). Do not describe commands in text without running them. Only if ChimeraX truly "
+                     "cannot do it, say so in one sentence.")
+
+_COMPLAINT_RE = re.compile(
+    r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
+    r"that'?s (wrong|not it)|wrong|not what i|still the same|no change|nope|it'?s not|isn'?t|aren'?t|are they though|"
+    r"are they thou|try (again|something else|a different)|didn'?t work)\b")
+
+
+def looks_like_complaint(text: str) -> bool:
+    return bool(_COMPLAINT_RE.search((text or "").strip().lower()))
 
 _QUESTION_STARTS = ("what", "why", "how", "which", "where", "when", "who", "is", "are", "do", "does", "did", "can",
                     "could", "should", "would", "explain", "tell", "describe", "list", "summarize", "summarise")
@@ -129,10 +145,14 @@ class Agent:
             if outcome.get("asked"):
                 self.total_usage.add(usage)
                 return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
-            if (self.config.nudge_on_no_action and not outcome.get("called_tool")
-                    and looks_like_action_request(user_text)):
-                # words but no action: make the model act (or say it cannot)
-                self.conversation.append(Message.user(NUDGE))
+            nudge = None
+            if self.config.nudge_on_no_action and looks_like_action_request(user_text):
+                if not outcome.get("called_tool"):
+                    nudge = NUDGE          # words but no action
+                elif outcome.get("ended_after_error"):
+                    nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
+            if nudge:
+                self.conversation.append(Message.user(nudge))
                 outcome = self._loop(tools, cancel, usage)
                 if outcome.get("asked"):
                     self.total_usage.add(usage)
@@ -158,6 +178,7 @@ class Agent:
         """Model -> tools -> model ... until a reply without tool calls. Returns flags."""
         consecutive_errors = 0
         called_tool = False
+        last_round_failed = False
         for _round in range(self.config.max_tool_rounds + 1):
             if cancel.is_set():
                 raise TurnCancelled()
@@ -167,7 +188,7 @@ class Agent:
             self.conversation.append(reply)
             calls = reply.tool_calls()
             if not calls:
-                return {"called_tool": called_tool, "asked": False}
+                return {"called_tool": called_tool, "asked": False, "ended_after_error": last_round_failed}
             results: List[ToolResult] = []
             asked = False
             any_error = False
@@ -187,6 +208,7 @@ class Agent:
                 any_error = any_error or res.is_error
                 results.append(res)
             self.conversation.append(Message.tool_results(results))
+            last_round_failed = any_error
             if asked:
                 return {"called_tool": called_tool, "asked": True}
             if any_error:
@@ -217,6 +239,15 @@ class Agent:
         if self.cb.on_status:
             self.cb.on_status(msg)
 
+    def _last_commands(self) -> List[str]:
+        for m in reversed(self.conversation):
+            if m.role == "assistant":
+                for c in m.tool_calls():
+                    if c.name == "run_commands":
+                        raw = c.args.get("commands") or []
+                        return [str(x) for x in (raw if isinstance(raw, list) else [raw])]
+        return []
+
     def _build_context(self, user_text: str) -> str:
         state: Dict[str, Any] = {}
         try:
@@ -229,7 +260,15 @@ class Agent:
                 docs = self.executor.search_docs(user_text, self.config.docs_per_turn)
             except Exception:
                 docs = []
-        return prompt_mod.build_context(state, docs)
+        note = ""
+        if looks_like_complaint(user_text):
+            last = self._last_commands()
+            note = ("The user says the previous action did NOT do what they asked."
+                    + (" The previous commands were: %s." % "; ".join(last) if last else "")
+                    + " Do not repeat them and do not describe them as successful. Find a different, correct approach "
+                      "(call search_docs and/or command_usage first), run different commands, or state plainly that "
+                      "ChimeraX cannot do it and why.")
+        return prompt_mod.build_context(state, docs, note=note)
 
     def _dispatch(self, call: ToolCall):
         if self.cb.on_tool_start:
@@ -241,8 +280,9 @@ class Agent:
             if name == "run_commands":
                 res = self._run_commands(call)
                 payload = res
+                # a user's "skip" is a decision, not a failure to retry
                 result = ToolResult(call.id, name, json.dumps(res, ensure_ascii=False),
-                                    is_error=not res.get("ok", False))
+                                    is_error=not res.get("ok", False) and not res.get("skipped"))
             elif name == "get_state":
                 payload = self.executor.get_state()
                 result = ToolResult(call.id, name, prompt_mod.format_state(payload))
@@ -315,6 +355,21 @@ class Agent:
             if failed:
                 out["error"] = failed[0].get("error", "command failed")
                 out["failed_command"] = failed[0].get("command")
+                # attach the real syntax so the model can fix it without guessing
+                word = first_word(failed[0].get("command", ""))
+                if word:
+                    try:
+                        usage = self.executor.command_usage(word)
+                    except Exception:
+                        usage = ""
+                    if usage:
+                        out["usage_of_%s" % word] = usage[:1500]
+                tip = suggest(failed[0].get("command", ""), failed[0].get("error", ""))
+                if tip:
+                    out["suggestion"] = tip
+                out["hint"] = ("Run a corrected command now (follow the suggestion if there is one, else the usage). "
+                               "Do not explain the fix in words without running it. If the option you wanted does not "
+                               "exist, call search_docs for the task and use a different approach; do not invent options.")
             remaining = commands[len(results):]
             if remaining:
                 out["not_run"] = remaining

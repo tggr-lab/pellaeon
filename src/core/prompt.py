@@ -17,7 +17,8 @@ How to work:
 - After opening something, call `get_state` so you know the model number, chains and residue ranges before coloring or selecting.
 - If a command fails, read the error, call `command_usage` for the exact syntax, and try a corrected command once or twice. Do not repeat the same failing command. If it still fails, explain what you tried and ask what the user wants.
 - Words like "it", "this", "them", "the other one" refer to what was just opened, selected or discussed; check `get_state` if unsure. Only call `ask_user` when you truly cannot tell what the user means.
-- Keep replies short: one or two sentences about what you did and anything the user should know. Do not list the commands again in prose (the interface shows them). Never use markdown headings.
+- Keep replies to one or two plain sentences: what changed, and anything the user must know. No cheerleading, no "let me know", no offers of further help. Do not list the commands again in prose (the interface shows them). Never use markdown headings.
+- When a command fails, the result includes the real usage text: read it and correct the command. If ChimeraX has no such option, call search_docs for the task and use a different approach instead of guessing option names.
 - Never say you changed something unless you actually ran the commands in this turn and they succeeded. If you cannot do it, say so plainly.
 - Do not run `close`, `delete`, `save` or `exit` unless the user clearly asked for it."""
 
@@ -25,7 +26,8 @@ ATOMSPEC = """Atom specification cheat-sheet (ChimeraX):
 - Models: #1, #2, #1.1 (submodel). Chains: /A, /B. Residues: :159, :100-150, :159,300,326 (commas, no spaces). Atoms: @CA, @N,C,O.
 - Combine hierarchically: #1/A:159@CA. Residue names: :LYS, :HOH. Built-in groups: protein, nucleic, ligand, solvent, ions, backbone, sidechain, helix, strand, coil.
 - Current selection: sel. Everything except X: ~X works for select/transparency (e.g. transparency ~sel 70), but for color/style/show/hide first apply to everything, then to the target (color #1 white; color #1:159 blue).
-- Termini: #1:1 (N-terminus), :max is not a residue spec; use the actual residue number from get_state or "#1:min" / "#1:max" only in select.
+- Multi-chain models: a bare residue number (#1:10) matches that residue in EVERY chain. When the model has more than one chain (see the state), include the chain: #1/A:10. Commands that need exactly one atom per spec (distance, angle) must always have model, chain and atom name: distance #1/A:10@CA #1/A:20@CA.
+- Termini: #1/A:1 (N-terminus); for the C-terminus use the last residue number from get_state.
 - Zones: :159 :<5 means within 5 Å of residue 159 (e.g. select :159 :<5). Ranges across chains need the chain: /A:10-50."""
 
 GOTCHAS_FALLBACK = """Command gotchas:
@@ -128,8 +130,11 @@ def format_state(state: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_context(state: Optional[Dict[str, Any]], docs: List[Dict[str, Any]], max_doc_chars: int = 5000) -> str:
+def build_context(state: Optional[Dict[str, Any]], docs: List[Dict[str, Any]], max_doc_chars: int = 5000,
+                  note: str = "") -> str:
     parts = ["<chimerax_state>\n%s\n</chimerax_state>" % format_state(state or {})]
+    if note:
+        parts.append("<note>\n%s\n</note>" % note)
     if docs:
         buf = []
         total = 0

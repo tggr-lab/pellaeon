@@ -222,3 +222,42 @@ def test_compaction_archives_old_messages():
     assert agent.archived and agent.archived[0].text() == "turn 0"
     assert all("context" not in m.meta for m in agent.archived)
     assert len(agent.archived) + len(agent.conversation) == 12
+
+
+def test_failed_command_result_includes_usage_and_hint():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["color #1 byaa"]})]}, "fixed"])
+    ex = FakeExecutor(fail={"color #1 byaa"})
+    agent = Agent(prov, ex)
+    agent.run_turn("color by aa type")
+    tr = json.loads(agent.conversation[2].tool_results_list()[0].content)
+    assert tr["usage_of_color"] == "Usage: color spec"
+    assert "search_docs" in tr["hint"]
+
+
+def test_complaint_adds_note_with_previous_commands():
+    from core.agent import looks_like_complaint
+    assert looks_like_complaint("you did not")
+    assert looks_like_complaint("are they thou?")
+    assert looks_like_complaint("that didn't work, try again")
+    assert not looks_like_complaint("color it red")
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["color #1 byelement"]})]}, "done",
+                             {"calls": [("run_commands", {"commands": ["color #1:asp,glu red"]})]}, "ok now"])
+    agent = Agent(prov, FakeExecutor())
+    agent.run_turn("color by aa type")
+    agent.run_turn("you did not")
+    ctx = agent.conversation[-4].meta["context"] if agent.conversation[-4].role == "user" else ""
+    assert "<note>" in ctx and "color #1 byelement" in ctx and "Do not repeat" in ctx
+
+
+def test_nudge_after_unfixed_error():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["color #1 byaa"]})]},
+                             "You could color residue classes like this: color #1:ala white ...",
+                             {"calls": [("run_commands", {"commands": ["color #1:ala white"]})]},
+                             "Done."])
+    ex = FakeExecutor(fail={"color #1 byaa"})
+    agent = Agent(prov, ex)
+    res = agent.run_turn("color by aa type")
+    assert "color #1:ala white" in ex.ran and res.reply == "Done."
+    tr = json.loads(agent.conversation[2].tool_results_list()[0].content)
+    assert "suggestion" in tr and "ala,val" in tr["suggestion"]
+    assert any(m.role == "user" and "stopped without running" in m.text() for m in agent.conversation)

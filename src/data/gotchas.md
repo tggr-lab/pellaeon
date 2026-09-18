@@ -24,3 +24,5 @@ Command gotchas (learned the hard way):
 - Info in the log: `info models`, `info chains #1`, `info residues sel`, `log info sel`.
 - Undo the last change: `undo` (works for many but not all commands; closing models is not undoable).
 - Command names are case-insensitive but options are camelCase (`bgColor`, `supersample`, `showTool`).
+- There is no `color byaa`, `byresidue` or `bytype`. To color by amino-acid type, color residue classes explicitly: `color #1:ala,val,ile,leu,met,phe,trp,pro,gly white; color #1:ser,thr,asn,gln,cys,tyr green; color #1:lys,arg,his blue; color #1:asp,glu red`. Hydrophobicity on a surface: `surface #1; mlp #1`. Confidence/pLDDT: `color bfactor #1 palette alphafold`. Secondary structure: `color #1 & helix red; color #1 & strand yellow; color #1 & coil gray`.
+- Valid built-in `color` schemes are only: byatom, bychain, byelement, byhetero, byidentity, bymodel, bynucleotide, bypolymer, random (plus `color bfactor`, `color byattribute`, `color sequential`/`rainbow`, `color zone`, `color electrostatic`).

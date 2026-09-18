@@ -122,6 +122,22 @@ RECIPES = [
     {"request": "close everything", "commands": ["close"], "note": "close needs confirmation."},
     {"request": "align these two proteins", "commands": ["matchmaker #2 to #1", "view"]},
     {"request": "what is open?", "commands": [], "note": "Use get_state and answer in words; no commands needed."},
+    {"request": "color by the type of aa",
+     "commands": ["color #1:ala,val,ile,leu,met,phe,trp,pro,gly white", "color #1:ser,thr,asn,gln,cys,tyr green",
+                  "color #1:lys,arg,his blue", "color #1:asp,glu red"],
+     "note": "No built-in scheme colors by residue type; color the classes explicitly (hydrophobic, polar, positive, negative)."},
+    {"request": "color it by hydrophobicity", "commands": ["surface #1", "mlp #1"],
+     "note": "mlp colors a molecular surface by lipophilicity. On cartoons use the residue-class coloring instead."},
+    {"request": "color by confidence", "commands": ["color bfactor #1 palette alphafold"],
+     "note": "AlphaFold pLDDT is stored as B-factor."},
+    {"request": "color by secondary structure", "commands": ["color #1 & helix red", "color #1 & strand yellow", "color #1 & coil gray"]},
+    {"request": "show only chain B", "commands": ["hide #1 target acs", "cartoon #1/B", "show #1/B atoms"],
+     "note": "There is no 'only': hide everything (atoms, cartoons, surfaces), then show the part."},
+    {"request": "show only the cartoon", "commands": ["cartoon #1", "hide #1 atoms"]},
+    {"request": "measure the distance between residue 10 and residue 20", "commands": ["distance #1/A:10@CA #1/A:20@CA"],
+     "note": "Always give chain and atom name so each spec is exactly one atom; dimers have the same numbers in every chain."},
+    {"request": "you did not", "commands": [],
+     "note": "The user is saying the last action failed. Do not repeat it; look up the right approach and run different commands, or say plainly that it was not done."},
 ]
 
 
