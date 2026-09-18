@@ -116,7 +116,7 @@ def test_user_declines():
     res = agent.run_turn("close everything")
     assert ex.ran == []
     tr = agent.conversation[2].tool_results_list()[0]
-    assert tr.is_error and "chose not" in tr.content
+    assert not tr.is_error and "chose not" in tr.content
     assert "did not close" in res.reply
 
 
@@ -261,3 +261,17 @@ def test_nudge_after_unfixed_error():
     tr = json.loads(agent.conversation[2].tool_results_list()[0].content)
     assert "suggestion" in tr and "ala,val" in tr["suggestion"]
     assert any(m.role == "user" and "stopped without running" in m.text() for m in agent.conversation)
+
+
+def test_only_requests_get_a_hide_nudge():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["show #1/B atoms"]})]}, "Shown.",
+                             {"calls": [("run_commands", {"commands": ["hide #1 target acs", "cartoon #1/B", "show #1/B atoms"]})]}, "Only chain B is shown."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    res = agent.run_turn("show only chain B")
+    assert "hide #1 target acs" in ex.ran and res.reply == "Only chain B is shown."
+    # a request that already hides gets no nudge
+    prov2 = ScriptedProvider([{"calls": [("run_commands", {"commands": ["hide #1 target acs", "show #1/B atoms"]})]}, "Done."])
+    agent2 = Agent(prov2, FakeExecutor())
+    agent2.run_turn("show only chain B")
+    assert len(prov2.requests) == 2

@@ -51,6 +51,12 @@ NUDGE_AFTER_ERROR = ("(system) The last command failed and you stopped without r
                      "the error result). Do not describe commands in text without running them. Only if ChimeraX truly "
                      "cannot do it, say so in one sentence.")
 
+NUDGE_ONLY = ("(system) The user said ONLY, but nothing was hidden. Hide everything else first, then show the part: "
+              "e.g. run_commands([\"hide #1 target acs\", \"cartoon #1/B\", \"show #1/B atoms\"]) for 'only chain B', "
+              "or [\"cartoon #1\", \"hide #1 atoms\"] for 'only the cartoon'. Do it now.")
+_ONLY_RE = re.compile(r"\bonly\b|\bjust (the |chain )", re.I)
+_HIDE_RE = re.compile(r"^\s*(hide|~|cartoon hide|surface hide|close|delete)", re.I)
+
 _COMPLAINT_RE = re.compile(
     r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
     r"that'?s (wrong|not it)|wrong|not what i|still the same|no change|nope|it'?s not|isn'?t|aren'?t|are they though|"
@@ -151,6 +157,8 @@ class Agent:
                     nudge = NUDGE          # words but no action
                 elif outcome.get("ended_after_error"):
                     nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
+                elif _ONLY_RE.search(user_text) and not any(_HIDE_RE.match(c) for c in self._commands_since(start_len)):
+                    nudge = NUDGE_ONLY     # "only X" without hiding the rest
             if nudge:
                 self.conversation.append(Message.user(nudge))
                 outcome = self._loop(tools, cancel, usage)
@@ -238,6 +246,16 @@ class Agent:
     def _status(self, msg: str) -> None:
         if self.cb.on_status:
             self.cb.on_status(msg)
+
+    def _commands_since(self, index: int) -> List[str]:
+        out: List[str] = []
+        for m in self.conversation[index:]:
+            if m.role == "assistant":
+                for c in m.tool_calls():
+                    if c.name == "run_commands":
+                        raw = c.args.get("commands") or []
+                        out.extend(str(x) for x in (raw if isinstance(raw, list) else [raw]))
+        return out
 
     def _last_commands(self) -> List[str]:
         for m in reversed(self.conversation):

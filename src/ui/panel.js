@@ -223,7 +223,7 @@
     const el = $("scene");
     if (!st || st.error) { el.textContent = ""; return; }
     const models = st.models || [];
-    if (!models.length) { el.innerHTML = "<b>Nothing open</b> — try: open 4hhb"; return; }
+    if (!models.length) { el.innerHTML = "<b>Nothing open</b> — the <i>Chimaera</i> awaits orders. Try: open 4hhb"; return; }
     const parts = models.slice(0, 6).map((m) => "<b>" + esc(m.id) + "</b> " + esc(m.name) +
       (m.chains && m.chains.length ? " (" + m.chains.slice(0, 6).map((c) => c.id).join(",") + (m.chains.length > 6 ? "…" : "") + ")" : ""));
     let s = parts.join(" · ");
@@ -345,6 +345,7 @@
   function submit(text) {
     text = (text || "").trim();
     if (!text) return;
+    if (/artistically done/i.test(text)) { toast("Thrawn would approve.", "ok"); $("input").value = ""; return; }
     if (state.busy) { toast("Still working — press Stop first", "warn"); return; }
     if (!state.configured) { showPage("settings"); toast("Choose an AI provider first", "warn"); return; }
     send("send", {text: text});
