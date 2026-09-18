@@ -72,8 +72,8 @@ class ChimeraRestExecutor:
 
     def ping(self) -> str:
         try:
-            out = self.rest("version")
-            return "Connected to Chimera on port %d. %s" % (self.port, out.strip().split("\n")[0][:80])
+            self.rest("list models")
+            return "Connected to Chimera on port %d." % self.port
         except Exception as e:  # noqa: BLE001
             return "Cannot reach Chimera's REST server on port %d (%s). In Chimera: Tools > Utilities > RESTServer." % (self.port, e)
 
@@ -119,9 +119,9 @@ class ChimeraRestExecutor:
             entry = {"id": m.group(1), "name": m.group(3).strip(), "type": m.group(2), "display": True}
             if m.group(2).lower().startswith("molecule"):
                 try:
-                    ch = self.rest("list chains %s" % m.group(1))
+                    ch = self.rest("list chains spec %s" % m.group(1))
                     chains = []
-                    for cm in re.finditer(r"chain id %s\.(\S+)\s*(.*)" % re.escape(m.group(1)), ch):
+                    for cm in re.finditer(r"chain id %s:\.(\S+)\s*(.*)" % re.escape(m.group(1)), ch):
                         chains.append({"id": cm.group(1), "range": "", "description": cm.group(2).strip()[:40]})
                     entry["chains"] = chains[:26]
                 except Exception:
@@ -139,11 +139,14 @@ class ChimeraRestExecutor:
         return state
 
     def command_usage(self, name: str) -> str:
-        try:
-            out = self.rest("usage %s" % name.strip().split()[0])
-            return out.strip()[:1500] or "No usage returned."
-        except Exception as e:  # noqa: BLE001
-            return "usage failed: %s" % e
+        # classic Chimera has no `usage` command; answer from the bundled documentation
+        word = name.strip().split()[0].lower() if name.strip() else ""
+        idx = self.knowledge.ensure()
+        lines = [c.text for c in idx.chunks if c.command == word and c.kind == "usage"]
+        if not lines:
+            hits = idx.search(name, 3)
+            lines = [c.text for _s, c in hits]
+        return ("\n".join(lines))[:1500] or "No documentation found for '%s'." % name
 
     def search_docs(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
         return self.knowledge.search(query, k)

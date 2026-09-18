@@ -35,8 +35,11 @@ class Stub(BaseHTTPRequestHandler):
             out = "Error: Unrecognized command: \"%s\"" % word
         self.send_response(200); self.send_header("Content-Type", "text/plain"); self.end_headers(); self.wfile.write(out.encode())
 
-stub = HTTPServer(("127.0.0.1", 0), Stub); sport = stub.server_address[1]
-threading.Thread(target=stub.serve_forever, daemon=True).start()
+if os.environ.get("PELLAEON_REAL_PORT"):   # test against a real Chimera REST server instead of the stub
+    sport = int(os.environ["PELLAEON_REAL_PORT"])
+else:
+    stub = HTTPServer(("127.0.0.1", 0), Stub); sport = stub.server_address[1]
+    threading.Thread(target=stub.serve_forever, daemon=True).start()
 app = subprocess.Popen([sys.executable, "run.py", "--no-browser", "--port", "8799", "--chimera-port", str(sport)],
                        cwd=os.path.join(ROOT, "dist", "pellaeon-classic"), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 time.sleep(2.0)

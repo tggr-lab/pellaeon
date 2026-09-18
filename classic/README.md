@@ -25,10 +25,19 @@ enter the path to the `chimera` executable if yours is elsewhere.
 - Chat exports are `.cmd` Chimera command files; `copy file` (images), `save`, `close`, `delete`, `system` ask first.
 - Everything else is the same: local or cloud models, confirmation cards, click-less "what is open" awareness via `list models`.
 
+## Verified
+
+Tested end to end on UCSF Chimera 1.20 (Linux): REST replies for `list models`, `list chains spec #0` and
+`list selection level residue` are parsed correctly, errors are detected, the Launch Chimera button auto-detects the
+executable and reads the REST port, and requests such as "open 1zik and show only chain B" run as
+`open 1zik; ~display #0; ribbon :.B; display :.B`. Chimera has no `usage` command, so syntax lookups come from the
+bundled documentation (Chimera also ships the same pages under `share/chimera/helpdir/UsersGuide/midas/`).
+
 ## Developing
 
 ```
 python classic/tools/build_chimera_docs.py classic/pellaeon_classic/data/chimera_docs classic/pellaeon_classic/data   # after re-downloading the docs
 python classic/tools/build_classic.py                       # -> dist/pellaeon-classic/ and dist/pellaeon-classic.zip
 python classic/tools/e2e_stub_test.py "open 1zik and color it red"   # end-to-end against a stub REST server (needs Ollama)
+PELLAEON_REAL_PORT=45629 python classic/tools/e2e_stub_test.py "..."  # same, against a running Chimera REST server
 ```
