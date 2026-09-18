@@ -217,10 +217,23 @@ class Agent:
                                             on_delta=self.cb.on_text_delta, cancel=cancel)
             usage.add(u)
             if not reply.text().strip() and not reply.tool_calls():
-                # empty answer (small local models do this occasionally): ask once more
+                # empty answer (small local models do this occasionally): ask once more,
+                # with thinking switched on for Ollama models, which reliably fixes it
                 self._status("Empty answer, retrying…")
-                reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
-                                                on_delta=self.cb.on_text_delta, cancel=cancel)
+                opts = getattr(self.provider, "options", None)
+                restore = None
+                if getattr(self.provider, "name", "") == "ollama" and isinstance(opts, dict):
+                    restore = opts.get("think", None)
+                    opts["think"] = True
+                try:
+                    reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
+                                                    on_delta=self.cb.on_text_delta, cancel=cancel)
+                finally:
+                    if isinstance(opts, dict) and getattr(self.provider, "name", "") == "ollama":
+                        if restore is None:
+                            opts.pop("think", None)
+                        else:
+                            opts["think"] = restore
                 usage.add(u)
                 if not reply.text().strip() and not reply.tool_calls():
                     reply = Message.assistant("The model returned an empty answer twice. Please try again or rephrase.")
