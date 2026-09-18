@@ -1,3 +1,5 @@
+<img src="docs/logo.svg" width="72" align="left" alt="Pellaeon logo">
+
 # Pellaeon — talk to ChimeraX in plain English
 
 Pellaeon adds a chat panel to [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/). You type what you want:
