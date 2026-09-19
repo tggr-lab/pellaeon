@@ -25,6 +25,8 @@
   if (window.PELLAEON_HTTP) {
     const es = new EventSource("/events?token=" + encodeURIComponent(window.PELLAEON_TOKEN || ""));
     es.onmessage = (e) => { try { window.Pellaeon.push(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+    // say "ready" only once the event stream is open, otherwise the server's replies to it are lost
+    es.onopen = () => send("ready");
     es.onerror = () => { $("status").textContent = "Reconnecting…"; };
   }
 
@@ -471,6 +473,8 @@
         $("s-python").parentElement.hidden = true;
         $("btn-export").title = "Export this chat's commands as a Chimera command file (.cmd)";
         const sub = document.querySelector(".welcome .muted"); if (sub) sub.textContent = "Pellaeon Classic drives UCSF Chimera 1.x. Risky commands (close, delete, save…) ask first.";
+        const h2 = document.querySelector(".welcome h2"); if (h2) h2.textContent = "Tell Chimera what you want.";
+        $("input").placeholder = "What should Chimera do?  (Enter to send, Shift+Enter for a new line)";
       }
       state.presets = m.presets || [];
       state.settings = m.settings || {};
@@ -617,6 +621,6 @@
       if (a && a.href) { e.preventDefault(); send("open_url", {url: a.getAttribute("href")}); }
     });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.busy) send("stop"); });
-    send("ready");
+    if (!window.PELLAEON_HTTP) send("ready");
   });
 })();

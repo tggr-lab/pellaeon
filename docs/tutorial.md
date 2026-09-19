@@ -10,7 +10,7 @@ This walkthrough takes about twenty minutes. You will install Pellaeon, connect 
 2. Start ChimeraX. Click into the **Command:** line at the bottom of the window, paste this and press Enter:
 
 ```
-open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/install_pellaeon.py
+open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
 ```
 
 The Pellaeon panel appears on the right. Later you find it under **Tools ▸ General ▸ Pellaeon**. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See [Installation](install.md).)

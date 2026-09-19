@@ -1,12 +1,12 @@
 # Pellaeon one-line installer. Run it from inside ChimeraX:
 #
-#     open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/install_pellaeon.py
+#     open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
 #
 # It downloads the latest Pellaeon wheel from the same GitHub release, installs
 # it with ChimeraX's own "toolshed install", and opens the panel.
 # ChimeraX runs this file with the variable `session` defined.
 
-RELEASE_API = "https://api.github.com/repos/pellaeon-chimerax/pellaeon/releases/latest"
+RELEASE_API = "https://api.github.com/repos/tggr-lab/pellaeon/releases/latest"
 
 
 def _install(session):
@@ -45,4 +45,4 @@ try:
     _install(session)  # noqa: F821  (ChimeraX provides `session`)
 except Exception as e:  # noqa: BLE001
     session.logger.error("Pellaeon installer failed: %s\nYou can install manually: download the .whl from "  # noqa: F821
-                         "https://github.com/pellaeon-chimerax/pellaeon/releases and run  toolshed install /path/to/file.whl" % e)
+                         "https://github.com/tggr-lab/pellaeon/releases and run  toolshed install /path/to/file.whl" % e)

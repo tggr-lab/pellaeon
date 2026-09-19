@@ -22,13 +22,13 @@ Named after Gilad Pellaeon, captain of the *Chimaera*.
 2. In ChimeraX's command line (bottom of the window) type:
 
    ```
-   open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/install_pellaeon.py
+   open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
    ```
 
    This downloads the Pellaeon bundle and installs it with ChimeraX's own tool installer. No terminal, no Python setup.
 3. The Pellaeon panel opens (later: **Tools > General > Pellaeon**). Pick an AI provider, paste a key if it needs one, press **Test connection**, then **Save & use**.
 
-Prefer a file? Download the `.whl` from the [releases page](https://github.com/pellaeon-chimerax/pellaeon/releases) and run `toolshed install /path/to/the/file.whl` in ChimeraX.
+Prefer a file? Download the `.whl` from the [releases page](https://github.com/tggr-lab/pellaeon/releases) and run `toolshed install /path/to/the/file.whl` in ChimeraX.
 
 ## Choosing an AI
 
@@ -65,7 +65,7 @@ There is a classic edition that drives UCSF Chimera 1.x through its REST server 
 ## Development
 
 ```
-git clone https://github.com/pellaeon-chimerax/pellaeon
+git clone https://github.com/tggr-lab/pellaeon
 cd pellaeon
 python -m pytest                        # unit tests, no ChimeraX needed
 chimerax --nogui --exit --cmd "devel install \"$(pwd)\""   # install into your ChimeraX

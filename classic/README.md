@@ -5,6 +5,10 @@ separate program: it serves the Pellaeon panel to your web browser and drives Ch
 REST server. It shares the agent, providers, safety gate and UI with the ChimeraX bundle; only the executor and
 the command knowledge (Chimera's Midas-style syntax, models numbered from #0, `:10.A` chains) differ.
 
+![Pellaeon Classic: Chimera 1.20 with hemoglobin, the panel in a browser tab and the launcher window](../docs/img/classic.png)
+
+*A real session on Chimera 1.20: the request typed in the browser panel, the launcher's activity log, and Chimera doing the work.*
+
 ## Install and run
 
 1. Python 3.9 or newer (python.org; on Windows tick "Add Python to PATH"). Nothing else to install.

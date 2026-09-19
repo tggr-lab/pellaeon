@@ -38,7 +38,7 @@ class PellaeonTool(HtmlToolInstance, PanelBase):
     SESSION_SAVE = False
     CUSTOM_SCHEME = "pellaeon"
     PLACEMENT = "right"
-    help = "https://github.com/pellaeon-chimerax/pellaeon#readme"
+    help = "https://github.com/tggr-lab/pellaeon#readme"
     edition = "chimerax"
 
     def call_soon(self, fn, *args):

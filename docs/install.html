@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Installation - Pellaeon</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
 <meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."></head>
-<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link active" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/pellaeon-chimerax/pellaeon">GitHub</a></div></div>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link active" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a></div></div>
 <main><div class="doc"><nav class="toc"><div class="toc">
 <ul>
 <li><a href="#chimerax-edition">ChimeraX edition</a></li>
@@ -51,20 +51,20 @@
 <li>Install <a href="https://www.cgl.ucsf.edu/chimerax/download.html">UCSF ChimeraX</a> 1.9 or newer.</li>
 <li>Start ChimeraX. In the <strong>Command:</strong> line at the bottom of the window, paste and press Enter:</li>
 </ol>
-<pre><code>open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/install_pellaeon.py
+<pre><code>open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
 </code></pre>
 <ol start="3">
 <li>The Pellaeon panel opens on the right and asks you to choose an AI. Later you find it under <strong>Tools ▸ General ▸ Pellaeon</strong>, and the <code>pellaeon</code> command works on the ChimeraX command line.</li>
 </ol>
 <p>No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.</p>
-<p><strong>Offline or blocked download?</strong> Get the <code>.whl</code> file from the <a href="https://github.com/pellaeon-chimerax/pellaeon/releases">releases page</a> and type (quotes needed when the path has spaces):</p>
+<p><strong>Offline or blocked download?</strong> Get the <code>.whl</code> file from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and type (quotes needed when the path has spaces):</p>
 <pre><code>toolshed install &quot;C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.whl&quot;
 </code></pre>
 <p><strong>Uninstall:</strong> <code>toolshed uninstall ChimeraX-Pellaeon</code> in ChimeraX.</p>
 <h2 id="classic-edition-chimera-1x">Classic edition (Chimera 1.x)</h2>
 <ol>
 <li>Install <a href="https://www.python.org/downloads/">Python 3.9 or newer</a>. On Windows tick <strong>Add Python to PATH</strong> in the installer.</li>
-<li>Download <code>pellaeon-classic.zip</code> from the <a href="https://github.com/pellaeon-chimerax/pellaeon/releases">releases page</a> and unzip it anywhere.</li>
+<li>Download <code>pellaeon-classic.zip</code> from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and unzip it anywhere.</li>
 <li>Windows: double-click <strong>Start Pellaeon Classic.cmd</strong>. macOS: double-click <strong>Start Pellaeon Classic.command</strong>. Linux: <code>./start.sh</code>.
    A small launcher window opens and your browser shows the Pellaeon panel.</li>
 <li>In the launcher press <strong>Launch Chimera</strong> (it starts Chimera with its REST server and connects by itself), or start Chimera yourself, open <strong>Tools ▸ Utilities ▸ RESTServer</strong>, type the port shown in the Reply Log into the launcher and press <strong>Test</strong>.</li>

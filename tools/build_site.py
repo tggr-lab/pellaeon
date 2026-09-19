@@ -13,7 +13,7 @@ import markdown  # python-markdown (pip install markdown) - only needed to build
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
-REPO = "https://github.com/pellaeon-chimerax/pellaeon"
+REPO = "https://github.com/tggr-lab/pellaeon"
 VERSION = re.search(r'__version__ = "([^"]+)"', open(os.path.join(ROOT, "src", "__init__.py")).read()).group(1)
 NAV = [("index.html", "Home"), ("install.html", "Install"), ("tutorial.html", "Tutorial"), ("classic.html", "Classic edition")]
 
@@ -34,7 +34,7 @@ def layout(title, body, active, toc_html=""):
 def md_page(src, out, active, title=None):
     text = open(src, encoding="utf-8").read()
     # links between markdown docs -> generated pages; relative image paths stay (docs/img)
-    text = (text.replace("classic/README.md", "classic.html").replace("docs/tutorial.md", "tutorial.html")
+    text = (text.replace("../docs/img/", "img/").replace("classic/README.md", "classic.html").replace("docs/tutorial.md", "tutorial.html")
                 .replace("(tutorial.md)", "(tutorial.html)").replace("(install.md)", "(install.html)").replace("(classic.md)", "(classic.html)"))
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"], extension_configs={"toc": {"toc_depth": "2-3"}})
     body = md.convert(text)

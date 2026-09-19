@@ -28,3 +28,7 @@ plus the hand-written landing page template in `tools/build_site.py`. After edit
 `python tools/build_site.py` (needs `pip install markdown` once) and commit the regenerated HTML.
 Enable it once on GitHub: repository **Settings ▸ Pages ▸ Source: Deploy from a branch ▸ main / docs**.
 The page is then served at `https://<user>.github.io/<repo>/`. Preview locally with `python -m http.server -d docs 8000`.
+
+## Classic screenshot
+
+`docs/img/classic.png` is composed by `python tools/classic_shot.py` from three real captures in `~/pellaeon_shots/`: a headless Chromium screenshot of the classic panel page, and X11 window grabs of the launcher and of Chimera made with `python tools/xgrab_window.py "<window title>" out.png` (works under GNOME Wayland, where ordinary screenshots of XWayland windows are blocked). Start Chimera with `--start RESTServer`, run `python -m pellaeon_classic --chimera-port N --no-browser` from `classic/`, send a request, then capture.

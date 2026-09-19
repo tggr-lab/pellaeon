@@ -17,14 +17,14 @@ Both use the same AI providers, the same panel and the same safety rules.
 2. Start ChimeraX. In the **Command:** line at the bottom of the window, paste and press Enter:
 
 ```
-open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/install_pellaeon.py
+open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
 ```
 
 3. The Pellaeon panel opens on the right and asks you to choose an AI. Later you find it under **Tools ▸ General ▸ Pellaeon**, and the `pellaeon` command works on the ChimeraX command line.
 
 No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.
 
-**Offline or blocked download?** Get the `.whl` file from the [releases page](https://github.com/pellaeon-chimerax/pellaeon/releases) and type (quotes needed when the path has spaces):
+**Offline or blocked download?** Get the `.whl` file from the [releases page](https://github.com/tggr-lab/pellaeon/releases) and type (quotes needed when the path has spaces):
 
 ```
 toolshed install "C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.whl"
@@ -35,7 +35,7 @@ toolshed install "C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.wh
 ## Classic edition (Chimera 1.x)
 
 1. Install [Python 3.9 or newer](https://www.python.org/downloads/). On Windows tick **Add Python to PATH** in the installer.
-2. Download `pellaeon-classic.zip` from the [releases page](https://github.com/pellaeon-chimerax/pellaeon/releases) and unzip it anywhere.
+2. Download `pellaeon-classic.zip` from the [releases page](https://github.com/tggr-lab/pellaeon/releases) and unzip it anywhere.
 3. Windows: double-click **Start Pellaeon Classic.cmd**. macOS: double-click **Start Pellaeon Classic.command**. Linux: `./start.sh`.
    A small launcher window opens and your browser shows the Pellaeon panel.
 4. In the launcher press **Launch Chimera** (it starts Chimera with its REST server and connects by itself), or start Chimera yourself, open **Tools ▸ Utilities ▸ RESTServer**, type the port shown in the Reply Log into the launcher and press **Test**.

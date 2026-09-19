@@ -19,7 +19,7 @@ fixes its own mistakes. Works with Ollama (local, free), Anthropic Claude,
 Google Gemini, OpenAI and any OpenAI-compatible server."""
 
 [project.urls]
-Home = "https://github.com/pellaeon-chimerax/pellaeon"
+Home = "https://github.com/tggr-lab/pellaeon"
 Author = "https://github.com/YAMIR-1138"
 Lab = "https://github.com/tggr-lab"
 

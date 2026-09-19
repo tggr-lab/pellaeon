@@ -29,7 +29,7 @@ class OpenAICompatProvider(Provider):
         if self.api_key:
             h["Authorization"] = "Bearer " + self.api_key
         if "openrouter" in self.base_url:
-            h["HTTP-Referer"] = "https://github.com/pellaeon-chimerax/pellaeon"
+            h["HTTP-Referer"] = "https://github.com/tggr-lab/pellaeon"
             h["X-Title"] = "Pellaeon for ChimeraX"
         return h
 
