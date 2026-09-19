@@ -20,6 +20,11 @@ Command gotchas (learned the hard way):
 - Hydrogen bonds: `hbonds #1 reveal true color yellow`; clashes: `clashes #1 reveal true`; contacts within 4 Å of a ligand: `contacts ligand restrict protein reveal true`.
 - Ligands and water: `show ligand atoms; style ligand sphere`, `hide solvent`, `delete solvent` (confirmation needed).
 - User tables: when the state lists a loaded table, color by its columns with the table_overlay tool (never with invented per-residue numbers).
+- `rainbow chain` gives ONE color per chain (like bychain). To rainbow along each chain from blue (N) to red (C) use `rainbow #1` (residue level is the default).
+- Helices as tubes/cylinders: `cartoon style #1 helix tube` (not thicker ribbons). Back to ribbons: `cartoon style #1 helix default`.
+- Atom contacts within X Å between two sets, distance only: `contacts #1/A restrict #1/C distanceOnly 4 reveal true` (add `log true` to list them). `interfaces` is for buried area, not contacts.
+- Impossible requests (email, print, phone, send to someone): say plainly that ChimeraX cannot do it and run NOTHING; do not save files as a half step.
+- After you add a label, "make it bigger/smaller" refers to the LABEL: `label #1/A:5 height 1.5` (or `size 28` when height is fixed), not sticks or the view.
 - Named groups are residue NAMES, never numbers: heme = `:HEM`, ATP = `:ATP`, NAG = `:NAG`, water = `:HOH`, all ligands = `ligand`, metal ions = `ions`. E.g. "show the hemes as red spheres": `show :HEM atoms; style :HEM sphere; color :HEM red`. Do not guess residue numbers for them.
 - Chains: `color #1/A blue; color #1/B red` or `color #1 bychain`; `rainbow #1` colors along the chain.
 - Secondary structure: `color helix red; color strand yellow; color coil gray` (built-in specifiers).
