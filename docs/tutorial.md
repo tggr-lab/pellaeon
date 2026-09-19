@@ -15,7 +15,7 @@ open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/inst
 
 The Pellaeon panel appears on the right. Later you find it under **Tools ▸ General ▸ Pellaeon**. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See [Installation](install.md).)
 
-![Pellaeon docked in ChimeraX](img/02_empty_chat_main.png)
+![Pellaeon docked in ChimeraX](img/docked_4hhb.png)
 
 ### 2. Connect an AI (once)
 

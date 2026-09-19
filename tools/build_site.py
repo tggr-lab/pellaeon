@@ -82,6 +82,7 @@ INDEX = """
 </div>
 
 <h2>Screens</h2>
+<div class="shot"><img src="img/docked_4hhb.png" alt="ChimeraX with the Pellaeon panel docked on the right"><p class="small">The panel docks on the right of ChimeraX; the 3D view stays where it always was.</p></div>
 <div class="grid">
   <div class="shot"><img src="img/06_compare.png" alt="Comparison result card"><p class="small">Comparison: RMSD, coverage, moving regions you can click.</p></div>
   <div class="shot"><img src="img/05_confirm.png" alt="Confirmation card"><p class="small">A risky command asks first, and the commands are editable.</p></div>
