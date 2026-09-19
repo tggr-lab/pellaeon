@@ -50,8 +50,9 @@ class GeminiProvider(Provider):
                         parts.append({"text": p.text})
                     elif isinstance(p, ToolCall):
                         part: Dict[str, Any] = {"functionCall": {"name": p.name, "args": p.args}}
-                        if p.meta.get("thoughtSignature"):
-                            part["thoughtSignature"] = p.meta["thoughtSignature"]
+                        # Gemini 3 validates a thought signature on every function call; calls Pellaeon injected itself
+                        # (tidy labels, explain residue, canned fallbacks) carry Google's documented skip marker instead
+                        part["thoughtSignature"] = p.meta.get("thoughtSignature") or "skip_thought_signature_validator"
                         parts.append(part)
                 if parts:
                     out.append({"role": "model", "parts": parts})

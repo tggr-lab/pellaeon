@@ -171,3 +171,14 @@ def test_gemini_reads_the_retry_delay_from_the_rate_limit_message():
     assert GeminiProvider.retry_delay("quota exceeded ... Please retry in 12.5s.") == 12.5
     assert GeminiProvider.retry_delay('"retryDelay": "7s"') == 7.0
     assert GeminiProvider.retry_delay("no hint") == 0.0
+
+
+def test_gemini_marks_injected_function_calls_for_signature_validation():
+    from core.providers.gemini import GeminiProvider
+    from core.schema import Message, ToolCall, ToolResult
+    prov = GeminiProvider(model="gemini-3.5-flash-lite", api_key="x")
+    msgs = [Message.user("tidy"), Message("assistant", [ToolCall("id1", "tidy_labels", {})]), Message.tool_results([ToolResult("id1", "tidy_labels", "{}")]),
+            Message("assistant", [ToolCall("id2", "run_commands", {"commands": ["view"]}, {"thoughtSignature": "abc"})])]
+    contents = prov._to_contents(msgs)
+    calls = [p for c in contents for p in c["parts"] if "functionCall" in p]
+    assert calls[0]["thoughtSignature"] == "skip_thought_signature_validator" and calls[1]["thoughtSignature"] == "abc"
