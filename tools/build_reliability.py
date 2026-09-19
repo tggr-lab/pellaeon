@@ -1,4 +1,4 @@
-"""Summarize scenario-harness reports into docs/reliability.md (a short page, not a test log).
+"""Summarize scenario-harness reports as markdown on stdout (for a GitHub issue / release notes; not published on the site).
 python tools/build_reliability.py docs/reliability/<model>_base_<date>.json docs/reliability/<model>_extra_<date>.json
 Reports come from: chimerax --nogui --exit --script "tests_chimerax/scenarios.py <model> [think] [file]"
 """
@@ -63,5 +63,5 @@ out += ["", "## Reading the numbers", "",
         "- The test set is small on purpose: %d requests covering the things people actually type, including typos, \"it\", complaints and impossible asks. It is not a benchmark of the model; it is a check that this panel, with this model, does what the tutorial shows." % n,
         "- Each pass rate is for one run. Small local models are not fully deterministic; expect a request or two to flip between runs.",
         "- Rerun it yourself: `chimerax --nogui --exit --script \"tests_chimerax/scenarios.py <model>\"`, then `python tools/build_reliability.py <report.json>`.",
-        "- Raw reports: " + ", ".join("[%s](%s)" % (os.path.basename(f), "reliability/" + os.path.basename(f)) for f in files) + ".", ""]
-open(os.path.join(ROOT, "docs", "reliability.md"), "w", encoding="utf-8").write("\n".join(out)); print("wrote docs/reliability.md (%d lines)" % len(out))
+        ""]
+print("\n".join(out))

@@ -47,7 +47,7 @@ toolshed install "C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.wh
 
 The first time the panel opens it shows provider cards. There is one decision to make: **local or cloud**.
 
-- **Local** (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time. Measured results per model are on the [reliability page](reliability.html).
+- **Local** (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time.
 - **Cloud** (Gemini free tier, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider.
 
 Everything else (OpenRouter, Groq, LM Studio, custom endpoints) is there too, but you don't need it for a first session. Pick one, press **Test connection**, then **Run a first request**.
