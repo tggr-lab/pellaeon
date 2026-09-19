@@ -15,7 +15,7 @@
 </ul>
 </div>
 </nav><article><h1 id="installation">Installation</h1>
-<p>Getting to a first result takes three steps: <strong>install the panel</strong>, <strong>connect a model</strong>, <strong>run a first request</strong>. The install line below is step one; step two is the provider choice the panel asks for when it first opens; step three is the <em>Run a first request</em> button on that same settings page (it opens ubiquitin and colors it by chain through the AI, so you see the whole route work).</p>
+<p>Three steps: install the panel, choose an AI when the panel first opens, press <strong>Run a first request</strong>.</p>
 <p>Pellaeon comes in two editions. Pick the one for the program you use.</p>
 <table>
 <thead>
@@ -79,7 +79,7 @@
 <li><strong>Local</strong> (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time.</li>
 <li><strong>Cloud</strong> (Gemini free tier, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider.</li>
 </ul>
-<p>Everything else (OpenRouter, Groq, LM Studio, custom endpoints) is there too, but you don't need it for a first session. Pick one, press <strong>Test connection</strong>, then <strong>Run a first request</strong>.</p>
+<p>OpenRouter, Groq, LM Studio and custom endpoints are there too.</p>
 <p>All options:</p>
 <table>
 <thead>
@@ -122,7 +122,7 @@
 </tr>
 </tbody>
 </table>
-<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong>. Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
+<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong> or <strong>Run a first request</strong> (it saves the settings and has the AI open ubiquitin and color it by chain). Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
 <h2 id="updating">Updating</h2>
 <p>ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
 <h2 id="where-things-are-stored">Where things are stored</h2>

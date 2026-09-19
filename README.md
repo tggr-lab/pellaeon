@@ -8,13 +8,13 @@ Pellaeon adds a chat panel to [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/
 > make it look publication ready
 > measure the distance between residues 100 and 150
 
-…and Pellaeon runs the ChimeraX commands for you, shows every command it ran (copy or re-run any of them), fixes its own mistakes when a command fails, and asks before doing anything risky (closing models, deleting atoms, saving files).
+…and Pellaeon runs the ChimeraX commands for you, shows every command it ran (copy or re-run any of them), retries from the error when a command fails, and asks before doing anything risky (closing models, deleting atoms, saving files).
 
 It works with **local models** (Ollama — free, private, runs on your own machine) and **cloud models** (Anthropic Claude, Google Gemini, OpenAI, and anything OpenAI-compatible such as OpenRouter, Groq or LM Studio). Gemini and OpenRouter have free tiers.
 
 Named after Gilad Pellaeon, captain of the *Chimaera*.
 
-![Pellaeon panel inside ChimeraX](docs/panel.png)
+![ChimeraX with the Pellaeon panel docked on the right](docs/img/docked_4hhb.png)
 
 ## Install (3 steps)
 
@@ -32,16 +32,7 @@ Prefer a file? Download the `.whl` from the [releases page](https://github.com/t
 
 ## Choosing an AI
 
-| Option | Cost | Notes |
-|---|---|---|
-| **Ollama** (local) | free | Install [Ollama](https://ollama.com), then in Pellaeon's settings press **Pull** for `qwen3:8b` (needs ~6 GB GPU memory) or `qwen3:4b` / `gemma4:e4b` (runs on almost any PC, slowly on CPU). Nothing leaves your computer. |
-| **Google Gemini** | free tier | Get a key at [aistudio.google.com](https://aistudio.google.com/apikey), no credit card. |
-| **Anthropic Claude** | pay per use | Best at multi-step work. Key from [console.anthropic.com](https://console.anthropic.com/settings/keys). Claude Pro/Max subscriptions cannot be used by third-party tools. |
-| **OpenAI** | pay per use | Key from platform.openai.com. |
-| **OpenRouter / Groq** | free tiers | One key, many models; `openrouter/free` picks a free model that supports tools. |
-| **LM Studio, llama.cpp, vLLM** | free | Any local OpenAI-compatible server. |
-
-Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (`ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `OPENAI_API_KEY`) are picked up automatically.
+Local: Ollama, free and private (`qwen3:8b` on a GPU, `qwen3:4b` on a CPU-only machine). Cloud: Google Gemini (free tier, no credit card), Anthropic Claude, OpenAI, or any OpenAI-compatible server (OpenRouter, Groq, LM Studio). Keys are stored privately on your computer, never in ChimeraX sessions or files you share. Details, per provider: [installation guide](https://tggr-lab.github.io/pellaeon/install.html#choosing-an-ai).
 
 ## Using it
 

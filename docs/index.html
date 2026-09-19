@@ -10,89 +10,79 @@
   <div>
     <div class="term"><span class="path">~/molecules</span>$ pellaeon <span class="blink">&#9646;</span></div>
     <h1>Talk to ChimeraX in plain English.</h1>
-    <p class="lead">Pellaeon is a chat panel inside UCSF ChimeraX. Describe what you want; it runs the commands and shows every one of them. When a command fails it uses the error and the documentation to try a correction, and anything risky asks first.</p>
+    <p class="lead">A chat panel inside UCSF ChimeraX. Say what you want; Pellaeon runs the commands, shows each one, fixes failures from ChimeraX's own errors and documentation, and asks before anything risky.</p>
     <div class="cmdbox"><pre id="install-cmd">open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py</pre><button onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').textContent).then(()=>this.textContent='Copied')">Copy</button></div>
-    <p class="small">Paste that into ChimeraX's command line. That is the whole installation. <a href="install.html">Details, offline install and the classic Chimera edition</a>.</p>
-    <div class="btns"><a class="btn primary" href="install.html">Install</a><a class="btn" href="tutorial.html">Tutorial with screenshots</a><a class="btn" href="https://github.com/tggr-lab/pellaeon/releases">Downloads</a></div>
+    <p class="small">Paste into ChimeraX's command line. <a href="install.html">Offline install and the classic Chimera edition</a>.</p>
+    <div class="btns"><a class="btn primary" href="install.html">Install</a><a class="btn" href="tutorial.html">Tutorial</a><a class="btn" href="https://github.com/tggr-lab/pellaeon/releases">Downloads</a></div>
   </div>
-  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture><p class="small">A real session: typed in the panel, run by a local model (qwen3:8b through Ollama), rendered by ChimeraX. Recorded, not live.</p></div>
+  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
 </section>
 
-<h2>Three steps to a first result</h2>
+<h2>Three steps</h2>
 <ol class="steps">
-  <li><b>Install the panel.</b> One line in ChimeraX's command line. <a href="install.html#chimerax-edition">Details</a></li>
-  <li><b>Connect a model.</b> Local and private with Ollama, or a cloud key (Gemini has a free tier). <a href="install.html#choosing-an-ai">Local or cloud?</a></li>
-  <li><b>Run a first request.</b> The settings page has a <i>Run a first request</i> button: it opens ubiquitin and colors it by chain through the AI, so you see the whole route work before you type your own.</li>
+  <li><b>Install the panel.</b> The one line above. <a href="install.html#chimerax-edition">Details</a></li>
+  <li><b>Connect a model.</b> Ollama on your own machine, or a cloud key; Gemini has a free tier. <a href="install.html#choosing-an-ai">Local or cloud?</a></li>
+  <li><b>Run a first request.</b> A button on the settings page opens ubiquitin and colors it by chain, so you know the whole route works before you type your own.</li>
 </ol>
 
-<h2>Say it like you would say it to a colleague</h2>
+<h2>Say it like you would to a colleague</h2>
 <div class="example">open the AlphaFold model of F2RL1 and color residue 159 blue</div>
 <div class="example">select amino acids 227 156 159 and 326 and show their atoms</div>
 <div class="example">mesure the distance between 100 and 150</div>
 <div class="example">compare these two models and tell me what changed</div>
 <div class="example">show the disease variants on this model</div>
-<p class="small">Typos, shorthand and "it" / "these" are fine: Pellaeon looks at what is open and selected.</p>
 
-
-<h2>How it works, and why it is not just a chatbot glued to ChimeraX</h2>
-<p class="small">A plain chat model guesses commands from memory and never sees what happened. Pellaeon gives the model your ChimeraX's own documentation and the live session, lets it act only through logged tools, stops risky actions for your OK, and feeds every error back with the real syntax so it can fix itself. Recorded animation; nothing here is live.</p>
+<h2>How it works</h2>
+<p class="small">A plain chat model guesses commands from memory and never sees what happened. Pellaeon gives the model your ChimeraX's documentation and the live session, restricts it to logged tools, stops risky actions for your OK, and feeds every error back so it can correct itself.</p>
 <div class="howwrap">
-<svg class="how" viewBox="0 0 1180 500" role="img" aria-labelledby="how-title" xmlns="http://www.w3.org/2000/svg"><title id="how-title">How Pellaeon turns a sentence into ChimeraX commands, and checks the result</title>
+<svg class="how" viewBox="0 0 1180 500" role="img" aria-labelledby="how-title" xmlns="http://www.w3.org/2000/svg"><title id="how-title">How Pellaeon turns a sentence into ChimeraX commands and checks the result</title>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent2)"/></marker></defs>
-<g class="wires"><path d="M280,106 L315,106"/><path d="M565,106 L600,106"/><path d="M850,106 L885,106"/><path d="M1010,172 L1010,330"/><path d="M885,396 L850,396"/><path d="M600,396 L565,396"/><path class="loop" d="M725,330 C725,270 725,230 725,172" marker-end="url(#ah2)"/><path class="next" d="M315,396 L155,396 L155,172"/></g>
-<g class="node n1" transform="translate(30,40)"><rect width="250" height="132" rx="12"/><text class="t" x="16" y="30">1 · You type</text><text class="b" x="16" y="52">“color the transmembrane</text><text class="b" x="16" y="69">helices orange and the rest white”</text><text class="b" x="16" y="86">Typos, “it”, gene names: fine.</text></g>
-<g class="node n2" transform="translate(315,40)"><rect width="250" height="132" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><text class="t" x="16" y="30">2 · Pellaeon builds the context</text><text class="b" x="16" y="52">What is open and selected right now</text><text class="b" x="16" y="69">Your ChimeraX version's docs, indexed</text><text class="b" x="16" y="86">131 tutorial workflows, 58 recipes</text><text class="b" x="16" y="103">A list of things models get wrong</text></g>
-<g class="node n3" transform="translate(600,40)"><rect width="250" height="132" rx="12"/><text class="t" x="16" y="30">3 · The model plans</text><text class="b" x="16" y="52">Any provider: Ollama on your PC,</text><text class="b" x="16" y="69">Gemini, Claude, OpenAI.</text><text class="b" x="16" y="86">It cannot type into ChimeraX;</text><text class="b" x="16" y="103">it can only call tools.</text></g>
-<g class="node n4" transform="translate(885,40)"><rect width="250" height="132" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><text class="t" x="16" y="30">4 · Tools, not free text</text><text class="b" x="16" y="52">run_commands · get_state · docs</text><text class="b" x="16" y="69">resolve_protein (UniProt) · annotate</text><text class="b" x="16" y="86">(UniProt, ClinVar) · compare · tables</text><text class="b" x="16" y="103">Every call is logged and shown.</text></g>
-<g class="node n5" transform="translate(885,330)"><rect width="250" height="132" rx="12"/><text class="t" x="16" y="30">5 · Safety gate</text><text class="b" x="16" y="52">close, delete, save, scripts, remote</text><text class="b" x="16" y="69">code: stop for an editable OK card.</text><text class="b" x="16" y="86">Everything else just runs.</text></g>
-<g class="node n6" transform="translate(600,330)"><rect width="250" height="132" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><text class="t" x="16" y="30">6 · ChimeraX runs it, Pellaeon watches</text><text class="b" x="16" y="52">The log, the error, what changed.</text><text class="b" x="16" y="69">A failed command comes back with</text><text class="b" x="16" y="86">the real syntax and a suggestion;</text><text class="b" x="16" y="103">the model retries (a bounded number of times).</text></g>
-<g class="node n7" transform="translate(315,330)"><rect width="250" height="132" rx="12"/><text class="t" x="16" y="30">7 · Reply with cards</text><text class="b" x="16" y="52">Every command visible, re-runnable,</text><text class="b" x="16" y="69">linked to ChimeraX's own docs.</text><text class="b" x="16" y="86">Export the whole chat as a .cxc script.</text></g>
-<text class="lab" x="735" y="258">error + real syntax → try again</text>
-<text class="lab" x="165" y="300">next request</text>
-</svg>
+<g class="wires"><path d="M280,110 L315,110"/><path d="M565,110 L600,110"/><path d="M850,110 L885,110"/><path d="M1010,180 L1010,330"/><path d="M885,400 L850,400"/><path d="M600,400 L565,400"/><path class="loop" d="M725,330 C725,270 725,230 725,180" marker-end="url(#ah2)"/><path class="next" d="M315,400 L155,400 L155,180"/></g>
+<g class="node n1" transform="translate(30,40)"><rect width="250" height="140" rx="12"/><foreignObject x="0" y="0" width="250" height="140"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>1 · You type</b><span>“color the transmembrane helices orange and the rest white”. Typos, “it” and gene names are fine.</span></div></foreignObject></g>
+<g class="node n2" transform="translate(315,40)"><rect width="250" height="140" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><foreignObject x="0" y="0" width="250" height="140"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>2 · Context</b><span>What is open and selected. The documentation of your ChimeraX version, indexed locally. 131 tutorial workflows, 58 recipes, a list of known model mistakes.</span></div></foreignObject></g>
+<g class="node n3" transform="translate(600,40)"><rect width="250" height="140" rx="12"/><foreignObject x="0" y="0" width="250" height="140"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>3 · The model plans</b><span>Ollama on your PC, Gemini, Claude or OpenAI. It cannot type into ChimeraX; it can only call tools.</span></div></foreignObject></g>
+<g class="node n4" transform="translate(885,40)"><rect width="250" height="140" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><foreignObject x="0" y="0" width="250" height="140"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>4 · Tools</b><span>run commands · read state · search docs · UniProt lookup · annotate (UniProt, ClinVar) · compare · your tables. Every call is logged.</span></div></foreignObject></g>
+<g class="node n5" transform="translate(885,330)"><rect width="250" height="140" rx="12"/><foreignObject x="0" y="0" width="250" height="140"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>5 · Safety gate</b><span>Closing, deleting, saving and scripts stop for an editable OK card. Everything else runs.</span></div></foreignObject></g>
+<g class="node n6" transform="translate(600,330)"><rect width="250" height="140" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><foreignObject x="0" y="0" width="250" height="140"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>6 · ChimeraX runs it</b><span>Pellaeon reads the log: what changed, what failed. An error goes back with the real syntax and a suggestion, and the model retries a bounded number of times.</span></div></foreignObject></g>
+<g class="node n7" transform="translate(315,330)"><rect width="250" height="140" rx="12"/><foreignObject x="0" y="0" width="250" height="140"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>7 · Reply</b><span>Cards with every command: re-run, copy, open its ChimeraX docs. Export the chat as a .cxc script.</span></div></foreignObject></g>
+<text class="lab" x="735" y="262">error + real syntax → try again</text><text class="lab" x="165" y="300">next request</text></svg>
 </div>
-<div class="grid">
-  <div class="card"><h3>It knows your version</h3><p>On first launch Pellaeon indexes the documentation installed with the exact ChimeraX you run (BM25, local, no cloud). A new ChimeraX release means a new index, not stale answers.</p></div>
-  <div class="card"><h3>It sees the result</h3><p>Commands run inside ChimeraX and the log comes back to the model: "changed 0 atoms" or an error is a signal, not silence. Green means the command ran; the cards say what it changed.</p></div>
-  <div class="card"><h3>It cannot go off the rails quietly</h3><p>Guessed database accessions are verified against UniProt before opening; residue names beat invented residue numbers; anything destructive waits for you.</p></div>
-</div>
+<ol class="how-list">
+  <li><b>You type.</b> Typos, "it" and gene names are fine.</li>
+  <li><b>Context.</b> What is open and selected, the documentation of your ChimeraX version indexed locally, 131 tutorial workflows, 58 recipes, a list of known model mistakes.</li>
+  <li><b>The model plans.</b> Ollama on your PC, Gemini, Claude or OpenAI. It cannot type into ChimeraX; it can only call tools.</li>
+  <li><b>Tools.</b> Run commands, read state, search docs, UniProt lookup, annotate, compare, your tables. Every call is logged.</li>
+  <li><b>Safety gate.</b> Closing, deleting, saving and scripts stop for an editable OK card.</li>
+  <li><b>ChimeraX runs it.</b> Pellaeon reads the log; an error goes back with the real syntax and a suggestion, and the model retries a bounded number of times.</li>
+  <li><b>Reply.</b> Cards with every command: re-run, copy, open its docs. Export the chat as a .cxc script.</li>
+</ol>
 
 <h2>What you get</h2>
 <div class="grid">
-  <div class="card"><h3>Every command, visible</h3><p>Each reply shows the exact ChimeraX commands it ran, with copy, re-run and a link to ChimeraX's own documentation for that command. Export a whole chat as a replayable .cxc script.</p></div>
+  <div class="card"><h3>Every command, visible</h3><p>Each reply lists the exact ChimeraX commands it ran, with copy, re-run and a link to ChimeraX's documentation for that command. Export a chat as a replayable .cxc script.</p></div>
   <div class="card"><h3>Risky things ask first</h3><p>Closing models, deleting atoms, saving files and running scripts show an editable confirmation card. Everything else just happens.</p></div>
-  <div class="card"><h3>Local or cloud AI, your choice</h3><p>Ollama on your own machine (free, private), Google Gemini's free tier, Claude, OpenAI, or any OpenAI-compatible server. Switch any time.</p></div>
-  <div class="card"><h3>It knows your ChimeraX</h3><p>The documentation of the exact ChimeraX version you run is indexed on first launch, plus 130 tutorial workflows and 58 community recipes.</p></div>
-  <div class="card"><h3>Click to ask</h3><p>Select a residue in the 3D view and ask "what is this?", "what is nearby?", or highlight it. Alt+click works too.</p></div>
-  <div class="card"><h3>Your own data on the structure</h3><p>Import a CSV of per-residue values (conservation, mutational scans, your own groups). Pellaeon checks the numbering against the structure, reports what did not map, colors by value or category, and keeps each table as a layer you can ask about.</p></div>
-  <div class="card"><h3>Compare and annotate</h3><p>"What changed between these two?" superposes and colors by displacement using MatchMaker's own alignment. "Show the disease variants" pulls UniProt or ClinVar, maps them onto the right chain with the right numbering, colors and labels.</p></div>
+  <div class="card"><h3>Local or cloud AI</h3><p>Ollama on your own machine (free, private), Google Gemini's free tier, Claude, OpenAI, or any OpenAI-compatible server. Switch any time.</p></div>
+  <div class="card"><h3>Click to ask</h3><p>Select a residue in the 3D view and ask what it is or what is nearby, or Alt-click it.</p></div>
+  <div class="card"><h3>Your own data on the structure</h3><p>Import a CSV of per-residue values. Pellaeon checks the numbering against the structure, reports what did not map, and colors by value or category. Each table stays available as a layer.</p></div>
+  <div class="card"><h3>Compare and annotate</h3><p>Superpose two models and color by displacement using MatchMaker's own alignment. Pull UniProt features or ClinVar variants onto the right chain with the right numbering.</p></div>
 </div>
 
 <h2>Two editions</h2>
 <div class="grid">
-  <div class="card"><h3>ChimeraX edition</h3><p>A native ChimeraX bundle: one line to install, docked panel, full session awareness. Windows, macOS, Linux.</p></div>
-  <div class="card"><h3>Classic edition</h3><p>For the old UCSF Chimera 1.x: a small program with a launcher window and the same panel in your browser, driving Chimera through its REST server. <a href="classic.html">How it works</a>.</p></div>
+  <div class="card"><h3>ChimeraX</h3><p>A native bundle: one line to install, docked panel, full session awareness. Windows, macOS, Linux.</p></div>
+  <div class="card"><h3>Classic Chimera 1.x</h3><p>A small program with a launcher window and the same panel in your browser, driving Chimera through its REST server. <a href="classic.html">How it works</a>.</p></div>
 </div>
 
 <h2>Screens</h2>
-<div class="shot"><img src="img/docked_4hhb.png" alt="ChimeraX with the Pellaeon panel docked on the right"><p class="small">The panel docks on the right of ChimeraX; the 3D view stays where it always was.</p></div>
+<div class="shot"><img src="img/docked_4hhb.png" alt="ChimeraX with the Pellaeon panel docked on the right"><p class="small">The panel docks on the right; the 3D view stays where it always was.</p></div>
 <div class="grid">
-  <div class="shot"><img src="img/06_compare.png" alt="Comparison result card"><p class="small">Comparison: RMSD, coverage, moving regions you can click.</p></div>
-  <div class="shot"><img src="img/05_confirm.png" alt="Confirmation card"><p class="small">A risky command asks first, and the commands are editable.</p></div>
-  <div class="shot"><img src="img/01_settings.png" alt="Provider settings"><p class="small">Choose an AI once; local Ollama, free Gemini, Claude, OpenAI.</p></div>
+  <div class="shot"><img src="img/screen_compare.png" alt="Comparison result card"><p class="small">Comparing two conformations: fit RMSD, per-residue displacement, moving regions you can click.</p></div>
+  <div class="shot"><img src="img/screen_confirm.png" alt="Confirmation card"><p class="small">A risky command waits for your OK; the commands are editable.</p></div>
+  <div class="shot"><img src="img/01_settings.png" alt="Provider settings"><p class="small">Settings: pick a provider, test it, run a first request.</p></div>
 </div>
 
-<h2>What to expect</h2>
-<p>Pellaeon helps you inspect structures and run analyses. Its explanations stay traceable to the commands, measurements and sources behind them. Four kinds of things happen in a reply, and the cards tell them apart:</p>
-<div class="grid">
-  <div class="card"><h3>Commands run in ChimeraX</h3><p>Deterministic. Each one is listed with its result; a failed command shows the error and what was tried next.</p></div>
-  <div class="card"><h3>Measurements</h3><p>Distances, RMSD, per-residue displacement, contacts: computed by ChimeraX, reported with the atom sets and thresholds used.</p></div>
-  <div class="card"><h3>Database annotations</h3><p>UniProt features and ClinVar variants, mapped onto the structure with the numbering offset shown, and mismatches counted rather than hidden.</p></div>
-  <div class="card"><h3>AI-written text</h3><p>The sentences around the cards come from the model. They summarize what ran; they are not a substitute for looking at the numbers. Smaller local models make more mistakes than cloud ones; known limitations are tracked in a <a href="https://github.com/tggr-lab/pellaeon/issues/1">GitHub issue</a>.</p></div>
-</div>
-
-<h2>Privacy, briefly</h2>
-<p>With Ollama the model runs on your computer. Requests, the list of open models and the selection are sent only to the provider you choose. Gene and variant lookups go to UniProt and ClinVar when you ask for them. API keys are stored privately on your machine, never inside ChimeraX sessions.</p>
+<h2>Privacy</h2>
+<p>With Ollama the model runs on your computer. Requests, the list of open models and the current selection go only to the provider you chose. Gene and variant lookups go to UniProt and ClinVar when you ask for them. API keys are stored on your machine, never in ChimeraX sessions.</p>
 </main>
 <footer><div class="in">Pellaeon v0.1.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
 </body></html>

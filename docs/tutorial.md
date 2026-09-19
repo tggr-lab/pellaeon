@@ -1,18 +1,18 @@
 # Pellaeon tutorial
 
-This walkthrough takes about twenty minutes. You will install Pellaeon, connect it to an AI, and then work through a real session: open hemoglobin, look at a residue, make a figure, measure something, pull an AlphaFold model by gene name, paint variants onto it, and compare two conformations of an enzyme. Every step shows exactly what to type, what Pellaeon did, and what ChimeraX looks like afterwards.
+The full walkthrough takes about twenty minutes: hemoglobin, a residue and its neighbours, a figure, a distance, an AlphaFold model by gene name, variants, two conformations of an enzyme, and your own data. Each step shows what to type, what Pellaeon ran, and what ChimeraX shows afterwards.
 
 ## Five-minute version
 
 1. In ChimeraX's **Command:** line, paste `open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py` and press Enter.
 2. The panel opens on its settings page. Pick **Google Gemini** (free key, nothing to install) or **Ollama** (runs on your computer), press **Test connection**, then **Save & use**.
-3. Press **Run a first request**. Pellaeon opens ubiquitin and colors it by chain, so you know the whole route works.
+3. Press **Run a first request**. Pellaeon opens ubiquitin and colors it by chain.
 4. Type these, one at a time:
    - `open 4hhb`
    - `color it by chain and show the heme groups as spheres`
    - `make it look publication ready`
 
-That is Pellaeon. The rest of this page is the full walkthrough.
+The rest of this page is the full walkthrough.
 
 ## Part 1 — Setup
 
@@ -36,11 +36,11 @@ The panel opens on its settings page. You have two easy choices:
 - **Nothing to install (recommended to start):** pick **Google Gemini**, click "get a key", sign in with a Google account at AI Studio, press *Create API key*, paste it into Pellaeon. Free, no credit card, takes two minutes.
 - **Everything stays on your computer:** pick **Ollama**. Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
 
-Press **Test connection**, then **Save & use**. Or press **Run a first request**: it saves the settings, opens ubiquitin (1ubq) and colors it by chain through the AI, so the whole route is checked, not just the key. You can switch providers any time with the gear icon.
+Press **Test connection**, then **Save & use**, or **Run a first request**, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.
 
 ![Settings page](img/01_settings.png)
 
-## Part 2 — A real session, step by step
+## Part 2 — Step by step
 
 Type each request into the box at the bottom and press Enter. Typos and casual phrasing are fine.
 
@@ -90,7 +90,7 @@ His 87 of chain A is the proximal histidine that holds the heme iron; the sticks
 
 > make it look publication ready and focus on the heme of chain A
 
-This applies ChimeraX's publication preset (soft lighting, silhouettes, white background; the pictures on this page already use it) and centres the view on the heme of chain A:
+This applies ChimeraX's publication preset and centres the view on the heme of chain A:
 
 ![Publication look](img/tut/04_pub.png)
 
@@ -112,7 +112,7 @@ The number is shown in the 3D view and in the reply. Angles, hydrogen bonds ("sh
 
 > close everything, then open the AlphaFold model of the gene F2RL1
 
-Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence: blue is confident, orange is not. The model's own description of the palette can be off; the colors on screen come from ChimeraX's AlphaFold palette, not from the reply.
+Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence: blue is confident, orange is not.
 
 ![AlphaFold model of PAR2](img/tut/06_af.png)
 
@@ -176,7 +176,7 @@ Any per-residue table can be painted onto a structure: conservation scores, deep
 ![Table preview card](img/tut/11_table_preview_panel.png)
 
 3. The result card says how many rows were placed, which positions do not exist in the structure, and how many rows were **skipped because the reference residue did not match** the structure. A wrong numbering shows up here as a wall of mismatches instead of a silently wrong picture. Numeric columns get a color ramp (residues without a value stay gray), text columns get one color per category.
-4. The table is now part of the session: the state block tells the model about it, so you can ask in words. Applied overlays appear as **Layers** chips above the composer; click one to re-apply it after other coloring.
+4. The AI now knows about the table, so you can ask in words. Applied tables appear as **Layers** chips above the composer; click one to re-apply it after other coloring.
 
 > label the residues with hydropathy above 3 and show them as sticks
 
@@ -191,7 +191,7 @@ The color ramp comes from `color byattribute`: every value is stored as a residu
 - **Undo:** "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).
 - **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.
 - **Export a session as a script:** the ⇩ button saves every command that actually ran as a `.cxc` file; replay it with `open myscript.cxc`.
-- **Your own data:** ⊞ imports a per-residue CSV/TSV (Step 11); applied tables appear as **Layers** chips above the composer, click one to re-apply it.
+- **Your own data:** ⊞ imports a per-residue CSV/TSV (Step 11).
 - **Past chats:** ☰ lists them; + starts a new one.
 - **From ChimeraX's own command line:** `pellaeon color everything by chain`.
 - **Classic Chimera 1.x:** there is a separate edition, same panel in your browser. See [Classic edition](classic.html).

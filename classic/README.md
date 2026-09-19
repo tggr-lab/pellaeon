@@ -7,8 +7,6 @@ the command knowledge (Chimera's Midas-style syntax, models numbered from #0, `:
 
 ![Pellaeon Classic: Chimera 1.20 with hemoglobin, the panel in a browser tab and the launcher window](../docs/img/classic.png)
 
-*A real session on Chimera 1.20: the request typed in the browser panel, the launcher's activity log, and Chimera doing the work.*
-
 ## Install and run
 
 1. Python 3.9 or newer (python.org; on Windows tick "Add Python to PATH"). Nothing else to install.
@@ -32,15 +30,10 @@ the command knowledge (Chimera's Midas-style syntax, models numbered from #0, `:
 - AlphaFold models open from the EBI URL (`open https://alphafold.ebi.ac.uk/files/AF-<accession>-F1-model_v4.pdb`).
 - No Python execution, no per-residue displacement coloring in *compare* (RMSD from matchmaker only).
 - Chat exports are `.cmd` Chimera command files; `copy file` (images), `save`, `close`, `delete`, `system` ask first.
-- Everything else is the same: local or cloud models, confirmation cards, click-less "what is open" awareness via `list models`.
+- Syntax lookups use the bundled Chimera documentation (Chimera has no `usage` command).
+- Everything else is the same: local or cloud models, confirmation cards, and it knows what is open and selected (via `list models` and `list selection`).
 
-## Verified
-
-Tested end to end on UCSF Chimera 1.20 (Linux): REST replies for `list models`, `list chains spec #0` and
-`list selection level residue` are parsed correctly, errors are detected, the Launch Chimera button auto-detects the
-executable and reads the REST port, and requests such as "open 1zik and show only chain B" run as
-`open 1zik; ~display #0; ribbon :.B; display :.B`. Chimera has no `usage` command, so syntax lookups come from the
-bundled documentation (Chimera also ships the same pages under `share/chimera/helpdir/UsersGuide/midas/`).
+Tested with Chimera 1.20.
 
 ## Developing
 

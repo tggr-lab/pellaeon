@@ -13,7 +13,7 @@
 <li><a href="#2-connect-an-ai-once">2. Connect an AI (once)</a></li>
 </ul>
 </li>
-<li><a href="#part-2-a-real-session-step-by-step">Part 2 — A real session, step by step</a><ul>
+<li><a href="#part-2-step-by-step">Part 2 — Step by step</a><ul>
 <li><a href="#step-1-open-a-structure">Step 1 · Open a structure</a></li>
 <li><a href="#step-2-color-and-style">Step 2 · Color and style</a></li>
 <li><a href="#step-2b-make-it-move">Step 2b · Make it move</a></li>
@@ -33,18 +33,18 @@
 </ul>
 </div>
 </nav><article><h1 id="pellaeon-tutorial">Pellaeon tutorial</h1>
-<p>This walkthrough takes about twenty minutes. You will install Pellaeon, connect it to an AI, and then work through a real session: open hemoglobin, look at a residue, make a figure, measure something, pull an AlphaFold model by gene name, paint variants onto it, and compare two conformations of an enzyme. Every step shows exactly what to type, what Pellaeon did, and what ChimeraX looks like afterwards.</p>
+<p>The full walkthrough takes about twenty minutes: hemoglobin, a residue and its neighbours, a figure, a distance, an AlphaFold model by gene name, variants, two conformations of an enzyme, and your own data. Each step shows what to type, what Pellaeon ran, and what ChimeraX shows afterwards.</p>
 <h2 id="five-minute-version">Five-minute version</h2>
 <ol>
 <li>In ChimeraX's <strong>Command:</strong> line, paste <code>open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py</code> and press Enter.</li>
 <li>The panel opens on its settings page. Pick <strong>Google Gemini</strong> (free key, nothing to install) or <strong>Ollama</strong> (runs on your computer), press <strong>Test connection</strong>, then <strong>Save &amp; use</strong>.</li>
-<li>Press <strong>Run a first request</strong>. Pellaeon opens ubiquitin and colors it by chain, so you know the whole route works.</li>
+<li>Press <strong>Run a first request</strong>. Pellaeon opens ubiquitin and colors it by chain.</li>
 <li>Type these, one at a time:
    - <code>open 4hhb</code>
    - <code>color it by chain and show the heme groups as spheres</code>
    - <code>make it look publication ready</code></li>
 </ol>
-<p>That is Pellaeon. The rest of this page is the full walkthrough.</p>
+<p>The rest of this page is the full walkthrough.</p>
 <h2 id="part-1-setup">Part 1 — Setup</h2>
 <h3 id="1-install-chimerax-and-pellaeon">1. Install ChimeraX and Pellaeon</h3>
 <ol>
@@ -61,9 +61,9 @@
 <li><strong>Nothing to install (recommended to start):</strong> pick <strong>Google Gemini</strong>, click "get a key", sign in with a Google account at AI Studio, press <em>Create API key</em>, paste it into Pellaeon. Free, no credit card, takes two minutes.</li>
 <li><strong>Everything stays on your computer:</strong> pick <strong>Ollama</strong>. Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press <strong>Pull</strong> next to <code>qwen3:8b</code> once (5 GB, needs a gaming-class GPU; on a laptop pull <code>qwen3:4b</code> instead and expect slower answers).</li>
 </ul>
-<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong>. Or press <strong>Run a first request</strong>: it saves the settings, opens ubiquitin (1ubq) and colors it by chain through the AI, so the whole route is checked, not just the key. You can switch providers any time with the gear icon.</p>
+<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong>, or <strong>Run a first request</strong>, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.</p>
 <figure><img alt="Settings page" src="img/01_settings.png" /><figcaption>Settings page</figcaption></figure>
-<h2 id="part-2-a-real-session-step-by-step">Part 2 — A real session, step by step</h2>
+<h2 id="part-2-step-by-step">Part 2 — Step by step</h2>
 <p>Type each request into the box at the bottom and press Enter. Typos and casual phrasing are fine.</p>
 <h3 id="step-1-open-a-structure">Step 1 · Open a structure</h3>
 <blockquote>
@@ -96,7 +96,7 @@
 <blockquote>
 <p>make it look publication ready and focus on the heme of chain A</p>
 </blockquote>
-<p>This applies ChimeraX's publication preset (soft lighting, silhouettes, white background; the pictures on this page already use it) and centres the view on the heme of chain A:</p>
+<p>This applies ChimeraX's publication preset and centres the view on the heme of chain A:</p>
 <figure><img alt="Publication look" src="img/tut/04_pub.png" /><figcaption>Publication look</figcaption></figure>
 <figure><img alt="Commands" src="img/tut/04_pub_panel.png" /><figcaption>Commands</figcaption></figure>
 <p>To save it: "save a picture to my desktop". Saving writes a file, so Pellaeon shows a confirmation card first (Step 10).</p>
@@ -111,7 +111,7 @@
 <blockquote>
 <p>close everything, then open the AlphaFold model of the gene F2RL1</p>
 </blockquote>
-<p>Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence: blue is confident, orange is not. The model's own description of the palette can be off; the colors on screen come from ChimeraX's AlphaFold palette, not from the reply.</p>
+<p>Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence: blue is confident, orange is not.</p>
 <figure><img alt="AlphaFold model of PAR2" src="img/tut/06_af.png" /><figcaption>AlphaFold model of PAR2</figcaption></figure>
 <figure><img alt="UniProt lookup then open" src="img/tut/06_af_panel.png" /><figcaption>UniProt lookup then open</figcaption></figure>
 <p>"close everything" asked for confirmation first: closing models is one of the risky actions.</p>
@@ -155,7 +155,7 @@
 <figure><img alt="Table preview card" src="img/tut/11_table_preview_panel.png" /><figcaption>Table preview card</figcaption></figure>
 <ol start="3">
 <li>The result card says how many rows were placed, which positions do not exist in the structure, and how many rows were <strong>skipped because the reference residue did not match</strong> the structure. A wrong numbering shows up here as a wall of mismatches instead of a silently wrong picture. Numeric columns get a color ramp (residues without a value stay gray), text columns get one color per category.</li>
-<li>The table is now part of the session: the state block tells the model about it, so you can ask in words. Applied overlays appear as <strong>Layers</strong> chips above the composer; click one to re-apply it after other coloring.</li>
+<li>The AI now knows about the table, so you can ask in words. Applied tables appear as <strong>Layers</strong> chips above the composer; click one to re-apply it after other coloring.</li>
 </ol>
 <blockquote>
 <p>label the residues with hydropathy above 3 and show them as sticks</p>
@@ -168,7 +168,7 @@
 <li><strong>Undo:</strong> "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).</li>
 <li><strong>When it gets a command wrong</strong>, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.</li>
 <li><strong>Export a session as a script:</strong> the ⇩ button saves every command that actually ran as a <code>.cxc</code> file; replay it with <code>open myscript.cxc</code>.</li>
-<li><strong>Your own data:</strong> ⊞ imports a per-residue CSV/TSV (Step 11); applied tables appear as <strong>Layers</strong> chips above the composer, click one to re-apply it.</li>
+<li><strong>Your own data:</strong> ⊞ imports a per-residue CSV/TSV (Step 11).</li>
 <li><strong>Past chats:</strong> ☰ lists them; + starts a new one.</li>
 <li><strong>From ChimeraX's own command line:</strong> <code>pellaeon color everything by chain</code>.</li>
 <li><strong>Classic Chimera 1.x:</strong> there is a separate edition, same panel in your browser. See <a href="classic.html">Classic edition</a>.</li>

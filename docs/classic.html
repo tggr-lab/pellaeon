@@ -9,8 +9,6 @@
 <ul>
 <li><a href="#install-and-run">Install and run</a></li>
 <li><a href="#differences-from-the-chimerax-edition">Differences from the ChimeraX edition</a></li>
-<li><a href="#verified">Verified</a></li>
-<li><a href="#developing">Developing</a></li>
 </ul>
 </div>
 </nav><article><h1 id="pellaeon-classic-for-ucsf-chimera-1x">Pellaeon Classic — for UCSF Chimera 1.x</h1>
@@ -19,7 +17,6 @@ separate program: it serves the Pellaeon panel to your web browser and drives Ch
 REST server. It shares the agent, providers, safety gate and UI with the ChimeraX bundle; only the executor and
 the command knowledge (Chimera's Midas-style syntax, models numbered from #0, <code>:10.A</code> chains) differ.</p>
 <figure><img alt="Pellaeon Classic: Chimera 1.20 with hemoglobin, the panel in a browser tab and the launcher window" src="img/classic.png" /><figcaption>Pellaeon Classic: Chimera 1.20 with hemoglobin, the panel in a browser tab and the launcher window</figcaption></figure>
-<p><em>A real session on Chimera 1.20: the request typed in the browser panel, the launcher's activity log, and Chimera doing the work.</em></p>
 <h2 id="install-and-run">Install and run</h2>
 <ol>
 <li>Python 3.9 or newer (python.org; on Windows tick "Add Python to PATH"). Nothing else to install.</li>
@@ -42,19 +39,9 @@ the command knowledge (Chimera's Midas-style syntax, models numbered from #0, <c
 <li>AlphaFold models open from the EBI URL (<code>open https://alphafold.ebi.ac.uk/files/AF-&lt;accession&gt;-F1-model_v4.pdb</code>).</li>
 <li>No Python execution, no per-residue displacement coloring in <em>compare</em> (RMSD from matchmaker only).</li>
 <li>Chat exports are <code>.cmd</code> Chimera command files; <code>copy file</code> (images), <code>save</code>, <code>close</code>, <code>delete</code>, <code>system</code> ask first.</li>
-<li>Everything else is the same: local or cloud models, confirmation cards, click-less "what is open" awareness via <code>list models</code>.</li>
+<li>Syntax lookups use the bundled Chimera documentation (Chimera has no <code>usage</code> command).</li>
+<li>Everything else is the same: local or cloud models, confirmation cards, and it knows what is open and selected (via <code>list models</code> and <code>list selection</code>).</li>
 </ul>
-<h2 id="verified">Verified</h2>
-<p>Tested end to end on UCSF Chimera 1.20 (Linux): REST replies for <code>list models</code>, <code>list chains spec #0</code> and
-<code>list selection level residue</code> are parsed correctly, errors are detected, the Launch Chimera button auto-detects the
-executable and reads the REST port, and requests such as "open 1zik and show only chain B" run as
-<code>open 1zik; ~display #0; ribbon :.B; display :.B</code>. Chimera has no <code>usage</code> command, so syntax lookups come from the
-bundled documentation (Chimera also ships the same pages under <code>share/chimera/helpdir/UsersGuide/midas/</code>).</p>
-<h2 id="developing">Developing</h2>
-<pre><code>python classic/tools/build_chimera_docs.py classic/pellaeon_classic/data/chimera_docs classic/pellaeon_classic/data   # after re-downloading the docs
-python classic/tools/build_classic.py                       # -&gt; dist/pellaeon-classic/ and dist/pellaeon-classic.zip
-python classic/tools/e2e_stub_test.py &quot;open 1zik and color it red&quot;   # end-to-end against a stub REST server (needs Ollama)
-PELLAEON_REAL_PORT=45629 python classic/tools/e2e_stub_test.py &quot;...&quot;  # same, against a running Chimera REST server
-</code></pre></article></div></main>
+<p>Tested with Chimera 1.20.</p></article></div></main>
 <footer><div class="in">Pellaeon v0.1.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
 </body></html>

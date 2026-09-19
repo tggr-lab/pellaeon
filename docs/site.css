@@ -90,8 +90,8 @@ footer .credits a { color: inherit; text-decoration: none; border-bottom: 1px do
 .how { display: block; width: 100%; min-width: 760px; max-width: 1180px; margin: 0 auto; font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 .how .node rect { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; }
 .how .node rect.acc { fill: var(--accent2); stroke: none; }
-.how .node text.t { fill: var(--ink); font-size: 15px; font-weight: 700; }
-.how .node text.b { fill: var(--muted); font-size: 12.5px; }
+.how .nb { box-sizing: border-box; padding: 12px 16px; font-size: 12.5px; line-height: 1.32; color: var(--muted); display: flex; flex-direction: column; gap: 6px; height: 100%; overflow: hidden; }
+.how .nb b { color: var(--ink); font-size: 15px; }
 .how .lab { fill: var(--accent2); font-size: 12px; font-style: italic; }
 .how .wires path { fill: none; stroke: var(--accent); stroke-width: 2; marker-end: url(#ah); stroke-dasharray: 7 7; animation: howflow 1.1s linear infinite; }
 .how .wires path.loop { stroke: var(--accent2); }
@@ -102,3 +102,7 @@ footer .credits a { color: inherit; text-decoration: none; border-bottom: 1px do
 @keyframes howflow { to { stroke-dashoffset: -14; } }
 @keyframes howglow { 0%, 10%, 100% { filter: none; } 5% { filter: drop-shadow(0 0 6px var(--accent)); } }
 @media (prefers-reduced-motion: reduce) { .how .wires path, .how .node { animation: none; } }
+.how-list { display: none; padding-left: 22px; color: var(--muted); }
+.how-list li { margin: 6px 0; }
+.how-list b { color: var(--ink); }
+@media (max-width: 700px) { .howwrap { display: none; } .how-list { display: block; } }
