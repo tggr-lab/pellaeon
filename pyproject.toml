@@ -5,7 +5,7 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 [project]
 name = "ChimeraX-Pellaeon"
 license = { text = "MIT" }
-authors = [{ name = "Pellaeon contributors" }]
+authors = [{ name = "Yam Amir" }]
 description = "Control ChimeraX in plain English with local or cloud AI models"
 dependencies = ["ChimeraX-Core ~=1.9", "ChimeraX-UI ~=1.0"]
 dynamic = ["classifiers", "requires-python", "version"]
@@ -20,6 +20,8 @@ Google Gemini, OpenAI and any OpenAI-compatible server."""
 
 [project.urls]
 Home = "https://github.com/pellaeon-chimerax/pellaeon"
+Author = "https://github.com/YAMIR-1138"
+Lab = "https://github.com/tggr-lab"
 
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }
