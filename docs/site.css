@@ -34,9 +34,14 @@ main { max-width: var(--max); margin: 0 auto; padding: 28px 20px 80px; }
 .toc a { color: var(--muted); text-decoration: none; }
 .toc a:hover { color: var(--ink); }
 @media (max-width: 820px) { .doc { grid-template-columns: 1fr; } .toc { position: static; border-bottom: 1px solid var(--line); padding-bottom: 12px; } }
-.hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 36px; align-items: center; padding: 30px 0 10px; }
-@media (max-width: 820px) { .hero { grid-template-columns: 1fr; } }
-.hero-gif img { width: 100%; border-radius: 8px; }
+.hero { display: grid; grid-template-columns: 1fr; gap: 28px; padding: 26px 0 10px; width: min(1180px, 100vw - 40px); margin-left: 50%; transform: translateX(-50%); }
+.hero > div:first-child { max-width: 760px; margin: 0 auto; text-align: center; }
+.hero .cmdbox { max-width: 720px; margin: 16px auto; }
+.hero .btns { justify-content: center; }
+.hero h1 { text-wrap: balance; }
+.hero-gif { padding: 10px; }
+.hero-gif img { width: 100%; border-radius: 8px; display: block; }
+.hero-gif p.small { margin: 8px 4px 0; text-align: center; }
 .hero h1 { font-size: 2.4rem; }
 .hero p.lead { font-size: 1.15rem; color: var(--muted); }
 .cmdbox { display: flex; gap: 8px; align-items: stretch; margin: 16px 0; }
