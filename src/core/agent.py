@@ -537,9 +537,20 @@ class Agent:
         for c in commands:
             for acc in re.findall(r"alphafold:([A-Za-z0-9]+)", c, re.I):
                 if acc.upper() not in self._verified_accessions and acc.upper() not in self._user_text_upper:
-                    return {"ok": False, "results": [], "error": "Accession %s was NOT obtained from resolve_protein, so it may be the "
+                    # verify instead of refusing: does this accession belong to a gene/protein the user named?
+                    gene = ""
+                    try:
+                        info = self.executor.protein_features(acc, ["Domain"]) or {}
+                        gene = str(info.get("gene") or "")
+                    except Exception:  # noqa: BLE001
+                        info = {}
+                    names = [gene] + [str(x) for x in (info.get("names") or [])]
+                    if gene and any(n and n.upper() in self._user_text_upper for n in names):
+                        self._verified_accessions.add(acc.upper())
+                        continue
+                    return {"ok": False, "results": [], "error": "Accession %s was NOT obtained from resolve_protein%s, so it may be the "
                             "wrong protein. Call resolve_protein with the gene/protein name first and use the open_command it returns."
-                            % acc, "unverified_accession": acc}
+                            % (acc, (" (UniProt says it is %s, which the user did not mention)" % gene) if gene else ""), "unverified_accession": acc}
             w = first_word(c)
             if w in _TOOL_NAMES:
                 return {"ok": False, "results": [], "error": "'%s' is one of YOUR TOOLS, not a ChimeraX command. Call the tool "

@@ -319,6 +319,8 @@ class ChimeraXExecutor:
                                          "display": bool(getattr(m, "display", True))}
                 if AtomicStructure is not None and isinstance(m, AtomicStructure):
                     entry["num_residues"] = int(m.num_residues)
+                    if "alphafold" in (m.name or "").lower():
+                        entry["note"] = "AlphaFold model, colored by pLDDT confidence when opened: dark blue very high, light blue confident, yellow low, orange very low"
                     entry["num_atoms"] = int(m.num_atoms)
                     chains = []
                     for c in m.chains:

@@ -68,6 +68,9 @@ main { max-width: var(--max); margin: 0 auto; padding: 28px 20px 80px; }
 .shot img { border: none; }
 .example { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--code); border-left: 3px solid var(--accent); border-radius: 8px; padding: 8px 12px; margin: 6px 0; }
 .small { color: var(--muted); font-size: 0.9em; }
+figure { margin: 18px 0; }
+figure img { display: block; }
+figcaption { color: var(--muted); font-size: 0.88em; margin-top: 6px; }
 footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9em; }
 footer .in { max-width: var(--max); margin: 0 auto; padding: 16px 20px; }
 
@@ -81,3 +84,21 @@ footer .credits { color: var(--muted); opacity: 0.8; font-size: 0.85em; display:
 footer .credits img.lab { width: 28px; height: 28px; border: none; border-radius: 50%; padding: 2px; background: #eef2f3; box-shadow: 0 0 0 1px var(--line); opacity: 0.9; transition: opacity .2s, box-shadow .2s; }
 footer .credits a:hover img.lab, footer .credits img.lab:hover { opacity: 1; box-shadow: 0 0 0 2px var(--accent2); }
 footer .credits a { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
+
+/* how-it-works diagram */
+.howwrap { overflow-x: auto; margin: 14px 0 8px; }
+.how { display: block; width: 100%; min-width: 760px; max-width: 1180px; margin: 0 auto; font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.how .node rect { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; }
+.how .node rect.acc { fill: var(--accent2); stroke: none; }
+.how .node text.t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+.how .node text.b { fill: var(--muted); font-size: 12.5px; }
+.how .lab { fill: var(--accent2); font-size: 12px; font-style: italic; }
+.how .wires path { fill: none; stroke: var(--accent); stroke-width: 2; marker-end: url(#ah); stroke-dasharray: 7 7; animation: howflow 1.1s linear infinite; }
+.how .wires path.loop { stroke: var(--accent2); }
+.how .wires path.next { opacity: 0.55; }
+.how .node { animation: howglow 14s ease-in-out infinite; }
+.how .n1 { animation-delay: 0s; } .how .n2 { animation-delay: 2s; } .how .n3 { animation-delay: 4s; } .how .n4 { animation-delay: 6s; }
+.how .n5 { animation-delay: 8s; } .how .n6 { animation-delay: 10s; } .how .n7 { animation-delay: 12s; }
+@keyframes howflow { to { stroke-dashoffset: -14; } }
+@keyframes howglow { 0%, 10%, 100% { filter: none; } 5% { filter: drop-shadow(0 0 6px var(--accent)); } }
+@media (prefers-reduced-motion: reduce) { .how .wires path, .how .node { animation: none; } }

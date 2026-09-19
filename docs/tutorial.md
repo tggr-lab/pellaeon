@@ -2,6 +2,18 @@
 
 This walkthrough takes about twenty minutes. You will install Pellaeon, connect it to an AI, and then work through a real session: open hemoglobin, look at a residue, make a figure, measure something, pull an AlphaFold model by gene name, paint variants onto it, and compare two conformations of an enzyme. Every step shows exactly what to type, what Pellaeon did, and what ChimeraX looks like afterwards.
 
+## Five-minute version
+
+1. In ChimeraX's **Command:** line, paste `open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py` and press Enter.
+2. The panel opens on its settings page. Pick **Google Gemini** (free key, nothing to install) or **Ollama** (runs on your computer), press **Test connection**, then **Save & use**.
+3. Press **Run a first request**. Pellaeon opens ubiquitin and colors it by chain, so you know the whole route works.
+4. Type these, one at a time:
+   - `open 4hhb`
+   - `color it by chain and show the heme groups as spheres`
+   - `make it look publication ready`
+
+That is Pellaeon. The rest of this page is the full walkthrough.
+
 ## Part 1 — Setup
 
 ### 1. Install ChimeraX and Pellaeon
@@ -24,7 +36,7 @@ The panel opens on its settings page. You have two easy choices:
 - **Nothing to install (recommended to start):** pick **Google Gemini**, click "get a key", sign in with a Google account at AI Studio, press *Create API key*, paste it into Pellaeon. Free, no credit card, takes two minutes.
 - **Everything stays on your computer:** pick **Ollama**. Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
 
-Press **Test connection**, then **Save & use**. You can switch providers any time with the gear icon.
+Press **Test connection**, then **Save & use**. Or press **Run a first request**: it saves the settings, opens ubiquitin (1ubq) and colors it by chain through the AI, so the whole route is checked, not just the key. You can switch providers any time with the gear icon.
 
 ![Settings page](img/01_settings.png)
 
@@ -64,7 +76,7 @@ The **Ran 1 command** line is the exact ChimeraX command it used. Click it to ex
 
 ### Step 3 · Click on something and ask about it
 
-Ctrl-click any atom in the 3D view (that is ChimeraX's normal way of selecting). A bar appears above the input:
+Ctrl-click any atom in the 3D view (that is ChimeraX's normal way of selecting). A bar appears above the input. **Highlight** colors the selection and shows its atoms; the two questions send it to the AI. Alt-click asks about a residue directly, without selecting first (the `pellaeon ask` mouse mode; rebind it with `ui mousemode alt leftMode "pellaeon ask"` if you use Alt for something else).
 
 ![Selection bar](img/tut/03_nearby_panel.png)
 
@@ -78,13 +90,13 @@ His 87 of chain A is the proximal histidine that holds the heme iron; the sticks
 
 > make it look publication ready and focus on the heme of chain A
 
-White background, soft lighting, silhouettes, and the view centred on the heme:
+This applies ChimeraX's publication preset (soft lighting, silhouettes, white background; the pictures on this page already use it) and centres the view on the heme of chain A:
 
 ![Publication look](img/tut/04_pub.png)
 
 ![Commands](img/tut/04_pub_panel.png)
 
-To save it: "save a picture to my desktop". Saving writes a file, so Pellaeon shows a confirmation card first (Step 9).
+To save it: "save a picture to my desktop". Saving writes a file, so Pellaeon shows a confirmation card first (Step 10).
 
 ### Step 5 · Measure something
 
@@ -100,7 +112,7 @@ The number is shown in the 3D view and in the reply. Angles, hydrogen bonds ("sh
 
 > close everything, then open the AlphaFold model of the gene F2RL1
 
-Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence: blue is confident, orange is not.
+Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence: blue is confident, orange is not. The model's own description of the palette can be off; the colors on screen come from ChimeraX's AlphaFold palette, not from the reply.
 
 ![AlphaFold model of PAR2](img/tut/06_af.png)
 
@@ -122,7 +134,9 @@ The same works for domains, binding sites, active sites, glycosylation, disulfid
 
 ### Step 8 · Disease variants from ClinVar
 
-> close everything, open the AlphaFold model of the gene HBB and show the ClinVar disease variants on it
+> close everything and open the AlphaFold model of the gene HBB
+
+> show the ClinVar disease variants of HBB on it
 
 Hemoglobin beta again, this time the AlphaFold model, with every ClinVar missense position colored by clinical significance (red pathogenic, yellow uncertain, blue benign) and the pathogenic ones labeled, sickle-cell E7V among them.
 
@@ -177,6 +191,7 @@ The color ramp comes from `color byattribute`: every value is stored as a residu
 - **Undo:** "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).
 - **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.
 - **Export a session as a script:** the ⇩ button saves every command that actually ran as a `.cxc` file; replay it with `open myscript.cxc`.
+- **Your own data:** ⊞ imports a per-residue CSV/TSV (Step 11); applied tables appear as **Layers** chips above the composer, click one to re-apply it.
 - **Past chats:** ☰ lists them; + starts a new one.
 - **From ChimeraX's own command line:** `pellaeon color everything by chain`.
 - **Classic Chimera 1.x:** there is a separate edition, same panel in your browser. See [Classic edition](classic.html).

@@ -599,3 +599,19 @@ def test_table_column_words_do_not_trigger_residue_type_recoloring():
     agent.tables = _loaded_table()
     res = agent.run_turn("label the hydrophobic residues with score above 0.5")
     assert res.reply == "Labeled." and len(prov.requests) == 2 and not any(":ala,val" in c for c in ex.ran)
+
+
+def test_guessed_accession_is_verified_against_uniprot_instead_of_refused():
+    class Ex(FakeExecutor):
+        def protein_features(self, accession, kinds=None):
+            return {"gene": "F2RL1", "names": ["Proteinase-activated receptor 2"], "features": []}
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:P55085"]})]}, "Opened PAR2."])
+    ex = Ex()
+    agent = Agent(prov, ex)
+    res = agent.run_turn("open the alphafold model of F2RL1")
+    assert res.reply == "Opened PAR2." and "open alphafold:P55085" in ex.ran and len(prov.requests) == 2
+    # a guessed accession for a protein the user did not name is still refused, with the real gene named
+    prov2 = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:P55085"]})]}, "Hmm."])
+    ex2 = Ex()
+    Agent(prov2, ex2).run_turn("open the alphafold model of TERT")
+    assert "open alphafold:P55085" not in ex2.ran and "UniProt says it is F2RL1" in str(prov2.requests[1])

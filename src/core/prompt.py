@@ -144,6 +144,8 @@ def format_state(state: Dict[str, Any]) -> str:
                     for c in m["chains"][:12]))
             if m.get("display") is False:
                 extras.append("hidden")
+            if m.get("note"):
+                extras.append(m["note"])
             if extras:
                 desc += " [" + "; ".join(extras) + "]"
             lines.append(desc)

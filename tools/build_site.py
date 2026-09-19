@@ -18,18 +18,23 @@ VERSION = re.search(r'__version__ = "([^"]+)"', open(os.path.join(ROOT, "src", "
 NAV = [("index.html", "Home"), ("install.html", "Install"), ("tutorial.html", "Tutorial"), ("classic.html", "Classic edition")]
 
 
+DESC = "Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."
+SITE = "https://tggr-lab.github.io/pellaeon"
+
+
 def layout(title, body, active, toc_html=""):
     nav = "".join('<a class="link%s" href="%s">%s</a>' % (" active" if f == active else "", f, n) for f, n in NAV)
     main = ('<div class="doc"><nav class="toc">%s</nav><article>%s</article></div>' % (toc_html, body)) if toc_html else body
     return """<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>%s</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
-<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."></head>
+<meta name="description" content="%s">
+<meta property="og:title" content="%s"><meta property="og:description" content="%s"><meta property="og:image" content="%s/img/hero_poster.png"><meta property="og:url" content="%s/%s"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
 <body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a>%s<span class="spacer"></span><a class="link gh" href="%s">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
 <script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
 <main>%s</main>
 <footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
-</body></html>""" % (html.escape(title), nav, REPO, main, VERSION)
+</body></html>""" % (html.escape(title), DESC, html.escape(title), DESC, SITE, SITE, active, nav, REPO, main, VERSION)
 
 
 def md_page(src, out, active, title=None):
@@ -39,6 +44,14 @@ def md_page(src, out, active, title=None):
                 .replace("(tutorial.md)", "(tutorial.html)").replace("(install.md)", "(install.html)").replace("(classic.md)", "(classic.html)"))
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"], extension_configs={"toc": {"toc_depth": "2-3"}})
     body = md.convert(text)
+    # standalone images become figures with the alt text as caption
+    def _fig(m):
+        tag = m.group(1)
+        alt = re.search(r'alt="([^"]*)"', tag)
+        if not alt or not alt.group(1).strip():
+            return m.group(0)
+        return "<figure>%s<figcaption>%s</figcaption></figure>" % (tag, alt.group(1))
+    body = re.sub(r"<p>(<img [^>]*>)</p>", _fig, body)
     t = title or (re.search(r"^# (.+)$", text, re.M).group(1) if re.search(r"^# (.+)$", text, re.M) else active)
     page = layout("%s - Pellaeon" % t, body, active, md.toc)
     open(os.path.join(DOCS, out), "w", encoding="utf-8").write(page)
@@ -72,6 +85,30 @@ INDEX = """
 <div class="example">compare these two models and tell me what changed</div>
 <div class="example">show the disease variants on this model</div>
 <p class="small">Typos, shorthand and "it" / "these" are fine: Pellaeon looks at what is open and selected.</p>
+
+
+<h2>How it works, and why it is not just a chatbot glued to ChimeraX</h2>
+<p class="small">A plain chat model guesses commands from memory and never sees what happened. Pellaeon gives the model your ChimeraX's own documentation and the live session, lets it act only through logged tools, stops risky actions for your OK, and feeds every error back with the real syntax so it can fix itself. Recorded animation; nothing here is live.</p>
+<div class="howwrap">
+<svg class="how" viewBox="0 0 1180 500" role="img" aria-labelledby="how-title" xmlns="http://www.w3.org/2000/svg"><title id="how-title">How Pellaeon turns a sentence into ChimeraX commands, and checks the result</title>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent2)"/></marker></defs>
+<g class="wires"><path d="M280,106 L315,106"/><path d="M565,106 L600,106"/><path d="M850,106 L885,106"/><path d="M1010,172 L1010,330"/><path d="M885,396 L850,396"/><path d="M600,396 L565,396"/><path class="loop" d="M725,330 C725,270 725,230 725,172" marker-end="url(#ah2)"/><path class="next" d="M315,396 L155,396 L155,172"/></g>
+<g class="node n1" transform="translate(30,40)"><rect width="250" height="132" rx="12"/><text class="t" x="16" y="30">1 · You type</text><text class="b" x="16" y="52">“color the transmembrane</text><text class="b" x="16" y="69">helices orange and the rest white”</text><text class="b" x="16" y="86">Typos, “it”, gene names: fine.</text></g>
+<g class="node n2" transform="translate(315,40)"><rect width="250" height="132" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><text class="t" x="16" y="30">2 · Pellaeon builds the context</text><text class="b" x="16" y="52">What is open and selected right now</text><text class="b" x="16" y="69">Your ChimeraX version's docs, indexed</text><text class="b" x="16" y="86">131 tutorial workflows, 58 recipes</text><text class="b" x="16" y="103">A list of things models get wrong</text></g>
+<g class="node n3" transform="translate(600,40)"><rect width="250" height="132" rx="12"/><text class="t" x="16" y="30">3 · The model plans</text><text class="b" x="16" y="52">Any provider: Ollama on your PC,</text><text class="b" x="16" y="69">Gemini, Claude, OpenAI.</text><text class="b" x="16" y="86">It cannot type into ChimeraX;</text><text class="b" x="16" y="103">it can only call tools.</text></g>
+<g class="node n4" transform="translate(885,40)"><rect width="250" height="132" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><text class="t" x="16" y="30">4 · Tools, not free text</text><text class="b" x="16" y="52">run_commands · get_state · docs</text><text class="b" x="16" y="69">resolve_protein (UniProt) · annotate</text><text class="b" x="16" y="86">(UniProt, ClinVar) · compare · tables</text><text class="b" x="16" y="103">Every call is logged and shown.</text></g>
+<g class="node n5" transform="translate(885,330)"><rect width="250" height="132" rx="12"/><text class="t" x="16" y="30">5 · Safety gate</text><text class="b" x="16" y="52">close, delete, save, scripts, remote</text><text class="b" x="16" y="69">code: stop for an editable OK card.</text><text class="b" x="16" y="86">Everything else just runs.</text></g>
+<g class="node n6" transform="translate(600,330)"><rect width="250" height="132" rx="12"/><rect class="acc" x="14" y="0" width="222" height="4" rx="2"/><text class="t" x="16" y="30">6 · ChimeraX runs it, Pellaeon watches</text><text class="b" x="16" y="52">The log, the error, what changed.</text><text class="b" x="16" y="69">A failed command comes back with</text><text class="b" x="16" y="86">the real syntax and a suggestion;</text><text class="b" x="16" y="103">the model retries (a bounded number of times).</text></g>
+<g class="node n7" transform="translate(315,330)"><rect width="250" height="132" rx="12"/><text class="t" x="16" y="30">7 · Reply with cards</text><text class="b" x="16" y="52">Every command visible, re-runnable,</text><text class="b" x="16" y="69">linked to ChimeraX's own docs.</text><text class="b" x="16" y="86">Export the whole chat as a .cxc script.</text></g>
+<text class="lab" x="735" y="258">error + real syntax → try again</text>
+<text class="lab" x="165" y="300">next request</text>
+</svg>
+</div>
+<div class="grid">
+  <div class="card"><h3>It knows your version</h3><p>On first launch Pellaeon indexes the documentation installed with the exact ChimeraX you run (BM25, local, no cloud). A new ChimeraX release means a new index, not stale answers.</p></div>
+  <div class="card"><h3>It sees the result</h3><p>Commands run inside ChimeraX and the log comes back to the model: "changed 0 atoms" or an error is a signal, not silence. Green means the command ran; the cards say what it changed.</p></div>
+  <div class="card"><h3>It cannot go off the rails quietly</h3><p>Guessed database accessions are verified against UniProt before opening; residue names beat invented residue numbers; anything destructive waits for you.</p></div>
+</div>
 
 <h2>What you get</h2>
 <div class="grid">

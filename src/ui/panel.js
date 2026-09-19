@@ -45,11 +45,16 @@
     if (name === "settings") fillSettings();
     if (name === "history") send("history");
   }
+  // follow the newest content while a turn is running, unless the reader scrolled up on purpose
   function scrollDown(force) {
     const t = $("transcript");
     const nearBottom = t.scrollHeight - t.scrollTop - t.clientHeight < 120;
-    if (force || nearBottom) t.scrollTop = t.scrollHeight;
+    if (force || nearBottom || state.follow) t.scrollTop = t.scrollHeight;
   }
+  document.addEventListener("DOMContentLoaded", () => {
+    const t = $("transcript");
+    t.addEventListener("scroll", () => { state.follow = t.scrollHeight - t.scrollTop - t.clientHeight < 120; }, {passive: true});
+  });
   function setBusy(b) {
     state.busy = b;
     const btn = $("send");
@@ -60,6 +65,7 @@
 
   // ---------------------------------------------------------------- transcript
   function userMessage(id, text) {
+    state.follow = true;
     $("welcome") && $("welcome").remove();
     const el = document.createElement("div");
     el.className = "msg user";
@@ -559,7 +565,7 @@
     },
     tool_start(m) { toolStart(m.id, m.call_id, m.name, m.args); },
     tool_result(m) { toolResult(m); },
-    confirm(m) { confirmCard(m); },
+    confirm(m) { confirmCard(m); const t = state.turns[m.id]; if (t) Object.values(t.tools).forEach((el) => { const l = el.querySelector && el.querySelector("summary .label"); if (l && /^Running /.test(l.textContent)) l.textContent = "Waiting for your OK…"; }); },
     confirm_done(m) {
       const card = document.querySelector('.card[data-confirm="' + m.confirm_id + '"]');
       if (card) { card.classList.add("done"); card.querySelectorAll("button, textarea").forEach((b) => (b.disabled = true)); }
