@@ -54,7 +54,7 @@ INDEX = """
     <p class="small">Paste that into ChimeraX's command line. That is the whole installation. <a href="install.html">Details, offline install and the classic Chimera edition</a>.</p>
     <div class="btns"><a class="btn primary" href="install.html">Install</a><a class="btn" href="tutorial.html">Tutorial with screenshots</a><a class="btn" href="%(repo)s/releases">Downloads</a></div>
   </div>
-  <div class="shot"><img src="img/03_first_request.png" alt="Pellaeon panel: a request, the commands it ran, and the reply"></div>
+  <div class="shot"><img src="img/hero.png" alt="Pellaeon panel: a comparison request and its result card"></div>
 </section>
 
 <h2>Say it like you would say it to a colleague</h2>
