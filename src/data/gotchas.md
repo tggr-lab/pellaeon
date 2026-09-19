@@ -19,6 +19,7 @@ Command gotchas (learned the hard way):
 - Matching/alignment: `matchmaker #2 to #1`; RMSD: `rmsd #1@CA to #2@CA`.
 - Hydrogen bonds: `hbonds #1 reveal true color yellow`; clashes: `clashes #1 reveal true`; contacts within 4 Å of a ligand: `contacts ligand restrict protein reveal true`.
 - Ligands and water: `show ligand atoms; style ligand sphere`, `hide solvent`, `delete solvent` (confirmation needed).
+- Named groups are residue NAMES, never numbers: heme = `:HEM`, ATP = `:ATP`, NAG = `:NAG`, water = `:HOH`, all ligands = `ligand`, metal ions = `ions`. E.g. "show the hemes as red spheres": `show :HEM atoms; style :HEM sphere; color :HEM red`. Do not guess residue numbers for them.
 - Chains: `color #1/A blue; color #1/B red` or `color #1 bychain`; `rainbow #1` colors along the chain.
 - Secondary structure: `color helix red; color strand yellow; color coil gray` (built-in specifiers).
 - Info in the log: `info models`, `info chains #1`, `info residues sel`, `log info sel`.

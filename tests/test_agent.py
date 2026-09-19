@@ -293,6 +293,26 @@ def test_only_requests_get_a_hide_nudge():
     assert len(prov2.requests) == 2
 
 
+def test_named_groups_by_invented_numbers_are_nudged():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open 4hhb", "style #1:226-232 sphere"]})]}, "Hemes shown.",
+                             {"calls": [("run_commands", {"commands": ["show :HEM atoms", "style :HEM sphere", "color :HEM red"]})]}, "Hemes are red spheres."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    res = agent.run_turn("open 4hhb and show the heme groups as red spheres")
+    assert "style :HEM sphere" in ex.ran and res.reply == "Hemes are red spheres."
+    assert any("residue NAME" in str(m.parts[0].text) for _, msgs, _ in prov.requests[-1:] for m in msgs if m.role == "user")
+    # residue names or selectors used: no nudge
+    prov2 = ScriptedProvider([{"calls": [("run_commands", {"commands": ["show ligand atoms", "style ligand sphere"]})]}, "Done."])
+    agent2 = Agent(prov2, FakeExecutor())
+    agent2.run_turn("show the ligands as spheres")
+    assert len(prov2.requests) == 2
+    # the user gave the numbers: no nudge
+    prov3 = ScriptedProvider([{"calls": [("run_commands", {"commands": ["color #1:142 red"]})]}, "Done."])
+    agent3 = Agent(prov3, FakeExecutor())
+    agent3.run_turn("color the heme at residue 142 red")
+    assert len(prov3.requests) == 2
+
+
 def test_cancel_closes_dangling_tool_calls():
     import threading
     from core.schema import ToolCall

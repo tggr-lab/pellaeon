@@ -75,6 +75,14 @@ NUDGE_ANNOTATE = ("(system) The user asked for variants/annotations. Do NOT type
                   "annotate with arguments model (e.g. \"#1\"), accession (the UniProt accession, or a gene symbol for kind "
                   "\"clinvar\") and kind (\"clinvar\" for ClinVar disease variants, \"disease\"/\"variant\" for UniProt variants, "
                   "\"domain\", \"transmembrane\", \"binding\"...). Call it now.")
+_NAMED_GROUP_RE = re.compile(r"\b(haems?|hemes?|heme\s+groups?|atp|adp|amp|gtp|gdp|nadh?|nadph?|fadh?|fmn|nag|man|bma|retinal|chlorophyll|cofactors?|"
+                             r"ligands?|glycans?|sugars?|waters?|ions?|zinc|magnesium|calcium|sodium)\b", re.I)
+_NAMED_SPEC_RE = re.compile(r":[A-Za-z][A-Za-z0-9]{1,3}\b|\b(ligand|solvent|ions|water)\b|&", re.I)
+_NUMERIC_SPEC_RE = re.compile(r":\d+")
+NUDGE_NAMED = ("(system) The user referred to a named ligand/cofactor/group (heme, ATP, NAG, water, ions ...), but you used "
+               "residue NUMBERS, which are guesses and matched nothing. Use the residue NAME spec (heme = :HEM, ATP = :ATP, "
+               "water = :HOH) or a built-in selector (`ligand`, `solvent`, `ions`), e.g. `show :HEM atoms; style :HEM sphere; "
+               "color :HEM red`. Run the corrected commands now.")
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
 _TOOL_NAMES = {"annotate", "compare_structures", "resolve_protein", "protein_features", "search_docs", "get_state",
@@ -200,6 +208,9 @@ class Agent:
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
                     elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate"):
                         nudge = NUDGE_ANNOTATE  # variants/domains asked for, annotate tool never called
+                    elif _NAMED_GROUP_RE.search(user_text) and ran and any(_NUMERIC_SPEC_RE.search(c) for c in ran) \
+                            and not any(_NAMED_SPEC_RE.search(c) for c in ran) and not re.search(r"\b\d{2,}\b", user_text):
+                        nudge = NUDGE_NAMED     # heme/ATP/water addressed by invented residue numbers
                 if not nudge:
                     break
                 if attempt == 1 and not _ANNOUNCE_RE.search(self._last_assistant_text()):
