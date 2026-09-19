@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installation - Pellaeon</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link active" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/pellaeon-chimerax/pellaeon">GitHub</a></div></div>
+<main><div class="doc"><nav class="toc"><div class="toc">
+<ul>
+<li><a href="#chimerax-edition">ChimeraX edition</a></li>
+<li><a href="#classic-edition-chimera-1x">Classic edition (Chimera 1.x)</a></li>
+<li><a href="#choosing-an-ai">Choosing an AI</a></li>
+<li><a href="#updating">Updating</a></li>
+<li><a href="#where-things-are-stored">Where things are stored</a></li>
+</ul>
+</div>
+</nav><article><h1 id="installation">Installation</h1>
+<p>Pellaeon comes in two editions. Pick the one for the program you use.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>ChimeraX edition</th>
+<th>Classic edition (old Chimera 1.x)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Runs</td>
+<td>inside UCSF ChimeraX 1.9+ as a docked panel</td>
+<td>as a small program next to UCSF Chimera 1.x, panel in your browser</td>
+</tr>
+<tr>
+<td>Install</td>
+<td>one line typed into ChimeraX</td>
+<td>unzip, double-click</td>
+</tr>
+<tr>
+<td>Needs</td>
+<td>ChimeraX</td>
+<td>Chimera 1.x and Python 3.9+</td>
+</tr>
+<tr>
+<td>Extras</td>
+<td>click-to-ask, displacement-colored comparisons, in-place annotations</td>
+<td>superposition (RMSD), annotations</td>
+</tr>
+</tbody>
+</table>
+<p>Both use the same AI providers, the same panel and the same safety rules.</p>
+<h2 id="chimerax-edition">ChimeraX edition</h2>
+<ol>
+<li>Install <a href="https://www.cgl.ucsf.edu/chimerax/download.html">UCSF ChimeraX</a> 1.9 or newer.</li>
+<li>Start ChimeraX. In the <strong>Command:</strong> line at the bottom of the window, paste and press Enter:</li>
+</ol>
+<pre><code>open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/install_pellaeon.py
+</code></pre>
+<ol start="3">
+<li>The Pellaeon panel opens on the right and asks you to choose an AI. Later you find it under <strong>Tools ▸ General ▸ Pellaeon</strong>, and the <code>pellaeon</code> command works on the ChimeraX command line.</li>
+</ol>
+<p>No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.</p>
+<p><strong>Offline or blocked download?</strong> Get the <code>.whl</code> file from the <a href="https://github.com/pellaeon-chimerax/pellaeon/releases">releases page</a> and type (quotes needed when the path has spaces):</p>
+<pre><code>toolshed install &quot;C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.whl&quot;
+</code></pre>
+<p><strong>Uninstall:</strong> <code>toolshed uninstall ChimeraX-Pellaeon</code> in ChimeraX.</p>
+<h2 id="classic-edition-chimera-1x">Classic edition (Chimera 1.x)</h2>
+<ol>
+<li>Install <a href="https://www.python.org/downloads/">Python 3.9 or newer</a>. On Windows tick <strong>Add Python to PATH</strong> in the installer.</li>
+<li>Download <code>pellaeon-classic.zip</code> from the <a href="https://github.com/pellaeon-chimerax/pellaeon/releases">releases page</a> and unzip it anywhere.</li>
+<li>Windows: double-click <strong>Start Pellaeon Classic.cmd</strong>. macOS: double-click <strong>Start Pellaeon Classic.command</strong>. Linux: <code>./start.sh</code>.
+   A small launcher window opens and your browser shows the Pellaeon panel.</li>
+<li>In the launcher press <strong>Launch Chimera</strong> (it starts Chimera with its REST server and connects by itself), or start Chimera yourself, open <strong>Tools ▸ Utilities ▸ RESTServer</strong>, type the port shown in the Reply Log into the launcher and press <strong>Test</strong>.</li>
+<li>Optional: <code>python install.py</code> puts a <strong>Pellaeon Classic</strong> shortcut on your desktop and Start menu.</li>
+</ol>
+<h2 id="choosing-an-ai">Choosing an AI</h2>
+<p>The first time the panel opens it shows provider cards. Any of these works; you can switch later in Settings.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Cost</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ollama</strong> (local, private)</td>
+<td>free</td>
+<td>Install <a href="https://ollama.com/download">Ollama</a>, then press <strong>Pull</strong> next to <code>qwen3:8b</code> in Pellaeon's settings (needs about 6 GB of GPU memory). On a laptop without a GPU pull <code>qwen3:4b</code> instead and expect 10–30 s per request. Nothing leaves your computer except UniProt/ClinVar lookups when you ask for them.</td>
+</tr>
+<tr>
+<td><strong>Google Gemini</strong></td>
+<td>free tier</td>
+<td>Create a key at <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a> (no credit card), paste it in.</td>
+</tr>
+<tr>
+<td><strong>Anthropic Claude</strong></td>
+<td>pay per use</td>
+<td>Key from <a href="https://console.anthropic.com/settings/keys">console.anthropic.com</a>. Best at long multi-step work. Claude Pro/Max subscriptions cannot be used by third-party tools.</td>
+</tr>
+<tr>
+<td><strong>OpenAI</strong></td>
+<td>pay per use</td>
+<td>Key from <a href="https://platform.openai.com/api-keys">platform.openai.com</a>.</td>
+</tr>
+<tr>
+<td><strong>OpenRouter / Groq</strong></td>
+<td>free tiers</td>
+<td>One key, many models. <code>openrouter/free</code> picks a free model that supports tools.</td>
+</tr>
+<tr>
+<td><strong>LM Studio, llama.cpp, vLLM</strong></td>
+<td>free</td>
+<td>Any local server that speaks the OpenAI protocol: enter its address.</td>
+</tr>
+</tbody>
+</table>
+<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong>. Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
+<h2 id="updating">Updating</h2>
+<p>ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
+<h2 id="where-things-are-stored">Where things are stored</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Windows</th>
+<th>macOS</th>
+<th>Linux</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ChimeraX edition</td>
+<td><code>%LOCALAPPDATA%\UCSF\ChimeraX\Pellaeon\</code></td>
+<td><code>~/Library/Application Support/ChimeraX/Pellaeon/</code></td>
+<td><code>~/.local/share/ChimeraX/Pellaeon/</code></td>
+</tr>
+<tr>
+<td>Classic edition</td>
+<td><code>%LOCALAPPDATA%\Pellaeon-Classic\</code></td>
+<td><code>~/Library/Application Support/Pellaeon-Classic/</code></td>
+<td><code>~/.local/share/pellaeon-classic/</code></td>
+</tr>
+</tbody>
+</table>
+<p>Chats are saved there as JSON; delete the folder to start clean.</p></article></div></main>
+<footer><div class="in">Pellaeon v0.1.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.</div></footer>
+</body></html>

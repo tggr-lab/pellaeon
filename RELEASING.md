@@ -20,3 +20,11 @@ Building it needs a real ChimeraX (the bundle builder lives inside ChimeraX), so
 Developer loop: `devel install .` (installs into your ChimeraX), `devel clean .` to tidy.
 Unit tests (no ChimeraX needed): `python -m pytest`. In-ChimeraX smoke test:
 `chimerax --nogui --exit --script tests_chimerax/smoke.py`.
+
+## Website (GitHub Pages)
+
+The site lives in `docs/` and is generated from Markdown: `docs/install.md`, `docs/tutorial.md`, `classic/README.md`
+plus the hand-written landing page template in `tools/build_site.py`. After editing any of them run
+`python tools/build_site.py` (needs `pip install markdown` once) and commit the regenerated HTML.
+Enable it once on GitHub: repository **Settings ▸ Pages ▸ Source: Deploy from a branch ▸ main / docs**.
+The page is then served at `https://<user>.github.io/<repo>/`. Preview locally with `python -m http.server -d docs 8000`.

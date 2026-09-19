@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classic edition - Pellaeon</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link active" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/pellaeon-chimerax/pellaeon">GitHub</a></div></div>
+<main><div class="doc"><nav class="toc"><div class="toc">
+<ul>
+<li><a href="#install-and-run">Install and run</a></li>
+<li><a href="#differences-from-the-chimerax-edition">Differences from the ChimeraX edition</a></li>
+<li><a href="#verified">Verified</a></li>
+<li><a href="#developing">Developing</a></li>
+</ul>
+</div>
+</nav><article><h1 id="pellaeon-classic-for-ucsf-chimera-1x">Pellaeon Classic — for UCSF Chimera 1.x</h1>
+<p>The same assistant, for the classic Chimera. Because Chimera 1.x runs Python 2 and Tk, Pellaeon Classic is a small
+separate program: it serves the Pellaeon panel to your web browser and drives Chimera through Chimera's built-in
+REST server. It shares the agent, providers, safety gate and UI with the ChimeraX bundle; only the executor and
+the command knowledge (Chimera's Midas-style syntax, models numbered from #0, <code>:10.A</code> chains) differ.</p>
+<h2 id="install-and-run">Install and run</h2>
+<ol>
+<li>Python 3.9 or newer (python.org; on Windows tick "Add Python to PATH"). Nothing else to install.</li>
+<li>Download <code>pellaeon-classic.zip</code> from the releases page and unzip it anywhere.</li>
+<li>Windows: double-click <strong>Start Pellaeon Classic.cmd</strong>. macOS: double-click <strong>Start Pellaeon Classic.command</strong>. Linux: <code>./start.sh</code>.
+   A small launcher window opens (panel address, Chimera status, <strong>Launch Chimera</strong>, <strong>Test</strong>, activity log) and your
+   browser opens the Pellaeon panel at <code>http://127.0.0.1:8765</code>.</li>
+<li>Press <strong>Launch Chimera</strong> in the launcher (it starts Chimera with <code>--start RESTServer</code> and picks up the port
+   automatically; the executable is auto-detected in <code>C:\Program Files\Chimera*</code>, <code>/Applications/Chimera*.app</code>,
+   <code>~/.local/UCSF-Chimera*</code>, or use <strong>Browse…</strong>). Or start Chimera yourself, open <strong>Tools ▸ Utilities ▸ RESTServer</strong>, type the
+   port from its Reply Log and press <strong>Test</strong>.</li>
+<li>In the browser panel choose an AI provider once (same settings page as the ChimeraX edition), then type requests.</li>
+<li>Optional: <code>python install.py</code> puts a <strong>Pellaeon Classic</strong> shortcut on the desktop and in the Start menu (Windows),
+   a <code>.command</code> on the desktop (macOS) or an applications-menu entry (Linux).</li>
+</ol>
+<p><code>python run.py --console</code> runs without the launcher window (terminal only); <code>--no-browser</code> skips opening the browser.</p>
+<h2 id="differences-from-the-chimerax-edition">Differences from the ChimeraX edition</h2>
+<ul>
+<li>Commands use Chimera syntax (<code>color red :10</code>, <code>display</code>, <code>~ribbon</code>, <code>focus</code>, <code>turn y 1 360</code>, <code>background solid white</code>).</li>
+<li>AlphaFold models open from the EBI URL (<code>open https://alphafold.ebi.ac.uk/files/AF-&lt;accession&gt;-F1-model_v4.pdb</code>).</li>
+<li>No Python execution, no per-residue displacement coloring in <em>compare</em> (RMSD from matchmaker only).</li>
+<li>Chat exports are <code>.cmd</code> Chimera command files; <code>copy file</code> (images), <code>save</code>, <code>close</code>, <code>delete</code>, <code>system</code> ask first.</li>
+<li>Everything else is the same: local or cloud models, confirmation cards, click-less "what is open" awareness via <code>list models</code>.</li>
+</ul>
+<h2 id="verified">Verified</h2>
+<p>Tested end to end on UCSF Chimera 1.20 (Linux): REST replies for <code>list models</code>, <code>list chains spec #0</code> and
+<code>list selection level residue</code> are parsed correctly, errors are detected, the Launch Chimera button auto-detects the
+executable and reads the REST port, and requests such as "open 1zik and show only chain B" run as
+<code>open 1zik; ~display #0; ribbon :.B; display :.B</code>. Chimera has no <code>usage</code> command, so syntax lookups come from the
+bundled documentation (Chimera also ships the same pages under <code>share/chimera/helpdir/UsersGuide/midas/</code>).</p>
+<h2 id="developing">Developing</h2>
+<pre><code>python classic/tools/build_chimera_docs.py classic/pellaeon_classic/data/chimera_docs classic/pellaeon_classic/data   # after re-downloading the docs
+python classic/tools/build_classic.py                       # -&gt; dist/pellaeon-classic/ and dist/pellaeon-classic.zip
+python classic/tools/e2e_stub_test.py &quot;open 1zik and color it red&quot;   # end-to-end against a stub REST server (needs Ollama)
+PELLAEON_REAL_PORT=45629 python classic/tools/e2e_stub_test.py &quot;...&quot;  # same, against a running Chimera REST server
+</code></pre></article></div></main>
+<footer><div class="in">Pellaeon v0.1.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.</div></footer>
+</body></html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pellaeon tutorial: install it, then talk to ChimeraX - Pellaeon</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link active" href="tutorial.html">Tutorial</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/pellaeon-chimerax/pellaeon">GitHub</a></div></div>
+<main><div class="doc"><nav class="toc"><div class="toc">
+<ul>
+<li><a href="#part-1-install-windows-macos-linux">Part 1 — Install (Windows, macOS, Linux)</a><ul>
+<li><a href="#what-you-need">What you need</a></li>
+<li><a href="#step-1-install-pellaeon-inside-chimerax">Step 1 — Install Pellaeon inside ChimeraX</a></li>
+<li><a href="#step-2-choose-your-ai-first-run">Step 2 — Choose your AI (first run)</a></li>
+</ul>
+</li>
+<li><a href="#part-2-using-it">Part 2 — Using it</a><ul>
+<li><a href="#your-first-request">Your first request</a></li>
+<li><a href="#click-on-something-and-ask-about-it">Click on something and ask about it</a></li>
+<li><a href="#risky-commands-ask-first">Risky commands ask first</a></li>
+<li><a href="#compare-two-structures">Compare two structures</a></li>
+<li><a href="#show-annotations-from-uniprot">Show annotations from UniProt</a></li>
+<li><a href="#other-things-worth-knowing">Other things worth knowing</a></li>
+</ul>
+</li>
+<li><a href="#using-the-classic-chimera-1x">Using the classic Chimera (1.x)?</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+</div>
+</nav><article><h1 id="pellaeon-tutorial-install-it-then-talk-to-chimerax">Pellaeon tutorial: install it, then talk to ChimeraX</h1>
+<p>Pellaeon is a panel inside UCSF ChimeraX. You type what you want in plain English, it runs the ChimeraX commands, shows you exactly what it ran, and asks before doing anything risky. This guide takes about ten minutes.</p>
+<h2 id="part-1-install-windows-macos-linux">Part 1 — Install (Windows, macOS, Linux)</h2>
+<h3 id="what-you-need">What you need</h3>
+<ul>
+<li><strong>ChimeraX 1.9 or newer.</strong> Download from <a href="https://www.cgl.ucsf.edu/chimerax/download.html">cgl.ucsf.edu/chimerax/download.html</a> and install it like any other program. On Windows, run the <code>.exe</code> installer and accept the defaults.</li>
+<li><strong>An AI to talk to.</strong> Pick one:</li>
+<li><em>Free and private, on your own PC:</em> <a href="https://ollama.com/download">Ollama</a>. Install it (Windows: run <code>OllamaSetup.exe</code>; it starts automatically in the background). You need roughly 6 GB of free GPU memory for the recommended model, or any PC with 8 GB RAM for the small models (slower).</li>
+<li><em>Free in the cloud:</em> a Google AI Studio key from <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>. No credit card.</li>
+<li><em>Paid, best quality:</em> an Anthropic key from <a href="https://console.anthropic.com/settings/keys">console.anthropic.com</a> or an OpenAI key.</li>
+</ul>
+<h3 id="step-1-install-pellaeon-inside-chimerax">Step 1 — Install Pellaeon inside ChimeraX</h3>
+<p>Start ChimeraX. At the bottom of the window is the <strong>Command:</strong> line. Click into it, paste the line below and press Enter:</p>
+<pre><code>open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/install_pellaeon.py
+</code></pre>
+<p>ChimeraX downloads Pellaeon and installs it with its own tool installer. The Log shows "Pellaeon ... installed" and the panel opens on the right. That's it. No terminal, no Python, no admin rights.</p>
+<p><strong>No internet on that computer, or the line above fails?</strong> Download the <code>.whl</code> file from the <a href="https://github.com/pellaeon-chimerax/pellaeon/releases">releases page</a> and type this instead (adjust the path; quotes are needed when the path has spaces):</p>
+<pre><code>toolshed install &quot;C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.whl&quot;
+</code></pre>
+<p>From then on the panel is under <strong>Tools ▸ General ▸ Pellaeon</strong>, and the command <code>pellaeon</code> works on the ChimeraX command line.</p>
+<p><img alt="Pellaeon panel docked in ChimeraX" src="img/02_empty_chat_main.png" /></p>
+<h3 id="step-2-choose-your-ai-first-run">Step 2 — Choose your AI (first run)</h3>
+<p>The first time, Pellaeon opens its settings page.</p>
+<p><img alt="Settings page" src="img/01_settings.png" /></p>
+<ol>
+<li><strong>Pick a provider card.</strong> Ollama for local and free, Gemini for free cloud, Claude or OpenAI for paid. Cloud cards show an <strong>API key</strong> field: paste the key there; it is stored privately on your computer, never inside ChimeraX sessions or files you share.</li>
+<li><strong>Model.</strong> A sensible default is filled in; the pills below are good alternatives.</li>
+<li><strong>Pull</strong> (Ollama only). Press it once to download the model (about 5 GB); the bar shows progress. Small PCs: pull <code>qwen3:4b</code> instead.</li>
+<li><strong>Test connection.</strong> You should see "Connected" or "Ollama is running".</li>
+<li><strong>Save &amp; use.</strong></li>
+</ol>
+<p>Windows note: keys are stored in a private file under your user profile (<code>%LOCALAPPDATA%\UCSF\ChimeraX\Pellaeon\</code>). If you prefer environment variables, set <code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code> or <code>OPENAI_API_KEY</code> and leave the key field empty.</p>
+<h2 id="part-2-using-it">Part 2 — Using it</h2>
+<h3 id="your-first-request">Your first request</h3>
+<p>Type into the box at the bottom and press Enter:</p>
+<blockquote>
+<p>open 4hhb, color it by chain and show the heme as spheres</p>
+</blockquote>
+<p><img alt="First request" src="img/03_first_request.png" /></p>
+<ol>
+<li><strong>Your request.</strong></li>
+<li><strong>Ran N commands.</strong> Click to expand: every command Pellaeon executed, one line each. A green dot means it worked; a red dot shows the error text. Each line has <strong>copy</strong>, <strong>rerun</strong> and <strong>?</strong> (opens ChimeraX's own documentation for that command).</li>
+<li><strong>The reply</strong>, one or two sentences.</li>
+<li><strong>What is open</strong> strip: models and chains, always current.</li>
+<li><strong>Provider · model</strong> you are talking to; the gear on the right opens settings.</li>
+<li><strong>Autonomy.</strong> <em>Auto-run, ask for risky</em> is the default: colors, selections, views run immediately; closing, deleting, saving and scripts ask first.</li>
+<li><strong>Quick chips</strong> for common tasks (scroll them sideways).</li>
+<li><strong>Send / Stop.</strong> Esc also stops. The grey band in the screenshots is empty space cut out for this guide.</li>
+</ol>
+<p>Pellaeon understands "it", "these", "the other one": it looks at what is open and selected. Typos are fine ("mesure the distanse between 100 and 150").</p>
+<h3 id="click-on-something-and-ask-about-it">Click on something and ask about it</h3>
+<p>Ctrl-click any atom in the 3D view (ChimeraX's normal selection). A bar appears above the input:</p>
+<p><img alt="Click to ask" src="img/04_click_to_ask.png" /></p>
+<ol>
+<li><strong>What is selected.</strong></li>
+<li><strong>What is this?</strong> UniProt annotations, role, neighbours.</li>
+<li><strong>What is nearby?</strong> Residues and ligands within 5 Å, shown as sticks and labelled.</li>
+<li><strong>Highlight</strong> shows it as yellow sticks and centres the view.</li>
+</ol>
+<p>Prefer Alt-click? Press the <strong>Alt+click = ask</strong> chip once; then Alt-clicking an atom prefills "Tell me about residue …" for you to finish.</p>
+<h3 id="risky-commands-ask-first">Risky commands ask first</h3>
+<blockquote>
+<p>close everything</p>
+</blockquote>
+<p><img alt="Confirmation card" src="img/05_confirm.png" /></p>
+<ol>
+<li>Why it asks.</li>
+<li>The exact commands, <strong>editable</strong> before they run.</li>
+<li><strong>Run</strong> or <strong>Skip</strong>. Skipping tells the model you declined; it will not retry.</li>
+</ol>
+<h3 id="compare-two-structures">Compare two structures</h3>
+<p>Open two structures (for example <code>open 4ake</code> and <code>open 1ake</code>) and ask:</p>
+<blockquote>
+<p>compare these two models and tell me what changed</p>
+</blockquote>
+<p><img alt="Compare" src="img/06_compare.png" /></p>
+<p>Pellaeon superposes them, colours the second model by how far each residue moved (grey = unchanged, red = 6 Å or more), and reports RMSD, the most shifted residues and the moving regions. Adenylate kinase's LID and NMP domains light up.</p>
+<h3 id="show-annotations-from-uniprot">Show annotations from UniProt</h3>
+<blockquote>
+<p>show the disease variants on this model</p>
+</blockquote>
+<p><img alt="Annotate" src="img/07_annotate.png" /></p>
+<p>Works for domains, transmembrane regions, binding and active sites, glycosylation, disulfides and PTMs. Residue numbering matches AlphaFold models exactly; PDB entries can be offset, and Pellaeon says so.</p>
+<h3 id="other-things-worth-knowing">Other things worth knowing</h3>
+<ul>
+<li><strong>New chat (+)</strong> starts fresh; <strong>☰</strong> reopens past conversations; <strong>⇩</strong> exports every command of the chat as a <code>.cxc</code> script you can replay with <code>open myscript.cxc</code>.</li>
+<li><strong>When it gets a command wrong</strong> it reads the error and the real syntax and retries once or twice. If you say "you did not" or "that didn't work", it will not repeat the same commands.</li>
+<li><strong>From the command line or a script:</strong> <code>pellaeon color everything by chain</code>.</li>
+<li><strong>Settings ▸ Advanced:</strong> allow Python code (always asks first), let vision models see a screenshot of the view, Claude effort level, temperature, rebuild the documentation index.</li>
+<li><strong>Privacy:</strong> with Ollama nothing leaves your computer. With cloud providers your requests, the list of open models and selected residues, and relevant documentation passages are sent to that provider.</li>
+</ul>
+<h2 id="using-the-classic-chimera-1x">Using the classic Chimera (1.x)?</h2>
+<p>Pellaeon Classic is a separate small program for old Chimera: install Python 3, unzip <code>pellaeon-classic.zip</code>, and double-click <strong>Start Pellaeon Classic</strong> (<code>.cmd</code> on Windows, <code>.command</code> on macOS). A small launcher window appears and the same panel opens in your browser. Press <strong>Launch Chimera</strong> in the launcher (or start Chimera's REST server yourself under Tools ▸ Utilities ▸ RESTServer and type the port). Requests work the same way; Pellaeon speaks Chimera's own command syntax there. <code>python install.py</code> adds a desktop shortcut. Details in <code>classic.html</code>.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Ollama is not running"</td>
+<td>Start Ollama (Windows: it is in the system tray; or run <code>ollama serve</code>).</td>
+</tr>
+<tr>
+<td>"model not found"</td>
+<td>Settings ▸ <strong>Pull</strong> the model, or type its exact name (<code>ollama list</code> shows what you have).</td>
+</tr>
+<tr>
+<td>Empty or very slow answers with Ollama</td>
+<td>Use <code>qwen3:8b</code> on a GPU; on CPU-only PCs use <code>qwen3:4b</code> and expect 10–30 s per request.</td>
+</tr>
+<tr>
+<td>"rejected the API key (401)"</td>
+<td>Re-paste the key; check it belongs to the provider you selected.</td>
+</tr>
+<tr>
+<td>Panel is blank</td>
+<td><code>Tools ▸ General ▸ Pellaeon</code> again, or restart ChimeraX.</td>
+</tr>
+<tr>
+<td>Something changed that you did not want</td>
+<td>Type "undo" (works for most commands) or reopen the structure.</td>
+</tr>
+</tbody>
+</table>
+<p>Named after Gilad Pellaeon, captain of the <em>Chimaera</em>. Yes, sir.</p></article></div></main>
+<footer><div class="in">Pellaeon v0.1.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.</div></footer>
+</body></html>
