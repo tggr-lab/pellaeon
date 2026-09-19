@@ -115,19 +115,9 @@ class ClassicPanel(panel_base.PanelBase):
             webbrowser.open(url)
 
     def _act_export_cxc(self, params, payload):
-        if not self.agent:
-            return self.push({"type": "toast", "kind": "warn", "text": "Nothing to export yet."})
-        lines = ["# Chimera command script exported by Pellaeon Classic (open it with: open script.cmd)"]
-        for m in self.agent.archived + self.agent.conversation:
-            if m.role == "tool":
-                for r in m.tool_results_list():
-                    if r.name == "run_commands":
-                        try:
-                            for x in json.loads(r.content).get("results", []):
-                                if x.get("ok"):
-                                    lines.append(x["command"])
-                        except Exception:
-                            pass
+        if not self.agent or not self.agent.journal:
+            return self.push({"type": "toast", "kind": "warn", "text": "No commands were run in this chat yet."})
+        lines = panel_base.export_lines(self.agent, "chimera")
         path = os.path.join(self.dirs["data"], "pellaeon_session_%s.cmd" % time.strftime("%Y%m%d-%H%M%S"))
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")

@@ -53,6 +53,8 @@ class ChimeraRestExecutor:
         self.log = log or (lambda m: None)
         self.last_error: Optional[str] = None
         self.uniprot = UniProtClient(os.path.join(cache_dir, "uniprot"))
+        from core.clinvar import ClinVarClient
+        self.clinvar = ClinVarClient(os.path.join(cache_dir, "clinvar"))
         cheat = {}
         try:
             cheat = load_json(os.path.join(data_dir, "cheatsheet_chimera.json"))
@@ -172,42 +174,26 @@ class ChimeraRestExecutor:
         except Exception as e:  # noqa: BLE001
             return {"text": "Could not capture the view: %s" % e}
 
-    def compare_structures(self, reference: str, other: str, chain: Optional[str] = None) -> Dict[str, Any]:
+    def prepare_compare(self, reference: str, other: str, chain: Optional[str] = None) -> Dict[str, Any]:
         if not all(re.match(r"^#\d+(\.\d+)*$", x or "") for x in (reference, other)) or reference == other:
             return {"error": "Give two different model ids like '#0' and '#1'."}
-        res = self.run_commands(["matchmaker %s %s" % (other, reference)])
-        if not res or not res[0]["ok"]:
-            return {"error": "matchmaker failed: %s" % (res[0]["error"] if res else "no result")}
-        text = " ".join(res[0]["info"])
-        m = re.search(r"RMSD between (\d+) (?:pruned )?atom pairs is ([\d.]+)", text)
-        return {"reference": reference, "compared": other, "rmsd": m.group(0) if m else text[:200],
-                "note": "Classic edition: superposition done; per-residue displacement coloring needs ChimeraX."}
+        return {"ref_id": reference.lstrip("#"), "other_id": other.lstrip("#"), "chain": chain,
+                "ref_spec": reference + (":.%s" % chain if chain else ""), "other_spec": other + (":.%s" % chain if chain else "")}
 
-    def annotate(self, model: str, accession: str, kind: str, color: str = "orange", label: bool = True) -> Dict[str, Any]:
-        kinds_map = {"variant": ["Natural variant"], "disease": ["Natural variant"], "domain": ["Domain"], "domains": ["Domain"],
-                     "transmembrane": ["Transmembrane"], "tm": ["Transmembrane"], "binding": ["Binding site"],
-                     "active": ["Active site"], "site": ["Site", "Active site", "Binding site"], "glycosylation": ["Glycosylation"],
-                     "disulfide": ["Disulfide bond"], "modified": ["Modified residue"], "region": ["Region", "Motif"]}
-        feats = self.uniprot.features(accession, kinds_map.get(kind.lower(), [kind]))
-        if "error" in feats:
-            return feats
-        items = feats.get("features", [])
-        if kind.lower() == "disease":
-            items = [f for f in items if re.match(r"\s*in (?!dbSNP)", f.get("description", ""))]
-        if not items:
-            return {"accession": accession, "kind": kind, "count": 0, "message": "No matching annotations."}
+    def compute_displacement(self, prep: Dict[str, Any]) -> Dict[str, Any]:
+        return {"unsupported": True, "note": "Classic edition: models are superposed (see RMSD); per-residue displacement coloring needs ChimeraX."}
+
+    def map_positions(self, model: str, accession: str, positions: List[int]) -> Dict[str, Any]:
         mid = model.strip() if re.match(r"^#\d+(\.\d+)*$", model.strip()) else "#0"
-        if not re.match(r"^(#[0-9a-fA-F]{6}|[A-Za-z][A-Za-z ]{1,30})$", color or ""):
-            color = "orange"
-        cmds = []
-        for f in items[:60]:
-            spec = "%s%s" % (mid, f["spec"])
-            cmds.append("color %s,a,r %s" % (color, spec))
-            if f["start"] == f["end"]:
-                cmds.append("display %s" % spec)
-            if label and len(cmds) < 150:
-                short = re.sub(r"\s*\(.*?\)|dbSNP:\S+|;.*", "", f.get("description", "")).strip()[:40] or f["type"]
-                cmds.append('rlabel %s text "%s"' % (spec, short.replace('"', "")))
-        res = self.run_commands(cmds)
-        return {"accession": accession, "kind": kind, "count": len(items), "commands_failed": sum(1 for r in res if not r["ok"]),
-                "annotations": [{"type": f["type"], "residues": f["spec"].lstrip(":"), "description": f.get("description", "")[:120]} for f in items[:40]]}
+        chains = []
+        try:
+            ch = self.rest("list chains spec %s" % mid)
+            chains = re.findall(r"chain id %s:\.(\S+)" % re.escape(mid), ch)
+        except Exception:
+            pass
+        if len(chains) > 1:
+            return {"error": "Model %s has several chains (%s); classic edition cannot map UniProt positions per chain. "
+                             "Say which chain to use." % (mid, ",".join(chains))}
+        cid = chains[0] if chains else "A"
+        return {"model": mid, "map": {p: {"chain": cid, "number": p, "resname": ""} for p in positions}, "chains": [cid],
+                "unmapped": [], "note": "Positions applied 1:1 (Chimera cannot report the file's UniProt mapping); correct for AlphaFold models."}

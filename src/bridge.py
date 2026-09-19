@@ -174,18 +174,21 @@ class ChimeraXExecutor:
         return self.knowledge.rebuild(progress)
 
     # ---------------------------------------------------------- commands
-    def run_commands(self, commands: List[str]) -> List[Dict[str, Any]]:
-        return _run_on_main_thread(self.session, lambda: self._run_commands_main(commands))
+    def run_commands(self, commands: List[str], cancel=None) -> List[Dict[str, Any]]:
+        return _run_on_main_thread(self.session, lambda: self._run_commands_main(commands, cancel))
 
-    def _run_commands_main(self, commands: List[str]) -> List[Dict[str, Any]]:
+    def _run_commands_main(self, commands: List[str], cancel=None) -> List[Dict[str, Any]]:
         from chimerax.core.commands import run
         from chimerax.core.errors import UserError, NotABug
         results: List[Dict[str, Any]] = []
+        self.last_returns: Dict[str, Any] = {}   # values returned by commands (e.g. matchmaker's atom pairs)
         for cmd in commands:
+            if cancel is not None and cancel.is_set():
+                break
             entry: Dict[str, Any] = {"command": cmd, "ok": False, "info": [], "warnings": [], "error": ""}
             with _CapturingLog(self.session.logger, echo=True) as cap:
                 try:
-                    run(self.session, cmd, log=True, return_list=True)
+                    self.last_returns[cmd] = run(self.session, cmd, log=True, return_list=True)
                     entry["ok"] = True
                 except (UserError, NotABug) as e:
                     entry["error"] = str(e)
@@ -236,15 +239,28 @@ class ChimeraXExecutor:
     def protein_features(self, accession: str, kinds: Optional[List[str]] = None) -> Dict[str, Any]:
         return self.uniprot.features(accession, kinds)
 
-    def compare_structures(self, reference: str, other: str, chain: Optional[str] = None) -> Dict[str, Any]:
-        from .analysis import compare_structures
-        return _run_on_main_thread(self.session, lambda: compare_structures(
-            self.session, self._run_commands_main, reference, other, chain))
+    def prepare_compare(self, reference: str, other: str, chain: Optional[str] = None) -> Dict[str, Any]:
+        from .analysis import prepare_compare
+        return _run_on_main_thread(self.session, lambda: prepare_compare(self.session, reference, other, chain))
 
-    def annotate(self, model: str, accession: str, kind: str, color: str = "orange", label: bool = True) -> Dict[str, Any]:
-        from .analysis import annotate
-        return _run_on_main_thread(self.session, lambda: annotate(
-            self.session, self._run_commands_main, self.uniprot, model, accession, kind, color, label, clinvar=self.clinvar))
+    def compute_displacement(self, prep: Dict[str, Any]) -> Dict[str, Any]:
+        from .analysis import compute_displacement
+        returns = []
+
+        def flatten(v):
+            if isinstance(v, dict):
+                returns.append(v)
+            elif isinstance(v, (list, tuple)):
+                for x in v:
+                    flatten(x)
+        for cmd, val in getattr(self, "last_returns", {}).items():
+            if cmd.startswith(("matchmaker", "mm ")):
+                flatten(val)
+        return _run_on_main_thread(self.session, lambda: compute_displacement(self.session, prep, returns))
+
+    def map_positions(self, model: str, accession: str, positions: List[int]) -> Dict[str, Any]:
+        from .analysis import map_positions
+        return _run_on_main_thread(self.session, lambda: map_positions(self.session, model, accession, positions))
 
     def run_python(self, code: str) -> Dict[str, Any]:
         def f():

@@ -194,8 +194,46 @@
       const dot = el.querySelector(".dot");
       dot.className = "dot " + (msg.ok ? "ok" : "err");
       el.querySelector(".label").textContent = msg.summary || (TOOL_LABELS[msg.name] || msg.name);
+      if (msg.card) el.appendChild(resultCard(msg.name, msg.card, msg.results || []));
     }
     scrollDown();
+  }
+  function viewLink(spec, text) {
+    return '<a href="#" class="spec" data-view="' + esc(spec) + '">' + esc(text || spec) + "</a>";
+  }
+  function resultCard(name, c, results) {
+    const box = document.createElement("div");
+    box.className = "rcard";
+    let h = "";
+    if (c.error) {
+      h = '<div class="rrow err">' + esc(c.error) + "</div>";
+    } else if (name === "compare_structures") {
+      h += '<div class="rrow"><b>' + esc(c.compared) + "</b> superposed onto <b>" + esc(c.reference) + "</b>" + (c.chain && c.chain !== "all" ? " (chain " + esc(c.chain) + ")" : "") + "</div>";
+      if (c.rmsd) h += '<div class="rrow muted">' + esc(c.rmsd) + "</div>";
+      if (c.paired_residues != null) {
+        h += '<div class="rrow">' + esc(c.coverage || c.paired_residues + " residues paired") + " · pairing: " + esc(c.pairing || "") + "</div>";
+        h += '<div class="rrow">mean shift <b>' + c.mean_displacement + " Å</b> · max <b>" + c.max_displacement + " Å</b> · " + c.residues_over_2A + " residues moved over 2 Å</div>";
+        if ((c.moving_regions || []).length) h += '<div class="rrow">Moving regions: ' + c.moving_regions.map((r) => viewLink(r.spec, r.chain + ":" + r.range + " (" + r.max + " Å)")).join(", ") + "</div>";
+        if (c.coloring) h += '<div class="rrow muted">' + esc(c.coloring) + "</div>";
+      }
+      if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
+    } else if (name === "annotate") {
+      h += '<div class="rrow"><b>' + esc(c.kind || "") + "</b> · " + esc(c.source || "") + "</div>";
+      if (c.message) h += '<div class="rrow muted">' + esc(c.message) + "</div>";
+      if (c.mapped != null) h += '<div class="rrow">' + c.mapped + " mapped, " + c.unmapped + " unmapped" + (c.reference_mismatch ? ", <b>" + c.reference_mismatch + " reference-residue mismatches skipped</b>" : "") + " · chains " + esc((c.chains || []).join(", ")) + (c.labeled ? " · " + c.labeled + " labels" : "") + "</div>";
+      if (c.legend) h += '<div class="rrow muted">' + esc(c.legend) + "</div>";
+      if (c.mapping_note) h += '<div class="rrow warn">' + esc(c.mapping_note) + "</div>";
+      if ((c.pathogenic || []).length) h += '<div class="rrow">Pathogenic: ' + c.pathogenic.slice(0, 20).map((p) => { const m = String(p).match(/(\d+)/); return m ? viewLink((c.model || "#1") + ":" + m[1], p) : esc(p); }).join(", ") + (c.pathogenic.length > 20 ? " …" : "") + "</div>";
+      if ((c.annotations || []).length && !(c.pathogenic || []).length) h += '<div class="rrow muted">' + c.annotations.slice(0, 8).map((a) => esc(a.type + " " + a.residues + (a.description ? ": " + a.description.slice(0, 40) : ""))).join(" · ") + (c.annotations.length > 8 ? " …" : "") + "</div>";
+      if (c.commands_failed) h += '<div class="rrow err">' + c.commands_failed + " command(s) failed</div>";
+      if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
+    }
+    if (results.length) {
+      h += '<details class="tool inner"><summary><span class="dot ' + (results.every((r) => r.ok) ? "ok" : "err") + '"></span><span class="label">' + results.length + " command" + (results.length === 1 ? "" : "s") + ' run</span></summary><div class="cmds">' +
+        results.map((r) => cmdRow(r.command, r.ok ? "ok" : "err", r.ok ? "" : r.error, [])).join("") + "</div></details>";
+    }
+    box.innerHTML = h;
+    return box;
   }
   function confirmCard(msg) {
     const t = turn(msg.id);
@@ -232,8 +270,17 @@
     t.textEl = null;
     scrollDown();
   }
-  function rerunResult(results) {
-    results.forEach((r) => toast((r.ok ? "OK: " : "Error: ") + (r.ok ? r.command : r.error), r.ok ? "ok" : "error"));
+  function rerunResult(msg) {
+    const results = msg.results || [];
+    if (msg.skipped) { toast("Skipped", "warn"); return; }
+    if (!results.length && msg.error) { toast(msg.error, "error"); return; }
+    const el = document.createElement("div");
+    el.className = "msg assistant";
+    el.innerHTML = '<details class="tool" open><summary><span class="dot ' + (results.every((r) => r.ok) ? "ok" : "err") + '"></span><span class="label">Re-ran ' + results.length + " command" + (results.length === 1 ? "" : "s") + '</span></summary><div class="cmds">' +
+      results.map((r) => cmdRow(r.command, r.ok ? "ok" : "err", r.ok ? "" : r.error, r.ok ? (r.info || []).slice(0, 4) : [])).join("") + "</div></details>";
+    $("welcome") && $("welcome").remove();
+    $("transcript").appendChild(el);
+    scrollDown(true);
   }
 
   // ---------------------------------------------------------------- scene strip
@@ -346,14 +393,30 @@
         let html = "";
         (m.calls || []).forEach((c) => {
           if (c.name === "run_commands") {
-            const cmds = (c.args && c.args.commands) || [];
-            html += '<details class="tool"><summary><span class="dot ok"></span><span class="label">Ran ' + cmds.length + " commands</span></summary><div class=\"cmds\">" + cmds.map((x) => cmdRow(x, "ok")).join("") + "</div></details>";
+            let cmds = (c.args && c.args.commands) || [];
+            if (!Array.isArray(cmds)) cmds = [String(cmds)];
+            const res = c.results || [];
+            let rows, label, dot;
+            if (c.skipped) { rows = cmds.map((x) => cmdRow(x, "skip", "", ["skipped by you"])); label = "Commands skipped"; dot = "skip"; }
+            else if (res.length) {
+              rows = res.map((r) => cmdRow(r.command, r.ok ? "ok" : "err", r.ok ? "" : r.error, []));
+              (c.not_run || []).forEach((x) => rows.push(cmdRow(x, "skip", "", ["not run"])));
+              const nOk = res.filter((r) => r.ok).length;
+              label = nOk === res.length && !(c.not_run || []).length ? "Ran " + nOk + (nOk === 1 ? " command" : " commands") : "Command failed (" + nOk + " ok)";
+              dot = nOk === res.length ? "ok" : "err";
+            } else { rows = cmds.map((x) => cmdRow(x, c.ok === false ? "err" : "skip", "", ["no record of execution"])); label = "Proposed " + cmds.length + " commands"; dot = "skip"; }
+            html += '<details class="tool"><summary><span class="dot ' + dot + '"></span><span class="label">' + esc(label) + '</span></summary><div class="cmds">' + rows.join("") + "</div></details>";
           } else {
-            html += '<div class="tool"><div class="head"><span class="dot ok"></span><span class="label">' + esc(TOOL_LABELS[c.name] || c.name) + "</span></div></div>";
+            const ok = c.ok !== false;
+            html += '<div class="tool" data-card-idx="' + (c.card ? "1" : "") + '"><div class="head"><span class="dot ' + (ok ? "ok" : "err") + '"></span><span class="label">' + esc(c.summary || TOOL_LABELS[c.name] || c.name) + "</span></div></div>";
           }
         });
         if (m.html) html += '<div class="text rendered">' + m.html + "</div>";
         el.innerHTML = html;
+        // attach result cards to their tool blocks
+        const tools = el.querySelectorAll(".tool");
+        let ti = 0;
+        (m.calls || []).forEach((c) => { const t = tools[ti++]; if (t && c.card && c.name !== "run_commands") t.appendChild(resultCard(c.name, c.card, [])); });
         tr.appendChild(el);
       }
     });
@@ -450,7 +513,7 @@
     busy(m) { setBusy(!!m.busy); },
     toast(m) { toast(m.text, m.kind); },
     clear() { $("transcript").innerHTML = WELCOME_HTML; wireWelcome(); Object.keys(state.turns).forEach((k) => delete state.turns[k]); $("usage").textContent = ""; showPage("chat"); },
-    rerun_result(m) { rerunResult(m.results || []); },
+    rerun_result(m) { rerunResult(m); },
     test_result(m) {
       const el = $("test-result");
       el.textContent = m.text;
@@ -543,6 +606,7 @@
       if (b && b.dataset.rerun) { send("rerun", {}, [b.dataset.rerun]); return; }
       if (b && b.dataset.help) { send("open_url", {url: "help:user/commands/" + b.dataset.help + ".html"}); return; }
       const a = e.target.closest("a");
+      if (a && a.dataset.view) { e.preventDefault(); send("rerun", {}, ["view " + a.dataset.view]); return; }
       if (a && a.href) { e.preventDefault(); send("open_url", {url: a.getAttribute("href")}); }
     });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.busy) send("stop"); });

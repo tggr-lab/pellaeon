@@ -170,3 +170,9 @@ a { color: var(--accent); }
 .brand { flex: 1; min-width: 0; }
 .subtitle { max-width: 100%; }
 .topbar-actions select { max-width: 120px; }
+
+/* result cards for compare / annotate */
+.rcard { margin: 4px 8px 8px; padding: 6px 8px; border-left: 3px solid var(--accent); background: var(--panel); border-radius: 6px; font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
+.rrow.err { color: var(--err); } .rrow.warn { color: var(--warn); }
+.rcard a.spec { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+.tool.inner { margin-top: 4px; }

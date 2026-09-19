@@ -106,12 +106,23 @@ class PanelBase:
             self.push({"type": "toast", "kind": "error", "text": "Pellaeon: %s" % e})
 
     def _act_ready(self, params, payload):
+        first = not self._page_ready
         self._page_ready = True
         self.push(self._init_message())
         for obj in self._queued:
             self.push(obj)
         self._queued = []
         self.push({"type": "state", "state": self._safe_state()})
+        if not first or (self.agent and self.agent.conversation):
+            # a reloaded page: replay the transcript, busy state and any pending confirmation
+            if self.agent and (self.agent.conversation or self.agent.archived):
+                self.push({"type": "conversation", "id": self._conv_id, "title": "", "messages": self._render_messages()})
+            if self._busy:
+                self.push({"type": "assistant_start", "id": "t%d" % self._turn_id})
+                self.push({"type": "busy", "busy": True})
+            for cid, c in list(self._confirms.items()):
+                self.push({"type": "confirm", "id": "t%d" % self._turn_id, "confirm_id": cid, "commands": c["commands"],
+                           "reasons": [""] * len(c["commands"]), "python": bool(c.get("python"))})
         # warm the docs index in the background so the first request is fast
         threading.Thread(target=self._warm_index, daemon=True).start()
 
@@ -146,11 +157,20 @@ class PanelBase:
     def _act_rerun(self, params, payload):
         cmds = payload if isinstance(payload, list) else [params.get("command", "")]
         cmds = [c for c in cmds if c and c.strip()]
-        if not cmds:
+        if not cmds or self._busy_guard():
             return
-        results = self.executor.run_commands(cmds)
-        self.push({"type": "rerun_result", "results": results})
-        self.push({"type": "state", "state": self._safe_state()})
+        if self.agent is None:
+            try:
+                self.agent = self._build_agent()
+            except Exception as e:  # noqa: BLE001
+                return self.push({"type": "toast", "kind": "error", "text": "Could not start: %s" % e})
+
+        def work():
+            out = self.agent.execute_commands(cmds, origin="rerun")   # same policy, confirmation and journal
+            self.push_ts({"type": "rerun_result", "results": out.get("results", []), "skipped": bool(out.get("skipped")),
+                          "error": out.get("error", "")})
+            self.call_soon(lambda: self.push({"type": "state", "state": self._safe_state()}))
+        threading.Thread(target=work, daemon=True).start()
 
     def _busy_guard(self) -> bool:
         if self._busy:
@@ -482,6 +502,9 @@ class PanelBase:
             msg["not_run"] = payload.get("not_run", [])
         else:
             msg["summary"] = _summarize_tool(call, result, payload)
+            if call.name in ("compare_structures", "annotate") and isinstance(payload, dict):
+                msg["card"] = {k: v for k, v in payload.items() if k != "commands"}
+                msg["results"] = payload.get("commands", [])
         self.push_ts(msg)
 
     def _on_confirm(self, commands: List[str], reasons: List[str], python: bool = False) -> Optional[List[str]]:
@@ -519,7 +542,7 @@ class PanelBase:
         first_user = next((m.text() for m in (self.agent.archived + self.agent.conversation)
                            if m.role == "user" and not m.text().startswith("(system)")), first_user)
         doc = {"id": self._conv_id, "title": first_user[:80], "updated": time.time(),
-               "summary": self.agent.summary,
+               "summary": self.agent.summary, "journal": self.agent.journal[-2000:],
                "archived": json.loads(conversation_to_json(self.agent.archived)),
                "messages": json.loads(conversation_to_json(self.agent.conversation))}
         try:
@@ -564,16 +587,63 @@ class PanelBase:
         self.agent.conversation = conversation_from_json(json.dumps(doc.get("messages", [])))
         self.agent.archived = conversation_from_json(json.dumps(doc.get("archived", [])))
         self.agent.summary = doc.get("summary", "")
+        self.agent.journal = list(doc.get("journal", []))
         self._conv_id = cid
-        rendered = []
-        for m in self.agent.archived + self.agent.conversation:
+        self.push({"type": "conversation", "id": cid, "title": doc.get("title", ""), "messages": self._render_messages()})
+
+    def _render_messages(self) -> List[Dict[str, Any]]:
+        """Transcript for the page: each tool call joined to its real result (status per command)."""
+        msgs = self.agent.archived + self.agent.conversation
+        results_by_id: Dict[str, Any] = {}
+        for m in msgs:
+            if m.role == "tool":
+                for r in m.tool_results_list():
+                    results_by_id[r.call_id] = r
+        rendered: List[Dict[str, Any]] = []
+        for m in msgs:
             if m.role == "user" and not m.text().startswith("(system)"):
                 rendered.append({"role": "user", "text": m.text()})
             elif m.role == "assistant":
-                calls = [{"name": c.name, "args": c.args} for c in m.tool_calls()]
+                calls = []
+                for c in m.tool_calls():
+                    entry: Dict[str, Any] = {"name": c.name, "args": c.args, "call_id": c.id}
+                    r = results_by_id.get(c.id)
+                    if r is not None:
+                        entry["ok"] = not r.is_error
+                        if c.name == "run_commands":
+                            try:
+                                res = json.loads(r.content)
+                                entry["results"] = res.get("results", [])
+                                entry["skipped"] = bool(res.get("skipped"))
+                                entry["not_run"] = res.get("not_run", [])
+                            except Exception:
+                                pass
+                        else:
+                            card = None
+                            if c.name in ("compare_structures", "annotate"):
+                                try:
+                                    card = json.loads(r.content)
+                                    entry["card"] = card
+                                except Exception:
+                                    card = None
+                            entry["summary"] = _summarize_tool(c, r, card)
+                    calls.append(entry)
                 if m.text().strip() or calls:
                     rendered.append({"role": "assistant", "html": render_markdown(m.text()), "calls": calls})
-        self.push({"type": "conversation", "id": cid, "title": doc.get("title", ""), "messages": rendered})
+        return rendered
+
+
+def export_lines(agent, edition: str = "chimerax") -> List[str]:
+    """Replayable script from the execution journal (everything that actually ran)."""
+    head = "# ChimeraX command script exported by Pellaeon" if edition != "chimera" else \
+        "# Chimera command script exported by Pellaeon Classic (open it with: open script.cmd)"
+    lines = [head, ""]
+    for j in agent.journal:
+        if j.get("ok"):
+            lines.append(j["command"])
+        else:
+            lines.append("# failed: %s   (%s)" % (j.get("command", ""), (j.get("error") or "")[:80].replace("\n", " ")))
+    return lines
 
 
 def _summarize_tool(call, result, payload) -> str:
@@ -596,14 +666,18 @@ def _summarize_tool(call, result, payload) -> str:
         return "Fetched %d UniProt features for %s" % (n, a.get("accession", ""))
     if name == "compare_structures":
         if isinstance(payload, dict) and not payload.get("error"):
-            return "Compared %s to %s: %d residues paired, mean shift %s A, %d residues moved over 2 A" % (
+            if payload.get("paired_residues") is None:
+                return "Superposed %s onto %s (%s)" % (payload.get("compared"), payload.get("reference"), payload.get("rmsd", ""))
+            return "Compared %s to %s: %d residues paired, mean shift %s A, %d moved over 2 A" % (
                 payload.get("compared"), payload.get("reference"), payload.get("paired_residues", 0),
                 payload.get("mean_displacement"), payload.get("residues_over_2A", 0))
-        return "Comparison failed"
+        return "Comparison failed" if result is None or result.is_error else "Compared structures"
     if name == "annotate":
         if isinstance(payload, dict) and not payload.get("error"):
-            return "Annotated %d %s feature(s) from UniProt %s" % (payload.get("count", 0), a.get("kind", ""), a.get("accession", ""))
-        return "Annotation failed"
+            return "Annotated %s: %d mapped, %d unmapped%s" % (
+                a.get("kind", ""), payload.get("mapped", 0), payload.get("unmapped", 0),
+                (", %d reference mismatches" % payload["reference_mismatch"]) if payload.get("reference_mismatch") else "")
+        return "Annotation failed" if result is None or result.is_error else "Annotated %s" % a.get("kind", "")
     if name == "run_python":
         return "Ran Python code" + ("" if not result.is_error else " (failed)")
     if name == "look_at_view":

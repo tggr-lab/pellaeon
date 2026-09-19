@@ -44,6 +44,22 @@ class FakeExecutor:
     def look_at_view(self):
         return {"text": "shot", "png_b64": "AAAA"}
 
+    def prepare_compare(self, reference, other, chain=None):
+        if reference == other:
+            return {"error": "same model"}
+        return {"ref_id": reference.lstrip("#"), "other_id": other.lstrip("#"), "chain": chain or "A",
+                "ref_spec": reference + "/A", "other_spec": other + "/A"}
+
+    def compute_displacement(self, prep):
+        return {"pairing": "fake", "paired_residues": 10, "mean_displacement": 1.5, "max_displacement": 4.0, "residues_over_2A": 3,
+                "moving_regions": [{"chain": "A", "range": "30-32", "max": 4.0, "spec": "#2/A:30-32"}],
+                "color_commands": ["color byattribute r:pellaeon_disp #2/A palette bluered", "color #1/A #9ecae1 target ac"]}
+
+    def map_positions(self, model, accession, positions):
+        # pretend the model is numbered one lower than UniProt (initiator Met missing) and residue 7 is GLU
+        return {"model": "#1", "map": {p: {"chain": "A", "number": p - 1, "resname": "GLU" if p == 7 else "ALA"} for p in positions if p > 1},
+                "chains": ["A"], "unmapped": [p for p in positions if p <= 1], "note": ""}
+
 
 class ScriptedProvider:
     """Returns pre-scripted assistant messages in order."""
@@ -383,3 +399,60 @@ def test_cancel_keeps_completed_results():
     results = {r.call_id: r for m in agent.conversation if m.role == "tool" for r in m.tool_results_list()}
     assert not results["id0"].is_error and '"ok": true' in results["id0"].content
     assert results["id1"].is_error and "Cancelled" in results["id1"].content
+
+
+def test_compare_goes_through_the_policy_boundary():
+    prov = ScriptedProvider([{"calls": [("compare_structures", {"reference": "#1", "other": "#2"})]}, "done"])
+    ex = FakeExecutor()
+    asked = []
+    agent = Agent(prov, ex, config=AgentConfig(autonomy=AUTONOMY_ASK), callbacks=Callbacks(on_confirm=lambda c, r, p=False: asked.append(list(c)) or c))
+    agent.run_turn("compare these")
+    assert asked[0] == ["matchmaker #2/A to #1/A"] and asked[1][0].startswith("color byattribute")
+    assert [j["origin"] for j in agent.journal] == ["compare"] * 3
+    payload = json.loads(agent.conversation[2].tool_results_list()[0].content)
+    assert payload["moving_regions"][0]["range"] == "30-32" and payload["colored"] is True and "commands" not in payload
+
+
+def test_annotate_uses_mapping_and_checks_reference_residue(monkeypatch):
+    class Ex(FakeExecutor):
+        def protein_features(self, accession, kinds=None):
+            return {"gene": "HBB", "features": [
+                {"type": "Natural variant", "start": 7, "end": 7, "description": "in SKCA; Hb S", "spec": ":7"},
+                {"type": "Domain", "start": 3, "end": 6, "description": "Globin", "spec": ":3-6"},
+                {"type": "Disulfide bond", "start": 2, "end": 5, "description": "", "spec": ":2,5"}]}
+    prov = ScriptedProvider([{"calls": [("annotate", {"model": "#1", "accession": "P68871", "kind": "variant"})]}, "done"])
+    ex = Ex()
+    agent = Agent(prov, ex, callbacks=Callbacks(on_confirm=lambda c, r, p=False: c))
+    agent.run_turn("show the variants")
+    # positions shifted by the mapping (7 -> 6, 3-6 -> 2-5), disulfide colors only its two cysteines (2,5 -> 1,4)
+    assert "color #1/A:1-6 orange target ac" in ex.ran or any(c.startswith("color #1/A:") and "orange" in c for c in ex.ran)
+    assert any('label #1/A:6 text "in SKCA"' in c for c in ex.ran)
+    payload = json.loads(agent.conversation[2].tool_results_list()[0].content)
+    assert payload["mapped"] == 3 and payload["unmapped"] == 0 and payload["ok"] is True
+    assert all(j["origin"] == "annotate" for j in agent.journal)
+
+
+def test_clinvar_skips_reference_mismatch(monkeypatch):
+    import core.agent as agent_mod
+
+    class FakeCV:
+        def missense_variants(self, gene):
+            return {"gene": gene, "count": 2, "searched": 2, "variants": [
+                {"position": 7, "ref": "E", "alt": "V", "significance": "Pathogenic", "id": "1"},
+                {"position": 9, "ref": "K", "alt": "R", "significance": "Benign", "id": "2"}]}  # model has ALA at 9-1
+    ex = FakeExecutor()
+    ex.clinvar = FakeCV()
+    prov = ScriptedProvider([{"calls": [("annotate", {"model": "#1", "accession": "HBB", "kind": "clinvar"})]}, "done"])
+    agent = Agent(prov, ex, callbacks=Callbacks(on_confirm=lambda c, r, p=False: c))
+    agent.run_turn("show clinvar variants")
+    payload = json.loads(agent.conversation[2].tool_results_list()[0].content)
+    assert payload["mapped"] == 1 and payload["reference_mismatch"] == 1
+    assert any("color #1/A:6 red" in c for c in ex.ran) and not any(":8" in c for c in ex.ran)
+
+
+def test_rerun_path_uses_execute_commands_and_journal():
+    agent = Agent(ScriptedProvider([]), FakeExecutor(), callbacks=Callbacks(on_confirm=lambda c, r, p=False: None))
+    out = agent.execute_commands(["close"], origin="rerun")
+    assert out["skipped"] and agent.journal == []
+    out = agent.execute_commands(["color #1 red"], origin="rerun")
+    assert out["ok"] and agent.journal[-1]["origin"] == "rerun"

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import threading
+import time
 import traceback
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
@@ -131,6 +132,7 @@ class Agent:
         self.config = config or AgentConfig()
         self.cb = callbacks or Callbacks()
         self.conversation: List[Message] = []
+        self.journal: List[Dict[str, Any]] = []   # every command that actually ran, from any path
         self._failed_this_turn: set = set()
         self.archived: List[Message] = []   # messages folded into `summary` (kept for the transcript on disk)
         self.summary: str = ""
@@ -419,13 +421,15 @@ class Agent:
             elif name == "compare_structures":
                 if not args.get("reference") or not args.get("other"):
                     raise RuntimeError("compare_structures needs both 'reference' and 'other' model specs.")
-                payload = self.executor.compare_structures(str(args["reference"]), str(args["other"]), args.get("chain") or None)
-                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+                payload = self._compare(str(args["reference"]), str(args["other"]), args.get("chain") or None)
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
+                                    is_error="error" in payload)
             elif name == "annotate":
-                payload = self.executor.annotate(str(args.get("model", "#1")), str(args.get("accession", "")),
-                                                 str(args.get("kind", "variant")), str(args.get("color", "orange") or "orange"),
-                                                 bool(args.get("label", True)))
-                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+                payload = self._annotate(str(args.get("model", "#1")), str(args.get("accession", "")),
+                                         str(args.get("kind", "variant")), str(args.get("color", "orange") or "orange"),
+                                         bool(args.get("label", True)))
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
+                                    is_error="error" in payload)
             elif name == "run_python":
                 if not self.config.allow_python:
                     raise RuntimeError("Python execution is disabled in Settings.")
@@ -465,9 +469,14 @@ class Agent:
         commands: List[str] = []
         for c in raw:
             commands.extend(split_commands(str(c)))
+        return self.execute_commands(commands, origin="model")
+
+    def execute_commands(self, commands: List[str], origin: str = "model") -> Dict[str, Any]:
+        """The single path for running commands: policy, repeat guard, execution, journal."""
+        commands = [c.strip() for c in commands if c and c.strip()]
         if not commands:
             return {"ok": False, "results": [], "error": "No commands given."}
-        repeats = [c for c in commands if c.strip() in self._failed_this_turn]
+        repeats = [c for c in commands if c in self._failed_this_turn]
         if repeats:
             return {"ok": False, "results": [], "error": "You already ran exactly this command in this turn and it failed: %s. "
                     "Do not repeat it. Change it according to the usage/suggestion, or use a different approach." % repeats[0],
@@ -481,10 +490,14 @@ class Agent:
             approved = self._confirm(commands, reasons)
             if approved is None:
                 return {"ok": False, "results": [], "error": "The user chose not to run these commands.", "skipped": True}
-            commands = approved
+            commands = [c.strip() for c in approved if c and c.strip()]
             if not commands:
                 return {"ok": False, "results": [], "error": "The user removed all commands.", "skipped": True}
         results = self.executor.run_commands(commands)
+        now = time.time()
+        for r in results:
+            self.journal.append({"ts": now, "origin": origin, "command": r.get("command", ""), "ok": bool(r.get("ok")),
+                                 "error": r.get("error", "")})
         ok = all(r.get("ok") for r in results) and len(results) == len(commands)
         out: Dict[str, Any] = {"ok": ok, "results": results}
         if not ok:
@@ -493,7 +506,6 @@ class Agent:
                 self._failed_this_turn.add(str(failed[0].get("command", "")).strip())
                 out["error"] = failed[0].get("error", "command failed")
                 out["failed_command"] = failed[0].get("command")
-                # attach the real syntax so the model can fix it without guessing
                 word = first_word(failed[0].get("command", ""))
                 if word:
                     try:
@@ -511,6 +523,97 @@ class Agent:
             remaining = commands[len(results):]
             if remaining:
                 out["not_run"] = remaining
+        return out
+
+    # ------------------------------------------------------------ compare / annotate (orchestrated here so that
+    # every scene change passes through execute_commands and network work stays off the UI thread)
+    def _compare(self, reference: str, other: str, chain: Optional[str]) -> Dict[str, Any]:
+        prep = self.executor.prepare_compare(reference, other, chain)
+        if prep.get("error"):
+            return prep
+        cmd = "matchmaker %s %s" % (prep["other_spec"], prep["ref_spec"]) if self.config.edition == "chimera" \
+            else "matchmaker %s to %s" % (prep["other_spec"], prep["ref_spec"])
+        mm = self.execute_commands([cmd], origin="compare")
+        if not mm.get("ok"):
+            return {"error": "matchmaker did not run: %s" % mm.get("error", ""), "details": mm}
+        info = mm["results"][0].get("info", []) if mm["results"] else []
+        rmsd_line = next((i for i in info if "RMSD" in i), "")
+        disp = self.executor.compute_displacement(prep)
+        out: Dict[str, Any] = {"reference": prep["ref_spec"], "compared": prep["other_spec"], "chain": prep.get("chain") or "all",
+                               "rmsd": rmsd_line or "see log", "commands": mm["results"]}
+        if disp.get("unsupported"):
+            out["note"] = disp.get("note", "Per-residue displacement is not available in this edition.")
+            return out
+        if disp.get("error"):
+            out["error"] = disp["error"]
+            return out
+        out.update({k: v for k, v in disp.items() if k != "color_commands"})
+        if disp.get("color_commands"):
+            col = self.execute_commands(disp["color_commands"], origin="compare")
+            out["colored"] = bool(col.get("ok"))
+            out["commands"] = out["commands"] + col.get("results", [])
+            if col.get("skipped"):
+                out["note"] = "The user declined the coloring commands."
+        return out
+
+    def _annotate(self, model: str, accession: str, kind: str, color: str, label: bool) -> Dict[str, Any]:
+        from .annotate import normalize_kind, uniprot_items, clinvar_items, build_annotation, is_accession
+        if not re.match(r"^(#[0-9a-fA-F]{6}|[A-Za-z][A-Za-z ]{1,30})$", color or ""):
+            color = "orange"
+        kinds, only_disease, use_clinvar = normalize_kind(kind)
+        acc = (accession or "").strip()
+        gene = acc
+        if is_accession(acc):
+            info = self.executor.protein_features(acc, ["Domain"])
+            gene = info.get("gene") or acc
+        elif acc:
+            r = self.executor.resolve_protein(acc, "human")   # gene symbol -> accession (needed to map onto PDB chains)
+            if not r.get("accession"):
+                return {"error": "Could not find a UniProt accession for '%s'." % accession}
+            acc = r["accession"]
+            gene = r.get("gene") or gene
+        if use_clinvar:
+            clinvar = getattr(self.executor, "clinvar", None)
+            if clinvar is None:
+                from .clinvar import ClinVarClient
+                clinvar = ClinVarClient(None)
+            data = clinvar.missense_variants(gene)
+            if "error" in data:
+                return data
+            items = clinvar_items(data)
+            source = "ClinVar missense variants for %s (%d records, %d positions%s)" % (
+                gene, data.get("searched", 0), data.get("count", 0),
+                "; more may exist" if data.get("searched", 0) >= 2000 else "")
+        else:
+            if not is_accession(acc):
+                return {"error": "annotate needs a UniProt accession (use resolve_protein) or a gene name for 'clinvar'."}
+            feats = self.executor.protein_features(acc, kinds)
+            if "error" in feats:
+                return feats
+            items = uniprot_items(feats, only_disease)
+            source = "UniProt %s features: %s" % (acc, ", ".join(kinds or []))
+        if not items:
+            return {"accession": acc, "kind": kind, "count": 0, "message": "No matching annotations (%s)." % source}
+        positions = sorted({p for it in items for p in it["positions"]})
+        mapping = self.executor.map_positions(model, acc, positions)
+        if mapping.get("error"):
+            return mapping
+        cmds, summary = build_annotation(items, mapping, color, label, edition=self.config.edition)
+        if not cmds:
+            return {"accession": acc, "kind": kind, "count": len(items), "source": source, **summary,
+                    "message": "None of the annotated positions could be mapped onto the model."}
+        res = self.execute_commands(cmds, origin="annotate")
+        out = {"accession": acc, "kind": kind, "count": len(items), "source": source, **summary,
+               "ok": bool(res.get("ok")), "commands_failed": sum(1 for r in res.get("results", []) if not r.get("ok")),
+               "commands": res.get("results", [])}
+        if res.get("skipped"):
+            out["note"] = "The user declined the commands."
+        if use_clinvar:
+            out["legend"] = "red = pathogenic, orange = likely pathogenic, yellow = uncertain, cyan/blue = (likely) benign"
+            out["pathogenic"] = [it["label"] for it in items if it.get("pathogenic")][:40]
+            out["by_significance"] = {}
+            for it in items:
+                out["by_significance"][it["type"]] = out["by_significance"].get(it["type"], 0) + 1
         return out
 
     def _last_assistant_text(self) -> str:
