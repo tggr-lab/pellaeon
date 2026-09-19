@@ -11,7 +11,7 @@ from ..http import request_json, stream_lines, iter_sse, HttpError
 from ..schema import Message, TextPart, ToolCall, ToolSpec, Usage, new_id
 from .base import Provider, ProviderError, OnDelta
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 
 def _clean_schema(schema: Any) -> Any:
