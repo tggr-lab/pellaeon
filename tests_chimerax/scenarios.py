@@ -31,6 +31,21 @@ with open(scen_file) as f:
 if flt:
     SCENARIOS = [s for s in SCENARIOS if flt in s["id"] or flt in s.get("category", "")]
 
+def _unload_other_models(keep: str):
+    """Ollama keeps the last model in VRAM for minutes; a leftover 10 GB model pushes the next one onto the CPU."""
+    import urllib.request
+    try:
+        ps = json.load(urllib.request.urlopen("http://localhost:11434/api/ps", timeout=5))
+        for m in ps.get("models", []):
+            name = m.get("name", "")
+            if name and name != keep:
+                req = urllib.request.Request("http://localhost:11434/api/generate", data=json.dumps({"model": name, "keep_alive": 0}).encode(),
+                                             headers={"Content-Type": "application/json"})
+                urllib.request.urlopen(req, timeout=30).read()
+    except Exception:  # noqa: BLE001
+        pass
+
+_unload_other_models(model)
 ex = ChimeraXExecutor(session)  # noqa: F821
 ex.ensure_index()
 gotchas = open(data_path("gotchas.md")).read()

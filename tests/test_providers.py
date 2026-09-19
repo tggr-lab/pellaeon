@@ -182,3 +182,12 @@ def test_gemini_marks_injected_function_calls_for_signature_validation():
     contents = prov._to_contents(msgs)
     calls = [p for c in contents for p in c["parts"] if "functionCall" in p]
     assert calls[0]["thoughtSignature"] == "skip_thought_signature_validator" and calls[1]["thoughtSignature"] == "abc"
+
+
+def test_ollama_capabilities_drive_vision_support():
+    from core.providers.ollama import OllamaProvider
+    p = OllamaProvider("hermes3:8b")
+    p._caps = ["completion", "tools"]
+    assert p.supports_vision is False and "thinking" not in p.capabilities()
+    p._caps = ["completion", "vision", "tools", "thinking"]
+    assert p.supports_vision is True

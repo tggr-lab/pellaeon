@@ -344,7 +344,13 @@ class Agent:
                 self._status("Empty answer, retrying…")
                 opts = getattr(self.provider, "options", None)
                 restore = None
-                if getattr(self.provider, "name", "") == "ollama" and isinstance(opts, dict):
+                can_think = True
+                try:
+                    caps = self.provider.capabilities() if hasattr(self.provider, "capabilities") else None
+                    can_think = caps is None or "thinking" in caps
+                except Exception:  # noqa: BLE001
+                    pass
+                if getattr(self.provider, "name", "") == "ollama" and isinstance(opts, dict) and can_think:
                     restore = opts.get("think", None)
                     opts["think"] = True
                 try:
