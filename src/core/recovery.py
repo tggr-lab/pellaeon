@@ -64,10 +64,18 @@ def _from_json_like(text: str) -> List[str]:
 
 def parse_textual_tool_call(text: str, known: Optional[Iterable[str]] = None) -> List[str]:
     """Commands a model clearly meant to run but wrote as text. Empty when the reply is ordinary prose."""
-    if not text or "run_commands" not in text and "<tool_call>" not in text and "```" not in text:
+    if not text:
         return []
     kn = set(KNOWN_COMMANDS) | set(known or [])
     cands: List[str] = []
+    if "run_commands" not in text and "<tool_call>" not in text and "```" not in text:
+        # a bare reply that is nothing but command lines, e.g. "hide #1 atoms; cartoon #1"
+        lines = [l for l in text.strip().splitlines() if l.strip()]
+        if 0 < len(lines) <= 4:
+            pieces = [p.strip() for l in lines for p in split_commands(_clean_line(l)) if p.strip()]
+            if pieces and all(_valid(p, kn) and p[0].islower() and not p.endswith(".") and not re.search(r"\b(the|is|are|was|will|has|have|been|you|I)\b", p) for p in pieces):
+                return pieces[:20]
+        return []
     # <tool_call>{...}</tool_call> or bare JSON
     for m in re.finditer(r"<tool_call>(.*?)</tool_call>", text, re.S | re.I):
         cands.extend(_from_json_like(m.group(1)))

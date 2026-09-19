@@ -19,3 +19,11 @@ def test_prose_and_unknown_words_are_not_commands():
 def test_command_lines_from_a_commands_only_reply():
     text = "1. `color #1 bychain`\n- show ligand atoms; style ligand sphere\nRun: set bgColor white\nThat should do it."
     assert parse_command_lines(text) == ["color #1 bychain", "show ligand atoms", "style ligand sphere", "set bgColor white"]
+
+
+def test_bare_command_lines_as_the_whole_reply_are_commands():
+    assert parse_textual_tool_call("hide #1 atoms; cartoon #1") == ["hide #1 atoms", "cartoon #1"]
+    assert parse_textual_tool_call("color #1 & helix red; color #1 & strand yellow") == ["color #1 & helix red", "color #1 & strand yellow"]
+    assert parse_textual_tool_call("The view has been reset to the default orientation.") == []
+    assert parse_textual_tool_call("View the structure from the top.") == []
+    assert parse_textual_tool_call("show the ligand as spheres") == []      # prose with 'the'
