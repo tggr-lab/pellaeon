@@ -92,6 +92,11 @@ _RES_SPEC_RE = re.compile(r"#\d+(?:\.\d+)*/[A-Za-z0-9]+:-?\d+[A-Za-z]?")
 NUDGE_WHY = ("(system) The user asks WHY a residue looks like it does. Do not guess: CALL THE TOOL named explain_residue with the "
              "residue spec (the selection in the state, or the residue named in the request) and answer from its history.")
 _CHECKED_WORDS = ("color", "colour", "select", "style", "show", "hide", "cartoon", "transparency", "surface", "label", "size", "rainbow")
+_WHICH_MODEL_RE = re.compile(r"\b(which|what|specify( the)?|need to know which)\s+(model|structure|selection|one)\b|\bspecific model\b", re.I)
+NUDGE_ONE_MODEL = ("(system) Exactly ONE model is open (see the state: it is #1). It is the target. Do not ask which model; "
+                   "run the commands on #1 now with run_commands.")
+COMMANDS_ONLY = ("(system) You did not call the tool. Reply with ONLY the ChimeraX command lines that do what the user asked, "
+                 "one command per line, no prose, no numbering, no backticks. Example:\ncolor #1 bychain\nshow ligand atoms")
 _LOOK_RE = re.compile(r"\b(look at|take a look|have a look|check|review|inspect|how does it look|does it look|what do you see|see the view|the screen|screenshot)\b", re.I)
 NUDGE_LOOK = ("(system) The user wants you to LOOK at the view. Call the tool look_at_view first (it returns a screenshot), "
               "describe what you see, then fix problems with commands and look again.")
@@ -188,6 +193,8 @@ class Agent:
         self.tables: Dict[str, Dict[str, Any]] = {}     # user-loaded tables (name -> dataset), shared with the panel
         self.layers: List[Dict[str, Any]] = []          # applied table overlays
         self.figure_notes: List[str] = []               # legend fragments from annotate / compare / table overlays
+        self.recovered_calls: int = 0                   # tool calls that arrived as text and were run anyway
+        self.commands_only_turns: int = 0               # turns rescued by the commands-only fallback
         self.figures_dir: str = ""                      # where model-initiated figure bundles go (set by the host)
         self._system = system_prompt or prompt_mod.build_system_prompt(
             directory=directory, gotchas=gotchas, recipes=recipes,
@@ -261,7 +268,9 @@ class Agent:
                 last_ctx = context
                 if self.config.nudge_on_no_action and looks_like_action_request(user_text):
                     ran = self._commands_since(start_len)
-                    if not outcome.get("called_tool") and not self._tool_called_since(start_len, "tidy_labels"):
+                    if not outcome.get("called_tool") and _WHICH_MODEL_RE.search(self._last_assistant_text()) and self._one_model_open():
+                        nudge = NUDGE_ONE_MODEL   # asked which model although only one is open
+                    elif not outcome.get("called_tool") and not self._tool_called_since(start_len, "tidy_labels"):
                         nudge = NUDGE          # words but no action
                     elif outcome.get("ended_after_error"):
                         nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
@@ -295,6 +304,9 @@ class Agent:
                 if outcome.get("asked"):
                     self.total_usage.add(usage)
                     return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
+            if self.config.nudge_on_no_action and looks_like_action_request(user_text) and not outcome.get("asked") \
+                    and not self._commands_since(start_len) and not any(c.name != "run_commands" for c in self._tool_calls_since(start_len)):
+                self._commands_only_fallback(user_text, context, cancel, usage)
             self._canned_fallbacks(user_text, start_len)
             self.total_usage.add(usage)
             self._maybe_compact()
@@ -347,8 +359,17 @@ class Agent:
                 usage.add(u)
                 if not reply.text().strip() and not reply.tool_calls():
                     reply = Message.assistant("The model returned an empty answer twice. Please try again or rephrase.")
-            self.conversation.append(reply)
             calls = reply.tool_calls()
+            if not calls:
+                # a tool call written as text (small models do this): run what was clearly meant, through the same gate
+                from .recovery import parse_textual_tool_call
+                cmds = parse_textual_tool_call(reply.text(), self._known_commands())
+                if cmds:
+                    call = ToolCall(new_id(), "run_commands", {"commands": cmds})
+                    reply = Message("assistant", [TextPart(reply.text()), call])
+                    calls = [call]
+                    self.recovered_calls += 1
+            self.conversation.append(reply)
             if not calls:
                 return {"called_tool": called_tool, "asked": False, "ended_after_error": last_round_failed}
             results: List[ToolResult] = []
@@ -882,6 +903,56 @@ class Agent:
         parts.append("")
         parts.append("_Draft written from the recorded commands; edit before use._")
         return "\n".join(parts)
+
+    def _tool_calls_since(self, start_len: int) -> List[ToolCall]:
+        out: List[ToolCall] = []
+        for m in self.conversation[start_len:]:
+            if m.role == "assistant":
+                out.extend(m.tool_calls())
+        return out
+
+    def _known_commands(self):
+        kn = getattr(self, "_known_cache", None)
+        if kn is None:
+            kn = set()
+            try:
+                kn = {c for c, _ in (self.executor.knowledge.command_directory() or [])}
+            except Exception:  # noqa: BLE001
+                pass
+            self._known_cache = kn
+        return kn
+
+    def _one_model_open(self) -> bool:
+        try:
+            return len((self.executor.get_state() or {}).get("models") or []) == 1
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _commands_only_fallback(self, user_text: str, context: str, cancel, usage: Usage) -> bool:
+        """Last resort for models that cannot produce a structured tool call: ask for bare command lines and run them."""
+        from .recovery import parse_command_lines
+        self.conversation.append(Message.user(COMMANDS_ONLY, context))
+        reply, u = self.provider.stream(self.system_prompt, self.conversation, [], on_delta=None, cancel=cancel)
+        usage.add(u)
+        cmds = parse_command_lines(reply.text(), self._known_commands())
+        if not cmds:
+            self.conversation.append(reply)
+            return False
+        call = ToolCall(new_id(), "run_commands", {"commands": cmds})
+        self.conversation.append(Message("assistant", [TextPart(reply.text()), call]))
+        res, payload = self._dispatch(call)
+        self.conversation.append(Message.tool_results([res]))
+        self.commands_only_turns += 1
+        results = payload.get("results", []) if isinstance(payload, dict) else []
+        ok = [r["command"] for r in results if r.get("ok") and not r.get("noop")]
+        bad = [r for r in results if not r.get("ok")]
+        text = "Ran: " + "; ".join("`%s`" % c for c in ok) + "." if ok else "Nothing ran."
+        if bad:
+            text += " Failed: " + "; ".join("`%s` (%s)" % (r["command"], (r.get("error") or "")[:80]) for r in bad)
+        if isinstance(payload, dict) and payload.get("skipped"):
+            text = "The commands were shown for your approval and skipped."
+        self.conversation.append(Message.assistant(text))
+        return True
 
     def _why_target(self, user_text: str) -> str:
         """The residue a 'why is this ...' question is about: a spec in the text, else the single selected residue."""

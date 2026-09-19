@@ -761,3 +761,30 @@ def test_look_nudge_only_when_the_model_can_see():
     agent2 = Agent(prov2, FakeExecutor(), config=AgentConfig(vision=False))
     agent2.run_turn("take a look at the view")
     assert not any("LOOK at the view" in str(r) for r in prov2.requests)
+
+
+def test_tool_call_written_as_text_is_recovered_and_run():
+    prov = ScriptedProvider(['run_commands "color #1 white ; color #1:10 blue"', "Done: residue 10 is blue."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    res = agent.run_turn("color everything white but residue 10 blue")
+    assert ex.ran == ["color #1 white", "color #1:10 blue"] and agent.recovered_calls == 1
+    assert res.reply == "Done: residue 10 is blue."
+
+
+def test_commands_only_fallback_rescues_a_model_that_never_calls_tools():
+    # words, words again after the nudge, then bare command lines when asked for commands only
+    prov = ScriptedProvider(["I have colored the chains.", "The chains are now colored by chain ID.", "color #1 bychain\nshow ligand atoms"])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    res = agent.run_turn("color by chain and show the ligand")
+    assert ex.ran == ["color #1 bychain", "show ligand atoms"] and agent.commands_only_turns == 1
+    assert res.reply.startswith("Ran: `color #1 bychain`")
+
+
+def test_asking_which_model_with_one_open_gets_a_pointed_nudge():
+    prov = ScriptedProvider(["I need to know which model you want me to color.", {"calls": [("run_commands", {"commands": ["color #1 red"]})]}, "Colored #1 red."])
+    ex = FakeExecutor(); ex.state = {"models": [{"id": "#1", "name": "1zik"}], "selection": {}}
+    agent = Agent(prov, ex)
+    assert agent.run_turn("color it red").reply == "Colored #1 red."
+    assert any("Exactly ONE model is open" in str(r) for r in prov.requests)
