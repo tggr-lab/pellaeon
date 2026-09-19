@@ -31,6 +31,10 @@ with open(scen_file) as f:
 if flt:
     SCENARIOS = [s for s in SCENARIOS if flt in s["id"] or flt in s.get("category", "")]
 
+def _approve(cmds):
+    """The harness approves everything except commands that would end the ChimeraX process running it."""
+    return [c for c in cmds if c.split()[0].lower() not in ("exit", "quit") and not c.lower().startswith("close session")] or None
+
 def _unload_other_models(keep: str):
     """Ollama keeps the last model in VRAM for minutes; a leftover 10 GB model pushes the next one onto the CPU."""
     import urllib.request
@@ -66,7 +70,7 @@ def make_agent(record):
     else:
         prov = OllamaProvider(model, options={"think": think})
     cb = Callbacks(on_tool_start=lambda c: record["calls"].append((c.name, dict(c.args))),
-                   on_confirm=lambda cmds, reasons: (record["confirms"].append(list(cmds)) or cmds),
+                   on_confirm=lambda cmds, reasons: (record["confirms"].append(list(cmds)) or _approve(cmds)),
                    on_ask_user=lambda q, o: record["asks"].append(q))
     return Agent(prov, ex, config=AgentConfig(), callbacks=cb, directory=directory, gotchas=gotchas, recipes=recipes)
 
