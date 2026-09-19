@@ -18,6 +18,22 @@ class OllamaProvider(Provider):
     def default_base_url(cls) -> str:
         return "http://localhost:11434"
 
+    _caps: Optional[List[str]] = None
+
+    def capabilities(self) -> List[str]:
+        """What the pulled model can do, from Ollama's /api/show ('tools', 'vision', 'thinking', ...)."""
+        if self._caps is None:
+            try:
+                data = request_json("POST", self.base_url + "/api/show", body={"model": self.model}, timeout=10)
+                self._caps = list(data.get("capabilities") or [])
+            except Exception:  # noqa: BLE001
+                self._caps = []
+        return self._caps
+
+    @property
+    def supports_vision(self) -> bool:      # type: ignore[override]
+        return "vision" in self.capabilities()
+
     # ---- conversion ----
     def _to_messages(self, system: str, messages: List[Message]) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = [{"role": "system", "content": system}]
@@ -34,7 +50,10 @@ class OllamaProvider(Provider):
                 out.append(d)
             elif m.role == "tool":
                 for r in m.tool_results_list():
-                    out.append({"role": "tool", "content": self.result_text(r), "tool_name": r.name})
+                    d = {"role": "tool", "content": self.result_text(r), "tool_name": r.name}
+                    if getattr(r, "image_png_b64", None):
+                        d["images"] = [r.image_png_b64]
+                    out.append(d)
         return out
 
     @staticmethod
