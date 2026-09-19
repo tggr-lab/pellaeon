@@ -175,15 +175,17 @@ Pellaeon works out where every label sits on screen, moves the colliding ones to
 
 ### Step 9 · Compare two conformations
 
-Open two structures of the same enzyme (adenylate kinase, open and closed):
+Maltose-binding protein is a classic hinge: open without ligand (1omp), closed around maltose (1anf). Open both, then ask:
 
-> close everything, open 4ake and 1ake, then compare these two models and tell me what changed
+> close everything, open 1omp and 1anf, then compare these two models and tell me what changed
 
-![Adenylate kinase colored by displacement](img/tut/09_compare_b.png)
+![Maltose-binding protein, closed form colored by how far each residue moved from the open form](img/tut/09_compare_b.png)
+
+What you are looking at: the two structures are superposed on top of each other. The pale, half-transparent one is the reference (the first model, open). The solid one is the second model, and its color says how far each residue moved between the two: gray means it stayed put, yellow a little, orange more, red 6 Å or more. The hinge region is gray because it did not move; the domain that swung shut is red.
 
 ![Comparison card](img/tut/09_compare_b_panel.png)
 
-The second model is superposed on the first and colored by how far each residue moved (gray unchanged, red 6 Å or more). The card lists the moving regions; clicking one recentres the view on it. Here the LID domain (residues 117–167) swings 25 Å.
+The card separates two numbers that are often confused. The fit RMSD is MatchMaker's own, over the well-matching residues it kept after pruning. The per-residue displacement is measured over every aligned residue after that fit. The moving regions are clickable; each one recentres the view on it.
 
 ### Step 10 · Risky commands ask first
 

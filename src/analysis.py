@@ -113,7 +113,7 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
         regions.append(cur)
     total_other = sum(1 for r in b.residues if (not prep.get("chain") or r.chain_id == prep["chain"]) and r.find_atom("CA") is not None)
     color_cmds = ["color byattribute r:pellaeon_disp %s palette 0,#d9d9d9:1,#ffd27f:3,orange:6,red range 0,6 target ac novalue gray" % prep["other_spec"],
-                  "color %s #9ecae1 target ac" % prep["ref_spec"]]
+                  "color %s #b8c4d6 target ac" % prep["ref_spec"], "transparency %s 55 target c" % prep["ref_spec"]]
     return {
         "pairing": basis, "paired_residues": len(rows), "coverage": "%d of %d residues of %s paired" % (len(rows), total_other, prep["other_spec"]),
         "mean_displacement": round(float(arr.mean()), 2), "max_displacement": round(float(arr.max()), 2),
@@ -122,7 +122,7 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
                         for c, n, nm, d, rc, rn in top],
         "moving_regions": [{"chain": r[0], "range": "%d-%d" % (r[1], r[2]), "max": round(r[3], 2),
                             "spec": "#%s/%s:%d-%d" % (prep["other_id"], r[0], r[1], r[2])} for r in regions[:15]],
-        "coloring": "%s colored by displacement (gray unchanged, red 6 A or more); %s light blue" % (prep["other_spec"], prep["ref_spec"]),
+        "coloring": "%s colored by displacement (gray unchanged, red 6 A or more); %s pale blue-gray and half transparent, as the reference" % (prep["other_spec"], prep["ref_spec"]),
         "color_commands": color_cmds,
     }
 

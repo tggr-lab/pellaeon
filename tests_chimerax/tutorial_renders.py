@@ -57,8 +57,8 @@ STEPS = [
     ("08_open_hbb",  None, ["close", "open alphafold:P68871", LOOK, "view"], False, False, []),   # HBB, deterministic setup for the ClinVar step
     ("08_clinvar",   "show the ClinVar disease variants of HBB on it", [], True, True, ["view"]),
     ("08b_tidy",     "the labels overlap, tidy them", [], True, True, ["view"]),
-    ("09_compare",   None, ["close", "open 4ake", "open 1ake", LOOK, "view"], False, False, []),
-    ("09_compare_b", "compare these two models and tell me what changed", [], True, True, ["view"]),
+    ("09_compare",   None, ["close", "open 1omp", "open 1anf", LOOK, "view"], False, False, []),
+    ("09_compare_b", "compare these two models and tell me what changed", [], True, True, ["view", "zoom 1.7"]),
     ("10_close",     "close everything", [], False, None, []),     # confirmation card
 ]
 
