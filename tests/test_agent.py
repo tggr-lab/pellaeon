@@ -325,3 +325,61 @@ def test_empty_reply_is_retried_once():
     agent = Agent(prov, FakeExecutor(), config=AgentConfig(nudge_on_no_action=False))
     res = agent.run_turn("what is open?")
     assert res.reply == "second try worked" and len(prov.requests) == 2
+
+
+def test_confirmation_fails_closed_without_callback():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["close"]})]}, "ok"])
+    ex = FakeExecutor()
+    Agent(prov, ex).run_turn("close everything")
+    assert ex.ran == []
+
+
+def test_disabled_python_is_refused_at_dispatch():
+    prov = ScriptedProvider([{"calls": [("run_python", {"code": "print(1)"})]}, "ok"])
+    agent = Agent(prov, FakeExecutor(), callbacks=Callbacks(on_confirm=lambda c, r, p=False: c))
+    agent.run_turn("compute")
+    tr = agent.conversation[2].tool_results_list()[0]
+    assert tr.is_error and "disabled" in tr.content
+
+
+def test_multiline_python_reaches_executor_verbatim():
+    code = "def f():\n    return 42\nprint(f())"
+    seen = {}
+
+    class Ex(FakeExecutor):
+        def run_python(self, c):
+            seen["code"] = c
+            return {"ok": True, "stdout": "42"}
+    prov = ScriptedProvider([{"calls": [("run_python", {"code": code})]}, "42"])
+    agent = Agent(prov, Ex(), config=AgentConfig(allow_python=True), callbacks=Callbacks(on_confirm=lambda c, r, p=False: c))
+    agent.run_turn("compute")
+    assert seen["code"] == code
+
+
+def test_ask_user_stops_remaining_calls():
+    prov = ScriptedProvider([{"calls": [("ask_user", {"question": "Which?"}), ("run_commands", {"commands": ["color #1 red"]})]}])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex, callbacks=Callbacks(on_ask_user=lambda q, o: None))
+    agent.run_turn("color the other one")
+    assert ex.ran == []
+
+
+def test_cancel_keeps_completed_results():
+    import threading
+
+    class SlowExecutor(FakeExecutor):
+        def __init__(self, cancel):
+            super().__init__()
+            self.cancel = cancel
+
+        def run_commands(self, commands):
+            self.cancel.set()
+            return super().run_commands(commands)
+    cancel = threading.Event()
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open 4hhb"]}), ("get_state", {})]}, "never"])
+    ex = SlowExecutor(cancel)
+    agent = Agent(prov, ex, cancel := cancel) if False else Agent(prov, ex)
+    agent.run_turn("open 4hhb", cancel)
+    results = {r.call_id: r for m in agent.conversation if m.role == "tool" for r in m.tool_results_list()}
+    assert not results["id0"].is_error and '"ok": true' in results["id0"].content
+    assert results["id1"].is_error and "Cancelled" in results["id1"].content

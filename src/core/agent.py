@@ -105,7 +105,8 @@ class Callbacks:
     on_tool_start: Optional[Callable[[ToolCall], None]] = None
     on_tool_result: Optional[Callable[[ToolCall, ToolResult, Any], None]] = None
     # confirm(commands, reasons) -> approved commands list, or None if user skipped
-    on_confirm: Optional[Callable[[List[str], List[str]], Optional[List[str]]]] = None
+    # confirm(commands, reasons, python=False) -> approved list, or None if the user skipped
+    on_confirm: Optional[Callable[..., Optional[List[str]]]] = None
     on_ask_user: Optional[Callable[[str, List[str]], None]] = None
     on_status: Optional[Callable[[str], None]] = None
 
@@ -169,6 +170,7 @@ class Agent:
                 return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
             for attempt in range(2):
                 nudge = None
+                last_ctx = context
                 if self.config.nudge_on_no_action and looks_like_action_request(user_text):
                     ran = self._commands_since(start_len)
                     if not outcome.get("called_tool"):
@@ -184,7 +186,7 @@ class Agent:
                     break
                 if attempt == 1 and not _ANNOUNCE_RE.search(self._last_assistant_text()):
                     break  # second try only when the model keeps announcing instead of acting
-                self.conversation.append(Message.user(nudge))
+                self.conversation.append(Message.user(nudge, last_ctx))
                 outcome = self._loop(tools, cancel, usage)
                 if outcome.get("asked"):
                     self.total_usage.add(usage)
@@ -251,21 +253,31 @@ class Agent:
             results: List[ToolResult] = []
             asked = False
             any_error = False
-            for call in calls:
-                if cancel.is_set():
-                    raise TurnCancelled()
-                if call.name == "ask_user":
-                    q = str(call.args.get("question", "")).strip()
-                    opts = [str(o) for o in (call.args.get("options") or [])]
-                    if self.cb.on_ask_user:
-                        self.cb.on_ask_user(q, opts)
-                    results.append(ToolResult(call.id, call.name, "Question shown to the user; wait for their answer."))
-                    asked = True
-                    continue
-                called_tool = True
-                res, payload = self._dispatch(call)
-                any_error = any_error or res.is_error
-                results.append(res)
+            try:
+                for call in calls:
+                    if asked:
+                        results.append(ToolResult(call.id, call.name, "Not run: waiting for the user's answer first.", is_error=True))
+                        continue
+                    if cancel.is_set():
+                        raise TurnCancelled()
+                    if call.name == "ask_user":
+                        q = str(call.args.get("question", "")).strip()
+                        opts = [str(o) for o in (call.args.get("options") or [])]
+                        if self.cb.on_ask_user:
+                            self.cb.on_ask_user(q, opts)
+                        results.append(ToolResult(call.id, call.name, "Question shown to the user; wait for their answer."))
+                        asked = True
+                        continue
+                    called_tool = True
+                    res, payload = self._dispatch(call)
+                    any_error = any_error or res.is_error
+                    results.append(res)
+            except (TurnCancelled, Cancelled):
+                done = {r.call_id for r in results}
+                results += [ToolResult(c.id, c.name, "Cancelled by the user before this tool ran.", is_error=True)
+                            for c in calls if c.id not in done]
+                self.conversation.append(Message.tool_results(results))
+                raise
             self.conversation.append(Message.tool_results(results))
             last_round_failed = any_error
             if asked:
@@ -405,8 +417,9 @@ class Agent:
                 payload = self.executor.protein_features(str(args.get("accession", "")), args.get("kinds"))
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "compare_structures":
-                payload = self.executor.compare_structures(str(args.get("reference", "#1")), str(args.get("other", "#2")),
-                                                           args.get("chain") or None)
+                if not args.get("reference") or not args.get("other"):
+                    raise RuntimeError("compare_structures needs both 'reference' and 'other' model specs.")
+                payload = self.executor.compare_structures(str(args["reference"]), str(args["other"]), args.get("chain") or None)
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "annotate":
                 payload = self.executor.annotate(str(args.get("model", "#1")), str(args.get("accession", "")),
@@ -414,14 +427,18 @@ class Agent:
                                                  bool(args.get("label", True)))
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "run_python":
+                if not self.config.allow_python:
+                    raise RuntimeError("Python execution is disabled in Settings.")
                 code = str(args.get("code", ""))
-                approved = self._confirm([code], ["runs Python code inside ChimeraX"])
+                approved = self._confirm([code], ["runs Python code inside ChimeraX"], python=True)
                 if approved is None:
                     result = ToolResult(call.id, name, "The user declined to run this code.", is_error=True)
                 else:
                     payload = self.executor.run_python(approved[0] if approved else code)
                     result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error=not payload.get("ok", False))
             elif name == "look_at_view":
+                if not (self.config.vision and getattr(self.provider, "supports_vision", False)):
+                    raise RuntimeError("Screenshots are disabled in Settings.")
                 payload = self.executor.look_at_view()
                 result = ToolResult(call.id, name, payload.get("text", "Screenshot attached."),
                                     image_png_b64=payload.get("png_b64"))
@@ -433,10 +450,13 @@ class Agent:
             self.cb.on_tool_result(call, result, payload)
         return result, payload
 
-    def _confirm(self, commands: List[str], reasons: List[str]) -> Optional[List[str]]:
+    def _confirm(self, commands: List[str], reasons: List[str], python: bool = False) -> Optional[List[str]]:
         if self.cb.on_confirm is None:
-            return commands
-        return self.cb.on_confirm(commands, reasons)
+            return None  # no way to ask the user: fail closed
+        try:
+            return self.cb.on_confirm(commands, reasons, python)
+        except TypeError:
+            return self.cb.on_confirm(commands, reasons)
 
     def _run_commands(self, call: ToolCall) -> Dict[str, Any]:
         raw = call.args.get("commands") or []

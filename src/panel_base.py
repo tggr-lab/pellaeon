@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 import time
 import urllib.parse
@@ -136,7 +137,7 @@ class PanelBase:
         decision = params.get("decision", "skip")
         if decision == "run":
             cmds = payload if isinstance(payload, list) else c["commands"]
-            c["result"] = [str(x) for x in cmds if str(x).strip()]
+            c["result"] = [str(x) for x in cmds if str(x).strip()] if not c.get("python") else [str(cmds[0]) if cmds else ""]
         else:
             c["result"] = None
         c["event"].set()
@@ -169,7 +170,9 @@ class PanelBase:
     def _act_set_autonomy(self, params, payload):
         mode = params.get("mode", "auto")
         if mode in AUTONOMY_MODES:
-            self.settings.autonomy = mode
+            if mode != "all":            # "never ask" is for this session only: never persisted
+                self.settings.autonomy = mode
+            self._runtime_autonomy = mode
             if self.agent:
                 self.agent.config.autonomy = mode
 
@@ -236,14 +239,22 @@ class PanelBase:
     def _act_history(self, params, payload):
         self.push({"type": "history", "conversations": self._list_conversations()})
 
+    @staticmethod
+    def _valid_conv_id(cid: str) -> bool:
+        return bool(re.match(r"^[0-9]{8}-[0-9]{6}$", cid or ""))
+
     def _act_load_chat(self, params, payload):
         if self._busy_guard():
             return
         cid = params.get("id", "")
+        if not self._valid_conv_id(cid):
+            return
         self._load_conversation(cid)
 
     def _act_delete_chat(self, params, payload):
         cid = params.get("id", "")
+        if not self._valid_conv_id(cid):
+            return
         path = os.path.join(self.dirs["data"], "conversations", cid + ".json")
         if cid and os.path.exists(path):
             os.remove(path)
@@ -285,7 +296,10 @@ class PanelBase:
             self.push_ts({"type": "models_list", "models": [], "error": str(e)})
 
     def _pull_model(self, model: str, base_url: str):
-        from .core.providers.ollama import OllamaProvider
+        try:
+            from .core.providers.ollama import OllamaProvider
+        except ImportError:
+            from core.providers.ollama import OllamaProvider
         prov = OllamaProvider(model, base_url=base_url)
         last = [0.0]
 
@@ -373,7 +387,7 @@ class PanelBase:
         except Exception:
             pass
         directory = self.executor.knowledge.command_directory()
-        cfg = AgentConfig(autonomy=s.autonomy, allow_python=bool(s.allow_python), vision=bool(s.vision),
+        cfg = AgentConfig(autonomy=getattr(self, "_runtime_autonomy", None) or s.autonomy, allow_python=bool(s.allow_python), vision=bool(s.vision),
                           docs_per_turn=int(s.docs_per_turn), edition=self.edition)
         if preset["provider"] == "ollama":
             # keep the conversation well inside the local context window (32k by default)
@@ -470,13 +484,13 @@ class PanelBase:
             msg["summary"] = _summarize_tool(call, result, payload)
         self.push_ts(msg)
 
-    def _on_confirm(self, commands: List[str], reasons: List[str]) -> Optional[List[str]]:
+    def _on_confirm(self, commands: List[str], reasons: List[str], python: bool = False) -> Optional[List[str]]:
         cid = "c%d_%d" % (self._turn_id, int(time.time() * 1000))
-        entry = {"event": threading.Event(), "result": None, "commands": commands}
+        entry = {"event": threading.Event(), "result": None, "commands": commands, "python": python}
         self._confirms[cid] = entry
         self._flush_deltas_ts()
         self.push_ts({"type": "confirm", "id": "t%d" % self._turn_id, "confirm_id": cid,
-                      "commands": commands, "reasons": reasons})
+                      "commands": commands, "reasons": reasons, "python": python})
         while not entry["event"].is_set():
             if self._cancel.is_set():
                 break

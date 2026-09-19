@@ -1,7 +1,7 @@
 """End-to-end test of the classic edition against a stub Chimera REST server (no real Chimera needed).
     python classic/tools/e2e_stub_test.py "open 1zik and color it red"
 """
-import json, os, re, subprocess, sys, threading, time, urllib.parse, urllib.request
+import json, os, re, subprocess, urllib.error, sys, threading, time, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 KNOWN = set(json.load(open(os.path.join(ROOT, "classic/pellaeon_classic/data/cheatsheet_chimera.json"))))
@@ -44,11 +44,14 @@ app = subprocess.Popen([sys.executable, "run.py", "--console", "--no-browser", "
                        cwd=os.path.join(ROOT, "dist", "pellaeon-classic"), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 time.sleep(2.0)
 B = "http://127.0.0.1:8799"
+import re as _re
+TOKEN = _re.search(r'PELLAEON_TOKEN = "([^"]+)"', urllib.request.urlopen(B + "/").read().decode()).group(1)
 def act(a, **kw):
-    urllib.request.urlopen(urllib.request.Request(B + "/act/" + a + "?" + urllib.parse.urlencode(kw), method="POST"), timeout=10).read()
+    urllib.request.urlopen(urllib.request.Request(B + "/act/" + a + "?" + urllib.parse.urlencode(kw), method="POST",
+                                                  headers={"X-Pellaeon-Token": TOKEN}), timeout=10).read()
 events = []
 def reader():
-    r = urllib.request.urlopen(B + "/events", timeout=300)
+    r = urllib.request.urlopen(B + "/events?token=" + urllib.parse.quote(TOKEN), timeout=300)
     for line in r:
         line = line.decode().strip()
         if line.startswith("data: "):
@@ -57,6 +60,11 @@ threading.Thread(target=reader, daemon=True).start()
 time.sleep(0.5)
 html = urllib.request.urlopen(B + "/").read().decode()
 print("page ok:", "PELLAEON_HTTP" in html and "Pellaeon" in html)
+try:
+    urllib.request.urlopen(urllib.request.Request(B + "/act/ready", method="POST"), timeout=5)
+    print("AUTH BUG: unauthenticated action accepted")
+except urllib.error.HTTPError as e:
+    print("unauthenticated action rejected:", e.code)
 act("ready")
 act("settings_save", payload=json.dumps({"preset": "ollama", "model": "qwen3:8b", "base_url": "", "autonomy": "auto", "api_key": ""}))
 act("chimera_test")

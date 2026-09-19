@@ -17,11 +17,13 @@ def _find_structure(session, spec: str):
         for st in structs:
             if st.id_string == m.group(1):
                 return st
+    if m:
+        return None  # an explicit id that does not exist must not silently become another model
     low = ident.lower().lstrip("#")
     for st in structs:
         if low and (low == st.name.lower() or low in st.name.lower()):
             return st
-    if len(structs) == 1:
+    if len(structs) == 1 and not low:
         return structs[0]
     return None
 
@@ -35,6 +37,8 @@ def compare_structures(session, run_commands, ref: str = "#1", other: str = "#2"
     b = _find_structure(session, other)
     if a is None or b is None:
         return {"error": "Need two open atomic models, e.g. #1 and #2 (got %s, %s)." % (ref, other)}
+    if a is b:
+        return {"error": "Reference and compared model are the same (%s)." % ref}
     if not chain and len(a.chains) > 1:
         # matchmaker superposes one chain pair; compare that chain only so other chains do not look "moved"
         chain = a.chains[0].chain_id
@@ -151,6 +155,8 @@ def annotate(session, run_commands, uniprot, model: str, accession: str, kind: s
     m = _find_structure(session, model)
     if m is None:
         return {"error": "No atomic model %s is open." % model}
+    if not re.match(r"^(#[0-9a-fA-F]{6}|[A-Za-z][A-Za-z ]{1,30})$", color or ""):
+        color = "orange"
     kind_l = kind.lower().strip()
     if kind_l in ("clinvar", "pathogenic", "clinical") and clinvar is not None:
         gene = accession

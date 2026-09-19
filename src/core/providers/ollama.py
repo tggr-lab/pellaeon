@@ -92,8 +92,6 @@ class OllamaProvider(Provider):
             raise ProviderError("Ollama is not running at %s (%s). Start Ollama and try again." % (self.base_url, e))
         parts: List[Any] = []
         text = "".join(text_parts)
-        if not text.strip() and not calls and thinking_parts:
-            text = "".join(thinking_parts).strip()[-1500:]  # better than nothing
         if text:
             parts.append(TextPart(text))
         parts.extend(calls)

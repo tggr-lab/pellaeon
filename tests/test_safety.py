@@ -34,3 +34,11 @@ def test_abbreviations_and_remote_scripts_need_confirmation():
         assert classify(cmd).confirm, cmd
     for cmd in ["open https://files.rcsb.org/download/4hhb.cif", "open https://x.org/map.mrc.gz", "log clear", "select #1"]:
         assert not classify(cmd).confirm, cmd
+
+
+def test_compressed_scripts_and_write_options():
+    assert classify("open https://x.org/evil.py.gz").confirm
+    assert classify("open local.cxc.gz").confirm
+    assert classify("hbonds #1 saveFile /tmp/h.txt").confirm
+    assert not classify("hbonds #1 reveal true").confirm
+    assert not classify("open https://files.rcsb.org/download/4hhb.cif.gz").confirm

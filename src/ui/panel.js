@@ -14,14 +14,16 @@
     if (payload !== undefined) q.set("payload", JSON.stringify(payload));
     q.set("_", String(++seq));
     if (window.PELLAEON_HTTP) {
-      // classic edition: the panel runs in a normal browser and talks to a local server
-      fetch("/act/" + action + "?" + q.toString(), {method: "POST"}).catch((e) => toast("Lost connection to Pellaeon: " + e.message, "error"));
+      // classic edition: the panel runs in a normal browser and talks to a local server (token-authenticated)
+      fetch("/act/" + action + "?" + q.toString(), {method: "POST", headers: {"X-Pellaeon-Token": window.PELLAEON_TOKEN || ""}})
+        .then((r) => { if (!r.ok) toast("Pellaeon refused the request (" + r.status + ")", "error"); })
+        .catch((e) => toast("Lost connection to Pellaeon: " + e.message, "error"));
       return;
     }
     $("beacon").src = "pellaeon:" + action + "?" + q.toString();
   }
   if (window.PELLAEON_HTTP) {
-    const es = new EventSource("/events");
+    const es = new EventSource("/events?token=" + encodeURIComponent(window.PELLAEON_TOKEN || ""));
     es.onmessage = (e) => { try { window.Pellaeon.push(JSON.parse(e.data)); } catch (err) { console.error(err); } };
     es.onerror = () => { $("status").textContent = "Reconnecting…"; };
   }
@@ -206,7 +208,8 @@
       "<textarea>" + esc(msg.commands.join("\n")) + "</textarea>" +
       '<div class="btns"><button class="secondary skip">Skip</button><button class="primary run">Run</button></div>';
     const finish = (decision) => {
-      const lines = card.querySelector("textarea").value.split("\n").map((s) => s.trim()).filter(Boolean);
+      const raw = card.querySelector("textarea").value;
+      const lines = msg.python ? [raw] : raw.split("\n").map((s) => s.trim()).filter(Boolean);
       send("confirm", {confirm_id: msg.confirm_id, decision: decision}, lines);
       card.classList.add("done");
       card.querySelectorAll("button, textarea").forEach((b) => (b.disabled = true));
@@ -532,7 +535,11 @@
     // delegated: copy / rerun buttons and help links inside the transcript
     $("transcript").addEventListener("click", (e) => {
       const b = e.target.closest("button");
-      if (b && b.dataset.copy) { send("copy", {text: b.dataset.copy}); return; }
+      if (b && b.dataset.copy) {
+        if (window.PELLAEON_HTTP && navigator.clipboard) { navigator.clipboard.writeText(b.dataset.copy).then(() => toast("Copied", "ok"), () => send("copy", {text: b.dataset.copy})); }
+        else send("copy", {text: b.dataset.copy});
+        return;
+      }
       if (b && b.dataset.rerun) { send("rerun", {}, [b.dataset.rerun]); return; }
       if (b && b.dataset.help) { send("open_url", {url: "help:user/commands/" + b.dataset.help + ".html"}); return; }
       const a = e.target.closest("a");

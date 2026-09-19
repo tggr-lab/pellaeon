@@ -97,8 +97,11 @@ def _open_targets(cmd: str) -> List[str]:
 def _is_database_open(target: str) -> bool:
     t = target.strip().strip('"').strip("'")
     if _URL_RE.match(t):
-        # ChimeraX runs remote .py/.cxc files; only plain data files are safe
+        # ChimeraX runs remote .py/.cxc files (also compressed); only plain data files are safe
         path = t.split("?")[0].split("#")[0].lower()
+        for comp in (".gz", ".bz2", ".xz", ".zip"):
+            if path.endswith(comp):
+                path = path[:-len(comp)]
         return path.endswith(_SAFE_URL_SUFFIXES)
     low = t.lower()
     if any(low.startswith(p) for p in _DB_PREFIXES):
@@ -116,10 +119,15 @@ def _expand_abbreviation(word: str) -> str:
     return matches[0] if matches else word
 
 
+_WRITE_OPTION_RE = re.compile(r"\b(saveFile|savefile|logFile|outFile|file)\s+\S", re.I)
+
+
 def classify(cmd: str) -> Classification:
     word = _expand_abbreviation(first_word(cmd))
     if not word:
         return Classification(cmd, False)
+    if word in ("hbonds", "clashes", "contacts", "distance", "interfaces", "measure", "crosslinks") and _WRITE_OPTION_RE.search(cmd):
+        return Classification(cmd, True, "writes a results file")
     if word in _CONFIRM_FIRST_WORD:
         return Classification(cmd, True, _CONFIRM_FIRST_WORD[word])
     toks = cmd.strip().lstrip("~").split()
@@ -127,6 +135,12 @@ def classify(cmd: str) -> Classification:
         return Classification(cmd, True, _CONFIRM_SUBCOMMANDS[(word, toks[1].lower())])
     if word == "open":
         for target in _open_targets(cmd):
+            low = target.lower()
+            for comp in (".gz", ".bz2", ".xz"):
+                if low.endswith(comp):
+                    low = low[:-len(comp)]
+            if low.endswith((".py", ".pyc", ".cxc", ".cxs")):
+                return Classification(cmd, True, "runs a script or replaces the session: %s" % target)
             if not _is_database_open(target):
                 return Classification(cmd, True, "opens a local file: %s" % target)
         return Classification(cmd, False)

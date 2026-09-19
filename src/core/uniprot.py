@@ -158,12 +158,16 @@ class UniProtClient:
             end = (loc.get("end") or {}).get("value")
             if start is None or end is None:
                 continue
+            if ftype == "Disulfide bond" and start != end:
+                spec = ":%d,%d" % (start, end)          # the two cysteines, not the residues between them
+            else:
+                spec = ":%d-%d" % (start, end) if start != end else ":%d" % start
             feats.append({
                 "type": ftype,
                 "start": start,
                 "end": end,
                 "description": f.get("description", ""),
-                "spec": ":%d-%d" % (start, end) if start != end else ":%d" % start,
+                "spec": spec,
             })
         seq = entry.get("sequence", {})
         return {

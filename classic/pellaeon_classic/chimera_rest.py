@@ -173,6 +173,8 @@ class ChimeraRestExecutor:
             return {"text": "Could not capture the view: %s" % e}
 
     def compare_structures(self, reference: str, other: str, chain: Optional[str] = None) -> Dict[str, Any]:
+        if not all(re.match(r"^#\d+(\.\d+)*$", x or "") for x in (reference, other)) or reference == other:
+            return {"error": "Give two different model ids like '#0' and '#1'."}
         res = self.run_commands(["matchmaker %s %s" % (other, reference)])
         if not res or not res[0]["ok"]:
             return {"error": "matchmaker failed: %s" % (res[0]["error"] if res else "no result")}
@@ -194,7 +196,9 @@ class ChimeraRestExecutor:
             items = [f for f in items if re.match(r"\s*in (?!dbSNP)", f.get("description", ""))]
         if not items:
             return {"accession": accession, "kind": kind, "count": 0, "message": "No matching annotations."}
-        mid = model.strip() if model.strip().startswith("#") else "#0"
+        mid = model.strip() if re.match(r"^#\d+(\.\d+)*$", model.strip()) else "#0"
+        if not re.match(r"^(#[0-9a-fA-F]{6}|[A-Za-z][A-Za-z ]{1,30})$", color or ""):
+            color = "orange"
         cmds = []
         for f in items[:60]:
             spec = "%s%s" % (mid, f["spec"])

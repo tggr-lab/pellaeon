@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import secrets
 import json
 import os
 import queue
@@ -184,6 +185,17 @@ class ClassicPanel(panel_base.PanelBase):
 
 # ------------------------------------------------------------ HTTP server
 PANEL: Optional[ClassicPanel] = None
+TOKEN = secrets.token_urlsafe(24)
+
+
+def _local_request(handler) -> bool:
+    host = (handler.headers.get("Host") or "").split(":")[0]
+    origin = handler.headers.get("Origin")
+    if host not in ("127.0.0.1", "localhost"):
+        return False
+    if origin and not origin.startswith(("http://127.0.0.1:", "http://localhost:")):
+        return False
+    return True
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -199,15 +211,20 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
+        if not _local_request(self):
+            return self._send(403, b"forbidden", "text/plain")
         if path in ("/", "/index.html"):
             html = open(os.path.join(UI_DIR, "panel.html"), encoding="utf-8").read()
             html = html.replace('<script src="panel.js"></script>',
-                                '<script>window.PELLAEON_HTTP = true;</script><script src="panel.js"></script>')
+                                '<script>window.PELLAEON_HTTP = true; window.PELLAEON_TOKEN = "%s";</script><script src="panel.js"></script>' % TOKEN)
             return self._send(200, html.encode("utf-8"))
         if path in ("/panel.css", "/panel.js"):
             data = open(os.path.join(UI_DIR, path[1:]), "rb").read()
             return self._send(200, data, "text/css" if path.endswith(".css") else "application/javascript")
         if path == "/events":
+            qs = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(self.path).query))
+            if not secrets.compare_digest(qs.get("token", ""), TOKEN):
+                return self._send(403, b"forbidden", "text/plain")
             q: "queue.Queue" = queue.Queue()
             with PANEL.lock:
                 PANEL.clients.append(q)
@@ -236,6 +253,8 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         if not parsed.path.startswith("/act/"):
             return self._send(404, b"not found", "text/plain")
+        if not _local_request(self) or not secrets.compare_digest(self.headers.get("X-Pellaeon-Token", ""), TOKEN):
+            return self._send(403, b"forbidden", "text/plain")
         action = parsed.path[len("/act/"):]
         params = dict(urllib.parse.parse_qsl(parsed.query, keep_blank_values=True))
         payload = None
