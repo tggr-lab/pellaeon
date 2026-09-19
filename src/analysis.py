@@ -169,6 +169,43 @@ def map_positions(session, model: str, accession: str, positions: List[int]) -> 
             "offsets": {t[0]: t[1] for t in targets}, "unmapped": [p for p in positions if p not in out_map], "note": note}
 
 
+def list_residues(session, model: str) -> Dict[str, Any]:
+    """Read-only: {'model': '#1', 'residues': {'A:10': 'ALA', ...}} for polymer residues with a CA atom."""
+    m = _find_structure(session, model)
+    if m is None:
+        return {"error": "No atomic model %s is open." % model}
+    out = {}
+    for r in m.residues:
+        if r.polymer_type != 0 or r.find_atom("CA") is not None:
+            out["%s:%d" % (r.chain_id, int(r.number))] = r.name
+    return {"model": "#" + m.id_string, "residues": out}
+
+
+def set_residue_attr(session, model: str, attr: str, values: Dict[str, Any]) -> Dict[str, Any]:
+    """Store per-residue numbers as a registered residue attribute (so `color byattribute r:<attr>` and `key` can use it)."""
+    import re as _re
+    from chimerax.atomic import Residue
+    if not _re.match(r"^[A-Za-z_][A-Za-z0-9_]{0,60}$", attr or ""):
+        return {"error": "Bad attribute name %r" % attr}
+    m = _find_structure(session, model)
+    if m is None:
+        return {"error": "No atomic model %s is open." % model}
+    try:
+        Residue.register_attr(session, attr, "Pellaeon", attr_type=float)
+    except Exception:
+        pass
+    by_key = {"%s:%d" % (r.chain_id, int(r.number)): r for r in m.residues}
+    n = 0
+    for k, v in values.items():
+        r = by_key.get(k)
+        if r is not None:
+            try:
+                setattr(r, attr, float(v)); n += 1
+            except (TypeError, ValueError):
+                pass
+    return {"set": n, "attr": attr}
+
+
 class AskMouseMode:
     """Factory for the 'pellaeon ask' mouse mode: click an atom to ask about its residue."""
 

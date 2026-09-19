@@ -85,13 +85,27 @@ NUDGE_NAMED = ("(system) The user referred to a named ligand/cofactor/group (hem
                "color :HEM red`. Run the corrected commands now.")
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
-_TOOL_NAMES = {"annotate", "compare_structures", "resolve_protein", "protein_features", "search_docs", "get_state",
+_TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "resolve_protein", "protein_features", "search_docs", "get_state",
                "command_usage", "run_python", "look_at_view", "ask_user", "run_commands"}
 
 _COMPLAINT_RE = re.compile(
     r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
     r"that'?s (wrong|not it)|wrong|not what i|still the same|no change|nope|it'?s not|isn'?t|aren'?t|are they though|"
     r"are they thou|try (again|something else|a different)|didn'?t work)\b")
+
+
+_RMSD_RE = re.compile(r"RMSD between (\d+) pruned atom pairs is ([\d.]+)(?: angstroms)?(?:; \(across all (\d+) pairs: ([\d.]+)\))?", re.I)
+
+
+def parse_rmsd_line(line: str) -> Dict[str, Any]:
+    """MatchMaker's log line -> {'fit_pairs', 'fit_rmsd', 'all_pairs', 'all_rmsd'} (whatever is present)."""
+    m = _RMSD_RE.search(line or "")
+    if not m:
+        return {}
+    out: Dict[str, Any] = {"fit_pairs": int(m.group(1)), "fit_rmsd": float(m.group(2))}
+    if m.group(3):
+        out["all_pairs"] = int(m.group(3)); out["all_rmsd"] = float(m.group(4))
+    return out
 
 
 def looks_like_complaint(text: str) -> bool:
@@ -156,6 +170,8 @@ class Agent:
         self.archived: List[Message] = []   # messages folded into `summary` (kept for the transcript on disk)
         self.summary: str = ""
         self.total_usage = Usage()
+        self.tables: Dict[str, Dict[str, Any]] = {}     # user-loaded tables (name -> dataset), shared with the panel
+        self.layers: List[Dict[str, Any]] = []          # applied table overlays
         self._system = system_prompt or prompt_mod.build_system_prompt(
             directory=directory, gotchas=gotchas, recipes=recipes,
             allow_python=self.config.allow_python,
@@ -204,7 +220,8 @@ class Agent:
                     elif _ONLY_RE.search(user_text) and not any(
                             (_HIDE_RE_CHIMERA if self.config.edition == "chimera" else _HIDE_RE).match(c) for c in ran):
                         nudge = NUDGE_ONLY_CHIMERA if self.config.edition == "chimera" else NUDGE_ONLY
-                    elif _AA_TYPE_RE.search(user_text) and ran and not any(_AA_CLASS_RE.search(c) for c in ran):
+                    elif _AA_TYPE_RE.search(user_text) and ran and not any(_AA_CLASS_RE.search(c) for c in ran) \
+                            and not self._mentions_table(user_text):
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
                     elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate"):
                         nudge = NUDGE_ANNOTATE  # variants/domains asked for, annotate tool never called
@@ -342,7 +359,7 @@ class Agent:
     def _canned_fallbacks(self, user_text: str, start_len: int) -> None:
         """Last resort for requests the model keeps getting wrong: run a known-good recipe ourselves."""
         ran = self._commands_since(start_len)
-        if _AA_TYPE_RE.search(user_text) and looks_like_action_request(user_text) \
+        if _AA_TYPE_RE.search(user_text) and looks_like_action_request(user_text) and not self._mentions_table(user_text) \
                 and not any(_AA_CLASS_RE.search(c) for c in ran):
             if self.config.edition == "chimera":
                 cmds = ["color white,a,r :ala,val,ile,leu,met,phe,trp,pro,gly", "color green,a,r :ser,thr,asn,gln,cys,tyr",
@@ -395,6 +412,8 @@ class Agent:
         state: Dict[str, Any] = {}
         try:
             state = self.executor.get_state()
+            if self.tables and isinstance(state, dict):
+                state["tables"] = self._tables_state()
         except Exception as e:
             state = {"error": str(e)}
         docs: List[Dict[str, Any]] = []
@@ -455,6 +474,12 @@ class Agent:
                 if not args.get("reference") or not args.get("other"):
                     raise RuntimeError("compare_structures needs both 'reference' and 'other' model specs.")
                 payload = self._compare(str(args["reference"]), str(args["other"]), args.get("chain") or None)
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
+                                    is_error="error" in payload)
+            elif name == "table_overlay":
+                payload = self._table_overlay(str(args.get("dataset", "") or ""), str(args.get("column", "") or ""),
+                                              args.get("chain") or None, str(args.get("palette", "") or ""),
+                                              str(args.get("model", "") or ""), args.get("accession") or None, bool(args.get("label", False)))
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
             elif name == "annotate":
@@ -558,6 +583,10 @@ class Agent:
                     if usage:
                         out["usage_of_%s" % word] = usage[:1500]
                 tip = suggest(failed[0].get("command", ""), failed[0].get("error", "")) if self.config.edition == "chimerax" else None
+                if self.layers and re.search(r"(?<!:):[A-Za-z_][A-Za-z0-9_]*\s*[<>=]", failed[0].get("command", "")):
+                    tip = ((tip + " ") if tip else "") + "Table values are residue ATTRIBUTES, selected with two colons and the attribute name: " + \
+                          ", ".join("`%s::%s>3`" % (l["model"], l["attr"]) for l in self.layers[-3:] if l.get("attr")) + \
+                          ". E.g. `label %s::%s>3 residues; show %s::%s>3 atoms; style %s::%s>3 stick`." % ((self.layers[-1]["model"], self.layers[-1]["attr"]) * 3)
                 if tip:
                     out["suggestion"] = tip
                 out["hint"] = ("Run a corrected command now (follow the suggestion if there is one, else the usage). "
@@ -584,6 +613,7 @@ class Agent:
         disp = self.executor.compute_displacement(prep)
         out: Dict[str, Any] = {"reference": prep["ref_spec"], "compared": prep["other_spec"], "chain": prep.get("chain") or "all",
                                "rmsd": rmsd_line or "see log", "commands": mm["results"]}
+        out.update(parse_rmsd_line(rmsd_line))   # fit subset vs all aligned pairs, stated separately
         if disp.get("unsupported"):
             out["note"] = disp.get("note", "Per-residue displacement is not available in this edition.")
             return out
@@ -591,12 +621,107 @@ class Agent:
             out["error"] = disp["error"]
             return out
         out.update({k: v for k, v in disp.items() if k != "color_commands"})
+        if str(disp.get("pairing", "")).startswith("chain id"):
+            out["pairing_fallback"] = True
+            out["pairing_note"] = ("Residues were paired by chain ID and residue number because no alignment was available. "
+                                   "This is only meaningful if both structures use the same numbering; treat the displacement figures as approximate.")
         if disp.get("color_commands"):
             col = self.execute_commands(disp["color_commands"], origin="compare")
             out["colored"] = bool(col.get("ok"))
             out["commands"] = out["commands"] + col.get("results", [])
             if col.get("skipped"):
                 out["note"] = "The user declined the coloring commands."
+        return out
+
+    def _mentions_table(self, text: str) -> bool:
+        """True when the request names a loaded table or one of its columns (then 'hydrophobic' etc. refer to the data, not residue types)."""
+        low = (text or "").lower()
+        for n, t in self.tables.items():
+            for term in [n] + list(t.get("columns") or []):
+                term = str(term).lower()
+                if len(term) >= 4 and term in low:
+                    return True
+        return False
+
+    def _tables_state(self) -> List[Dict[str, Any]]:
+        return [{"name": n, "rows": len(t.get("rows") or []), "columns": t.get("columns") or [],
+                 "attributes": ["%s::%s" % (l["model"], l["attr"]) for l in self.layers if l.get("dataset") == n and l.get("attr")],
+                 "position_column": (t.get("columns") or [""])[t["guess"]["position"]] if t.get("guess") and t["guess"].get("position") is not None else ""}
+                for n, t in self.tables.items()]
+
+    def _table_overlay(self, dataset: str, column: str, chain: Optional[str], palette: str, model: str,
+                       accession: Optional[str], label: bool) -> Dict[str, Any]:
+        """Color a model by a column of a user-loaded table; every scene change goes through execute_commands."""
+        from .tables import table_rows, plan_overlay, attr_name, _norm
+        if not self.tables:
+            return {"error": "No table is loaded. The user can load a CSV/TSV with the 'Import table' button in the panel header."}
+        ds = self.tables.get(dataset)
+        if ds is None and (not dataset or len(self.tables) == 1):
+            ds = next(iter(self.tables.values()))
+        if ds is None:
+            ds = next((t for t in self.tables.values() if dataset.lower() in t["name"].lower()), None)
+        if ds is None:
+            return {"error": "No table named '%s'. Loaded tables: %s" % (dataset, ", ".join(self.tables))}
+        cols, g = ds["columns"], ds["guess"]
+        ci = None
+        if column:
+            ci = next((i for i, c in enumerate(cols) if c == column), None)
+            if ci is None:
+                ci = next((i for i, c in enumerate(cols) if _norm(c) == _norm(column)), None)
+        elif g.get("default_value") is not None:
+            ci = g["default_value"]
+        if ci is None or ci == g.get("position"):
+            return {"error": "Table '%s' has no value column '%s'. Columns: %s" % (ds["name"], column, ", ".join(cols))}
+        model = model or "#1"
+        res = self.executor.list_residues(model)
+        if res.get("error"):
+            return res
+        resmap = {(k.split(":")[0], int(k.split(":")[1])): v for k, v in res["residues"].items()}
+        chain_col = None if chain else g.get("chain")
+        rows = table_rows(ds, g, ci, chain_col)
+        if not rows:
+            return {"error": "Column '%s' has no usable values." % cols[ci]}
+        numbering = "structure residue numbers"
+        numbering_map = None
+        acc = (accession or ds.get("accession") or "").strip()
+        if not acc and g.get("accession") is not None:
+            acc = next((r[g["accession"]] for r in ds["rows"] if r[g["accession"]]), "")
+        if acc:
+            mp = self.executor.map_positions(res["model"], acc, sorted({r["position"] for r in rows}))
+            if mp.get("error"):
+                numbering += " (UniProt %s could not be mapped: %s)" % (acc, mp["error"])
+            else:
+                numbering_map = {int(k): v for k, v in (mp.get("map") or {}).items()}
+                offs = mp.get("offsets") or {}
+                numbering = "UniProt %s numbering, offsets %s" % (acc, ", ".join("%s:%+d" % (c, o) for c, o in sorted(offs.items())) or "0")
+        attr = attr_name(ds["name"], cols[ci])
+        plan = plan_overlay(rows, resmap, res["model"], attr, chains=[chain] if chain else None,
+                            palette=palette or "blue-white-red", numbering_map=numbering_map, edition=self.config.edition)
+        base = {"dataset": ds["name"], "column": cols[ci], "model": res["model"], "numbering": numbering}
+        if plan.get("error"):
+            return dict(base, **plan)
+        if plan["numeric"]:
+            r = self.executor.set_residue_attr(res["model"], attr, plan["assignments"])
+            if r.get("error"):
+                return dict(base, error=r["error"])
+        cmds = list(plan["commands"])
+        if label:
+            by_chain: Dict[str, List[int]] = {}
+            for k in list(plan["assignments"])[:60]:
+                c, n = k.split(":")
+                by_chain.setdefault(c, []).append(int(n))
+            cmds += ["label %s/%s:%s" % (res["model"], c, ",".join(str(n) for n in sorted(ns))) for c, ns in sorted(by_chain.items())]
+        run = self.execute_commands(cmds, origin="table")
+        out = dict(base, attribute=attr, select_syntax="%s::%s>0.5  (residue attribute selector: TWO colons + the attribute name; works with <, >, =)" % (res["model"], attr),
+                   mapped=plan["mapped"], chains=plan["chains"], n_missing=plan["n_missing"], missing=plan["missing"][:30],
+                   n_mismatches=plan["n_mismatches"], mismatches=plan["mismatches"][:10], legend=plan["legend"],
+                   numeric=plan["numeric"], commands=run.get("results", []), colored=bool(run.get("ok")))
+        if run.get("skipped"):
+            out["note"] = "The user declined the coloring commands."
+        elif run.get("ok"):
+            layer = {"dataset": ds["name"], "column": cols[ci], "model": res["model"], "chain": chain or "", "palette": palette or "blue-white-red", "attr": attr,
+                     "accession": acc, "legend": plan["legend"], "mapped": plan["mapped"]}
+            self.layers = [l for l in self.layers if not (l["dataset"] == layer["dataset"] and l["column"] == layer["column"])] + [layer]
         return out
 
     def _annotate(self, model: str, accession: str, kind: str, color: str, label: bool) -> Dict[str, Any]:

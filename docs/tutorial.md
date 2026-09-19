@@ -152,6 +152,26 @@ The second model is superposed on the first and colored by how far each residue 
 
 Closing, deleting, saving files and running scripts always show this card with the exact commands, editable. **Run** or **Skip**. The dropdown at the top switches between *ask before every command*, *auto-run but ask for risky ones* (default) and *never ask*.
 
+### Step 11 · Your own data on the structure
+
+Any per-residue table can be painted onto a structure: conservation scores, deep mutational scanning, contact changes, your own residue groups. The table needs a residue-position column; a chain column, a reference-residue column (wild-type amino acid) and an accession column are used when present.
+
+1. Open a structure (`open 1ubq`), then press the **Import table** button (⊞) in the panel header and pick a CSV or TSV. [ubiquitin_hydropathy.csv](examples/ubiquitin_hydropathy.csv) is a small example: Kyte-Doolittle hydropathy for every residue of ubiquitin.
+2. A card shows what Pellaeon detected: the position column, the reference-residue column, the chain column, and a few sample rows. Choose the column to color by, the model, the palette and whether the table uses the structure's residue numbers or UniProt numbering, then press **Apply**.
+
+![Table preview card](img/tut/11_table_preview_panel.png)
+
+3. The result card says how many rows were placed, which positions do not exist in the structure, and how many rows were **skipped because the reference residue did not match** the structure. A wrong numbering shows up here as a wall of mismatches instead of a silently wrong picture. Numeric columns get a color ramp (residues without a value stay gray), text columns get one color per category.
+4. The table is now part of the session: the state block tells the model about it, so you can ask in words. Applied overlays appear as **Layers** chips above the composer; click one to re-apply it after other coloring.
+
+> label the residues with hydropathy above 3 and show them as sticks
+
+![Ubiquitin colored by hydropathy](img/tut/11_table.png)
+
+![Result card and request](img/tut/11_table_panel.png)
+
+The color ramp comes from `color byattribute`: every value is stored as a residue attribute (`pellaeon_<table>_<column>`), so ChimeraX's own `key` command, attribute selection (`select ::pellaeon_ubiquitin_hydropathy_hydropathy>3`) and saved sessions all work with it. Table overlays are ChimeraX-edition only.
+
 ## Part 3 — Good to know
 
 - **Undo:** "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).

@@ -183,6 +183,12 @@ class ChimeraRestExecutor:
     def compute_displacement(self, prep: Dict[str, Any]) -> Dict[str, Any]:
         return {"unsupported": True, "note": "Classic edition: models are superposed (see RMSD); per-residue displacement coloring needs ChimeraX."}
 
+    def list_residues(self, model: str) -> Dict[str, Any]:
+        return {"error": "Table overlays need the ChimeraX edition (classic Chimera has no per-residue attribute coloring through REST)."}
+
+    def set_residue_attr(self, model: str, attr: str, values: Dict[str, Any]) -> Dict[str, Any]:
+        return {"error": "Table overlays need the ChimeraX edition."}
+
     def map_positions(self, model: str, accession: str, positions: List[int]) -> Dict[str, Any]:
         mid = model.strip() if re.match(r"^#\d+(\.\d+)*$", model.strip()) else "#0"
         chains = []

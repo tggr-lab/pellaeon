@@ -38,6 +38,16 @@ class FakeExecutor:
     def protein_features(self, accession, kinds=None):
         return {"features": []}
 
+    def list_residues(self, model):
+        return {"model": "#1", "residues": {"A:10": "ALA", "A:11": "ARG", "A:12": "GLY", "B:10": "ALA"}}
+
+    def set_residue_attr(self, model, attr, values):
+        self.attrs = (attr, dict(values))
+        return {"set": len(values), "attr": attr}
+
+    def map_positions(self, model, accession, positions):
+        return {"model": "#1", "map": {p: {"chain": "A", "number": p + 100, "resname": "ALA"} for p in positions}, "offsets": {"A": 100}, "unmapped": []}
+
     def run_python(self, code):
         return {"ok": True, "stdout": "42"}
 
@@ -518,3 +528,74 @@ def test_unverified_alphafold_accession_is_refused():
     ex2 = FakeExecutor()
     Agent(prov2, ex2, config=AgentConfig(nudge_on_no_action=False)).run_turn("open alphafold q8iy22")
     assert ex2.ran == ["open alphafold:Q8IY22"]
+
+
+def test_rmsd_line_parsing_separates_fit_subset_from_all_pairs():
+    from core.agent import parse_rmsd_line
+    r = parse_rmsd_line("RMSD between 141 pruned atom pairs is 1.083 angstroms; (across all 214 pairs: 5.310)")
+    assert r == {"fit_pairs": 141, "fit_rmsd": 1.083, "all_pairs": 214, "all_rmsd": 5.31}
+    assert parse_rmsd_line("RMSD between 50 pruned atom pairs is 0.500 angstroms") == {"fit_pairs": 50, "fit_rmsd": 0.5}
+    assert parse_rmsd_line("no rmsd here") == {}
+
+
+def _loaded_table():
+    from core.tables import parse_table, guess_columns
+    t = parse_table("position,wt,score\n10,A,0.9\n11,K,0.1\n12,G,0.5\n99,L,0.2\n", "scores.csv")
+    g = guess_columns(t["columns"], t["rows"])
+    return {"scores": {"id": "scores", "name": "scores", "path": "scores.csv", "columns": t["columns"], "rows": t["rows"], "guess": g}}
+
+
+def test_table_overlay_tool_colors_and_reports_mapping():
+    prov = ScriptedProvider([{"calls": [("table_overlay", {"column": "score"})]}, "Colored by score."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    agent.tables = _loaded_table()
+    res = agent.run_turn("color by the conservation score")
+    assert res.reply == "Colored by score."
+    assert ex.attrs[0] == "pellaeon_scores_score" and ex.attrs[1] == {"A:10": 0.9, "A:12": 0.5, "B:10": 0.9}
+    assert any(c.startswith("color byattribute r:pellaeon_scores_score #1 palette bluered") for c in ex.ran)
+    assert agent.layers and agent.layers[0]["mapped"] == 3
+    # the state block told the model about the table
+    assert "Loaded table 'scores'" in str(prov.requests[0])
+    # mismatch (A:11 is ARG, table says K -> same; make a real mismatch) and missing position reported
+    out = agent._table_overlay("scores", "score", None, "", "#1", None, False)
+    assert out["n_missing"] == 1 and out["missing"] == [99] and out["n_mismatches"] == 1   # A:11 is Arg, the table says K
+
+
+def test_table_overlay_without_table_or_column_errors():
+    agent = Agent(ScriptedProvider([]), FakeExecutor())
+    assert "No table is loaded" in agent._table_overlay("", "", None, "", "", None, False)["error"]
+    agent.tables = _loaded_table()
+    assert "no value column" in agent._table_overlay("scores", "nope", None, "", "", None, False)["error"]
+
+
+def test_table_overlay_uses_uniprot_numbering_when_asked():
+    agent = Agent(ScriptedProvider([]), FakeExecutor())
+    agent.tables = _loaded_table()
+    out = agent._table_overlay("scores", "score", None, "", "#1", "P12345", False)
+    assert "error" in out   # positions 110-112 do not exist in the fake structure, so nothing is placed
+    assert out["numbering"].startswith("UniProt P12345")
+
+
+def test_table_attribute_selector_hint_after_failed_command():
+    prov = ScriptedProvider([{"calls": [("table_overlay", {"column": "score"})]},
+                             {"calls": [("run_commands", {"commands": ["label #1:score>0.5 residues"]})]},
+                             {"calls": [("run_commands", {"commands": ["label #1::pellaeon_scores_score>0.5 residues"]})]}, "Labeled."])
+    ex = FakeExecutor(fail=("label #1:score>0.5 residues",))
+    agent = Agent(prov, ex)
+    agent.tables = _loaded_table()
+    res = agent.run_turn("label residues with score above 0.5")
+    assert res.reply == "Labeled."
+    hint = str(prov.requests[2])
+    assert "two colons" in hint and "#1::pellaeon_scores_score" in hint
+    assert "#1::pellaeon_scores_score" in str(prov.requests[-1])   # the state block lists the attribute too
+
+
+def test_table_column_words_do_not_trigger_residue_type_recoloring():
+    # "hydrophobic" normally triggers the residue-type nudge/fallback; with a loaded table whose column is named in the request it must not
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["label #1::pellaeon_scores_score>0.5 residues"]})]}, "Labeled."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    agent.tables = _loaded_table()
+    res = agent.run_turn("label the hydrophobic residues with score above 0.5")
+    assert res.reply == "Labeled." and len(prov.requests) == 2 and not any(":ala,val" in c for c in ex.ran)

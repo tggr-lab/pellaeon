@@ -2,7 +2,8 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pellaeon tutorial - Pellaeon</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
 <meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."></head>
-<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link active" href="tutorial.html">Tutorial</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a></div></div>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link active" href="tutorial.html">Tutorial</a><a class="link" href="classic.html">Classic edition</a><a class="link" href="reliability.html">Reliability</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
 <main><div class="doc"><nav class="toc"><div class="toc">
 <ul>
 <li><a href="#part-1-setup">Part 1 — Setup</a><ul>
@@ -22,6 +23,7 @@
 <li><a href="#step-8-disease-variants-from-clinvar">Step 8 · Disease variants from ClinVar</a></li>
 <li><a href="#step-9-compare-two-conformations">Step 9 · Compare two conformations</a></li>
 <li><a href="#step-10-risky-commands-ask-first">Step 10 · Risky commands ask first</a></li>
+<li><a href="#step-11-your-own-data-on-the-structure">Step 11 · Your own data on the structure</a></li>
 </ul>
 </li>
 <li><a href="#part-3-good-to-know">Part 3 — Good to know</a></li>
@@ -130,6 +132,23 @@
 </blockquote>
 <p><img alt="Confirmation card" src="img/tut/10_close_panel.png" /></p>
 <p>Closing, deleting, saving files and running scripts always show this card with the exact commands, editable. <strong>Run</strong> or <strong>Skip</strong>. The dropdown at the top switches between <em>ask before every command</em>, <em>auto-run but ask for risky ones</em> (default) and <em>never ask</em>.</p>
+<h3 id="step-11-your-own-data-on-the-structure">Step 11 · Your own data on the structure</h3>
+<p>Any per-residue table can be painted onto a structure: conservation scores, deep mutational scanning, contact changes, your own residue groups. The table needs a residue-position column; a chain column, a reference-residue column (wild-type amino acid) and an accession column are used when present.</p>
+<ol>
+<li>Open a structure (<code>open 1ubq</code>), then press the <strong>Import table</strong> button (⊞) in the panel header and pick a CSV or TSV. <a href="examples/ubiquitin_hydropathy.csv">ubiquitin_hydropathy.csv</a> is a small example: Kyte-Doolittle hydropathy for every residue of ubiquitin.</li>
+<li>A card shows what Pellaeon detected: the position column, the reference-residue column, the chain column, and a few sample rows. Choose the column to color by, the model, the palette and whether the table uses the structure's residue numbers or UniProt numbering, then press <strong>Apply</strong>.</li>
+</ol>
+<p><img alt="Table preview card" src="img/tut/11_table_preview_panel.png" /></p>
+<ol start="3">
+<li>The result card says how many rows were placed, which positions do not exist in the structure, and how many rows were <strong>skipped because the reference residue did not match</strong> the structure. A wrong numbering shows up here as a wall of mismatches instead of a silently wrong picture. Numeric columns get a color ramp (residues without a value stay gray), text columns get one color per category.</li>
+<li>The table is now part of the session: the state block tells the model about it, so you can ask in words. Applied overlays appear as <strong>Layers</strong> chips above the composer; click one to re-apply it after other coloring.</li>
+</ol>
+<blockquote>
+<p>label the residues with hydropathy above 3 and show them as sticks</p>
+</blockquote>
+<p><img alt="Ubiquitin colored by hydropathy" src="img/tut/11_table.png" /></p>
+<p><img alt="Result card and request" src="img/tut/11_table_panel.png" /></p>
+<p>The color ramp comes from <code>color byattribute</code>: every value is stored as a residue attribute (<code>pellaeon_&lt;table&gt;_&lt;column&gt;</code>), so ChimeraX's own <code>key</code> command, attribute selection (<code>select ::pellaeon_ubiquitin_hydropathy_hydropathy&gt;3</code>) and saved sessions all work with it. Table overlays are ChimeraX-edition only.</p>
 <h2 id="part-3-good-to-know">Part 3 — Good to know</h2>
 <ul>
 <li><strong>Undo:</strong> "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).</li>

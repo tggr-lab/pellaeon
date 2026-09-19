@@ -171,7 +171,24 @@ ANNOTATE = ToolSpec(
      "required": ["model", "accession", "kind"]},
 )
 
-ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+TABLE_OVERLAY = ToolSpec(
+    "table_overlay",
+    "Color a structure by a column of a table the user loaded (see 'Loaded tables' in the state). Numeric columns get a "
+    "color ramp, text columns one color per category; residues missing from the table stay gray. Reports how many table "
+    "positions were placed, which were not found, and reference-residue mismatches. Never invent values: if no table is "
+    "loaded, say the user can load one with the Import table button.",
+    {"type": "object", "properties": {
+        "dataset": {"type": "string", "description": "table name as listed in the state (optional when only one is loaded)"},
+        "column": {"type": "string", "description": "column to color by (optional: the first numeric column)"},
+        "model": {"type": "string", "description": "model spec, default '#1'"},
+        "chain": {"type": "string", "description": "restrict to one chain id (optional; otherwise the table's chain column or every chain)"},
+        "palette": {"type": "string", "description": "blue-white-red (default), white-red, blue-white, viridis, rainbow, gray-orange-red, green-white-magenta"},
+        "accession": {"type": "string", "description": "UniProt accession if the table uses UniProt numbering instead of the structure's residue numbers"},
+        "label": {"type": "boolean", "description": "also label the placed residues (default false)"}},
+     "required": []},
+)
+
+ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 

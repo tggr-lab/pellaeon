@@ -1,5 +1,7 @@
 :root { --bg:#f7f8fa; --panel:#fff; --ink:#1c1f24; --muted:#5f6b7a; --line:#e2e6eb; --accent:#1d6f78; --accent2:#e8891a; --teal-ink:#0f3e45; --code:#f0f2f5; --max: 980px; }
-@media (prefers-color-scheme: dark) { :root { --bg:#14161a; --panel:#1d2026; --ink:#e8eaed; --muted:#9aa3ad; --line:#2c3138; --accent:#4fb3bf; --accent2:#f0a040; --teal-ink:#bfe6ea; --code:#0f1114; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#14161a; --panel:#1d2026; --ink:#e8eaed; --muted:#9aa3ad; --line:#2c3138; --accent:#4fb3bf; --accent2:#f0a040; --teal-ink:#bfe6ea; --code:#0f1114; } }
+:root[data-theme="dark"] { --bg:#14161a; --panel:#1d2026; --ink:#e8eaed; --muted:#9aa3ad; --line:#2c3138; --accent:#4fb3bf; --accent2:#f0a040; --teal-ink:#bfe6ea; --code:#0f1114; }
+@media (prefers-reduced-motion: reduce) { .blink { animation: none; } html { scroll-behavior: auto; } }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
@@ -25,6 +27,12 @@ h3 { font-size: 1.1rem; margin: 26px 0 8px; }
 .nav a.link.active, .nav a.link:hover { color: var(--ink); border-color: var(--accent2); }
 .nav .spacer { flex: 1; }
 .nav .gh { font-size: 0.9em; }
+.nav .theme { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 15px; line-height: 1; padding: 0; }
+.nav .theme:hover { color: var(--ink); border-color: var(--accent2); }
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 12px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.steps li { counter-increment: step; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px 16px 54px; position: relative; color: var(--muted); }
+.steps li b { color: var(--ink); display: block; margin-bottom: 4px; }
+.steps li::before { content: counter(step); position: absolute; left: 16px; top: 14px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.9em; }
 main { max-width: var(--max); margin: 0 auto; padding: 28px 20px 80px; }
 .doc { display: grid; grid-template-columns: 220px 1fr; gap: 36px; }
 .toc { position: sticky; top: 64px; align-self: start; font-size: 0.9em; }

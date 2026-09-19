@@ -145,6 +145,12 @@ class PellaeonTool(HtmlToolInstance, PanelBase):
             from chimerax.help_viewer import show_url
             show_url(self.session, url, new_tab=True)
 
+    def _pick_table_file(self):
+        from Qt.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(self.session.ui.main_window, "Import a per-residue table", "",
+                                              "Tables (*.csv *.tsv *.txt);;All files (*)")
+        return path or None
+
     def _act_export_cxc(self, params, payload):
         """Save everything that actually ran in this chat (any path) as a .cxc script."""
         from .panel_base import export_lines

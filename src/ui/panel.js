@@ -211,13 +211,23 @@
       h = '<div class="rrow err">' + esc(c.error) + "</div>";
     } else if (name === "compare_structures") {
       h += '<div class="rrow"><b>' + esc(c.compared) + "</b> superposed onto <b>" + esc(c.reference) + "</b>" + (c.chain && c.chain !== "all" ? " (chain " + esc(c.chain) + ")" : "") + "</div>";
-      if (c.rmsd) h += '<div class="rrow muted">' + esc(c.rmsd) + "</div>";
+      if (c.fit_rmsd != null) {
+        h += '<div class="rrow"><b>Fit</b> (MatchMaker, CA atoms): RMSD <b>' + c.fit_rmsd + " Å</b> over the " + c.fit_pairs + " pairs kept after pruning" +
+          (c.all_rmsd != null ? "; across all " + c.all_pairs + " aligned pairs: " + c.all_rmsd + " Å" : "") + "</div>";
+      } else if (c.rmsd) h += '<div class="rrow muted">' + esc(c.rmsd) + "</div>";
       if (c.paired_residues != null) {
-        h += '<div class="rrow">' + esc(c.coverage || c.paired_residues + " residues paired") + " · pairing: " + esc(c.pairing || "") + "</div>";
-        h += '<div class="rrow">mean shift <b>' + c.mean_displacement + " Å</b> · max <b>" + c.max_displacement + " Å</b> · " + c.residues_over_2A + " residues moved over 2 Å</div>";
+        h += '<div class="rrow"><b>Per-residue displacement</b> (CA to CA after the fit, ' + c.paired_residues + " paired residues, " + esc(c.pairing || "") + "): mean <b>" + c.mean_displacement + " Å</b> · max <b>" + c.max_displacement + " Å</b> · " + c.residues_over_2A + " residues moved over 2 Å" + (c.coverage ? " · " + esc(c.coverage) : "") + "</div>";
+        if (c.pairing_fallback) h += '<div class="rrow warn">' + esc(c.pairing_note || "Paired by residue number, not by alignment.") + "</div>";
         if ((c.moving_regions || []).length) h += '<div class="rrow">Moving regions: ' + c.moving_regions.map((r) => viewLink(r.spec, r.chain + ":" + r.range + " (" + r.max + " Å)")).join(", ") + "</div>";
         if (c.coloring) h += '<div class="rrow muted">' + esc(c.coloring) + "</div>";
       }
+      if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
+    } else if (name === "table_overlay") {
+      h += '<div class="rrow"><b>' + esc(c.column) + "</b> from table <b>" + esc(c.dataset) + "</b> on " + esc(c.model) + " · " + esc(c.numbering || "") + "</div>";
+      if (c.mapped != null) h += '<div class="rrow">' + c.mapped + " residues placed (chains " + esc((c.chains || []).join(", ")) + ") · " + (c.n_missing || 0) + " table positions not in the structure" + (c.n_mismatches ? " · <b>" + c.n_mismatches + " reference-residue mismatches skipped</b>" : "") + "</div>";
+      if (c.legend) h += '<div class="rrow muted">' + esc(c.legend) + "</div>";
+      if ((c.missing || []).length) h += '<div class="rrow muted">Not found: ' + esc(c.missing.slice(0, 30).join(", ")) + (c.n_missing > 30 ? " …" : "") + "</div>";
+      if ((c.mismatches || []).length) h += '<div class="rrow warn">' + esc(c.mismatches.slice(0, 6).join("; ")) + (c.n_mismatches > 6 ? " …" : "") + "</div>";
       if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
     } else if (name === "annotate") {
       h += '<div class="rrow"><b>' + esc(c.kind || "") + "</b> · " + esc(c.source || "") + "</div>";
@@ -427,6 +437,47 @@
     scrollDown();
   }
 
+  // ---------------------------------------------------------------- tables (bring your own data)
+  const PALETTES = ["blue-white-red", "white-red", "blue-white", "viridis", "rainbow", "gray-orange-red", "green-white-magenta"];
+  function hideWelcome() { const w = $("welcome"); if (w) w.hidden = true; }
+  function tablePreview(m) {
+    const el = document.createElement("div"); el.className = "msg assistant";
+    const box = document.createElement("div"); box.className = "rcard tcard";
+    const colOpts = m.values.concat(m.categories).map((i) => '<option value="' + esc(m.columns[i]) + '"' + (i === m.value ? " selected" : "") + ">" + esc(m.columns[i]) + (m.kinds[i] === "text" ? " (categories)" : "") + "</option>").join("");
+    const modelOpts = (m.models.length ? m.models : ["#1"]).map((id) => '<option value="' + esc(id) + '">' + esc(id) + "</option>").join("");
+    let h = '<div class="rrow"><b>Table loaded: ' + esc(m.dataset) + "</b> · " + m.rows + " rows · " + esc(m.delimiter) + "-separated</div>";
+    h += '<div class="rrow muted">Position column: <b>' + esc(m.columns[m.position]) + "</b>" +
+      (m.reference != null ? " · reference residue: <b>" + esc(m.columns[m.reference]) + "</b> (checked against the structure)" : " · no reference-residue column (numbering cannot be verified)") +
+      (m.chain_col != null ? " · chain column: <b>" + esc(m.columns[m.chain_col]) + "</b>" : "") + (m.accession_col != null ? " · accession column: <b>" + esc(m.columns[m.accession_col]) + "</b>" : "") + "</div>";
+    h += '<div class="rrow form">Color by <select data-col>' + colOpts + "</select> on <select data-model>" + modelOpts + '</select> chain <input data-chain size="2" placeholder="all"> numbering <select data-num><option value="">structure</option><option value="uniprot">UniProt</option></select><input data-acc placeholder="accession, e.g. P0DTC2" hidden> palette <select data-pal>' + PALETTES.map((p) => "<option>" + p + "</option>").join("") + '</select> <label class="check"><input type="checkbox" data-label> labels</label> <button class="secondary small" data-apply>Apply</button></div>';
+    h += '<table class="sample"><tr>' + m.columns.map((c) => "<th>" + esc(c) + "</th>").join("") + "</tr>" + m.sample.map((r) => "<tr>" + r.map((c) => "<td>" + esc(c) + "</td>").join("") + "</tr>").join("") + "</table>";
+    box.innerHTML = h;
+    const num = box.querySelector("[data-num]"), acc = box.querySelector("[data-acc]");
+    num.onchange = () => { acc.hidden = num.value !== "uniprot"; };
+    box.querySelector("[data-apply]").onclick = () => {
+      send("table_apply", {dataset: m.dataset, column: box.querySelector("[data-col]").value, model: box.querySelector("[data-model]").value,
+        chain: box.querySelector("[data-chain]").value.trim(), palette: box.querySelector("[data-pal]").value,
+        accession: num.value === "uniprot" ? acc.value.trim() : "", label: box.querySelector("[data-label]").checked ? "1" : "0"});
+    };
+    el.appendChild(box); $("transcript").appendChild(el); hideWelcome(); scrollDown(true);
+  }
+  function renderLayers(layers) {
+    const bar = $("layers");
+    bar.innerHTML = "";
+    if (!layers.length) { bar.hidden = true; return; }
+    bar.appendChild(document.createTextNode("Layers: "));
+    layers.forEach((l) => {
+      const b = document.createElement("button"); b.className = "chip"; b.textContent = l.dataset + " · " + l.column + " (" + l.mapped + ")";
+      b.title = "Re-apply this overlay: " + (l.legend || "");
+      b.onclick = () => send("table_apply", {dataset: l.dataset, column: l.column, model: l.model, chain: l.chain || "", palette: l.palette || "", accession: l.accession || "", label: "0"});
+      bar.appendChild(b);
+      const x = document.createElement("button"); x.className = "chip x"; x.textContent = "×"; x.title = "Forget this table";
+      x.onclick = () => send("table_remove", {dataset: l.dataset});
+      bar.appendChild(x);
+    });
+    bar.hidden = false;
+  }
+
   // ---------------------------------------------------------------- selection bar
   let currentSel = null;
   function showSelection(m) {
@@ -558,6 +609,9 @@
     picked(m) { showSelection({spec: m.pick.spec, n: 1, name: m.pick.name, number: m.pick.number, chain: m.pick.chain, model: m.pick.model});
                 $("input").value = "Tell me about residue " + m.pick.number + " (" + m.pick.name + ") of chain " + m.pick.chain + " in " + m.pick.model + ". "; autosize(); $("input").focus(); },
     conversation(m) { loadConversation(m); },
+    table_preview(m) { tablePreview(m); },
+    table_result(m) { const el = document.createElement("div"); el.className = "msg assistant"; el.appendChild(resultCard("table_overlay", m.card || {}, m.results || [])); $("transcript").appendChild(el); hideWelcome(); scrollDown(true); },
+    layers(m) { renderLayers(m.layers || []); },
   };
   function updateConfigLine() {
     const c = state.config || {};
@@ -598,6 +652,8 @@
     $("btn-cancel-history").onclick = () => showPage("chat");
     $("autonomy").onchange = () => send("set_autonomy", {mode: $("autonomy").value});
     $("btn-save").onclick = () => send("settings_save", {}, settingsPayload());
+    $("btn-table").onclick = () => send("table_import");
+    $("btn-first").onclick = () => { send("settings_save", {}, settingsPayload()); setTimeout(() => { showPage("chat"); submit("open 1ubq and color it by chain"); }, 400); };
     $("btn-test").onclick = () => { $("test-result").textContent = "Testing…"; $("test-result").className = "hints"; send("settings_test", {}, settingsPayload()); };
     $("btn-models").onclick = () => { $("test-result").textContent = "Fetching models…"; $("test-result").className = "hints"; send("list_models", {}, settingsPayload()); };
     $("btn-pull").onclick = () => send("pull_model", {model: $("s-pull").value.trim(), base_url: $("s-url").value.trim()});

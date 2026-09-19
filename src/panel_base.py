@@ -52,6 +52,7 @@ class PanelBase:
         self._worker: Optional[threading.Thread] = None
         self._cancel = threading.Event()
         self._busy = False
+        self.tables: Dict[str, Dict[str, Any]] = {}
         self._page_ready = False
         self._queued: List[Dict[str, Any]] = []
         self._turn_id = 0
@@ -125,6 +126,86 @@ class PanelBase:
                            "reasons": [""] * len(c["commands"]), "python": bool(c.get("python"))})
         # warm the docs index in the background so the first request is fast
         threading.Thread(target=self._warm_index, daemon=True).start()
+
+    # ---- tables (bring your own data) ----
+    def _pick_table_file(self) -> Optional[str]:
+        """Host hook: ask the user for a CSV/TSV path (None when unsupported or cancelled)."""
+        self.push({"type": "toast", "kind": "warn", "text": "Table import is not available in this edition yet."})
+        return None
+
+    def _act_table_import(self, params, payload):
+        path = (params.get("path") or "").strip() or self._pick_table_file()
+        if not path:
+            return
+        try:
+            from .core.tables import parse_table, guess_columns
+        except ImportError:
+            from core.tables import parse_table, guess_columns
+        try:
+            text = open(path, encoding="utf-8", errors="replace").read()
+        except OSError as e:
+            self.push({"type": "toast", "kind": "error", "text": "Could not read %s: %s" % (path, e)})
+            return
+        t = parse_table(text, path)
+        if t.get("error"):
+            self.push({"type": "toast", "kind": "error", "text": t["error"]})
+            return
+        g = guess_columns(t["columns"], t["rows"])
+        if g["position"] is None:
+            self.push({"type": "toast", "kind": "error", "text": "No residue-position column found (a column of integers such as 'position' or 'resnum')."})
+            return
+        name = os.path.splitext(os.path.basename(path))[0]
+        self.tables[name] = {"id": name, "name": name, "path": path, "columns": t["columns"], "rows": t["rows"], "guess": g, "delimiter": t["delimiter"]}
+        if self.agent is not None:
+            self.agent.tables = self.tables
+        st = self._safe_state()
+        self.push({"type": "table_preview", "dataset": name, "path": path, "columns": t["columns"], "kinds": g["kinds"], "rows": len(t["rows"]),
+                   "sample": t["rows"][:5], "position": g["position"], "value": g["default_value"], "values": g["values"],
+                   "categories": g["categories"], "chain_col": g["chain"], "reference": g["reference"], "accession_col": g["accession"],
+                   "models": [m.get("id") for m in (st.get("models") or []) if m.get("id")], "delimiter": t["delimiter"]})
+
+    def _act_table_apply(self, params, payload):
+        if self._busy_guard():
+            return
+        if self.agent is None:
+            if not self.settings.configured:
+                self.push({"type": "toast", "kind": "warn", "text": "Choose an AI provider first (the overlay itself does not use the AI, but the panel needs a configured session)."})
+                return
+            try:
+                self.agent = self._build_agent()
+            except Exception as e:  # noqa: BLE001
+                self.push({"type": "toast", "kind": "error", "text": "Could not start: %s" % e})
+                return
+        self.agent.tables = self.tables
+        args = {k: (params.get(k) or "") for k in ("dataset", "column", "chain", "palette", "model", "accession")}
+        label = str(params.get("label", "")).lower() in ("1", "true", "yes")
+        self._busy = True
+        self._cancel = threading.Event()
+        self._turn_id += 1
+        tid = "t%d" % self._turn_id
+        self.push({"type": "busy", "busy": True})
+        self.push({"type": "status", "text": "Placing the table on the structure…"})
+
+        def work():
+            try:
+                out = self.agent._table_overlay(args["dataset"], args["column"], args["chain"] or None, args["palette"],
+                                                args["model"], args["accession"] or None, label)
+            except Exception as e:  # noqa: BLE001
+                out = {"error": "Overlay failed: %s" % e}
+            self.push_ts({"type": "table_result", "id": tid, "card": out, "results": out.get("commands", [])})
+            self.push_ts({"type": "layers", "layers": list(self.agent.layers)})
+            self._busy = False
+            self.push_ts({"type": "busy", "busy": False})
+        threading.Thread(target=work, daemon=True).start()
+
+    def _act_table_remove(self, params, payload):
+        name = params.get("dataset", "")
+        self.tables.pop(name, None)
+        if self.agent is not None:
+            self.agent.tables = self.tables
+            self.agent.layers = [l for l in self.agent.layers if l.get("dataset") != name]
+            self.push({"type": "layers", "layers": list(self.agent.layers)})
+        self.push({"type": "toast", "kind": "ok", "text": "Removed table %s (colors stay until you recolor)." % name})
 
     def _act_send(self, params, payload):
         text = (params.get("text") or "").strip()
@@ -502,7 +583,7 @@ class PanelBase:
             msg["not_run"] = payload.get("not_run", [])
         else:
             msg["summary"] = _summarize_tool(call, result, payload)
-            if call.name in ("compare_structures", "annotate") and isinstance(payload, dict):
+            if call.name in ("compare_structures", "annotate", "table_overlay") and isinstance(payload, dict):
                 msg["card"] = {k: v for k, v in payload.items() if k != "commands"}
                 msg["results"] = payload.get("commands", [])
         self.push_ts(msg)
@@ -620,7 +701,7 @@ class PanelBase:
                                 pass
                         else:
                             card = None
-                            if c.name in ("compare_structures", "annotate"):
+                            if c.name in ("compare_structures", "annotate", "table_overlay"):
                                 try:
                                     card = json.loads(r.content)
                                     entry["card"] = card
@@ -672,6 +753,11 @@ def _summarize_tool(call, result, payload) -> str:
                 payload.get("compared"), payload.get("reference"), payload.get("paired_residues", 0),
                 payload.get("mean_displacement"), payload.get("residues_over_2A", 0))
         return "Comparison failed" if result is None or result.is_error else "Compared structures"
+    if name == "table_overlay":
+        if isinstance(payload, dict) and not payload.get("error"):
+            return "Colored %s by '%s': %d placed, %d not found%s" % (payload.get("model", ""), payload.get("column", ""), payload.get("mapped", 0),
+                                                                   payload.get("n_missing", 0), (", %d mismatches" % payload["n_mismatches"]) if payload.get("n_mismatches") else "")
+        return "Table overlay failed"
     if name == "annotate":
         if isinstance(payload, dict) and not payload.get("error"):
             return "Annotated %s: %d mapped, %d unmapped%s" % (

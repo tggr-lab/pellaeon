@@ -23,6 +23,7 @@
       <option value="auto">Auto-run, ask for risky ones</option>
       <option value="all">Never ask (this session)</option>
     </select>
+    <button class="icon-btn" id="btn-table" title="Import a table (CSV/TSV) of per-residue values to color the structure by">&#8862;</button>
     <button class="icon-btn" id="btn-export" title="Export this chat's commands as a ChimeraX script (.cxc)">&#8681;</button>
     <button class="icon-btn" id="btn-history" title="Past conversations">&#9776;</button>
     <button class="icon-btn" id="btn-new" title="New chat">&#65291;</button>
@@ -49,6 +50,7 @@
       </div>
     </div>
     <div class="composer">
+      <div class="selbar layers" id="layers" hidden></div>
       <div class="selbar" id="selbar" hidden>
         <span id="sel-text"></span>
         <button class="secondary small" id="sel-ask">What is this?</button>
@@ -128,6 +130,7 @@
       </div>
       <div class="row wrap">
         <button id="btn-test" class="secondary">Test connection</button>
+        <button id="btn-first" class="secondary" title="Saves these settings, opens a small test structure (ubiquitin, 1ubq) and colors it by chain, through the AI, so the whole route is checked">Run a first request</button>
         <span id="test-result" class="hints"></span>
       </div>
 

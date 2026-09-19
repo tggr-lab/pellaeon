@@ -1,5 +1,7 @@
 # Installation
 
+Getting to a first result takes three steps: **install the panel**, **connect a model**, **run a first request**. The install line below is step one; step two is the provider choice the panel asks for when it first opens; step three is the *Run a first request* button on that same settings page (it opens ubiquitin and colors it by chain through the AI, so you see the whole route work).
+
 Pellaeon comes in two editions. Pick the one for the program you use.
 
 | | ChimeraX edition | Classic edition (old Chimera 1.x) |
@@ -43,7 +45,14 @@ toolshed install "C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.wh
 
 ## Choosing an AI
 
-The first time the panel opens it shows provider cards. Any of these works; you can switch later in Settings.
+The first time the panel opens it shows provider cards. There is one decision to make: **local or cloud**.
+
+- **Local** (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time. Measured results per model are on the [reliability page](reliability.html).
+- **Cloud** (Gemini free tier, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider.
+
+Everything else (OpenRouter, Groq, LM Studio, custom endpoints) is there too, but you don't need it for a first session. Pick one, press **Test connection**, then **Run a first request**.
+
+All options:
 
 | Option | Cost | What to do |
 |---|---|---|

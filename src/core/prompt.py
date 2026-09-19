@@ -154,6 +154,10 @@ def format_state(state: Dict[str, Any]) -> str:
             (" (" + sel["spec"] + ")") if sel.get("spec") else ""))
     else:
         lines.append("Selection: none")
+    for t in state.get("tables") or []:
+        lines.append("Loaded table '%s': %d rows, columns %s (position column: %s). Use the table_overlay tool to color by a column.%s" % (
+            t.get("name"), t.get("rows", 0), ", ".join(t.get("columns") or []), t.get("position_column"),
+            (" Applied as residue attributes, select with two colons: " + ", ".join("%s>value" % a for a in t["attributes"])) if t.get("attributes") else ""))
     if state.get("background"):
         lines.append("Background: %s" % state["background"])
     if state.get("last_error"):
