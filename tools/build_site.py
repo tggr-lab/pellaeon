@@ -34,7 +34,8 @@ def layout(title, body, active, toc_html=""):
 def md_page(src, out, active, title=None):
     text = open(src, encoding="utf-8").read()
     # links between markdown docs -> generated pages; relative image paths stay (docs/img)
-    text = text.replace("classic/README.md", "classic.html").replace("docs/tutorial.md", "tutorial.html").replace("(tutorial.md)", "(tutorial.html)")
+    text = (text.replace("classic/README.md", "classic.html").replace("docs/tutorial.md", "tutorial.html")
+                .replace("(tutorial.md)", "(tutorial.html)").replace("(install.md)", "(install.html)").replace("(classic.md)", "(classic.html)"))
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"], extension_configs={"toc": {"toc_depth": "2-3"}})
     body = md.convert(text)
     t = title or (re.search(r"^# (.+)$", text, re.M).group(1) if re.search(r"^# (.+)$", text, re.M) else active)

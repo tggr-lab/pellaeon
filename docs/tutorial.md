@@ -159,7 +159,7 @@ Closing, deleting, saving files and running scripts always show this card with t
 - **Export a session as a script:** the ⇩ button saves every command that actually ran as a `.cxc` file; replay it with `open myscript.cxc`.
 - **Past chats:** ☰ lists them; + starts a new one.
 - **From ChimeraX's own command line:** `pellaeon color everything by chain`.
-- **Classic Chimera 1.x:** there is a separate edition, same panel in your browser. See [Classic edition](classic.md).
+- **Classic Chimera 1.x:** there is a separate edition, same panel in your browser. See [Classic edition](classic.html).
 
 ## Troubleshooting
 
