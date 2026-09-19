@@ -190,7 +190,8 @@
       }
       const box = el.querySelector(".cmds");
       const rows = [];
-      results.forEach((r) => rows.push(cmdRow(r.command, r.ok ? "ok" : "err", r.ok ? "" : r.error, r.ok ? (r.info || []).slice(0, 6) : [])));
+      results.forEach((r) => rows.push(cmdRow(r.command, r.noop ? "noop" : (r.ok ? "ok" : "err"), r.ok ? "" : r.error, r.noop ? ["changed nothing: " + (r.warning || "the spec matched no atoms")] : (r.ok ? (r.info || []).slice(0, 6) : []))));
+      if (msg.no_effect && msg.no_effect.length && msg.ok) { label.textContent = "Ran " + nOk + " commands, " + msg.no_effect.length + " changed nothing"; dot.className = "dot noop"; el.open = true; }
       (msg.not_run || []).forEach((c) => rows.push(cmdRow(c, "skip", "", ["not run"])));
       if (msg.skipped) {
         // keep the planned commands visible but mark them skipped
@@ -659,6 +660,7 @@
     $("sel-ask").onclick = () => submit("Tell me about " + describeSel() + ": what is it, what does UniProt say about it, and what is it interacting with?");
     $("sel-near").onclick = () => submit("What residues and ligands are within 5 A of " + describeSel() + "? Show them as sticks and label them.");
     $("sel-color").onclick = () => submit("Highlight " + describeSel() + ": show its atoms as sticks in yellow and focus the view on it.");
+    $("sel-why").onclick = () => submit("Why is " + describeSel() + " this color?");
     $("chip-bind").onclick = () => send("bind_click");
     $("btn-cancel-settings").onclick = () => showPage("chat");
     $("btn-cancel-history").onclick = () => showPage("chat");

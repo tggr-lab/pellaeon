@@ -85,11 +85,21 @@ Ctrl-click any atom in the 3D view (that is ChimeraX's normal way of selecting).
 
 ![Selection bar](img/tut/03_nearby_panel.png)
 
-Press **What is nearby?** (or type your own question). Pellaeon looks up the residues and ligands within 5 Å, shows them as sticks and labels them:
+Press **What is nearby?** (or type your own question). **Why this color?** answers from Pellaeon's own record of what colored the residue (step 3b). Pellaeon looks up the residues and ligands within 5 Å, shows them as sticks and labels them:
 
 ![Neighbourhood of His 87](img/tut/03_nearby_b.png)
 
 His 87 of chain A is the proximal histidine that holds the heme iron; the sticks around it are the heme and its pocket.
+
+### Step 3b · Why is this residue this color?
+
+Select a residue and press **Why this color?**, or type it. Pellaeon does not guess a biological reason: it reports the residue's current colors and labels, the recorded command, annotation, table or comparison that produced them, and any value behind them.
+
+> Why is residue 87 (HIS) of chain A in 4hhb this color?
+
+![Answer from the record](img/tut/03c_why_panel.png)
+
+Related: a command that runs without error but matches nothing (wrong residue numbers, wrong chain) is marked *changed nothing* with an amber dot, and the model is told to fix it, instead of getting a green tick.
 
 ### Step 4 · Make it look like a figure
 
@@ -205,6 +215,7 @@ The color ramp comes from `color byattribute`: every value is stored as a residu
 
 ## Part 3 — Good to know
 
+- **Green means it happened:** a command that ran but matched nothing shows an amber *changed nothing* mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.
 - **Labels** are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.
 - **Undo:** "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).
 - **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.

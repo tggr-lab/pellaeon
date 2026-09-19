@@ -47,6 +47,7 @@ STEPS = [
     ("03_nearby",    None, ["select #1/A:87"], False, True, []),   # selection bar visible
     ("03_nearby_b",  "What residues and ligands are within 5 A of residue 87 (HIS) of chain A in #1? Show them as sticks and label them.", [], True, True,
                      ["view #1/A:87 | (#1/A:87 :<5)", "zoom 0.85"]),
+    ("03c_why",      "Why is residue 87 (HIS) of chain A in 4hhb this color?", ["select #1/A:87"], False, True, []),
     ("04_pub",       "make it look publication ready and focus on the heme of chain A", [], True, True, []),
     ("05_distance",  "measure the distance between the iron of the heme in chain A and the CA of residue 87 in chain A", [], True, True,
                      ["distance style radius 0.15 color gold decimalPlaces 2", "label height 0.7", "view #1/A:87 #1/A:HEM", "zoom 0.8"]),

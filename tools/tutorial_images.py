@@ -9,9 +9,14 @@ os.makedirs(DST, exist_ok=True)
 def newest_turn(im):
     """Crop from just above the newest user bubble down to the end of the content above the composer."""
     w, h = im.size; px = im.load(); bg = px[6, h // 2]
-    def is_bubble(y):   # the user bubble is bluish and right-aligned
-        r, g, b = px[w - 30, y][:3]
-        return b > r + 18 and b > g + 8 and b > 60
+    def is_bubble(y):   # the user bubble (--user #263248) is right-aligned; enough of its right part must show the bubble color
+        xs = range(w - 64, w - 12, 2)
+        hit = 0
+        for x in xs:
+            r, g, b = px[x, y][:3]
+            if abs(r - 38) <= 14 and abs(g - 50) <= 14 and abs(b - 72) <= 16:
+                hit += 1
+        return hit >= 0.35 * len(xs)
     def has_content(y):
         return any(abs(px[x, y][0] - bg[0]) + abs(px[x, y][1] - bg[1]) + abs(px[x, y][2] - bg[2]) > 60 for x in range(10, w - 10, 3))
     rows = [has_content(y) for y in range(h)]
@@ -27,12 +32,28 @@ def newest_turn(im):
             y -= 1
     # newest bubble above `end`
     yb = None
-    for y in range(end - 1, 100, -1):
+    y = end - 1
+    while y > 100:
         if is_bubble(y):
-            yb = y
-            while yb > 100 and is_bubble(yb - 1): yb -= 1
-            break
-    start = max(0, (yb - 14) if yb is not None else 96)
+            top = y
+            while top > 100 and is_bubble(top - 1): top -= 1
+            if y - top >= 5:                     # a padding band of the bubble; text rows may break the band
+                changed = True
+                while changed:                   # merge bands separated by text lines (gaps up to 26 px)
+                    changed = False
+                    for gap in range(1, 27):
+                        yy = top - gap
+                        if yy > 100 and is_bubble(yy):
+                            t2 = yy
+                            while t2 > 100 and is_bubble(t2 - 1): t2 -= 1
+                            top = t2; changed = True
+                            break
+                yb = top
+                break
+            y = top - 1
+        else:
+            y -= 1
+    start = max(0, (yb - 6) if yb is not None else 96)
     return im.crop((0, start, w, min(h, end + 12)))
 
 for name in sorted(os.listdir(SRC)):

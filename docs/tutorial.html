@@ -18,6 +18,7 @@
 <li><a href="#step-2-color-and-style">Step 2 · Color and style</a></li>
 <li><a href="#step-2b-make-it-move">Step 2b · Make it move</a></li>
 <li><a href="#step-3-click-on-something-and-ask-about-it">Step 3 · Click on something and ask about it</a></li>
+<li><a href="#step-3b-why-is-this-residue-this-color">Step 3b · Why is this residue this color?</a></li>
 <li><a href="#step-4-make-it-look-like-a-figure">Step 4 · Make it look like a figure</a></li>
 <li><a href="#step-5-measure-something">Step 5 · Measure something</a></li>
 <li><a href="#step-6-open-an-alphafold-model-by-gene-name">Step 6 · Open an AlphaFold model by gene name</a></li>
@@ -96,9 +97,16 @@
 <h3 id="step-3-click-on-something-and-ask-about-it">Step 3 · Click on something and ask about it</h3>
 <p>Ctrl-click any atom in the 3D view (that is ChimeraX's normal way of selecting). A bar appears above the input. <strong>Highlight</strong> colors the selection and shows its atoms; the two questions send it to the AI. Alt-click asks about a residue directly, without selecting first (the <code>pellaeon ask</code> mouse mode; rebind it with <code>ui mousemode alt leftMode "pellaeon ask"</code> if you use Alt for something else).</p>
 <figure><img alt="Selection bar" src="img/tut/03_nearby_panel.png" /><figcaption>Selection bar</figcaption></figure>
-<p>Press <strong>What is nearby?</strong> (or type your own question). Pellaeon looks up the residues and ligands within 5 Å, shows them as sticks and labels them:</p>
+<p>Press <strong>What is nearby?</strong> (or type your own question). <strong>Why this color?</strong> answers from Pellaeon's own record of what colored the residue (step 3b). Pellaeon looks up the residues and ligands within 5 Å, shows them as sticks and labels them:</p>
 <figure><img alt="Neighbourhood of His 87" src="img/tut/03_nearby_b.png" /><figcaption>Neighbourhood of His 87</figcaption></figure>
 <p>His 87 of chain A is the proximal histidine that holds the heme iron; the sticks around it are the heme and its pocket.</p>
+<h3 id="step-3b-why-is-this-residue-this-color">Step 3b · Why is this residue this color?</h3>
+<p>Select a residue and press <strong>Why this color?</strong>, or type it. Pellaeon does not guess a biological reason: it reports the residue's current colors and labels, the recorded command, annotation, table or comparison that produced them, and any value behind them.</p>
+<blockquote>
+<p>Why is residue 87 (HIS) of chain A in 4hhb this color?</p>
+</blockquote>
+<figure><img alt="Answer from the record" src="img/tut/03c_why_panel.png" /><figcaption>Answer from the record</figcaption></figure>
+<p>Related: a command that runs without error but matches nothing (wrong residue numbers, wrong chain) is marked <em>changed nothing</em> with an amber dot, and the model is told to fix it, instead of getting a green tick.</p>
 <h3 id="step-4-make-it-look-like-a-figure">Step 4 · Make it look like a figure</h3>
 <blockquote>
 <p>make it look publication ready and focus on the heme of chain A</p>
@@ -180,6 +188,7 @@
 <p>The color ramp comes from <code>color byattribute</code>: every value is stored as a residue attribute (<code>pellaeon_&lt;table&gt;_&lt;column&gt;</code>), so ChimeraX's own <code>key</code> command, attribute selection (<code>select ::pellaeon_ubiquitin_hydropathy_hydropathy&gt;3</code>) and saved sessions all work with it. Table overlays are ChimeraX-edition only.</p>
 <h2 id="part-3-good-to-know">Part 3 — Good to know</h2>
 <ul>
+<li><strong>Green means it happened:</strong> a command that ran but matched nothing shows an amber <em>changed nothing</em> mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.</li>
 <li><strong>Labels</strong> are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.</li>
 <li><strong>Undo:</strong> "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).</li>
 <li><strong>When it gets a command wrong</strong>, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.</li>

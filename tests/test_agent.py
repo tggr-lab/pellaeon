@@ -44,6 +44,20 @@ class FakeExecutor:
     def count_residues(self, spec):
         return 40 if "1-40" in spec else 1
 
+    def spec_atoms(self, text):
+        if text.startswith("#1:226-232"):
+            return {"used": "#1:226-232", "atoms": 0, "residues": 0}
+        if text.startswith("#") or text.startswith(":"):
+            return {"used": text.split()[0], "atoms": 12, "residues": 1}
+        return {"used": ""}
+
+    def residue_provenance(self, res_spec, journal):
+        colors = [j for j in journal if j["command"].startswith("color")]
+        return {"residue": "HIS 87", "chain": "A", "model": "#1", "spec": "#1/A:87", "ribbon_color": "#ff0000", "atoms_shown": 0,
+                "selected": True, "attributes": {}, "labels": [],
+                "history": [{"command": c["command"], "origin": c["origin"], "kind": "color", "commands_ago": 1, "everything": False} for c in colors[-1:]],
+                "last_color_command": ({"command": colors[-1]["command"], "origin": colors[-1]["origin"], "kind": "color", "commands_ago": 1, "everything": False} if colors else None)}
+
     def label_layout(self):
         return {"labels": [{"spec": "#1/A:10", "level": "residues", "text": "HIS 10", "x": 100, "y": 100, "w": 60, "h": 16, "per_px": 0.05, "offset": [0.0, 0.0, 0.5]},
                            {"spec": "#1/A:11", "level": "residues", "text": "LYS 11", "x": 104, "y": 102, "w": 60, "h": 16, "per_px": 0.05, "offset": [0.0, 0.0, 0.5]},
@@ -666,3 +680,35 @@ def test_tidy_labels_moves_overlaps_and_restyles():
     prov3 = ScriptedProvider(["Done both."])
     Agent(prov3, FakeExecutor()).run_turn("tidy the labels and color the protein white")
     assert "tidy_labels" in str(prov3.requests[0])
+
+
+def test_commands_that_match_nothing_are_flagged_not_green():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open 4hhb", "style #1:226-232 sphere"]})]},
+                             {"calls": [("run_commands", {"commands": ["style #1:HEM sphere"]})]}, "Spheres."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    res = agent.run_turn("show the hemes as spheres")
+    assert res.reply == "Spheres."
+    first = str(prov.requests[1])
+    assert "matched NOTHING" in first and "#1:226-232" in first
+    assert any(j["command"].startswith("style #1:226-232") and j["noop"] for j in agent.journal)
+    assert any(j["command"] == "style #1:HEM sphere" and not j["noop"] for j in agent.journal)
+
+
+def test_why_is_this_red_is_answered_from_the_journal():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open 4hhb", "color #1/A:87 red"]})]}, "Colored.", "unused"])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    agent.run_turn("color residue 87 of chain A red")
+    r = agent.run_turn("why is residue #1/A:87 red?")
+    assert "HIS 87" in r.reply and "color #1/A:87 red" in r.reply and "from your request" in r.reply
+    assert len(prov.requests) == 2        # the question was answered without the model
+
+
+def test_why_regex_does_not_hijack_ordinary_requests():
+    from core.agent import _WHY_RE
+    for q in ("What residues and ligands are within 5 A of residue 87 (HIS) of chain A in #1? Show them as sticks and label them.",
+              "label the residues with hydropathy above 3", "what is this residue", "color it red and label it"):
+        assert not _WHY_RE.search(q), q
+    for q in ("why is this red?", "Why is residue 87 (HIS) of chain A in 4hhb this color?", "what colored residue 87", "where did this label come from", "which command made it blue"):
+        assert _WHY_RE.search(q), q

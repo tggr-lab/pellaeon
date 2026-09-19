@@ -197,7 +197,17 @@ TIDY_LABELS = ToolSpec(
      "required": []},
 )
 
-ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+EXPLAIN_RESIDUE = ToolSpec(
+    "explain_residue",
+    "Why does a residue look the way it does? Returns its current ribbon/atom colors, labels, Pellaeon attributes (table "
+    "values, displacement) and the recorded commands that colored, styled or labeled it, newest first, with their origin "
+    "(your commands, an annotation, a table overlay, a comparison). Use it for 'why is this red?', 'where did this label "
+    "come from?', 'what colored residue 87?'. Answer from what it returns; never guess a biological reason for a color.",
+    {"type": "object", "properties": {"residue": {"type": "string", "description": "residue spec, e.g. '#1/A:87' (use the selection spec from the state for 'this')"}},
+     "required": ["residue"]},
+)
+
+ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 

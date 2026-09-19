@@ -227,6 +227,113 @@ def label_layout(session) -> Dict[str, Any]:
     return {"labels": items, "window": [w, h]}
 
 
+def spec_atoms(session, text: str) -> Dict[str, Any]:
+    """Read-only: parse the leading atom spec of `text` (the part of a command after its name) and count what it matches.
+    Returns {'used': spec text, 'atoms': n} or {'used': ''} when the text does not start with a spec (= everything)."""
+    from chimerax.core.commands import atomspec
+    try:
+        spec, used, rest = atomspec.AtomSpecArg.parse(text, session)
+    except Exception:  # noqa: BLE001
+        return {"used": ""}
+    if not used or not used.strip():
+        return {"used": ""}
+    try:
+        results = spec.evaluate(session)
+        return {"used": used.strip(), "atoms": len(results.atoms), "residues": len(results.atoms.unique_residues),
+                "models": len(results.models)}
+    except Exception as e:  # noqa: BLE001
+        return {"used": used.strip(), "error": str(e)}
+
+
+_COLOR_WORDS = ("color", "colour", "rainbow", "coulombic", "mlp")
+
+
+def residue_provenance(session, res_spec: str, journal: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Read-only: what a residue looks like now and which recorded commands / overlays gave it that look."""
+    import numpy as np
+    from chimerax.core.commands import atomspec
+    try:
+        spec, used, rest = atomspec.AtomSpecArg.parse(res_spec, session)
+        res = spec.evaluate(session).atoms.unique_residues
+    except Exception as e:  # noqa: BLE001
+        return {"error": "Could not read '%s': %s" % (res_spec, e)}
+    if len(res) == 0:
+        return {"error": "No residue matches '%s'." % res_spec}
+    r = res[0]
+    m = r.structure
+    out: Dict[str, Any] = {"residue": "%s %d" % (r.name, int(r.number)), "chain": r.chain_id, "model": "#" + m.id_string,
+                           "model_name": m.name, "spec": "#%s/%s:%d" % (m.id_string, r.chain_id, int(r.number))}
+    def hexc(c):
+        return "#%02x%02x%02x" % tuple(int(v) for v in c[:3])
+    out["ribbon_color"] = hexc(r.ribbon_color) if r.ribbon_display else None
+    shown = [a for a in r.atoms if a.display]
+    if shown:
+        cols = {}
+        for a in shown:
+            cols[hexc(a.color)] = cols.get(hexc(a.color), 0) + 1
+        out["atom_colors"] = sorted(cols.items(), key=lambda kv: -kv[1])[:3]
+        out["atoms_shown"] = len(shown)
+    else:
+        out["atoms_shown"] = 0
+    out["selected"] = bool(r.atoms.selecteds.any())
+    # Pellaeon attributes (table overlays, displacement)
+    attrs = {}
+    for name in dir(r):
+        if name.startswith("pellaeon_"):
+            try:
+                v = getattr(r, name)
+            except Exception:  # noqa: BLE001
+                continue
+            if v is not None:
+                attrs[name] = float(v) if isinstance(v, (int, float)) else str(v)
+    out["attributes"] = attrs
+    # labels
+    try:
+        from chimerax.label.label3d import ObjectLabels
+        labels = []
+        for lm in session.models.list(type=ObjectLabels):
+            for lab in lm.labels():
+                obj = getattr(lab, "object", None)
+                if obj is r or getattr(obj, "residue", None) is r:
+                    labels.append(lab.text)
+        out["labels"] = labels
+    except Exception:  # noqa: BLE001
+        out["labels"] = []
+    # recorded commands that touched this residue, newest first
+    hits = []
+    n_total = len(journal)
+    for idx in range(n_total - 1, -1, -1):
+        j = journal[idx]
+        if not j.get("ok"):
+            continue
+        cmd = str(j.get("command", ""))
+        word = cmd.split()[0].lower() if cmd.split() else ""
+        if word not in _COLOR_WORDS + ("label", "style", "show", "hide", "cartoon", "transparency", "surface", "select", "delete"):
+            continue
+        rest_text = cmd[len(word):].strip()
+        try:
+            sp, used, _ = atomspec.AtomSpecArg.parse(rest_text, session)
+            touched = used.strip() != ""
+        except Exception:  # noqa: BLE001
+            sp, used, touched = None, "", False
+        if touched:
+            try:
+                if r not in sp.evaluate(session).atoms.unique_residues:
+                    continue
+            except Exception:  # noqa: BLE001
+                continue
+        elif word == "select":
+            continue    # `select` without a spec is not about this residue
+        # a spec-less command applies to everything (e.g. `color red`, `color bychain`)
+        hits.append({"command": cmd, "origin": j.get("origin", "model"), "kind": "color" if word in _COLOR_WORDS else word,
+                     "commands_ago": n_total - idx, "everything": not touched})
+        if len(hits) >= 8:
+            break
+    out["history"] = hits
+    out["last_color_command"] = next((h for h in hits if h["kind"] == "color"), None)
+    return out
+
+
 def count_residues(session, spec: str) -> int:
     """Read-only: how many residues an atom spec matches (0 when it does not parse)."""
     from chimerax.core.commands import atomspec

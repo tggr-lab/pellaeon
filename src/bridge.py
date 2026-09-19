@@ -262,6 +262,14 @@ class ChimeraXExecutor:
         from .analysis import label_layout
         return _run_on_main_thread(self.session, lambda: label_layout(self.session))
 
+    def spec_atoms(self, text: str) -> Dict[str, Any]:
+        from .analysis import spec_atoms
+        return _run_on_main_thread(self.session, lambda: spec_atoms(self.session, text))
+
+    def residue_provenance(self, res_spec: str, journal) -> Dict[str, Any]:
+        from .analysis import residue_provenance
+        return _run_on_main_thread(self.session, lambda: residue_provenance(self.session, res_spec, journal))
+
     def count_residues(self, spec: str) -> int:
         from .analysis import count_residues
         return _run_on_main_thread(self.session, lambda: count_residues(self.session, spec))

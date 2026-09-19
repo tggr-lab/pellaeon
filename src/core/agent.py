@@ -84,12 +84,19 @@ NUDGE_NAMED = ("(system) The user referred to a named ligand/cofactor/group (hem
                "residue NUMBERS, which are guesses and matched nothing. Use the residue NAME spec (heme = :HEM, ATP = :ATP, "
                "water = :HOH) or a built-in selector (`ligand`, `solvent`, `ions`), e.g. `show :HEM atoms; style :HEM sphere; "
                "color :HEM red`. Run the corrected commands now.")
+_COLORS = r"colou?r(ed)?|red|blue|green|yellow|orange|white|gray|grey|magenta|cyan|pink|purple"
+_WHY_RE = re.compile(r"\bwhy\b.*\b(%s|label(ed|s)?|this look|that look|look like)\b"
+                     r"|\b(where|what|which)\s+(did|does|made|gave|command)\b.*\b(%s|label|look)|\b(what|which)\s+colou?red\b|\blabel\b.*\bcome[s]? from\b" % (_COLORS, _COLORS), re.I)
+_RES_SPEC_RE = re.compile(r"#\d+(?:\.\d+)*/[A-Za-z0-9]+:-?\d+[A-Za-z]?")
+NUDGE_WHY = ("(system) The user asks WHY a residue looks like it does. Do not guess: CALL THE TOOL named explain_residue with the "
+             "residue spec (the selection in the state, or the residue named in the request) and answer from its history.")
+_CHECKED_WORDS = ("color", "colour", "select", "style", "show", "hide", "cartoon", "transparency", "surface", "label", "size", "rainbow")
 _TIDY_RE = re.compile(r"\blabels?\b.*\b(overlap|unreadable|readable|too (small|many|big)|tidy|clean|declutter|mess)|\b(tidy|clean up|declutter)\b.*\blabels?\b", re.I)
 NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, readability, clutter). Do not re-run label commands "
               "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
-_TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "resolve_protein", "protein_features", "search_docs", "get_state",
+_TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "explain_residue", "resolve_protein", "protein_features", "search_docs", "get_state",
                "command_usage", "run_python", "look_at_view", "ask_user", "run_commands"}
 
 _COMPLAINT_RE = re.compile(
@@ -206,6 +213,18 @@ class Agent:
             self._user_text_upper += " " + user_text.upper()
             context = self._build_context(user_text)
             self.conversation.append(Message.user(user_text, context))
+            if self.config.edition == "chimerax" and _WHY_RE.search(user_text) and hasattr(self.executor, "residue_provenance"):
+                # "why is this red?": measured from the journal and the session, answered directly when the residue is unambiguous
+                target = self._why_target(user_text)
+                if target:
+                    call = ToolCall(new_id(), "explain_residue", {"residue": target})
+                    self.conversation.append(Message("assistant", [call]))
+                    res, payload = self._dispatch(call)
+                    self.conversation.append(Message.tool_results([res]))
+                    if isinstance(payload, dict) and not payload.get("error"):
+                        text = self._explain_text(payload)
+                        self.conversation.append(Message.assistant(text))
+                        return TurnResult(text, len(self.conversation) - start_len, Usage(0, 0))
             if self.config.edition == "chimerax" and _TIDY_RE.search(user_text) and hasattr(self.executor, "label_layout"):
                 # a complaint about labels is measured and fixed directly; the model then reports what happened
                 call = ToolCall(new_id(), "tidy_labels", {})
@@ -248,6 +267,8 @@ class Agent:
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
                     elif _TIDY_RE.search(user_text) and not self._tool_called_since(start_len, "tidy_labels") and self.config.edition == "chimerax":
                         nudge = NUDGE_TIDY
+                    elif _WHY_RE.search(user_text) and not self._tool_called_since(start_len, "explain_residue") and self.config.edition == "chimerax":
+                        nudge = NUDGE_WHY
                     elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate"):
                         nudge = NUDGE_ANNOTATE  # variants/domains asked for, annotate tool never called
                     elif _NAMED_GROUP_RE.search(user_text) and ran and any(_NUMERIC_SPEC_RE.search(c) for c in ran) \
@@ -501,6 +522,9 @@ class Agent:
                 payload = self._compare(str(args["reference"]), str(args["other"]), args.get("chain") or None)
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
+            elif name == "explain_residue":
+                payload = self.executor.residue_provenance(str(self._scalar(args.get("residue"), "") or ""), list(self.journal))
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "tidy_labels":
                 payload = self._tidy_labels(str(self._scalar(args.get("keep"), "") or ""))
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
@@ -621,7 +645,7 @@ class Agent:
         results = self.executor.run_commands(commands)
         now = time.time()
         for r in results:
-            self.journal.append({"ts": now, "origin": origin, "command": r.get("command", ""), "ok": bool(r.get("ok")),
+            self.journal.append({"ts": now, "origin": origin, "command": r.get("command", ""), "ok": bool(r.get("ok")), "noop": bool(r.get("noop")),
                                  "error": r.get("error", "")})
         ok = all(r.get("ok") for r in results) and len(results) == len(commands)
         out: Dict[str, Any] = {"ok": ok, "results": results}
@@ -654,6 +678,33 @@ class Agent:
                 out["not_run"] = remaining
         if label_notes:
             out["label_note"] = " ".join(label_notes)
+        # outcome check: a command whose spec matches nothing changed nothing, even though ChimeraX did not complain
+        if self.config.edition == "chimerax" and hasattr(self.executor, "spec_atoms"):
+            noops = []
+            for r in out.get("results", []):
+                if not r.get("ok"):
+                    continue
+                cmd = r.get("command", ""); word = first_word(cmd)
+                if word not in _CHECKED_WORDS:
+                    continue
+                try:
+                    chk = self.executor.spec_atoms(cmd[len(word):].strip())
+                except Exception:  # noqa: BLE001
+                    continue
+                if chk.get("used") and chk.get("atoms") == 0:
+                    r["noop"] = True
+                    r["warning"] = "matched nothing: '%s' selects 0 atoms" % chk["used"]
+                    noops.append(cmd)
+                elif chk.get("used") and chk.get("atoms") is not None:
+                    r["matched"] = {"atoms": chk["atoms"], "residues": chk.get("residues", 0)}
+            if noops:
+                for j in self.journal[-len(out.get("results", [])):]:
+                    if j.get("command") in noops:
+                        j["noop"] = True
+                out["no_effect"] = noops
+                out["hint"] = ((out.get("hint") + " ") if out.get("hint") else "") + \
+                    "These commands matched NOTHING and changed nothing: %s. The spec is wrong (wrong residue numbers, chain, model or name). " \
+                    "Check with get_state or use residue names / built-in selectors, then run corrected commands." % "; ".join(noops)
         return out
 
     # ------------------------------------------------------------ compare / annotate (orchestrated here so that
@@ -712,6 +763,55 @@ class Agent:
             if m:
                 v = m.group(1).strip()
         return v if v is not None else default
+
+    def _why_target(self, user_text: str) -> str:
+        """The residue a 'why is this ...' question is about: a spec in the text, else the single selected residue."""
+        m = _RES_SPEC_RE.search(user_text)
+        if m:
+            return m.group(0)
+        try:
+            sel = (self.executor.get_state() or {}).get("selection") or {}
+        except Exception:  # noqa: BLE001
+            sel = {}
+        spec = sel.get("spec") or ""
+        if sel.get("num_residues") == 1 and spec:
+            return spec
+        m2 = re.search(r"\bresidue\s+(\d+)\b", user_text, re.I)
+        if m2 and sel.get("num_residues") != 1:
+            return ":" + m2.group(1)
+        return ""
+
+    @staticmethod
+    def _explain_text(p: Dict[str, Any]) -> str:
+        who = {"model": "from your request", "rerun": "re-run by you", "annotate": "by the annotation", "table": "by the table overlay",
+               "compare": "by the comparison", "tidy": "by tidy labels"}
+        parts = ["**%s** (chain %s, %s)" % (p.get("residue"), p.get("chain"), p.get("model"))]
+        look = []
+        if p.get("ribbon_color"):
+            look.append("ribbon %s" % p["ribbon_color"])
+        if p.get("atoms_shown"):
+            look.append("%d atoms shown, mostly %s" % (p["atoms_shown"], p["atom_colors"][0][0]))
+        if p.get("labels"):
+            look.append("label \"%s\"" % "\", \"".join(p["labels"]))
+        if p.get("selected"):
+            look.append("selected")
+        parts.append("Now: " + (", ".join(look) if look else "not displayed") + ".")
+        lc = p.get("last_color_command")
+        if lc:
+            parts.append("Color set by `%s` (%s, %d commands ago%s)." % (lc["command"], who.get(lc["origin"], lc["origin"]), lc["commands_ago"],
+                                                                     "; that command applied to everything" if lc.get("everything") else ""))
+        else:
+            parts.append("No recorded Pellaeon command colored it: this is the color it had when opened (ChimeraX's default, e.g. by chain) or a change made outside Pellaeon.")
+        attrs = p.get("attributes") or {}
+        for k, v in attrs.items():
+            if k == "pellaeon_disp":
+                parts.append("Displacement from the last comparison: %.2f Å." % float(v))
+            else:
+                parts.append("Table value %s = %s." % (k.replace("pellaeon_", "", 1), v))
+        others = [h for h in (p.get("history") or []) if h is not lc][:4]
+        if others:
+            parts.append("Other commands that touched it: " + "; ".join("`%s` (%s)" % (h["command"], who.get(h["origin"], h["origin"])) for h in others) + ".")
+        return "\n\n".join(parts)
 
     def _tidy_labels(self, keep: str = "") -> Dict[str, Any]:
         """Declutter the 3D labels: project to screen, pack, then move/remove through execute_commands."""

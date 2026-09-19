@@ -754,6 +754,10 @@ def _summarize_tool(call, result, payload) -> str:
                 payload.get("compared"), payload.get("reference"), payload.get("paired_residues", 0),
                 payload.get("mean_displacement"), payload.get("residues_over_2A", 0))
         return "Comparison failed" if result is None or result.is_error else "Compared structures"
+    if name == "explain_residue":
+        if isinstance(payload, dict) and not payload.get("error"):
+            return "Explained %s (chain %s)" % (payload.get("residue", ""), payload.get("chain", ""))
+        return "Could not explain the residue"
     if name == "tidy_labels":
         if isinstance(payload, dict) and not payload.get("error"):
             return "Tidied labels: %d kept, %d moved, %d removed" % (payload.get("kept", 0), payload.get("moved", 0), payload.get("removed", 0))
