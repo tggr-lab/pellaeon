@@ -104,7 +104,7 @@ INDEX = """
   <div class="card"><h3>Commands run in ChimeraX</h3><p>Deterministic. Each one is listed with its result; a failed command shows the error and what was tried next.</p></div>
   <div class="card"><h3>Measurements</h3><p>Distances, RMSD, per-residue displacement, contacts: computed by ChimeraX, reported with the atom sets and thresholds used.</p></div>
   <div class="card"><h3>Database annotations</h3><p>UniProt features and ClinVar variants, mapped onto the structure with the numbering offset shown, and mismatches counted rather than hidden.</p></div>
-  <div class="card"><h3>AI-written text</h3><p>The sentences around the cards come from the model. They summarize what ran; they are not a substitute for looking at the numbers. Smaller local models make more mistakes than cloud ones; known limitations are tracked on GitHub.</p></div>
+  <div class="card"><h3>AI-written text</h3><p>The sentences around the cards come from the model. They summarize what ran; they are not a substitute for looking at the numbers. Smaller local models make more mistakes than cloud ones; known limitations are tracked in a <a href="%(repo)s/issues/1">GitHub issue</a>.</p></div>
 </div>
 
 <h2>Privacy, briefly</h2>
