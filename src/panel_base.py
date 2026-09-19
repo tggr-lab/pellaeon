@@ -264,6 +264,23 @@ class PanelBase:
             self.push_ts({"type": "busy", "busy": False})
         threading.Thread(target=work, daemon=True).start()
 
+    def _act_review_view(self, params, payload):
+        """The model looks at the 3D view, reviews it as a figure and adjusts; needs a vision model and the setting."""
+        try:
+            preset = preset_by_id(self.settings.preset) or {}
+        except Exception:  # noqa: BLE001
+            preset = {}
+        vision_provider = preset.get("provider") in ("gemini", "anthropic", "openai_compat", "openai")
+        if not self.settings.vision or not vision_provider:
+            self.push({"type": "toast", "kind": "warn", "text": "Reviewing the view needs a model that can see images (Gemini, Claude, OpenAI) and "
+                       "the setting 'Let the model look at screenshots' in Settings ▸ Advanced." if vision_provider else
+                       "Reviewing the view needs a model that can see images: Gemini, Claude or OpenAI. Local Ollama models cannot look at the screen."})
+            if vision_provider:
+                self.push({"type": "show_page", "page": "settings"})
+            return
+        self.submit("Look at the current view and review it as a figure: framing and size of the subject, anything clipped, label overlap or clutter, "
+                    "colors that are hard to tell apart, background. Fix what you can with commands, look again to confirm, and tell me what you changed.")
+
     def _act_send(self, params, payload):
         text = (params.get("text") or "").strip()
         if text:

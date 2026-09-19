@@ -693,6 +693,7 @@
     $("btn-save").onclick = () => send("settings_save", {}, settingsPayload());
     $("btn-table").onclick = () => send("table_import");
     $("chip-figure").onclick = () => send("figure_form");
+    $("chip-review").onclick = () => send("review_view");
     $("btn-first").onclick = () => { send("settings_save", {}, settingsPayload()); setTimeout(() => { showPage("chat"); submit("open 1ubq and color it by chain"); }, 400); };
     $("btn-test").onclick = () => { $("test-result").textContent = "Testing…"; $("test-result").className = "hints"; send("settings_test", {}, settingsPayload()); };
     $("btn-models").onclick = () => { $("test-result").textContent = "Fetching models…"; $("test-result").className = "hints"; send("list_models", {}, settingsPayload()); };

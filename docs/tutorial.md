@@ -236,6 +236,7 @@ Technical note: every value is stored as a residue attribute named `pellaeon_<ta
 
 ## Part 3 — Good to know
 
+- **Review the view:** with a model that can see images (Gemini, Claude, OpenAI) and *Let the model look at screenshots* ticked in Settings ▸ Advanced, the **Review the view** chip makes Pellaeon take a screenshot, judge framing, clutter, labels and colors, fix what it can and look again. Local Ollama models cannot see the screen.
 - **Green means it happened:** a command that ran but matched nothing shows an amber *changed nothing* mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.
 - **Labels** are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.
 - **Undo:** "undo the last change" runs ChimeraX's undo, which reverses supported actions only; one request can be several actions, and labels or closing a model cannot be undone. Save a session (`.cxs`) before experimenting on something you care about.

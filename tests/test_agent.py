@@ -746,3 +746,18 @@ def test_figure_bundle_writes_all_files_and_a_legend(tmp_path):
     # a model-initiated save asks first: with no way to confirm it is refused
     out2 = agent._figure_bundle(str(tmp_path), "x", 800, 600, 1, False, "", False, preapproved=False)
     assert out2.get("skipped") and "approve" in out2["error"]
+
+
+def test_look_nudge_only_when_the_model_can_see():
+    from core.agent import _LOOK_RE
+    assert _LOOK_RE.search("how does it look?") and _LOOK_RE.search("review the figure") and not _LOOK_RE.search("color it red")
+    prov = ScriptedProvider(["Looks fine.", {"calls": [("look_at_view", {})]}, "I looked: fine."])
+    prov.supports_vision = True
+    ex = FakeExecutor()
+    ex.look_at_view = lambda: {"text": "Screenshot attached.", "png_b64": "aGVsbG8="}
+    agent = Agent(prov, ex, config=AgentConfig(vision=True))
+    assert agent.run_turn("take a look at the view and tell me how it looks").reply == "I looked: fine."
+    prov2 = ScriptedProvider(["Looks fine.", "Still fine."])   # no vision: the look nudge never fires
+    agent2 = Agent(prov2, FakeExecutor(), config=AgentConfig(vision=False))
+    agent2.run_turn("take a look at the view")
+    assert not any("LOOK at the view" in str(r) for r in prov2.requests)

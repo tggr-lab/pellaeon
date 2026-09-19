@@ -139,7 +139,10 @@ RUN_PYTHON = ToolSpec(
 
 LOOK_AT_VIEW = ToolSpec(
     "look_at_view",
-    "Take a screenshot of the current 3D view so you can check how it looks.",
+    "Take a screenshot of the current 3D view and look at it. Use it to review a figure like a colleague would: is the "
+    "subject framed and large enough, is anything clipped, do labels overlap or hide the structure, are the colors "
+    "distinguishable, is the background right? Then FIX what you saw with commands (view, zoom, turn, label, hide, color) "
+    "and look again to confirm. Also use it whenever the user asks how it looks or to review/check/adjust the view.",
     {"type": "object", "properties": {}},
 )
 

@@ -92,6 +92,9 @@ _RES_SPEC_RE = re.compile(r"#\d+(?:\.\d+)*/[A-Za-z0-9]+:-?\d+[A-Za-z]?")
 NUDGE_WHY = ("(system) The user asks WHY a residue looks like it does. Do not guess: CALL THE TOOL named explain_residue with the "
              "residue spec (the selection in the state, or the residue named in the request) and answer from its history.")
 _CHECKED_WORDS = ("color", "colour", "select", "style", "show", "hide", "cartoon", "transparency", "surface", "label", "size", "rainbow")
+_LOOK_RE = re.compile(r"\b(look at|take a look|have a look|check|review|inspect|how does it look|does it look|what do you see|see the view|the screen|screenshot)\b", re.I)
+NUDGE_LOOK = ("(system) The user wants you to LOOK at the view. Call the tool look_at_view first (it returns a screenshot), "
+              "describe what you see, then fix problems with commands and look again.")
 _TIDY_RE = re.compile(r"\blabels?\b.*\b(overlap|unreadable|readable|too (small|many|big)|tidy|clean|declutter|mess)|\b(tidy|clean up|declutter)\b.*\blabels?\b", re.I)
 NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, readability, clutter). Do not re-run label commands "
               "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
@@ -270,6 +273,9 @@ class Agent:
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
                     elif _TIDY_RE.search(user_text) and not self._tool_called_since(start_len, "tidy_labels") and self.config.edition == "chimerax":
                         nudge = NUDGE_TIDY
+                    elif _LOOK_RE.search(user_text) and self.config.vision and getattr(self.provider, "supports_vision", False) \
+                            and not self._tool_called_since(start_len, "look_at_view"):
+                        nudge = NUDGE_LOOK
                     elif _WHY_RE.search(user_text) and not self._tool_called_since(start_len, "explain_residue") and self.config.edition == "chimerax":
                         nudge = NUDGE_WHY
                     elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate"):
