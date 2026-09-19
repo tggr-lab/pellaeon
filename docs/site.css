@@ -34,8 +34,10 @@ h3 { font-size: 1.1rem; margin: 26px 0 8px; }
 .steps li b { color: var(--ink); display: block; margin-bottom: 4px; }
 .steps li::before { content: counter(step); position: absolute; left: 16px; top: 14px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.9em; }
 main { max-width: var(--max); margin: 0 auto; padding: 28px 20px 80px; }
-.doc { display: grid; grid-template-columns: 220px 1fr; gap: 36px; }
+.doc { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 36px; }
+.doc > article, .doc > nav { min-width: 0; }
 .toc { position: sticky; top: 64px; align-self: start; font-size: 0.9em; }
+.toc summary { display: none; }
 .toc ul { list-style: none; padding: 0; margin: 0; }
 .toc li { margin: 4px 0; }
 .toc li li { margin-left: 12px; font-size: 0.93em; }
@@ -107,3 +109,41 @@ footer .credits a { color: inherit; text-decoration: none; border-bottom: 1px do
 .how-v .wires path { marker-end: url(#ahv); }
 .how-v .wires path.loop { marker-end: url(#ah2v); }
 @media (max-width: 700px) { .howwrap { display: none; } .howwrap-v { display: block; } .nav { position: static; } }
+
+/* tables and code never widen the page */
+.table-wrap { overflow-x: auto; margin: 12px 0; }
+.table-wrap table { margin: 0; min-width: 600px; }
+.table-wrap th, .table-wrap td { overflow-wrap: normal; word-break: normal; hyphens: none; }
+.table-wrap th:first-child, .table-wrap td:first-child { white-space: nowrap; }
+body { overflow-wrap: anywhere; }
+figure img { max-height: 78vh; width: auto; max-width: 100%; margin: 0 auto; }
+
+/* phones */
+@media (max-width: 700px) {
+  html { font-size: 15px; }
+  .nav .in { flex-wrap: nowrap; overflow-x: auto; gap: 14px; padding: 8px 14px; scrollbar-width: none; }
+  .nav .in::-webkit-scrollbar { display: none; }
+  .nav a.link, .nav .brand { white-space: nowrap; flex: none; }
+  .nav .spacer { display: none; }
+  .nav .theme { flex: none; }
+  main { padding: 18px 16px 60px; }
+  h1 { font-size: 1.7rem; }
+  h2 { font-size: 1.2rem; margin-top: 30px; }
+  .hero { width: auto; margin-left: 0; transform: none; padding-top: 10px; gap: 18px; }
+  .hero h1 { font-size: 1.9rem; }
+  .hero p.lead { font-size: 1rem; }
+  .hero > div:first-child { text-align: left; }
+  .hero .btns { justify-content: flex-start; }
+  .cmdbox { flex-direction: column; }
+  .cmdbox button { padding: 8px; }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: 0.85em; }
+  .example { white-space: normal; font-size: 0.9em; }
+  .steps { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: 1fr; }
+  .toc { position: static; font-size: 0.95em; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 4px; }
+  .toc summary { display: list-item; cursor: pointer; font-weight: 600; color: var(--ink); padding: 6px 0; }
+  .toc details[open] summary { margin-bottom: 6px; }
+  figure img { max-height: 60vh; }
+  .shot { padding: 6px; }
+  footer .in { padding: 14px 16px; }
+}

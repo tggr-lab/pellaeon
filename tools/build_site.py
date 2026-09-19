@@ -24,7 +24,7 @@ SITE = "https://tggr-lab.github.io/pellaeon"
 
 def layout(title, body, active, toc_html=""):
     nav = "".join('<a class="link%s" href="%s">%s</a>' % (" active" if f == active else "", f, n) for f, n in NAV)
-    main = ('<div class="doc"><nav class="toc">%s</nav><article>%s</article></div>' % (toc_html, body)) if toc_html else body
+    main = ('<div class="doc"><nav class="toc"><details open><summary>Contents</summary>%s</details></nav><article>%s</article></div>' % (toc_html, body)) if toc_html else body
     return """<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>%s</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
@@ -33,6 +33,7 @@ def layout(title, body, active, toc_html=""):
 <body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a>%s<span class="spacer"></span><a class="link gh" href="%s">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
 <script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
 <main>%s</main>
+<script>if(window.innerWidth<820){document.querySelectorAll(".toc details[open]").forEach(function(d){d.removeAttribute("open");});}</script>
 <footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
 </body></html>""" % (html.escape(title), DESC, html.escape(title), DESC, SITE, SITE, active, nav, REPO, main, VERSION)
 
@@ -46,6 +47,7 @@ def md_page(src, out, active, title=None):
     text = re.split(r"^## (?:Developing|Development|Building)\b.*$", text, maxsplit=1, flags=re.M)[0].rstrip() + "\n"
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"], extension_configs={"toc": {"toc_depth": "2-3"}})
     body = md.convert(text)
+    body = body.replace("<table>", '<div class="table-wrap"><table>').replace("</table>", "</table></div>")
     # standalone images become figures with the alt text as caption
     def _fig(m):
         tag = m.group(1)
@@ -74,7 +76,7 @@ INDEX = """
     <p class="small">Paste into ChimeraX's command line. <a href="install.html">Offline install and the classic Chimera edition</a>.</p>
     <div class="btns"><a class="btn primary" href="install.html">Install</a><a class="btn" href="tutorial.html">Tutorial</a><a class="btn" href="%(repo)s/releases">Downloads</a></div>
   </div>
-  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
+  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
 </section>
 
 <h2>Three steps</h2>

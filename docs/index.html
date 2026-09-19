@@ -15,7 +15,7 @@
     <p class="small">Paste into ChimeraX's command line. <a href="install.html">Offline install and the classic Chimera edition</a>.</p>
     <div class="btns"><a class="btn primary" href="install.html">Install</a><a class="btn" href="tutorial.html">Tutorial</a><a class="btn" href="https://github.com/tggr-lab/pellaeon/releases">Downloads</a></div>
   </div>
-  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
+  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
 </section>
 
 <h2>Three steps</h2>
@@ -98,5 +98,6 @@
 <h2>Privacy</h2>
 <p>With Ollama the model runs on your computer. Requests, the list of open models and the current selection go only to the provider you chose. Gene and variant lookups go to UniProt and ClinVar when you ask for them. API keys are stored on your machine, never in ChimeraX sessions.</p>
 </main>
+<script>if(window.innerWidth<820){document.querySelectorAll(".toc details[open]").forEach(function(d){d.removeAttribute("open");});}</script>
 <footer><div class="in">Pellaeon v0.1.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
 </body></html>

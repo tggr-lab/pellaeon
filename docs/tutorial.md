@@ -8,9 +8,10 @@ The full walkthrough takes about twenty minutes: hemoglobin, a residue and its n
 2. The panel opens on its settings page. Pick **Google Gemini** (free key, nothing to install) or **Ollama** (runs on your computer), press **Test connection**, then **Save & use**.
 3. Press **Run a first request**. Pellaeon opens ubiquitin and colors it by chain.
 4. Type these, one at a time:
-   - `open 4hhb`
-   - `color it by chain and show the heme groups as spheres`
-   - `make it look publication ready`
+
+    - `open 4hhb`
+    - `color it by chain and show the heme groups as spheres`
+    - `make it look publication ready`
 
 The rest of this page is the full walkthrough.
 
