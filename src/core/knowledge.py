@@ -381,6 +381,39 @@ def workflow_chunks(workflows: List[Dict[str, Any]]) -> List[Chunk]:
     return chunks
 
 
+def guide_chunks(text: str, title: str, url: str = "", max_chars: int = 1200) -> List[Chunk]:
+    """Plain-text guides (e.g. a long CLI overview): split at blank lines / headings into passages."""
+    chunks: List[Chunk] = []
+    section = title
+    buf: List[str] = []
+
+    def flush():
+        body = " ".join(buf).strip()
+        buf.clear()
+        if len(body) < 60:
+            return
+        for piece in _split_text(body, max_chars):
+            cmd = ""
+            m = re.search(r"\b([a-z][a-z0-9]{2,})\b", piece.lower())
+            if m:
+                cmd = m.group(1)
+            chunks.append(Chunk(0, cmd, title, section[:80], piece, url or "help:user/index.html", "guide", 1.1))
+
+    for para in re.split(r"\n\s*\n", text.replace("\r\n", "\n")):
+        para = para.strip()
+        if not para:
+            continue
+        if len(para) < 90 and not para.endswith(".") and "\n" not in para:
+            flush()
+            section = para
+            continue
+        buf.append(para)
+        if sum(len(b) for b in buf) > max_chars:
+            flush()
+    flush()
+    return chunks
+
+
 def recipe_library_chunks(recipes: List[Dict[str, Any]]) -> List[Chunk]:
     """Community recipes (RBVI chimerax-recipes): what they do and how to use them."""
     chunks = []
@@ -402,6 +435,7 @@ class Knowledge:
                  registry_entries: Optional[Dict[str, str]] = None,
                  workflows: Optional[List[Dict[str, Any]]] = None,
                  recipe_library: Optional[List[Dict[str, Any]]] = None,
+                 guides: Optional[List[Tuple[str, str]]] = None,
                  log=None):
         self.cache_dir = cache_dir
         self.version_key = re.sub(r"[^A-Za-z0-9_.-]", "_", version_key)
@@ -410,12 +444,14 @@ class Knowledge:
         self.registry_entries = registry_entries or {}
         self.workflows = workflows or []
         self.recipe_library = recipe_library or []
+        self.guides = guides or []   # (title, text)
         self.index: Optional[BM25Index] = None
         self.log = log or (lambda msg: None)
 
     @property
     def cache_path(self) -> str:
-        data_key = "%d-%d-%d-%d" % (len(self.cheatsheet), len(self.workflows), len(self.recipe_library), INDEX_FORMAT)
+        data_key = "%d-%d-%d-%d-%d" % (len(self.cheatsheet), len(self.workflows), len(self.recipe_library),
+                                          sum(len(t) for _n, t in self.guides), INDEX_FORMAT)
         return os.path.join(self.cache_dir, "index-%s-%s.json.gz" % (self.version_key, data_key))
 
     def ensure(self, progress=None) -> BM25Index:
@@ -450,6 +486,8 @@ class Knowledge:
         chunks.extend(cheatsheet_chunks(self.cheatsheet))
         chunks.extend(workflow_chunks(self.workflows))
         chunks.extend(recipe_library_chunks(self.recipe_library))
+        for title, text in self.guides:
+            chunks.extend(guide_chunks(text, title))
         for name, usage in self.registry_entries.items():
             chunks.append(Chunk(0, name.split()[0], name, "usage", usage,
                                 "help:user/commands/%s.html" % name.split()[0], "registry", 1.2))

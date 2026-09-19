@@ -157,7 +157,8 @@ ANNOTATE = ToolSpec(
     "annotate",
     "Overlay UniProt annotations on a model: color the residues and label them. kind: 'variant' (natural variants), "
     "'disease' (variants linked to a disease), 'domain', 'transmembrane', 'topology', 'binding', 'active', 'site', "
-    "'glycosylation', 'disulfide', 'modified', 'ptm', 'region', 'motif'. Needs the UniProt accession (resolve_protein). "
+    "'glycosylation', 'disulfide', 'modified', 'ptm', 'region', 'motif', and 'clinvar' (ClinVar missense variants colored by "
+    "clinical significance: red pathogenic, yellow uncertain, blue benign; accepts a gene symbol). Needs the UniProt accession (resolve_protein). "
     "Numbering matches AlphaFold models; PDB entries may be offset.",
     {"type": "object", "properties": {
         "model": {"type": "string", "description": "model spec, e.g. '#1'"},

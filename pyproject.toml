@@ -42,6 +42,7 @@ description = "Run a plain-English request through Pellaeon"
 [tool.chimerax.package-data]
 "src/ui/" = ["*.html", "*.css", "*.js", "*.svg"]
 "src/data/" = ["*.json", "*.md"]
+"src/data/guides/" = ["*.txt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

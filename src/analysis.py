@@ -107,13 +107,57 @@ def compare_structures(session, run_commands, ref: str = "#1", other: str = "#2"
     return out
 
 
+def annotate_clinvar(session, run_commands, clinvar, m, gene: str, label: bool = True, max_labels: int = 60) -> Dict[str, Any]:
+    """Color residues by ClinVar missense classification (red pathogenic ... blue benign, yellow VUS)."""
+    from .core.clinvar import color_for
+    data = clinvar.missense_variants(gene)
+    if "error" in data:
+        return data
+    variants = data.get("variants", [])
+    if not variants:
+        return {"gene": gene, "kind": "clinvar", "count": 0, "message": "ClinVar lists no missense variants for %s." % gene}
+    spec = "#" + m.id_string
+    cmds: List[str] = []
+    by_color: Dict[str, List[int]] = {}
+    for v in variants:
+        by_color.setdefault(color_for(v["significance"]), []).append(v["position"])
+    for col, positions in by_color.items():
+        for i in range(0, len(positions), 150):
+            cmds.append("color %s:%s %s target ac" % (spec, ",".join(str(p) for p in positions[i:i + 150]), col))
+    labeled = 0
+    if label:
+        for v in sorted(variants, key=lambda x: (x["significance"] != "Pathogenic", x["position"])):
+            if not v["significance"].lower().startswith(("pathogenic", "likely pathogenic")) or labeled >= max_labels:
+                continue
+            cmds.append('label %s:%d text "%s%d%s" height 1.2 color %s' % (spec, v["position"], v["ref"], v["position"], v["alt"],
+                                                                          color_for(v["significance"])))
+            labeled += 1
+    res = run_commands(cmds)
+    counts: Dict[str, int] = {}
+    for v in variants:
+        counts[v["significance"]] = counts.get(v["significance"], 0) + 1
+    return {"gene": gene, "kind": "clinvar", "count": len(variants), "labeled": labeled, "by_significance": counts,
+            "legend": "red = pathogenic, orange = likely pathogenic, yellow = uncertain, cyan/blue = (likely) benign",
+            "commands_failed": sum(1 for r in res if not r.get("ok")),
+            "pathogenic": [{"residue": v["position"], "change": "%s%d%s" % (v["ref"], v["position"], v["alt"])}
+                           for v in variants if v["significance"].lower().startswith("pathogenic")][:40],
+            "source": data.get("source")}
+
+
 def annotate(session, run_commands, uniprot, model: str, accession: str, kind: str = "variant",
-             color: str = "orange", label: bool = True, only_disease: bool = False, max_labels: int = 40) -> Dict[str, Any]:
-    """Color/label UniProt annotations on a model (numbering must match UniProt, as in AlphaFold models)."""
+             color: str = "orange", label: bool = True, only_disease: bool = False, max_labels: int = 40,
+             clinvar=None) -> Dict[str, Any]:
+    """Color/label UniProt (or ClinVar) annotations on a model (numbering must match UniProt, as in AlphaFold models)."""
     m = _find_structure(session, model)
     if m is None:
         return {"error": "No atomic model %s is open." % model}
     kind_l = kind.lower().strip()
+    if kind_l in ("clinvar", "pathogenic", "clinical") and clinvar is not None:
+        gene = accession
+        if re.match(r"^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$", (accession or "").upper()):
+            info = uniprot.features(accession, ["Domain"])
+            gene = info.get("gene") or accession
+        return annotate_clinvar(session, run_commands, clinvar, m, gene, label)
     kinds_map = {
         "variant": ["Natural variant"], "variants": ["Natural variant"], "disease": ["Natural variant"],
         "domain": ["Domain"], "domains": ["Domain"], "transmembrane": ["Transmembrane"], "tm": ["Transmembrane"],

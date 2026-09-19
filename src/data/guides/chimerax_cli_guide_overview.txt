@@ -1,0 +1,125 @@
+A Comprehensive Guide to the UCSF ChimeraX Command Line Interface
+The UCSF ChimeraX is a next-generation molecular visualization program offering significant performance and graphical enhancements for researchers across various domains.1 While the program boasts an intuitive graphical user interface, its command-line interface (CLI) provides a powerful and efficient means for advanced users to interact with the software, automate tasks, and customize their visualization and analysis workflows.2 This guide aims to provide a comprehensive overview of the ChimeraX CLI, drawing upon official documentation, tutorials, and user discussions to illuminate its functionalities and best practices.
+Accessing and Navigating the Command Line Interface
+The ChimeraX CLI can be readily accessed through the "Tools" menu within the application.2 Once opened, this interface serves as the primary point of entry for executing commands that control various aspects of the program, from loading and manipulating molecular structures to generating high-quality images and movies.2 Users should note that clicking within the graphics window or the command line itself might be necessary to ensure the focus is set correctly for command input.2 A particularly useful feature is the ability to drag and drop file or directory icons directly into the command line, which automatically inserts the corresponding file paths, streamlining the process of opening data files.2
+To enhance user experience, the CLI incorporates a pulldown menu, indicated by an inverted triangle on the right side of the command line.2 This menu provides access to recently entered commands, allowing for quick re-execution or modification.2 The "Command History..." option within this menu displays a comprehensive list of all previously used commands, offering further convenience for recalling and reusing complex sequences.2 For users aiming for efficiency, the menu also includes a function to "Remove duplicate consecutive commands," which can help in decluttering the command history.2
+The "Command History" panel itself provides several useful functionalities.2 Commands can be selected, and users have the options to "Save..." them to a text file (with the recommended .cxc extension for ChimeraX command files), "Execute" them in the order shown, "Delete" selected commands from the history, or "Copy" them as plain text for use in other applications.2 Additionally, a "Help" button within the history panel directly opens the documentation for the selected command in the Help Viewer.2 Navigation within the command history is also facilitated by keyboard shortcuts, even without the history panel being open. Ctrl-p and Ctrl-n allow users to cycle through the previous and next commands, respectively, while Shift-Ctrl-p and Shift-Ctrl-n navigate through previous and next uses of the same command based on the initial characters typed.2 Ctrl-u erases the entire command line, and Ctrl-k erases from the cursor position to the end of the line.2 Moreover, when the command line or graphics window has focus, the up and down arrow keys can also be used to navigate the history, with the Shift key modifier allowing for navigation through previous/next uses of the same command.2 The command history is persistently stored in a file at a platform-dependent standard location, ensuring that it is available across different ChimeraX sessions.2 The location of this file can be reported using the command info path user unversioned data.2
+Common Commands, Syntax, and Parameters
+The ChimeraX CLI utilizes a straightforward syntax where commands are typically followed by specific parameters that modify their behavior.3 Several commands are frequently employed for basic operations such as loading, displaying, and manipulating molecular data.6 The open command, for instance, is fundamental for loading molecular structures from various sources, including local files, URLs, and databases like the Protein Data Bank (PDB).3 Its syntax is simply open <source>, where <source> specifies the file path, URL, or database identifier.6
+Once a structure is loaded, the color command is essential for changing the appearance of specific atoms, residues, or chains.3 The syntax generally follows the pattern color <color_specification> <target_specification>, allowing users to define the desired color (e.g., blue, red, green) and the target (e.g., /A for chain A, sel for the current selection).6 Visibility of different parts of the molecule can be controlled using the show and hide commands.4 These commands take a <representation> argument (such as atoms, bonds, cartoon, surface) and a <target_specification> to specify which parts should be made visible or invisible.6 For example, show atoms /protein will display all atoms within the protein component of the loaded model.3
+To simplify the visual representation of biopolymers, the cartoon or ribbon commands are commonly used.4 These commands can be used with a <target_specification> to apply the cartoon or ribbon representation to specific chains or the entire model.6 The appearance of these representations can be further customized using options like style, for instance, cartoon style tube will render protein helices as tubes.4 Molecular surfaces can be generated and displayed using the surface command, often followed by a <target_specification> to define the atoms included in the surface calculation.3
+Controlling the viewing perspective is crucial for visualization, and ChimeraX offers several commands for this purpose.4 The view command, often used with the orient option, automatically adjusts the view to encompass all visible models.4 The zoom command allows for magnification or reduction of the view by a specified factor (e.g., zoom 2.0 for doubling the size).4 Rotation around specific axes (x, y, or z) can be achieved using the turn command, followed by the axis and the angle in degrees (e.g., turn y 90 to rotate 90 degrees around the y-axis).4 Global program settings, such as background color and the display of silhouettes, can be modified using the set command with appropriate parameters and values (e.g., set bg white for a white background, set silhouettes true to enable silhouettes).4 Finally, the help command is invaluable for accessing documentation on any specific command. Typing help alone will show a general index, while help <command_name> will display detailed information about the specified command and its options.4
+
+
+
+
+
+
+
+
+Command
+	Syntax
+	Description
+	Example
+	open
+	open <source>
+	Loads molecular data from a file, URL, or database.
+	open 1tup
+	color
+	color <color_specification> <target_specification>
+	Changes the color of specified atoms, residues, or other objects.
+	color blue /A
+	show
+	show <representation> <target_specification>
+	Makes the specified representation visible.
+	show atoms /protein
+	hide
+	hide <representation> <target_specification>
+	Makes the specified representation invisible.
+	hide solvent
+	cartoon
+	cartoon [style <style>] <target_specification>
+	Displays the backbone of proteins and nucleic acids as a cartoon.
+	cartoon style tube
+	surface
+	surface <target_specification>
+	Calculates and displays the molecular surface.
+	surface / ligand
+	view
+	view [orient]
+	Orients all displayed models to fit the window.
+	view orient
+	zoom
+	zoom <factor>
+	Zooms the view in or out.
+	zoom 2.0
+	turn
+	turn <axis> <degrees>
+	Rotates the view around the specified axis.
+	turn y 90
+	set
+	set <parameter> <value>
+	Sets various program parameters.
+	set bg white
+	help
+	help [<command_name>]
+	Displays documentation for the specified command.
+	help color
+	style
+	style <representation> <style_name> <target_specification>
+	Changes the display style of the specified representation (e.g., stick, sphere).
+	style atoms sphere /CA
+	Advanced Features and Scripting Capabilities
+Beyond the fundamental commands, the ChimeraX CLI offers advanced features and robust scripting capabilities that empower users to perform complex tasks and automate repetitive workflows.3 One such feature is the ability to combine multiple commands on a single line using semicolons as separators.4 This allows for the sequential execution of several actions with a single command-line entry, which is particularly useful in scripting.4
+ChimeraX supports scripting using both its native command language and Python.6 Scripts written in the ChimeraX command language are typically saved with a .cxc extension and can be executed using the runscript command followed by the script file path.2 These scripts consist of a series of ChimeraX commands, each on a new line, that are executed sequentially.6 This allows users to record and replay a sequence of operations, ensuring reproducibility and saving time.3
+For more sophisticated scripting and access to the full power of a programming language, ChimeraX provides a built-in Python interpreter.6 Python scripts can interact with ChimeraX functionalities by importing the chimerax module.6 These scripts can be executed using the same runscript command, provided they are saved with a .py extension.6 Python scripting enables users to create custom commands, develop complex analysis pipelines, and integrate ChimeraX with other software tools.6 For instance, users can define new commands with specific arguments and behaviors, extending the built-in capabilities of ChimeraX.6 Furthermore, command-line arguments can be passed to scripts, allowing for dynamic behavior based on user-provided input.6
+The concept of "named views" allows users to save specific camera positions and model orientations, which can then be recalled later using the view command followed by the saved view name.9 This is particularly useful for creating consistent viewpoints for figures or animations.9 For generating movies, ChimeraX offers commands like movie record to start recording frames, animation commands such as turn or fly to create movement, wait to control the timing of actions, and movie encode to save the recorded frames as a movie file in various formats.4 These commands can be combined in scripts or executed interactively to produce high-quality molecular movies.1
+Common User Challenges and Effective Workflows
+Analysis of user queries in online forums reveals several common challenges and effective workflows related to the ChimeraX CLI.16 One recurring theme involves translating functionalities from the older UCSF Chimera program to ChimeraX.12 Users often seek the ChimeraX equivalents of specific Chimera commands or features.18 For example, users have inquired about the ChimeraX counterpart to Chimera's ~longbond command for hiding missing segments, which can be achieved in ChimeraX by identifying and hiding the "missing structure" model in the Model Panel or using the hide command with the appropriate model identifier.18
+Another common challenge revolves around saving specific selections of atoms to a PDB file. The save command in ChimeraX offers an option to include only selected atoms, which can be specified using the select command beforehand.18 Users have also sought clarification on how to save and restore specific viewing angles, a functionality addressed by ChimeraX's "named views" feature.16 While ChimeraX does not yet have saveable "scenes" that capture both positioning and display settings, saving separate sessions or utilizing named views for positioning and simple display changes are effective workarounds.16
+Questions regarding specific analysis tools, such as Fourier Transform capabilities for volume data, also arise.21 ChimeraX includes the volume fourier command and a "Map Filter" tool (available in recent daily builds) for this purpose.21 However, it's important to note that ChimeraX's Fourier transform functionality has limitations, particularly in analyzing Fourier space maps, as it primarily deals with coefficient magnitudes.21
+Mouse wheel functionality issues have also been reported, where the scroll wheel stops zooming after a period of use.19 While the cause of such issues can vary, users are encouraged to report potential bugs to the ChimeraX developers for investigation.19
+Effective workflows often involve a combination of interactive exploration using the GUI and precise command execution via the CLI.3 The Log panel plays a crucial role in this process, as it displays the command equivalent of actions performed through the GUI, allowing users to learn the corresponding CLI commands and incorporate them into scripts.1 Starting with interactive testing of commands in the GUI before including them in scripts is a recommended practice to ensure they function as expected.12 Saving ChimeraX sessions frequently, especially before making significant changes, is also advisable, as session files preserve the state of the program, including loaded models, display settings, and view orientations.4
+Best Practices, Tips, and Tricks
+To utilize the ChimeraX CLI efficiently, several best practices, tips, and tricks can be employed.2 Leveraging the command history, as discussed earlier, can significantly speed up command entry and recall.2 Utilizing keyboard shortcuts for navigating the command history further enhances efficiency.2
+When constructing commands, it's often more robust to use the full command names rather than truncations, as this helps avoid potential conflicts with new commands added in future versions.14 However, ChimeraX does allow for command truncation as long as the truncated name remains unique.14 Combining multiple commands on a single line with semicolons can streamline workflows, especially within scripts, and can also suppress the display of intermediate states.4
+Paying attention to case sensitivity is important, as ChimeraX commands and some parameters might be case-sensitive.4 Utilizing comments within scripts (lines starting with # or text after a semicolon followed by #) can improve readability and help in understanding the purpose of different command sequences.14
+For tasks that need to be performed repeatedly, saving command sequences as scripts (.cxc files) is highly recommended.3 Before incorporating commands into a script, testing them interactively in the GUI or CLI is a good practice to ensure they produce the desired outcome.12
+When working with complex selections, using the select command with specific target specifications is more precise than relying solely on graphical selection.3 The help command should be the first resort when unsure about the syntax or options for a particular command.2
+For creating publication-quality images, setting the background color to white (set bg white) and enabling silhouettes (set silhouettes true) are often recommended for better contrast and depth perception.4 Adjusting lighting settings using commands like lighting gentle can also enhance the visual appeal of molecular models.4
+When generating movies, the wait command is crucial for controlling the timing of events and ensuring that multi-frame actions complete before the next command is executed.9 Experimenting with different animation commands like turn, roll, fly, and morph can lead to compelling visual representations of molecular processes.9
+User Feedback and Potential Areas for Improvement
+Feedback from the ChimeraX user community, primarily gathered from mailing list archives, provides valuable insights into potential areas for improvement in the CLI.16 One notable point of feedback concerns the case sensitivity of file naming when saving files through the command line.25 Users have reported that saving files with different capitalization in the names can lead to overwriting, suggesting a need for more robust handling of case sensitivity in file operations via the CLI.25
+The desire for feature parity with the older UCSF Chimera, particularly regarding specific commands and functionalities, is also evident in user discussions.12 While ChimeraX offers numerous enhancements and new features, ensuring a smooth transition for users familiar with Chimera by providing equivalent or improved CLI commands remains important.1
+The limitations of certain advanced analysis tools accessible through the CLI, such as the Fourier Transform functionality, have also been highlighted.21 Enhancements in these areas to provide more comprehensive analysis capabilities would be beneficial for users relying on the CLI for advanced tasks.21
+While the command history is a valuable feature, further improvements in its usability, such as more advanced search or filtering options, could be considered based on user needs. Additionally, clearer documentation and more tutorials specifically focused on advanced CLI usage and scripting could further empower users to leverage the full potential of the command-line interface.26 The existing tutorials primarily focus on the graphical interface, and dedicated resources for CLI-based workflows would be a valuable addition.26
+Conclusion
+The UCSF ChimeraX Command Line Interface is a powerful tool that provides advanced users with precise control over the program's functionalities. By understanding its syntax, common commands, and scripting capabilities, researchers can significantly enhance their molecular visualization and analysis workflows. While the CLI is well-documented and offers a wide range of features, ongoing user feedback highlights potential areas for improvement, such as file naming case sensitivity and expanded capabilities for advanced analysis tools. Continued development and the creation of more CLI-focused learning resources will further solidify the ChimeraX CLI as an indispensable tool for the molecular modeling community.
+Works cited
+1. UCSF ChimeraX: Structure visualization for researchers, educators, and developers - PMC, accessed April 1, 2025, https://pmc.ncbi.nlm.nih.gov/articles/PMC7737788/
+2. Tool: Command Line Interface, accessed April 1, 2025, https://www.cgl.ucsf.edu/chimerax/docs/user/tools/cli.html
+3. UCSF Chimera - Getting started - Command Line Version - YouTube, accessed April 1, 2025, https://www.youtube.com/watch?v=GVeInKmAAA4
+4. ChimeraX Tutorial: Using the command-line to create visualizations | Brown Lab - YouTube, accessed April 1, 2025, https://www.youtube.com/watch?v=g1zGCPlUW6Y
+5. ChimeraX Tutorial: User Interface Options and Tools | Brown Lab - YouTube, accessed April 1, 2025, https://www.youtube.com/watch?v=wIS65P0BI5c
+6. UCSF ChimeraX User Guide, accessed April 1, 2025, https://www.cgl.ucsf.edu/chimerax/docs/user/index.html
+7. ChimeraX Quick Start Guide, accessed April 1, 2025, http://www.rbvi.ucsf.edu/chimerax/docs/quickstart/
+8. Command: open - UCSF RBVI, accessed April 1, 2025, https://www.cgl.ucsf.edu/chimerax/docs/user/commands/open.html
+9. ChimeraX Tutorial: Custom Movies Using Commands | Brown Lab - YouTube, accessed April 1, 2025, https://www.youtube.com/watch?v=ZtOwsH5ohlM
+10. ChimeraX Tutorial, accessed April 1, 2025, https://dasher.wustl.edu/bio5357/software/chimerax/tutorial.pdf
+11. The ChimeraX Menu, accessed April 1, 2025, https://www.cgl.ucsf.edu/chimerax/docs/user/menu.html
+12. How to run a script in ChimeraX - Chimera-users - RBVI Mailing Lists - cgl.ucsf.edu webmail, accessed April 1, 2025, https://mail.cgl.ucsf.edu/mailman/archives/list/chimera-users@cgl.ucsf.edu/thread/3T4RAFXSVCW6RPT7VAZSC6D4HMGMWU2S/
+13. Chimera Scripts and Demos, accessed April 1, 2025, https://www.cgl.ucsf.edu/Outreach/Workshops/UCSF-Fall-2005/09-ScriptDemo/Scripting_Tutorial.html
+14. Usage Conventions in Command Documentation, accessed April 1, 2025, https://www.cgl.ucsf.edu/chimerax/docs/user/commands/usageconventions.html
+15. Running ChimeraX and a REPL - ChimeraX-users - RBVI Mailing Lists - cgl.ucsf.edu webmail, accessed April 1, 2025, https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/VOAQFP42X2YHP5GNO45QECBDWJ76A34W/
+16. Recreating views - ChimeraX-users - RBVI Mailing Lists - cgl.ucsf.edu webmail, accessed April 1, 2025, https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/OJ2ZXBBMNJQAXSRJOGOAT3MF2NZPWCPJ/?sort=thread
+17. Making Molecular Movies in ChimeraX - UCSF RBVI, accessed April 1, 2025, https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html
+18. Re: [chimerax-users] Some beginner's questions - cgl.ucsf.edu webmail, accessed April 1, 2025, https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/6FISPWGYVU424WB42IINDRABKCP7W2TU/
+19. Zooming in and out in ChimeraX - ChimeraX-users - RBVI Mailing Lists - cgl.ucsf.edu webmail, accessed April 1, 2025, https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/DI72CC3TO3H4MW6SSD3223VTIICTP76F/?sort=thread
+20. sybyl vs amber atom types in ChimeraX - cgl.ucsf.edu webmail, accessed April 1, 2025, https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/QORPLU4M4Z3YXOZSQ63EJ2JY23VRR2PP/?sort=date
+21. Fourier transform tool in chimeraX? - cgl.ucsf.edu webmail, accessed April 1, 2025, https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/6MBBZEEQYDSSFLCOV4PZVZUU4FXQEGP6/
+22. UCSF Chimera, controlling only the active program - 3Dconnexion Forum, accessed April 1, 2025, https://forum.3dconnexion.com/viewtopic.php?t=4508
+23. Post installation script for ucsf-chimerax-daily returns Python errors - Ask Ubuntu, accessed April 1, 2025, https://askubuntu.com/questions/1083755/post-installation-script-for-ucsf-chimerax-daily-returns-python-errors
+24. UCSF ChimeraX: Contact Us, accessed April 1, 2025, https://www.cgl.ucsf.edu/chimerax/docs/contact.html
+25. [chimerax-users] Re: Problem with saving files through command line - cgl.ucsf.edu webmail, accessed April 1, 2025, https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/message/JKXOCRSPXOU23KBGJ3KJOWAHLL5AZOIT/
+26. UCSF ChimeraX Home Page, accessed April 1, 2025, https://www.cgl.ucsf.edu/chimerax/
+27. UCSF ChimeraX Tutorials, accessed April 1, 2025, https://www.cgl.ucsf.edu/chimerax/tutorials.html

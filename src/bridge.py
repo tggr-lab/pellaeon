@@ -127,6 +127,8 @@ class ChimeraXExecutor:
         self.session = session
         self.last_error: Optional[str] = None
         self.uniprot = UniProtClient(os.path.join(pellaeon_dir("cache"), "uniprot"))
+        from .core.clinvar import ClinVarClient
+        self.clinvar = ClinVarClient(os.path.join(pellaeon_dir("cache"), "clinvar"))
         self._knowledge: Optional[Knowledge] = None
         self._log = log or session.logger.info
 
@@ -150,9 +152,19 @@ class ChimeraXExecutor:
                         recipe_library = data.get("recipes", data) if isinstance(data, dict) else data
                 except Exception:
                     pass
+            guides = []
+            gdir = data_path("guides")
+            if os.path.isdir(gdir):
+                for name in sorted(os.listdir(gdir)):
+                    if name.endswith(".txt"):
+                        try:
+                            with open(os.path.join(gdir, name), "r", encoding="utf-8", errors="replace") as f:
+                                guides.append((name[:-4].replace("_", " "), f.read()))
+                        except Exception:
+                            pass
             self._knowledge = Knowledge(pellaeon_dir("cache"), chimerax_version(), docs_dirs(),
                                         cheatsheet=cheat, registry_entries=entries,
-                                        workflows=workflows, recipe_library=recipe_library, log=self._log)
+                                        workflows=workflows, recipe_library=recipe_library, guides=guides, log=self._log)
         return self._knowledge
 
     def ensure_index(self, progress=None):
@@ -232,7 +244,7 @@ class ChimeraXExecutor:
     def annotate(self, model: str, accession: str, kind: str, color: str = "orange", label: bool = True) -> Dict[str, Any]:
         from .analysis import annotate
         return _run_on_main_thread(self.session, lambda: annotate(
-            self.session, self._run_commands_main, self.uniprot, model, accession, kind, color, label))
+            self.session, self._run_commands_main, self.uniprot, model, accession, kind, color, label, clinvar=self.clinvar))
 
     def run_python(self, code: str) -> Dict[str, Any]:
         def f():
