@@ -229,6 +229,11 @@
         if (c.coloring) h += '<div class="rrow muted">' + esc(c.coloring) + "</div>";
       }
       if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
+    } else if (name === "save_figure") {
+      h += '<div class="rrow"><b>Figure bundle saved</b> to <code>' + esc(c.folder) + "</code> · " + c.width + "×" + c.height + "</div>";
+      h += '<div class="rrow muted">' + esc((c.files || []).join(" · ")) + "</div>";
+      if (c.legend) h += '<details class="tool inner"><summary><span class="label">Draft legend</span></summary><div class="cmd-info">' + esc(c.legend) + "</div></details>";
+      if (c.note) h += '<div class="rrow warn">' + esc(c.note) + "</div>";
     } else if (name === "tidy_labels") {
       h += '<div class="rrow"><b>Labels tidied</b>: ' + c.labels + " on screen · " + c.kept + " kept · " + c.moved + " nudged · " + c.removed + " removed</div>";
       if ((c.removed_labels || []).length) h += '<div class="rrow muted">Removed: ' + esc(c.removed_labels.join(", ")) + "</div>";
@@ -474,6 +479,23 @@
     };
     el.appendChild(box); $("transcript").appendChild(el); hideWelcome(); scrollDown(true);
   }
+  function figureForm(m) {
+    const el = document.createElement("div"); el.className = "msg assistant";
+    const box = document.createElement("div"); box.className = "rcard tcard";
+    box.innerHTML = '<div class="rrow"><b>Save a figure bundle</b>: image, ChimeraX session, replayable script, per-residue colors, model sources and a draft legend, in one folder.</div>' +
+      '<div class="rrow form">Name <input data-figname value="' + esc(m.name) + '" size="18"> Folder <input data-figfolder value="' + esc(m.folder) + '" size="22"> <button class="secondary small" data-pick>Choose…</button></div>' +
+      '<div class="rrow form">Size <select data-figsize><option value="1600x1200">1600 × 1200</option><option value="2400x1800" selected>2400 × 1800</option><option value="3600x2700">3600 × 2700</option><option value="1920x1080">1920 × 1080</option></select>' +
+      ' <label class="check"><input type="checkbox" data-figtransp> transparent background</label> <label class="check"><input type="checkbox" data-figsession checked> include session</label></div>' +
+      '<div class="rrow form">Also a close-up of <input data-figcloseup placeholder="atom spec, e.g. #1/A:87 :<6" size="22"> <button class="secondary small" data-save>Save</button></div>';
+    box.querySelector("[data-pick]").onclick = () => send("figure_pick_folder");
+    box.querySelector("[data-save]").onclick = () => {
+      const [w, h] = box.querySelector("[data-figsize]").value.split("x");
+      send("figure_save", {name: box.querySelector("[data-figname]").value.trim(), folder: box.querySelector("[data-figfolder]").value.trim(), width: w, height: h,
+        transparent: box.querySelector("[data-figtransp]").checked ? "1" : "0", session: box.querySelector("[data-figsession]").checked ? "1" : "0",
+        closeup: box.querySelector("[data-figcloseup]").value.trim()});
+    };
+    el.appendChild(box); $("transcript").appendChild(el); hideWelcome(); scrollDown(true);
+  }
   function renderLayers(layers) {
     const bar = $("layers");
     bar.innerHTML = "";
@@ -623,6 +645,9 @@
                 $("input").value = "Tell me about residue " + m.pick.number + " (" + m.pick.name + ") of chain " + m.pick.chain + " in " + m.pick.model + ". "; autosize(); $("input").focus(); },
     conversation(m) { loadConversation(m); },
     table_preview(m) { tablePreview(m); },
+    figure_form(m) { figureForm(m); },
+    figure_folder(m) { const f = document.querySelector("[data-figfolder]"); if (f) f.value = m.path; },
+    figure_result(m) { const el = document.createElement("div"); el.className = "msg assistant"; el.appendChild(resultCard("save_figure", m.card || {}, m.results || [])); $("transcript").appendChild(el); hideWelcome(); scrollDown(true); },
     table_result(m) { const el = document.createElement("div"); el.className = "msg assistant"; el.appendChild(resultCard("table_overlay", m.card || {}, m.results || [])); $("transcript").appendChild(el); hideWelcome(); scrollDown(true); },
     layers(m) { renderLayers(m.layers || []); },
   };
@@ -667,6 +692,7 @@
     $("autonomy").onchange = () => send("set_autonomy", {mode: $("autonomy").value});
     $("btn-save").onclick = () => send("settings_save", {}, settingsPayload());
     $("btn-table").onclick = () => send("table_import");
+    $("chip-figure").onclick = () => send("figure_form");
     $("btn-first").onclick = () => { send("settings_save", {}, settingsPayload()); setTimeout(() => { showPage("chat"); submit("open 1ubq and color it by chain"); }, 400); };
     $("btn-test").onclick = () => { $("test-result").textContent = "Testing…"; $("test-result").className = "hints"; send("settings_test", {}, settingsPayload()); };
     $("btn-models").onclick = () => { $("test-result").textContent = "Fetching models…"; $("test-result").className = "hints"; send("list_models", {}, settingsPayload()); };

@@ -7,6 +7,7 @@ never imports ChimeraX.
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import time
@@ -96,7 +97,7 @@ NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, reada
               "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
-_TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "explain_residue", "resolve_protein", "protein_features", "search_docs", "get_state",
+_TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "explain_residue", "save_figure", "resolve_protein", "protein_features", "search_docs", "get_state",
                "command_usage", "run_python", "look_at_view", "ask_user", "run_commands"}
 
 _COMPLAINT_RE = re.compile(
@@ -183,6 +184,8 @@ class Agent:
         self.total_usage = Usage()
         self.tables: Dict[str, Dict[str, Any]] = {}     # user-loaded tables (name -> dataset), shared with the panel
         self.layers: List[Dict[str, Any]] = []          # applied table overlays
+        self.figure_notes: List[str] = []               # legend fragments from annotate / compare / table overlays
+        self.figures_dir: str = ""                      # where model-initiated figure bundles go (set by the host)
         self._system = system_prompt or prompt_mod.build_system_prompt(
             directory=directory, gotchas=gotchas, recipes=recipes,
             allow_python=self.config.allow_python,
@@ -525,6 +528,13 @@ class Agent:
             elif name == "explain_residue":
                 payload = self.executor.residue_provenance(str(self._scalar(args.get("residue"), "") or ""), list(self.journal))
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+            elif name == "save_figure":
+                payload = self._figure_bundle(self.figures_dir or os.path.join(os.path.expanduser("~"), "Pellaeon figures"),
+                                              str(self._scalar(args.get("name"), "") or ""), int(args.get("width") or 2400),
+                                              int(args.get("height") or 1800), 3, bool(args.get("transparent", False)),
+                                              str(self._scalar(args.get("closeup"), "") or ""), True, preapproved=False)
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k not in ("commands", "legend")}, ensure_ascii=False),
+                                    is_error="error" in payload)
             elif name == "tidy_labels":
                 payload = self._tidy_labels(str(self._scalar(args.get("keep"), "") or ""))
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
@@ -582,7 +592,7 @@ class Agent:
             commands.extend(split_commands(str(c)))
         return self.execute_commands(commands, origin="model")
 
-    def execute_commands(self, commands: List[str], origin: str = "model") -> Dict[str, Any]:
+    def execute_commands(self, commands: List[str], origin: str = "model", preapproved: bool = False) -> Dict[str, Any]:
         """The single path for running commands: policy, repeat guard, execution, journal."""
         commands = [c.strip() for c in commands if c and c.strip()]
         if not commands:
@@ -630,7 +640,7 @@ class Agent:
             return {"ok": False, "results": [], "error": "You already ran exactly this command in this turn and it failed: %s. "
                     "Do not repeat it. Change it according to the usage/suggestion, or use a different approach." % repeats[0],
                     "repeated": True}
-        pending = needs_confirmation(commands, self.config.autonomy)
+        pending = [] if preapproved else needs_confirmation(commands, self.config.autonomy)
         if pending:
             reasons = []
             for cmd in commands:
@@ -731,6 +741,8 @@ class Agent:
             out["error"] = disp["error"]
             return out
         out.update({k: v for k, v in disp.items() if k != "color_commands"})
+        if disp.get("coloring"):
+            self.figure_notes.append("Comparison: %s" % disp["coloring"])
         if str(disp.get("pairing", "")).startswith("chain id"):
             out["pairing_fallback"] = True
             out["pairing_note"] = ("Residues were paired by chain ID and residue number because no alignment was available. "
@@ -763,6 +775,100 @@ class Agent:
             if m:
                 v = m.group(1).strip()
         return v if v is not None else default
+
+    def _figure_bundle(self, folder: str, name: str, width: int, height: int, supersample: int, transparent: bool,
+                       closeup: str, include_session: bool, preapproved: bool) -> Dict[str, Any]:
+        """Image(s) + session + script + colors + sources + draft legend, in one folder. Image/session saves go through
+        execute_commands (so a model-initiated save still asks); the text files are written here."""
+        import csv
+        import datetime
+        if not hasattr(self.executor, "figure_info"):
+            return {"error": "Figure bundles need the ChimeraX edition."}
+        info = self.executor.figure_info()
+        if info.get("error"):
+            return info
+        if not info.get("models"):
+            return {"error": "Nothing is open to save."}
+        name = re.sub(r"[^A-Za-z0-9_.-]+", "_", name.strip()) or ("figure_" + "_".join(m["name"] for m in info["models"][:2]))
+        outdir = os.path.join(folder, name)
+        try:
+            os.makedirs(outdir, exist_ok=True)
+        except OSError as e:
+            return {"error": "Cannot create %s: %s" % (outdir, e)}
+        width, height = max(200, int(width)), max(200, int(height))
+        q = lambda p: '"%s"' % p.replace('"', "")
+        cmds = ['save %s width %d height %d supersample %d%s' % (q(os.path.join(outdir, name + ".png")), width, height, max(1, int(supersample)),
+                                                                  " transparentBackground true" if transparent else "")]
+        if closeup.strip():
+            cmds += ["view %s" % closeup.strip(),
+                     'save %s width %d height %d supersample %d%s' % (q(os.path.join(outdir, name + "_closeup.png")), width, height, max(1, int(supersample)),
+                                                                    " transparentBackground true" if transparent else ""),
+                     "view"]
+        if include_session:
+            cmds.append("save %s" % q(os.path.join(outdir, name + ".cxs")))
+        run = self.execute_commands(cmds, origin="figure", preapproved=preapproved)
+        if run.get("skipped"):
+            return {"error": "The user did not approve saving the files.", "skipped": True}
+        files = [os.path.basename(c.split('"')[1]) for c in cmds if c.startswith("save ") and '"' in c]
+        # text files: script, colors, sources + metadata, draft legend
+        from .agent import export_lines_for  # noqa: F401  (self-import guard for classic packaging)
+        script = export_lines_for(self)
+        script.insert(2, "# Figure bundle '%s', %s" % (name, datetime.date.today().isoformat()))
+        for m in info["models"]:
+            script.insert(3, "# %s %s: %s" % (m["id"], m["name"], m["source"]))
+        with open(os.path.join(outdir, name + ".cxc"), "w", encoding="utf-8") as f:
+            f.write("\n".join(script) + "\n")
+        files.append(name + ".cxc")
+        try:
+            rows = self.executor.residue_colors() if hasattr(self.executor, "residue_colors") else []
+        except Exception:  # noqa: BLE001
+            rows = []
+        if rows:
+            with open(os.path.join(outdir, name + "_colors.csv"), "w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f); w.writerow(["model", "chain", "number", "residue", "ribbon_color", "atom_color"]); w.writerows(rows)
+            files.append(name + "_colors.csv")
+        legend = self._legend_text(name, info)
+        with open(os.path.join(outdir, name + "_legend.md"), "w", encoding="utf-8") as f:
+            f.write(legend + "\n")
+        files.append(name + "_legend.md")
+        meta = {"name": name, "date": datetime.datetime.now().isoformat(timespec="seconds"), "chimerax": info.get("chimerax_version", ""),
+                "pellaeon": getattr(self, "version", ""), "image": {"width": width, "height": height, "supersample": supersample, "transparent": transparent},
+                "closeup": closeup.strip() or None, "models": info["models"], "background": info.get("background"), "camera": info.get("camera"),
+                "labels": info.get("labels", 0), "tables": [{"dataset": l["dataset"], "column": l["column"], "legend": l.get("legend")} for l in self.layers],
+                "notes": list(self.figure_notes), "commands_recorded": len(self.journal), "files": files}
+        with open(os.path.join(outdir, name + ".json"), "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2, ensure_ascii=False)
+        files.append(name + ".json")
+        out = {"folder": outdir, "files": files, "legend": legend, "commands": run.get("results", []), "ok": bool(run.get("ok")),
+               "models": [m["source"] for m in info["models"]], "width": width, "height": height}
+        if not run.get("ok"):
+            out["note"] = "Some save commands failed; see the commands."
+        return out
+
+    def _legend_text(self, name: str, info: Dict[str, Any]) -> str:
+        """Draft legend from recorded actions only."""
+        who = {"model": "", "rerun": "", "annotate": " (annotation)", "table": " (table overlay)", "compare": " (comparison)", "tidy": ""}
+        parts = ["# %s" % name, ""]
+        srcs = ["%s (%s)" % (m["name"], m["source"]) if m["source"] != m["name"] else m["name"] for m in info["models"]]
+        parts.append("Structure%s: %s." % ("s" if len(srcs) > 1 else "", "; ".join(srcs)))
+        colors = [j for j in self.journal if j.get("ok") and not j.get("noop") and first_word(j.get("command", "")) in ("color", "rainbow", "coloring")]
+        if colors:
+            last = colors[-1]
+            parts.append("Coloring: `%s`%s." % (last["command"], who.get(last.get("origin", ""), "")))
+        for n in self.figure_notes[-4:]:
+            parts.append(n.rstrip(".") + ".")
+        for l in self.layers:
+            parts.append("Table overlay %s / %s: %s." % (l["dataset"], l["column"], l.get("legend", "")))
+        styles = [j["command"] for j in self.journal if j.get("ok") and first_word(j.get("command", "")) in ("cartoon", "style", "show", "hide", "surface", "transparency")][-3:]
+        if styles:
+            parts.append("Representation commands: " + "; ".join("`%s`" % c for c in styles) + ".")
+        if info.get("labels"):
+            parts.append("%d label%s shown." % (info["labels"], "" if info["labels"] == 1 else "s"))
+        parts.append("Background %s. Rendered with ChimeraX %s; every command that produced this view is in %s.cxc." % (
+            info.get("background", ""), info.get("chimerax_version", ""), name))
+        parts.append("")
+        parts.append("_Draft written from the recorded commands; edit before use._")
+        return "\n".join(parts)
 
     def _why_target(self, user_text: str) -> str:
         """The residue a 'why is this ...' question is about: a spec in the text, else the single selected residue."""
@@ -990,6 +1096,7 @@ class Agent:
             out["note"] = "The user declined the commands."
         if use_clinvar:
             out["legend"] = "red = pathogenic, orange = likely pathogenic, yellow = uncertain, cyan/blue = (likely) benign"
+            self.figure_notes.append("ClinVar variants of %s: %s" % (gene, out["legend"]))
             out["pathogenic"] = [it["label"] for it in items if it.get("pathogenic")][:40]
             out["by_significance"] = {}
             for it in items:
@@ -1056,3 +1163,17 @@ class Agent:
             if m.role == "user" and m is not recent[-1]:
                 m.meta.pop("context", None)
         self.conversation = recent
+
+
+def export_lines_for(agent, edition: str = "chimerax") -> List[str]:
+    """Replayable script from the execution journal (same format as the panel's export)."""
+    head = "# ChimeraX command script exported by Pellaeon" if edition != "chimera" else "# Chimera command script exported by Pellaeon Classic"
+    lines = [head, ""]
+    for j in agent.journal:
+        if j.get("ok") and not j.get("noop"):
+            lines.append(j["command"])
+        elif j.get("ok"):
+            lines.append("# matched nothing: %s" % j["command"])
+        else:
+            lines.append("# failed: %s   (%s)" % (j.get("command", ""), (j.get("error") or "")[:80].replace("\n", " ")))
+    return lines

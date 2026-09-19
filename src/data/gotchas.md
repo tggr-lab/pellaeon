@@ -8,7 +8,7 @@ Command gotchas (learned the hard way):
 - Focus/center/zoom to something: `view #1:159` or `view sel`. Reset the whole view: `view`. Only `view initial` if the user asks for the initial view.
 - Background: `set bgColor white` (also black, gray, "#202020").
 - Publication-ready look: `preset "overall look" "publication 1"` then `lighting soft; graphics silhouettes true; set bgColor white`. Full/fancy: `lighting full`.
-- Save an image: `save ~/Desktop/image.png width 2000 supersample 3`; session: `save ~/Desktop/session.cxs`. Both need user confirmation, that is expected.
+- To save a figure use the save_figure tool (image + session + script + colors + legend in one folder; it asks the user first). Plain `save`: `save ~/Desktop/image.png width 2000 supersample 3`; session: `save ~/Desktop/session.cxs`. Both need user confirmation, that is expected.
 - Transparency is a percent and needs a target: `transparency #1 50 target s` (surfaces), `target c` (cartoons), `target a` (atoms). Half transparent = 50.
 - Show/hide: `show #1 atoms`, `hide #1 atoms`, `cartoon #1`, `~cartoon #1` (or `cartoon hide #1`), `surface #1`, `~surface #1`. Hide everything except X: `hide #1 atoms; show #1/A atoms`.
 - Styles: `style #1 stick|ball|sphere`; `cartoon style #1 width 2 thickness 0.4`; nucleic acids: `nucleotides #1 ladder`.

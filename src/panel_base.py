@@ -207,6 +207,63 @@ class PanelBase:
             self.push({"type": "layers", "layers": list(self.agent.layers)})
         self.push({"type": "toast", "kind": "ok", "text": "Removed table %s (colors stay until you recolor)." % name})
 
+    # ---- figure bundles ----
+    def _pick_folder(self) -> Optional[str]:
+        """Host hook: choose a folder for figure bundles (None when unsupported or cancelled)."""
+        self.push({"type": "toast", "kind": "warn", "text": "Figure bundles are not available in this edition yet."})
+        return None
+
+    def _act_figure_form(self, params, payload):
+        st = self._safe_state()
+        names = [m.get("name", "") for m in (st.get("models") or []) if m.get("name")]
+        default = "_".join(n for n in names[:2]) or "figure"
+        folder = getattr(self.settings, "figures_dir", "") or os.path.join(os.path.expanduser("~"), "Pellaeon figures")
+        self.push({"type": "figure_form", "name": re.sub(r"[^A-Za-z0-9_.-]+", "_", default), "folder": folder,
+                   "models": [m.get("id") for m in (st.get("models") or []) if m.get("id")]})
+
+    def _act_figure_pick_folder(self, params, payload):
+        path = self._pick_folder()
+        if path:
+            try:
+                self.settings.figures_dir = path
+                self.settings.save()
+            except Exception:  # noqa: BLE001
+                pass
+            self.push({"type": "figure_folder", "path": path})
+
+    def _act_figure_save(self, params, payload):
+        if self._busy_guard():
+            return
+        if self.agent is None:
+            if not self.settings.configured:
+                self.push({"type": "toast", "kind": "warn", "text": "Choose an AI provider first."})
+                return
+            self.agent = self._build_agent()
+        folder = (params.get("folder") or "").strip() or os.path.join(os.path.expanduser("~"), "Pellaeon figures")
+        name = (params.get("name") or "").strip()
+        try:
+            width = int(params.get("width") or 2400); height = int(params.get("height") or 1800); ss = int(params.get("supersample") or 3)
+        except ValueError:
+            width, height, ss = 2400, 1800, 3
+        transparent = str(params.get("transparent", "")).lower() in ("1", "true", "yes")
+        closeup = (params.get("closeup") or "").strip()
+        include_session = str(params.get("session", "1")).lower() in ("1", "true", "yes")
+        self.agent.figures_dir = folder
+        self._busy = True
+        self._turn_id += 1
+        tid = "t%d" % self._turn_id
+        self.push({"type": "busy", "busy": True}); self.push({"type": "status", "text": "Saving the figure bundle…"})
+
+        def work():
+            try:
+                out = self.agent._figure_bundle(folder, name, width, height, ss, transparent, closeup, include_session, preapproved=True)
+            except Exception as e:  # noqa: BLE001
+                out = {"error": "Could not save the figure: %s" % e}
+            self.push_ts({"type": "figure_result", "id": tid, "card": out, "results": out.get("commands", [])})
+            self._busy = False
+            self.push_ts({"type": "busy", "busy": False})
+        threading.Thread(target=work, daemon=True).start()
+
     def _act_send(self, params, payload):
         text = (params.get("text") or "").strip()
         if text:
@@ -584,7 +641,7 @@ class PanelBase:
             msg["not_run"] = payload.get("not_run", [])
         else:
             msg["summary"] = _summarize_tool(call, result, payload)
-            if call.name in ("compare_structures", "annotate", "table_overlay", "tidy_labels") and isinstance(payload, dict):
+            if call.name in ("compare_structures", "annotate", "table_overlay", "tidy_labels", "save_figure") and isinstance(payload, dict):
                 msg["card"] = {k: v for k, v in payload.items() if k != "commands"}
                 msg["results"] = payload.get("commands", [])
         self.push_ts(msg)
@@ -702,7 +759,7 @@ class PanelBase:
                                 pass
                         else:
                             card = None
-                            if c.name in ("compare_structures", "annotate", "table_overlay", "tidy_labels"):
+                            if c.name in ("compare_structures", "annotate", "table_overlay", "tidy_labels", "save_figure"):
                                 try:
                                     card = json.loads(r.content)
                                     entry["card"] = card
@@ -754,6 +811,10 @@ def _summarize_tool(call, result, payload) -> str:
                 payload.get("compared"), payload.get("reference"), payload.get("paired_residues", 0),
                 payload.get("mean_displacement"), payload.get("residues_over_2A", 0))
         return "Comparison failed" if result is None or result.is_error else "Compared structures"
+    if name == "save_figure":
+        if isinstance(payload, dict) and not payload.get("error"):
+            return "Saved figure bundle %s (%d files)" % (os.path.basename(payload.get("folder", "")), len(payload.get("files", [])))
+        return "Figure not saved"
     if name == "explain_residue":
         if isinstance(payload, dict) and not payload.get("error"):
             return "Explained %s (chain %s)" % (payload.get("residue", ""), payload.get("chain", ""))

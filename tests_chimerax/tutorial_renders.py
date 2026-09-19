@@ -51,6 +51,7 @@ STEPS = [
     ("04_pub",       "make it look publication ready and focus on the heme of chain A", [], True, True, []),
     ("05_distance",  "measure the distance between the iron of the heme in chain A and the CA of residue 87 in chain A", [], True, True,
                      ["distance style radius 0.15 color gold decimalPlaces 2", "label height 0.7", "view #1/A:87 #1/A:HEM", "zoom 0.8"]),
+    ("12_figure",    None, [], False, "figure", []),     # the Save figure form + result card
     ("06_af",        "close everything, then open the AlphaFold model of the gene F2RL1", [], True, True, [LOOK, "view"]),
     ("07_tm",        "color the transmembrane helices orange and the rest white", [], True, True, ["view"]),
     ("08_open_hbb",  None, ["close", "open alphafold:P68871", LOOK, "view"], False, False, []),   # HBB, deterministic setup for the ClinVar step
@@ -72,6 +73,18 @@ def go(i):
     for c in pre:
         try: run(session, c, log=False)
         except Exception as e: log("TUT pre failed %s: %s" % (c, e))
+    if do_panel == "figure":
+        import shutil; shutil.rmtree("/tmp/pellaeon_figs", ignore_errors=True)
+        inst._act_figure_form({}, None)
+        def saved():
+            inst._act_figure_save({"name": "heme_pocket", "folder": "/tmp/pellaeon_figs", "width": "2400", "height": "1800", "closeup": "#1/A:87 :<6", "session": "1"}, None)
+            t0 = time.time()
+            def poll():
+                if not inst._busy and time.time() - t0 > 3: later(1.5, lambda: (panel(tag), go(i + 1)))
+                elif time.time() - t0 > 120: go(i + 1)
+                else: later(0.5, poll)
+            later(1.0, poll)
+        later(1.5, saved); return
     if do_panel == "settings":
         inst.push({"type": "show_page", "page": "settings"})
         later(1.5, lambda: (panel(tag), inst.push({"type": "show_page", "page": "chat"}), later(1.0, lambda: go(i + 1)))); return

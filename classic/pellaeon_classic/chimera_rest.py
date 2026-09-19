@@ -183,6 +183,9 @@ class ChimeraRestExecutor:
     def compute_displacement(self, prep: Dict[str, Any]) -> Dict[str, Any]:
         return {"unsupported": True, "note": "Classic edition: models are superposed (see RMSD); per-residue displacement coloring needs ChimeraX."}
 
+    def figure_info(self) -> Dict[str, Any]:
+        return {"error": "Figure bundles need the ChimeraX edition."}
+
     def residue_provenance(self, res_spec: str, journal) -> Dict[str, Any]:
         return {"error": "Explaining a residue's colors needs the ChimeraX edition."}
 

@@ -213,6 +213,25 @@ Any per-residue table can be painted onto a structure: conservation scores, deep
 
 The color ramp comes from `color byattribute`: every value is stored as a residue attribute (`pellaeon_<table>_<column>`), so ChimeraX's own `key` command, attribute selection (`select ::pellaeon_ubiquitin_hydropathy_hydropathy>3`) and saved sessions all work with it. Table overlays are ChimeraX-edition only.
 
+### Step 12 · Save a figure you can reproduce
+
+Press **Save figure** above the composer (or say "save this as a figure called pocket"). Pick a name and a folder, a size, optionally a close-up spec, and press **Save**.
+
+![Figure bundle form and result](img/tut/12_figure_panel.png)
+
+The folder contains more than the picture:
+
+| File | What it is |
+|---|---|
+| `pocket.png`, `pocket_closeup.png` | the images, at the size you chose |
+| `pocket.cxs` | a ChimeraX session: reopen and keep working |
+| `pocket.cxc` | every command that produced the view, replayable with `open pocket.cxc` |
+| `pocket_colors.csv` | ribbon and atom color of every residue |
+| `pocket_legend.md` | a draft legend written only from the recorded commands, annotations and tables |
+| `pocket.json` | structures and their sources (PDB id, AlphaFold accession or file), camera, background, sizes |
+
+When the AI saves a figure on its own the image save asks for your OK first, like any other file write.
+
 ## Part 3 — Good to know
 
 - **Green means it happened:** a command that ran but matched nothing shows an amber *changed nothing* mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.

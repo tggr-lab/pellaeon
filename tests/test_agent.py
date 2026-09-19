@@ -58,6 +58,14 @@ class FakeExecutor:
                 "history": [{"command": c["command"], "origin": c["origin"], "kind": "color", "commands_ago": 1, "everything": False} for c in colors[-1:]],
                 "last_color_command": ({"command": colors[-1]["command"], "origin": colors[-1]["origin"], "kind": "color", "commands_ago": 1, "everything": False} if colors else None)}
 
+    def figure_info(self):
+        return {"models": [{"id": "#1", "name": "4hhb", "source": "PDB 4HHB", "chains": ["A", "B"], "residues": 574, "atoms": 4779, "shown": True}],
+                "background": "#ffffff", "camera": {"type": "mono", "position": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 50]], "field_of_view": 30.0},
+                "window": [800, 600], "labels": 2, "chimerax_version": "1.12"}
+
+    def residue_colors(self):
+        return [["#1", "A", 87, "HIS", "#ff0000", "#ff0000"], ["#1", "A", 88, "ALA", "#7b68ee", ""]]
+
     def label_layout(self):
         return {"labels": [{"spec": "#1/A:10", "level": "residues", "text": "HIS 10", "x": 100, "y": 100, "w": 60, "h": 16, "per_px": 0.05, "offset": [0.0, 0.0, 0.5]},
                            {"spec": "#1/A:11", "level": "residues", "text": "LYS 11", "x": 104, "y": 102, "w": 60, "h": 16, "per_px": 0.05, "offset": [0.0, 0.0, 0.5]},
@@ -712,3 +720,29 @@ def test_why_regex_does_not_hijack_ordinary_requests():
         assert not _WHY_RE.search(q), q
     for q in ("why is this red?", "Why is residue 87 (HIS) of chain A in 4hhb this color?", "what colored residue 87", "where did this label come from", "which command made it blue"):
         assert _WHY_RE.search(q), q
+
+
+def test_figure_bundle_writes_all_files_and_a_legend(tmp_path):
+    from core.agent import Callbacks
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open 4hhb", "color #1 bychain", "color #1/A:87 red", "label #1/A:87"]})]}, "Done."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    agent.run_turn("open 4hhb, color by chain, make residue 87 red and label it")
+    out = agent._figure_bundle(str(tmp_path), "pocket", 1600, 1200, 2, False, "#1/A:87 :<6", True, preapproved=True)
+    assert "error" not in out and out["ok"]
+    folder = tmp_path / "pocket"
+    for f in ("pocket.cxc", "pocket_colors.csv", "pocket_legend.md", "pocket.json"):
+        assert (folder / f).exists(), f
+    assert any(c.startswith('save "%s" width 1600 height 1200 supersample 2' % (folder / "pocket.png")) for c in ex.ran)
+    assert any(c.startswith('save "%s" width 1600' % (folder / "pocket_closeup.png")) for c in ex.ran)
+    assert any(c == 'save "%s"' % (folder / "pocket.cxs") for c in ex.ran)
+    legend = (folder / "pocket_legend.md").read_text()
+    assert "PDB 4HHB" in legend and "color #1/A:87 red" in legend and "2 labels" in legend
+    script = (folder / "pocket.cxc").read_text()
+    assert "color #1 bychain" in script and "# #1 4hhb: PDB 4HHB" in script
+    import json as _json
+    meta = _json.loads((folder / "pocket.json").read_text())
+    assert meta["image"] == {"width": 1600, "height": 1200, "supersample": 2, "transparent": False} and meta["closeup"] == "#1/A:87 :<6"
+    # a model-initiated save asks first: with no way to confirm it is refused
+    out2 = agent._figure_bundle(str(tmp_path), "x", 800, 600, 1, False, "", False, preapproved=False)
+    assert out2.get("skipped") and "approve" in out2["error"]

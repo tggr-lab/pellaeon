@@ -207,7 +207,22 @@ EXPLAIN_RESIDUE = ToolSpec(
      "required": ["residue"]},
 )
 
-ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+SAVE_FIGURE = ToolSpec(
+    "save_figure",
+    "Save the current view as a figure BUNDLE, not just a picture: a folder with the image, a ChimeraX session, the "
+    "replayable command script, a per-residue color table, the sources of every model and a draft legend written only "
+    "from what actually ran. Use it whenever the user wants to save/export a figure or picture. The image save asks for the "
+    "user's OK. Optional close-up: a second image of an atom spec.",
+    {"type": "object", "properties": {
+        "name": {"type": "string", "description": "figure name (folder and file prefix), e.g. 'hemoglobin_pocket'"},
+        "width": {"type": "integer", "description": "pixels, default 2400"},
+        "height": {"type": "integer", "description": "pixels, default 1800"},
+        "closeup": {"type": "string", "description": "optional atom spec to also render zoomed in, e.g. '#1/A:87 :<6'"},
+        "transparent": {"type": "boolean", "description": "transparent background (default false)"}},
+     "required": []},
+)
+
+ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 

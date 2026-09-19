@@ -28,6 +28,7 @@
 <li><a href="#step-9-compare-two-conformations">Step 9 · Compare two conformations</a></li>
 <li><a href="#step-10-risky-commands-ask-first">Step 10 · Risky commands ask first</a></li>
 <li><a href="#step-11-your-own-data-on-the-structure">Step 11 · Your own data on the structure</a></li>
+<li><a href="#step-12-save-a-figure-you-can-reproduce">Step 12 · Save a figure you can reproduce</a></li>
 </ul>
 </li>
 <li><a href="#part-3-good-to-know">Part 3 — Good to know</a></li>
@@ -186,6 +187,45 @@
 <figure><img alt="Ubiquitin colored by hydropathy" src="img/tut/11_table.png" /><figcaption>Ubiquitin colored by hydropathy</figcaption></figure>
 <figure><img alt="Result card and request" src="img/tut/11_table_panel.png" /><figcaption>Result card and request</figcaption></figure>
 <p>The color ramp comes from <code>color byattribute</code>: every value is stored as a residue attribute (<code>pellaeon_&lt;table&gt;_&lt;column&gt;</code>), so ChimeraX's own <code>key</code> command, attribute selection (<code>select ::pellaeon_ubiquitin_hydropathy_hydropathy&gt;3</code>) and saved sessions all work with it. Table overlays are ChimeraX-edition only.</p>
+<h3 id="step-12-save-a-figure-you-can-reproduce">Step 12 · Save a figure you can reproduce</h3>
+<p>Press <strong>Save figure</strong> above the composer (or say "save this as a figure called pocket"). Pick a name and a folder, a size, optionally a close-up spec, and press <strong>Save</strong>.</p>
+<figure><img alt="Figure bundle form and result" src="img/tut/12_figure_panel.png" /><figcaption>Figure bundle form and result</figcaption></figure>
+<p>The folder contains more than the picture:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pocket.png</code>, <code>pocket_closeup.png</code></td>
+<td>the images, at the size you chose</td>
+</tr>
+<tr>
+<td><code>pocket.cxs</code></td>
+<td>a ChimeraX session: reopen and keep working</td>
+</tr>
+<tr>
+<td><code>pocket.cxc</code></td>
+<td>every command that produced the view, replayable with <code>open pocket.cxc</code></td>
+</tr>
+<tr>
+<td><code>pocket_colors.csv</code></td>
+<td>ribbon and atom color of every residue</td>
+</tr>
+<tr>
+<td><code>pocket_legend.md</code></td>
+<td>a draft legend written only from the recorded commands, annotations and tables</td>
+</tr>
+<tr>
+<td><code>pocket.json</code></td>
+<td>structures and their sources (PDB id, AlphaFold accession or file), camera, background, sizes</td>
+</tr>
+</tbody>
+</table></div>
+<p>When the AI saves a figure on its own the image save asks for your OK first, like any other file write.</p>
 <h2 id="part-3-good-to-know">Part 3 — Good to know</h2>
 <ul>
 <li><strong>Green means it happened:</strong> a command that ran but matched nothing shows an amber <em>changed nothing</em> mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.</li>

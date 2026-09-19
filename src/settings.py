@@ -24,7 +24,8 @@ class PellaeonSettings(Settings):
         "base_url": "",
         "autonomy": AUTONOMY_AUTO,
         "allow_python": False,
-        "readable_labels": True,     # fixed-size, on-top, white-background labels unless the request styles them
+        "readable_labels": True,
+        "figures_dir": "",           # last folder chosen for figure bundles     # fixed-size, on-top, white-background labels unless the request styles them
         "vision": False,
         "think": False,              # Ollama: let thinking models think (slower)
         "temperature": 0.2,

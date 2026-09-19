@@ -334,6 +334,61 @@ def residue_provenance(session, res_spec: str, journal: List[Dict[str, Any]]) ->
     return out
 
 
+def figure_info(session) -> Dict[str, Any]:
+    """Read-only: what a figure bundle needs to record: models and where they came from, camera, background, labels."""
+    import re as _re
+    from chimerax.atomic import AtomicStructure
+    models = []
+    for m in session.models.list(type=AtomicStructure):
+        name = m.name or ""
+        src = ""
+        if _re.fullmatch(r"[0-9][A-Za-z0-9]{3}", name):
+            src = "PDB %s" % name.upper()
+        elif "alphafold" in name.lower() or name.upper().startswith("AF-"):
+            acc = _re.search(r"(?:AF-)?([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9][A-Z][A-Z0-9]{2}[0-9])", name.upper())
+            src = "AlphaFold DB %s" % (acc.group(1) if acc else name)
+        fn = getattr(m, "filename", None)
+        if fn and not src:                      # a local file; fetched entries keep their database id only
+            src = "file " + str(fn)
+        models.append({"id": "#" + m.id_string, "name": name, "source": src or name, "chains": [c.chain_id for c in m.chains],
+                       "residues": int(m.num_residues), "atoms": int(m.num_atoms), "shown": bool(m.display)})
+    v = session.main_view
+    cam = v.camera
+    bg = v.background_color
+    n_labels = 0
+    try:
+        from chimerax.label.label3d import ObjectLabels
+        n_labels = sum(len(lm.labels()) for lm in session.models.list(type=ObjectLabels))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from chimerax.core import version as cxversion
+    except Exception:  # noqa: BLE001
+        cxversion = ""
+    return {"models": models, "background": "#%02x%02x%02x" % tuple(int(255 * c) for c in bg[:3]),
+            "camera": {"type": cam.name, "position": [list(map(float, row)) for row in cam.position.matrix],
+                       "field_of_view": float(getattr(cam, "field_of_view", 0) or 0)},
+            "window": list(v.window_size), "labels": n_labels, "chimerax_version": str(cxversion)}
+
+
+def residue_colors(session) -> List[List[Any]]:
+    """Read-only: per-residue ribbon color (and majority atom color of displayed atoms) for every open structure."""
+    from chimerax.atomic import AtomicStructure
+    rows = []
+    for m in session.models.list(type=AtomicStructure):
+        for r in m.residues:
+            rib = "#%02x%02x%02x" % tuple(int(c) for c in r.ribbon_color[:3]) if r.ribbon_display else ""
+            shown = [a for a in r.atoms if a.display]
+            atom = ""
+            if shown:
+                counts: Dict[str, int] = {}
+                for a in shown:
+                    h = "#%02x%02x%02x" % tuple(int(c) for c in a.color[:3]); counts[h] = counts.get(h, 0) + 1
+                atom = max(counts.items(), key=lambda kv: kv[1])[0]
+            rows.append(["#" + m.id_string, r.chain_id, int(r.number), r.name, rib, atom])
+    return rows
+
+
 def count_residues(session, spec: str) -> int:
     """Read-only: how many residues an atom spec matches (0 when it does not parse)."""
     from chimerax.core.commands import atomspec

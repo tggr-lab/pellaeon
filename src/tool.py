@@ -145,6 +145,11 @@ class PellaeonTool(HtmlToolInstance, PanelBase):
             from chimerax.help_viewer import show_url
             show_url(self.session, url, new_tab=True)
 
+    def _pick_folder(self):
+        from Qt.QtWidgets import QFileDialog
+        path = QFileDialog.getExistingDirectory(self.session.ui.main_window, "Folder for figure bundles", "")
+        return path or None
+
     def _pick_table_file(self):
         from Qt.QtWidgets import QFileDialog
         path, _ = QFileDialog.getOpenFileName(self.session.ui.main_window, "Import a per-residue table", "",

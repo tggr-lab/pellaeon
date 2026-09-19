@@ -270,6 +270,14 @@ class ChimeraXExecutor:
         from .analysis import residue_provenance
         return _run_on_main_thread(self.session, lambda: residue_provenance(self.session, res_spec, journal))
 
+    def figure_info(self) -> Dict[str, Any]:
+        from .analysis import figure_info
+        return _run_on_main_thread(self.session, lambda: figure_info(self.session))
+
+    def residue_colors(self) -> List[List[Any]]:
+        from .analysis import residue_colors
+        return _run_on_main_thread(self.session, lambda: residue_colors(self.session))
+
     def count_residues(self, spec: str) -> int:
         from .analysis import count_residues
         return _run_on_main_thread(self.session, lambda: count_residues(self.session, spec))
