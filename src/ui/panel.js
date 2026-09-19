@@ -335,6 +335,7 @@
     $("s-pull").value = p.model || "";
     $("test-result").textContent = "";
     $("test-result").className = "hints";
+    if (p.provider === "ollama") { $("test-result").textContent = "Checking for Ollama…"; send("settings_test", {}, settingsPayload()); }
   }
   function fillSettings() {
     const s = state.settings;
@@ -518,6 +519,12 @@
       const el = $("test-result");
       el.textContent = m.text;
       el.className = "hints " + (m.ok ? "ok" : "err");
+      if (!m.ok && /not running|Could not reach|Cannot reach/i.test(m.text || "") && ($("presets").dataset.selected === "ollama")) {
+        el.innerHTML = esc("Ollama is not installed or not running. ") + '<a href="#" id="dl-ollama">Download Ollama (free)</a>' + esc(", install it, then come back and press Test connection. Prefer no installation? Pick the Gemini card instead.");
+        $("dl-ollama").onclick = (e) => { e.preventDefault(); send("open_url", {url: "https://ollama.com/download"}); };
+      } else if (m.ok && /no models|not pulled/i.test(m.text || "")) {
+        el.innerHTML = esc(m.text + " ") + "Press Pull below to download it.";
+      }
       if (m.models && m.models.length) handlers.models_list(m);
     },
     models_list(m) {

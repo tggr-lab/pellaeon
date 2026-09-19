@@ -1,134 +1,175 @@
-# Pellaeon tutorial: install it, then talk to ChimeraX
+# Pellaeon tutorial
 
-Pellaeon is a panel inside UCSF ChimeraX. You type what you want in plain English, it runs the ChimeraX commands, shows you exactly what it ran, and asks before doing anything risky. This guide takes about ten minutes.
+This walkthrough takes about twenty minutes. You will install Pellaeon, connect it to an AI, and then work through a real session: open hemoglobin, look at a residue, make a figure, measure something, pull an AlphaFold model by gene name, paint variants onto it, and compare two conformations of an enzyme. Every step shows exactly what to type, what Pellaeon did, and what ChimeraX looks like afterwards.
 
-## Part 1 — Install (Windows, macOS, Linux)
+## Part 1 — Setup
 
-### What you need
+### 1. Install ChimeraX and Pellaeon
 
-- **ChimeraX 1.9 or newer.** Download from [cgl.ucsf.edu/chimerax/download.html](https://www.cgl.ucsf.edu/chimerax/download.html) and install it like any other program. On Windows, run the `.exe` installer and accept the defaults.
-- **An AI to talk to.** Pick one:
-  - *Free and private, on your own PC:* [Ollama](https://ollama.com/download). Install it (Windows: run `OllamaSetup.exe`; it starts automatically in the background). You need roughly 6 GB of free GPU memory for the recommended model, or any PC with 8 GB RAM for the small models (slower).
-  - *Free in the cloud:* a Google AI Studio key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey). No credit card.
-  - *Paid, best quality:* an Anthropic key from [console.anthropic.com](https://console.anthropic.com/settings/keys) or an OpenAI key.
-
-### Step 1 — Install Pellaeon inside ChimeraX
-
-Start ChimeraX. At the bottom of the window is the **Command:** line. Click into it, paste the line below and press Enter:
+1. Install [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/download.html) 1.9 or newer (Windows: run the installer with the defaults).
+2. Start ChimeraX. Click into the **Command:** line at the bottom of the window, paste this and press Enter:
 
 ```
 open https://github.com/pellaeon-chimerax/pellaeon/releases/latest/download/install_pellaeon.py
 ```
 
-ChimeraX downloads Pellaeon and installs it with its own tool installer. The Log shows "Pellaeon ... installed" and the panel opens on the right. That's it. No terminal, no Python, no admin rights.
+The Pellaeon panel appears on the right. Later you find it under **Tools ▸ General ▸ Pellaeon**. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See [Installation](install.md).)
 
-**No internet on that computer, or the line above fails?** Download the `.whl` file from the [releases page](https://github.com/pellaeon-chimerax/pellaeon/releases) and type this instead (adjust the path; quotes are needed when the path has spaces):
+![Pellaeon docked in ChimeraX](img/02_empty_chat_main.png)
 
-```
-toolshed install "C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.whl"
-```
+### 2. Connect an AI (once)
 
-From then on the panel is under **Tools ▸ General ▸ Pellaeon**, and the command `pellaeon` works on the ChimeraX command line.
+The panel opens on its settings page. You have two easy choices:
 
-![Pellaeon panel docked in ChimeraX](img/02_empty_chat_main.png)
+- **Nothing to install (recommended to start):** pick **Google Gemini**, click "get a key", sign in with a Google account at AI Studio, press *Create API key*, paste it into Pellaeon. Free, no credit card, takes two minutes.
+- **Everything stays on your computer:** pick **Ollama**. Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
 
-### Step 2 — Choose your AI (first run)
-
-The first time, Pellaeon opens its settings page.
+Press **Test connection**, then **Save & use**. You can switch providers any time with the gear icon.
 
 ![Settings page](img/01_settings.png)
 
-1. **Pick a provider card.** Ollama for local and free, Gemini for free cloud, Claude or OpenAI for paid. Cloud cards show an **API key** field: paste the key there; it is stored privately on your computer, never inside ChimeraX sessions or files you share.
-2. **Model.** A sensible default is filled in; the pills below are good alternatives.
-3. **Pull** (Ollama only). Press it once to download the model (about 5 GB); the bar shows progress. Small PCs: pull `qwen3:4b` instead.
-4. **Test connection.** You should see "Connected" or "Ollama is running".
-5. **Save & use.**
+## Part 2 — A real session, step by step
 
-Windows note: keys are stored in a private file under your user profile (`%LOCALAPPDATA%\UCSF\ChimeraX\Pellaeon\`). If you prefer environment variables, set `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` or `OPENAI_API_KEY` and leave the key field empty.
+Type each request into the box at the bottom and press Enter. Typos and casual phrasing are fine.
 
-## Part 2 — Using it
+### Step 1 · Open a structure
 
-### Your first request
+> open 4hhb
 
-Type into the box at the bottom and press Enter:
+Pellaeon fetches human hemoglobin from the PDB and tells you what it found: four chains (two alpha, two beta), heme groups and a phosphate.
 
-> open 4hhb, color it by chain and show the heme as spheres
+![After "open 4hhb"](img/tut/01_open.png)
 
-![First request](img/03_first_request.png)
+![What Pellaeon said](img/tut/01_open_panel.png)
 
-1. **Your request.**
-2. **Ran N commands.** Click to expand: every command Pellaeon executed, one line each. A green dot means it worked; a red dot shows the error text. Each line has **copy**, **rerun** and **?** (opens ChimeraX's own documentation for that command).
-3. **The reply**, one or two sentences.
-4. **What is open** strip: models and chains, always current.
-5. **Provider · model** you are talking to; the gear on the right opens settings.
-6. **Autonomy.** *Auto-run, ask for risky* is the default: colors, selections, views run immediately; closing, deleting, saving and scripts ask first.
-7. **Quick chips** for common tasks (scroll them sideways).
-8. **Send / Stop.** Esc also stops. The grey band in the screenshots is empty space cut out for this guide.
+The **Ran 1 command** line is the exact ChimeraX command it used. Click it to expand; every command has *copy*, *rerun* and *?* (opens ChimeraX's own documentation for that command).
 
-Pellaeon understands "it", "these", "the other one": it looks at what is open and selected. Typos are fine ("mesure the distanse between 100 and 150").
+### Step 2 · Color and style
 
-### Click on something and ask about it
+> color it by chain and show the heme groups as spheres
 
-Ctrl-click any atom in the 3D view (ChimeraX's normal selection). A bar appears above the input:
+"it" means the model you just opened. The chains get different colors and the four hemes appear as spheres.
 
-![Click to ask](img/04_click_to_ask.png)
+![Colored by chain, hemes as spheres](img/tut/02_chains.png)
 
-1. **What is selected.**
-2. **What is this?** UniProt annotations, role, neighbours.
-3. **What is nearby?** Residues and ligands within 5 Å, shown as sticks and labelled.
-4. **Highlight** shows it as yellow sticks and centres the view.
+![Commands and reply](img/tut/02_chains_panel.png)
 
-Prefer Alt-click? Press the **Alt+click = ask** chip once; then Alt-clicking an atom prefills "Tell me about residue …" for you to finish.
+### Step 2b · Make it move
 
-### Risky commands ask first
+> make it spin
+
+![Hemoglobin spinning](img/tut/spin_4hhb.gif)
+
+"stop it" stops. "slower", "spin the other way", "rock it back and forth" all work. Continuous motion is also the easiest way to check a figure from every side before you save it.
+
+### Step 3 · Click on something and ask about it
+
+Ctrl-click any atom in the 3D view (that is ChimeraX's normal way of selecting). A bar appears above the input:
+
+![Selection bar](img/tut/03_nearby_panel.png)
+
+Press **What is nearby?** (or type your own question). Pellaeon looks up the residues and ligands within 5 Å, shows them as sticks and labels them:
+
+![Neighbourhood of His 87](img/tut/03_nearby_b.png)
+
+His 87 of chain A is the proximal histidine that holds the heme iron; the sticks around it are the heme and its pocket.
+
+### Step 4 · Make it look like a figure
+
+> make it look publication ready and focus on the heme of chain A
+
+White background, soft lighting, silhouettes, and the view centred on the heme:
+
+![Publication look](img/tut/04_pub.png)
+
+![Commands](img/tut/04_pub_panel.png)
+
+To save it: "save a picture to my desktop". Saving writes a file, so Pellaeon shows a confirmation card first (Step 9).
+
+### Step 5 · Measure something
+
+> measure the distance between the iron of the heme in chain A and the CA of residue 87 in chain A
+
+![Distance monitor](img/tut/05_distance.png)
+
+![The answer](img/tut/05_distance_panel.png)
+
+The number is shown in the 3D view and in the reply. Angles, hydrogen bonds ("show hydrogen bonds"), clashes and contacts work the same way.
+
+### Step 6 · Open an AlphaFold model by gene name
+
+> close everything, then open the AlphaFold model of the gene F2RL1
+
+Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence: blue is confident, orange is not.
+
+![AlphaFold model of PAR2](img/tut/06_af.png)
+
+![UniProt lookup then open](img/tut/06_af_panel.png)
+
+"close everything" asked for confirmation first: closing models is one of the risky actions.
+
+### Step 7 · Paint annotations from UniProt
+
+> color the transmembrane helices orange and the rest white
+
+Pellaeon fetches the transmembrane segments from UniProt and colors exactly those residues. The seven helices of this receptor light up:
+
+![Transmembrane helices](img/tut/07_tm.png)
+
+![What it did](img/tut/07_tm_panel.png)
+
+The same works for domains, binding sites, active sites, glycosylation, disulfides.
+
+### Step 8 · Disease variants from ClinVar
+
+> close everything, open the AlphaFold model of the gene HBB and show the ClinVar disease variants on it
+
+Hemoglobin beta again, this time the AlphaFold model, with every ClinVar missense position colored by clinical significance (red pathogenic, yellow uncertain, blue benign) and the pathogenic ones labeled, sickle-cell E7V among them.
+
+![ClinVar variants on hemoglobin beta](img/tut/08_clinvar.png)
+
+![Result card](img/tut/08_clinvar_panel.png)
+
+Pellaeon maps UniProt numbering onto the model's chains (PDB entries often start counting differently) and checks that the residue in the model really is the reference amino acid; mismatches are skipped and counted in the card.
+
+### Step 9 · Compare two conformations
+
+Open two structures of the same enzyme (adenylate kinase, open and closed):
+
+> close everything, open 4ake and 1ake, then compare these two models and tell me what changed
+
+![Adenylate kinase colored by displacement](img/tut/09_compare_b.png)
+
+![Comparison card](img/tut/09_compare_b_panel.png)
+
+The second model is superposed on the first and colored by how far each residue moved (gray unchanged, red 6 Å or more). The card lists the moving regions; clicking one recentres the view on it. Here the LID domain (residues 117–167) swings 25 Å.
+
+### Step 10 · Risky commands ask first
 
 > close everything
 
-![Confirmation card](img/05_confirm.png)
+![Confirmation card](img/tut/10_close_panel.png)
 
-1. Why it asks.
-2. The exact commands, **editable** before they run.
-3. **Run** or **Skip**. Skipping tells the model you declined; it will not retry.
+Closing, deleting, saving files and running scripts always show this card with the exact commands, editable. **Run** or **Skip**. The dropdown at the top switches between *ask before every command*, *auto-run but ask for risky ones* (default) and *never ask*.
 
-### Compare two structures
+## Part 3 — Good to know
 
-Open two structures (for example `open 4ake` and `open 1ake`) and ask:
-
-> compare these two models and tell me what changed
-
-![Compare](img/06_compare.png)
-
-Pellaeon superposes them, colours the second model by how far each residue moved (grey = unchanged, red = 6 Å or more), and reports RMSD, the most shifted residues and the moving regions. Adenylate kinase's LID and NMP domains light up.
-
-### Show annotations from UniProt
-
-> show the disease variants on this model
-
-![Annotate](img/07_annotate.png)
-
-Works for domains, transmembrane regions, binding and active sites, glycosylation, disulfides and PTMs. Residue numbering matches AlphaFold models exactly; PDB entries can be offset, and Pellaeon says so.
-
-### Other things worth knowing
-
-- **New chat (+)** starts fresh; **☰** reopens past conversations; **⇩** exports every command of the chat as a `.cxc` script you can replay with `open myscript.cxc`.
-- **When it gets a command wrong** it reads the error and the real syntax and retries once or twice. If you say "you did not" or "that didn't work", it will not repeat the same commands.
-- **From the command line or a script:** `pellaeon color everything by chain`.
-- **Settings ▸ Advanced:** allow Python code (always asks first), let vision models see a screenshot of the view, Claude effort level, temperature, rebuild the documentation index.
-- **Privacy:** with Ollama nothing leaves your computer. With cloud providers your requests, the list of open models and selected residues, and relevant documentation passages are sent to that provider.
-
-## Using the classic Chimera (1.x)?
-
-Pellaeon Classic is a separate small program for old Chimera: install Python 3, unzip `pellaeon-classic.zip`, and double-click **Start Pellaeon Classic** (`.cmd` on Windows, `.command` on macOS). A small launcher window appears and the same panel opens in your browser. Press **Launch Chimera** in the launcher (or start Chimera's REST server yourself under Tools ▸ Utilities ▸ RESTServer and type the port). Requests work the same way; Pellaeon speaks Chimera's own command syntax there. `python install.py` adds a desktop shortcut. Details in `classic/README.md`.
+- **Undo:** "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).
+- **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.
+- **Export a session as a script:** the ⇩ button saves every command that actually ran as a `.cxc` file; replay it with `open myscript.cxc`.
+- **Past chats:** ☰ lists them; + starts a new one.
+- **From ChimeraX's own command line:** `pellaeon color everything by chain`.
+- **Classic Chimera 1.x:** there is a separate edition, same panel in your browser. See [Classic edition](classic.md).
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| "Ollama is not running" | Start Ollama (Windows: it is in the system tray; or run `ollama serve`). |
+| "Ollama is not running" | Start Ollama (Windows: it is in the system tray; or run `ollama serve`), or switch to the Gemini card. |
 | "model not found" | Settings ▸ **Pull** the model, or type its exact name (`ollama list` shows what you have). |
 | Empty or very slow answers with Ollama | Use `qwen3:8b` on a GPU; on CPU-only PCs use `qwen3:4b` and expect 10–30 s per request. |
 | "rejected the API key (401)" | Re-paste the key; check it belongs to the provider you selected. |
 | Panel is blank | `Tools ▸ General ▸ Pellaeon` again, or restart ChimeraX. |
-| Something changed that you did not want | Type "undo" (works for most commands) or reopen the structure. |
+| Something changed that you did not want | "undo", or reopen the structure. |
 
 Named after Gilad Pellaeon, captain of the *Chimaera*. Yes, sir.

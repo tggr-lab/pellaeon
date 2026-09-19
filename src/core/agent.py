@@ -71,6 +71,15 @@ _AA_TYPE_RE = re.compile(r"\b(by|per)\s+(the\s+)?(type\s+of\s+)?(aa|amino\s*acid
 _AA_CLASS_RE = re.compile(r":(ala|asp|lys|ser|glu|arg|leu|val)\b|byattr", re.I)
 _ANNOUNCE_RE = re.compile(r"\b(i'?ll|i will|let me|i am going to|i'm going to|going to)\b", re.I)
 
+NUDGE_ANNOTATE = ("(system) The user asked for variants/annotations. Do NOT type 'annotate' as a command: CALL THE TOOL named "
+                  "annotate with arguments model (e.g. \"#1\"), accession (the UniProt accession, or a gene symbol for kind "
+                  "\"clinvar\") and kind (\"clinvar\" for ClinVar disease variants, \"disease\"/\"variant\" for UniProt variants, "
+                  "\"domain\", \"transmembrane\", \"binding\"...). Call it now.")
+_ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
+
+_TOOL_NAMES = {"annotate", "compare_structures", "resolve_protein", "protein_features", "search_docs", "get_state",
+               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands"}
+
 _COMPLAINT_RE = re.compile(
     r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
     r"that'?s (wrong|not it)|wrong|not what i|still the same|no change|nope|it'?s not|isn'?t|aren'?t|are they though|"
@@ -133,6 +142,8 @@ class Agent:
         self.cb = callbacks or Callbacks()
         self.conversation: List[Message] = []
         self.journal: List[Dict[str, Any]] = []   # every command that actually ran, from any path
+        self._verified_accessions: set = set()     # accessions returned by resolve_protein in this conversation
+        self._user_text_upper: str = ""
         self._failed_this_turn: set = set()
         self.archived: List[Message] = []   # messages folded into `summary` (kept for the transcript on disk)
         self.summary: str = ""
@@ -154,6 +165,8 @@ class Agent:
         self.conversation = []
         self.archived = []
         self.summary = ""
+        self._verified_accessions = set()
+        self._user_text_upper = ""
 
     def run_turn(self, user_text: str, cancel: Optional[threading.Event] = None) -> TurnResult:
         cancel = cancel or threading.Event()
@@ -162,6 +175,7 @@ class Agent:
         try:
             self._status("Thinking…")
             self._failed_this_turn = set()
+            self._user_text_upper += " " + user_text.upper()
             context = self._build_context(user_text)
             self.conversation.append(Message.user(user_text, context))
             tools = tool_specs(self.config.allow_python,
@@ -184,6 +198,8 @@ class Agent:
                         nudge = NUDGE_ONLY_CHIMERA if self.config.edition == "chimera" else NUDGE_ONLY
                     elif _AA_TYPE_RE.search(user_text) and ran and not any(_AA_CLASS_RE.search(c) for c in ran):
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
+                    elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate"):
+                        nudge = NUDGE_ANNOTATE  # variants/domains asked for, annotate tool never called
                 if not nudge:
                     break
                 if attempt == 1 and not _ANNOUNCE_RE.search(self._last_assistant_text()):
@@ -342,6 +358,9 @@ class Agent:
             self.conversation.append(Message.tool_results(
                 [ToolResult(c.id, c.name, note, is_error=True) for c in calls]))
 
+    def _tool_called_since(self, index: int, name: str) -> bool:
+        return any(c.name == name for m in self.conversation[index:] if m.role == "assistant" for c in m.tool_calls())
+
     def _commands_since(self, index: int) -> List[str]:
         out: List[str] = []
         for m in self.conversation[index:]:
@@ -414,6 +433,9 @@ class Agent:
                     payload = {"hint": "'%s' is a PDB id, not a gene. Just run: open %s" % (q, q.lower())}
                 else:
                     payload = self.executor.resolve_protein(q, str(args.get("organism", "human") or "human"))
+                    for cand in ([payload] if payload.get("accession") else []) + list(payload.get("candidates") or []):
+                        if cand.get("accession"):
+                            self._verified_accessions.add(str(cand["accession"]).upper())
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "protein_features":
                 payload = self.executor.protein_features(str(args.get("accession", "")), args.get("kinds"))
@@ -476,6 +498,16 @@ class Agent:
         commands = [c.strip() for c in commands if c and c.strip()]
         if not commands:
             return {"ok": False, "results": [], "error": "No commands given."}
+        for c in commands:
+            for acc in re.findall(r"alphafold:([A-Za-z0-9]+)", c, re.I):
+                if acc.upper() not in self._verified_accessions and acc.upper() not in self._user_text_upper:
+                    return {"ok": False, "results": [], "error": "Accession %s was NOT obtained from resolve_protein, so it may be the "
+                            "wrong protein. Call resolve_protein with the gene/protein name first and use the open_command it returns."
+                            % acc, "unverified_accession": acc}
+            w = first_word(c)
+            if w in _TOOL_NAMES:
+                return {"ok": False, "results": [], "error": "'%s' is one of YOUR TOOLS, not a ChimeraX command. Call the tool "
+                        "named %s with its arguments instead of running it as text." % (w, w), "tool_misuse": w}
         repeats = [c for c in commands if c in self._failed_this_turn]
         if repeats:
             return {"ok": False, "results": [], "error": "You already ran exactly this command in this turn and it failed: %s. "

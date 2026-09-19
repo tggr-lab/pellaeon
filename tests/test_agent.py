@@ -456,3 +456,45 @@ def test_rerun_path_uses_execute_commands_and_journal():
     assert out["skipped"] and agent.journal == []
     out = agent.execute_commands(["color #1 red"], origin="rerun")
     assert out["ok"] and agent.journal[-1]["origin"] == "rerun"
+
+
+def test_tool_name_typed_as_command_is_refused():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["annotate #1 model P68871 kind clinvar"]})]}, "ok"])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex, config=AgentConfig(nudge_on_no_action=False))
+    agent.run_turn("show variants")
+    assert ex.ran == []
+    tr = json.loads(agent.conversation[2].tool_results_list()[0].content)
+    assert tr["tool_misuse"] == "annotate" and "YOUR TOOLS" in tr["error"]
+
+
+def test_gemini_is_the_first_preset():
+    from core.providers.presets import PRESETS
+    assert PRESETS[0]["id"] == "gemini" and PRESETS[1]["id"] == "ollama"
+
+
+def test_variant_requests_are_nudged_to_the_annotate_tool():
+    prov = ScriptedProvider(["Here is how you could show variants: ...",
+                             {"calls": [("annotate", {"model": "#1", "accession": "HBB", "kind": "clinvar"})]}, "done"])
+    ex = FakeExecutor()
+    ex.clinvar = type("CV", (), {"missense_variants": lambda self, g: {"gene": g, "count": 0, "searched": 0, "variants": []}})()
+    agent = Agent(prov, ex, callbacks=Callbacks(on_confirm=lambda c, r, p=False: c))
+    agent.run_turn("show the clinvar disease variants on it")
+    assert any(c.name == "annotate" for m in agent.conversation if m.role == "assistant" for c in m.tool_calls())
+
+
+def test_unverified_alphafold_accession_is_refused():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:P69905"]})]},
+                             {"calls": [("resolve_protein", {"query": "HBB"})]},
+                             {"calls": [("run_commands", {"commands": ["open alphafold:P55085"]})]}, "done"])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex, config=AgentConfig(nudge_on_no_action=False))
+    agent.run_turn("open the alphafold model of the gene HBB")
+    assert "open alphafold:P69905" not in ex.ran and "open alphafold:P55085" in ex.ran  # P55085 came from resolve_protein
+    tr = json.loads(agent.conversation[2].tool_results_list()[0].content)
+    assert tr["unverified_accession"] == "P69905"
+    # an accession typed by the user is fine without a lookup
+    prov2 = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:Q8IY22"]})]}, "ok"])
+    ex2 = FakeExecutor()
+    Agent(prov2, ex2, config=AgentConfig(nudge_on_no_action=False)).run_turn("open alphafold q8iy22")
+    assert ex2.ran == ["open alphafold:Q8IY22"]

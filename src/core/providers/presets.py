@@ -19,21 +19,21 @@ PROVIDER_CLASSES = {
 # Each preset: which adapter, where, default model, how to get a key, cost note.
 PRESETS: List[Dict[str, Any]] = [
     {
+        "id": "gemini", "provider": "gemini", "label": "Google Gemini (free, nothing to install)",
+        "base_url": "https://generativelanguage.googleapis.com", "model": "gemini-2.5-flash",
+        "key_env": "GOOGLE_API_KEY", "free": True, "needs_key": True,
+        "models_hint": ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"],
+        "blurb": "Easiest start: get a free key at aistudio.google.com (2 minutes, no credit card), paste it here. Flash models are free with daily limits.",
+        "key_url": "https://aistudio.google.com/apikey",
+    },
+    {
         "id": "ollama", "provider": "ollama", "label": "Ollama (local, free, private)",
         "base_url": "http://localhost:11434", "model": "qwen3:8b", "key_env": "",
         "free": True, "needs_key": False,
         "models_hint": ["qwen3:8b", "qwen3:4b", "gemma4:e4b", "llama3.1:8b", "qwen3:14b"],
-        "blurb": "Runs on your own computer. Install Ollama from ollama.com, then pull a model. "
-                 "qwen3:8b needs ~6 GB of GPU memory; qwen3:4b / gemma4:e4b run on almost any PC (slowly on CPU).",
+        "blurb": "Private: the model runs on your own computer. Needs the free Ollama app from ollama.com and a one-time model download "
+                 "(qwen3:8b for a gaming GPU, qwen3:4b for laptops; slow without a GPU).",
         "key_url": "https://ollama.com/download",
-    },
-    {
-        "id": "gemini", "provider": "gemini", "label": "Google Gemini (free tier available)",
-        "base_url": "https://generativelanguage.googleapis.com", "model": "gemini-2.5-flash",
-        "key_env": "GOOGLE_API_KEY", "free": True, "needs_key": True,
-        "models_hint": ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"],
-        "blurb": "Free API key from Google AI Studio, no credit card. Flash models are free with daily limits.",
-        "key_url": "https://aistudio.google.com/apikey",
     },
     {
         "id": "anthropic", "provider": "anthropic", "label": "Anthropic Claude (best quality)",
