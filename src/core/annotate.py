@@ -100,7 +100,7 @@ def build_annotation(items: List[Dict[str, Any]], mapping: Dict[str, Any], color
             if edition == "chimera":
                 cmds.append('rlabel %s:%d.%s text "%s"' % (model, num, ch, text))
             else:
-                cmds.append('label %s/%s:%d text "%s" height 1.2 color %s' % (model, ch, num, text, col))
+                cmds.append('label %s/%s:%d text "%s"' % (model, ch, num, text))
             labeled += 1
         listing.append({"type": it["type"], "residues": ",".join("%s:%d" % (c, n) for c, n, _ in hits[:6]) + ("…" if len(hits) > 6 else ""),
                         "description": it["description"][:120]})

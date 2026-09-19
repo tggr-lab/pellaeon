@@ -228,6 +228,10 @@
         if (c.coloring) h += '<div class="rrow muted">' + esc(c.coloring) + "</div>";
       }
       if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
+    } else if (name === "tidy_labels") {
+      h += '<div class="rrow"><b>Labels tidied</b>: ' + c.labels + " on screen · " + c.kept + " kept · " + c.moved + " nudged · " + c.removed + " removed</div>";
+      if ((c.removed_labels || []).length) h += '<div class="rrow muted">Removed: ' + esc(c.removed_labels.join(", ")) + "</div>";
+      if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
     } else if (name === "table_overlay") {
       h += '<div class="rrow"><b>' + esc(c.column) + "</b> from table <b>" + esc(c.dataset) + "</b> on " + esc(c.model) + " · " + esc(c.numbering || "") + "</div>";
       if (c.mapped != null) h += '<div class="rrow">' + c.mapped + " residues placed (chains " + esc((c.chains || []).join(", ")) + ") · " + (c.n_missing || 0) + " table positions not in the structure" + (c.n_mismatches ? " · <b>" + c.n_mismatches + " reference-residue mismatches skipped</b>" : "") + "</div>";
@@ -367,6 +371,7 @@
     $("key-note").textContent = state.keyMasked ? "Saved key: " + state.keyMasked + " (" + state.keySource + "). Leave empty to keep it." : "";
     $("s-autonomy").value = s.autonomy || "auto";
     $("s-python").checked = !!s.allow_python;
+    $("s-labels").checked = s.readable_labels !== false;
     $("s-vision").checked = !!s.vision;
     $("s-think").checked = !!s.think;
     $("s-effort").value = s.effort || "";
@@ -381,6 +386,7 @@
       api_key: key,
       autonomy: $("s-autonomy").value,
       allow_python: $("s-python").checked,
+      readable_labels: $("s-labels").checked,
       vision: $("s-vision").checked,
       think: $("s-think").checked,
       effort: $("s-effort").value,

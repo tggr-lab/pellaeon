@@ -188,7 +188,16 @@ TABLE_OVERLAY = ToolSpec(
      "required": []},
 )
 
-ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+TIDY_LABELS = ToolSpec(
+    "tidy_labels",
+    "Make the current 3D labels readable: compute where every label lands on screen, nudge overlapping ones to a free spot "
+    "nearby, remove the ones that cannot fit, and restyle them (fixed size, on top, white background). Call it when the user "
+    "says labels overlap, are unreadable, too small, too many, or asks to tidy/clean them up. Returns counts and what was removed.",
+    {"type": "object", "properties": {"keep": {"type": "string", "description": "optional atom spec of labels that must stay even if crowded, e.g. the selection"}},
+     "required": []},
+)
+
+ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 

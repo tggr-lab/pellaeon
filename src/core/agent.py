@@ -43,6 +43,7 @@ class AgentConfig:
     compact_after_tokens: int = COMPACT_AFTER_TOKENS
     nudge_on_no_action: bool = True   # re-prompt when an action request got words but no tool call
     edition: str = "chimerax"          # "chimerax" or "chimera" (classic)
+    readable_labels: bool = True       # add fixed size / white background / on-top to plain label commands
 
 
 NUDGE = ("(system) You did not call any tool, so NOTHING changed in ChimeraX. If the user asked you to change "
@@ -83,9 +84,12 @@ NUDGE_NAMED = ("(system) The user referred to a named ligand/cofactor/group (hem
                "residue NUMBERS, which are guesses and matched nothing. Use the residue NAME spec (heme = :HEM, ATP = :ATP, "
                "water = :HOH) or a built-in selector (`ligand`, `solvent`, `ions`), e.g. `show :HEM atoms; style :HEM sphere; "
                "color :HEM red`. Run the corrected commands now.")
+_TIDY_RE = re.compile(r"\blabels?\b.*\b(overlap|unreadable|readable|too (small|many|big)|tidy|clean|declutter|mess)|\b(tidy|clean up|declutter)\b.*\blabels?\b", re.I)
+NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, readability, clutter). Do not re-run label commands "
+              "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
-_TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "resolve_protein", "protein_features", "search_docs", "get_state",
+_TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "resolve_protein", "protein_features", "search_docs", "get_state",
                "command_usage", "run_python", "look_at_view", "ask_user", "run_commands"}
 
 _COMPLAINT_RE = re.compile(
@@ -202,6 +206,25 @@ class Agent:
             self._user_text_upper += " " + user_text.upper()
             context = self._build_context(user_text)
             self.conversation.append(Message.user(user_text, context))
+            if self.config.edition == "chimerax" and _TIDY_RE.search(user_text) and hasattr(self.executor, "label_layout"):
+                # a complaint about labels is measured and fixed directly; the model then reports what happened
+                call = ToolCall(new_id(), "tidy_labels", {})
+                self.conversation.append(Message("assistant", [call]))
+                res, payload = self._dispatch(call)
+                self.conversation.append(Message.tool_results([res]))
+                only_labels = not re.search(r"\b(and|then|also|color|show|hide|open|select)\b", user_text, re.I)
+                if only_labels and isinstance(payload, dict):
+                    if payload.get("error"):
+                        text = "I could not tidy the labels: %s" % payload["error"]
+                    else:
+                        text = "Tidied %d labels: %d moved to a free spot, %d removed because they could not fit%s." % (
+                            payload.get("labels", 0), payload.get("moved", 0), payload.get("removed", 0),
+                            (" (" + ", ".join(payload.get("removed_labels", [])[:12]) + ")") if payload.get("removed") else "")
+                        if payload.get("removed"):
+                            text += " Ask for specific residues to label them again."
+                    self.conversation.append(Message.assistant(text))
+                    self._save_hook() if hasattr(self, "_save_hook") else None
+                    return TurnResult(text, len(self.conversation) - start_len, Usage(0, 0))
             tools = tool_specs(self.config.allow_python,
                                self.config.vision and getattr(self.provider, "supports_vision", False))
             outcome = self._loop(tools, cancel, usage)
@@ -213,7 +236,7 @@ class Agent:
                 last_ctx = context
                 if self.config.nudge_on_no_action and looks_like_action_request(user_text):
                     ran = self._commands_since(start_len)
-                    if not outcome.get("called_tool"):
+                    if not outcome.get("called_tool") and not self._tool_called_since(start_len, "tidy_labels"):
                         nudge = NUDGE          # words but no action
                     elif outcome.get("ended_after_error"):
                         nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
@@ -223,6 +246,8 @@ class Agent:
                     elif _AA_TYPE_RE.search(user_text) and ran and not any(_AA_CLASS_RE.search(c) for c in ran) \
                             and not self._mentions_table(user_text):
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
+                    elif _TIDY_RE.search(user_text) and not self._tool_called_since(start_len, "tidy_labels") and self.config.edition == "chimerax":
+                        nudge = NUDGE_TIDY
                     elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate"):
                         nudge = NUDGE_ANNOTATE  # variants/domains asked for, annotate tool never called
                     elif _NAMED_GROUP_RE.search(user_text) and ran and any(_NUMERIC_SPEC_RE.search(c) for c in ran) \
@@ -476,6 +501,10 @@ class Agent:
                 payload = self._compare(str(args["reference"]), str(args["other"]), args.get("chain") or None)
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
+            elif name == "tidy_labels":
+                payload = self._tidy_labels(str(self._scalar(args.get("keep"), "") or ""))
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
+                                    is_error="error" in payload)
             elif name == "table_overlay":
                 payload = self._table_overlay(str(args.get("dataset", "") or ""), str(args.get("column", "") or ""),
                                               args.get("chain") or None, str(args.get("palette", "") or ""),
@@ -483,8 +512,8 @@ class Agent:
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
             elif name == "annotate":
-                payload = self._annotate(str(args.get("model", "#1")), str(args.get("accession", "")),
-                                         str(args.get("kind", "variant")), str(args.get("color", "orange") or "orange"),
+                payload = self._annotate(str(self._scalar(args.get("model"), "#1") or "#1"), str(self._scalar(args.get("accession"), "")),
+                                         str(self._scalar(args.get("kind"), "variant") or "variant"), str(self._scalar(args.get("color"), "orange") or "orange"),
                                          bool(args.get("label", True)))
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
@@ -555,6 +584,23 @@ class Agent:
             if w in _TOOL_NAMES:
                 return {"ok": False, "results": [], "error": "'%s' is one of YOUR TOOLS, not a ChimeraX command. Call the tool "
                         "named %s with its arguments instead of running it as text." % (w, w), "tool_misuse": w}
+        label_notes = []
+        if self.config.readable_labels and self.config.edition == "chimerax":
+            from .labels import style_label_command, label_spec
+            styled = []
+            for c in commands:
+                n = None
+                spec = label_spec(c)
+                if spec and hasattr(self.executor, "count_residues"):
+                    try:
+                        n = self.executor.count_residues(spec)
+                    except Exception:  # noqa: BLE001
+                        n = None
+                c2, note = style_label_command(c, n)
+                if note:
+                    label_notes.append(note)
+                styled.append(c2)
+            commands = styled
         repeats = [c for c in commands if c in self._failed_this_turn]
         if repeats:
             return {"ok": False, "results": [], "error": "You already ran exactly this command in this turn and it failed: %s. "
@@ -606,6 +652,8 @@ class Agent:
             remaining = commands[len(results):]
             if remaining:
                 out["not_run"] = remaining
+        if label_notes:
+            out["label_note"] = " ".join(label_notes)
         return out
 
     # ------------------------------------------------------------ compare / annotate (orchestrated here so that
@@ -653,6 +701,59 @@ class Agent:
                 if len(term) >= 4 and term in low:
                     return True
         return False
+
+    @staticmethod
+    def _scalar(v, default=""):
+        """Small models sometimes pass ['clinvar'] or "['clinvar']" for a string argument: take the first scalar."""
+        if isinstance(v, (list, tuple)):
+            v = v[0] if v else default
+        if isinstance(v, str):
+            m = re.match(r"^\s*\[\s*['\"]?([^'\"\],]+)['\"]?\s*(?:,.*)?\]\s*$", v)
+            if m:
+                v = m.group(1).strip()
+        return v if v is not None else default
+
+    def _tidy_labels(self, keep: str = "") -> Dict[str, Any]:
+        """Declutter the 3D labels: project to screen, pack, then move/remove through execute_commands."""
+        from .labels import pack_labels, SIZE
+        if not hasattr(self.executor, "label_layout"):
+            return {"error": "Tidying labels needs the ChimeraX edition."}
+        lay = self.executor.label_layout()
+        if lay.get("error"):
+            return lay
+        labels = lay.get("labels") or []
+        if not labels:
+            return {"error": "There are no labels to tidy. Label something first (e.g. `label sel`)."}
+        keep_specs = set()
+        if keep and hasattr(self.executor, "list_residues"):
+            pass   # kept labels are simply packed first (see below)
+        boxes = [(i, l["x"], l["y"], l["w"], l["h"]) for i, l in enumerate(labels)]
+        if keep:
+            k = keep.replace(" ", "")
+            boxes.sort(key=lambda b: 0 if k and k in labels[b[0]]["spec"].replace(" ", "") else 1)
+        packed = pack_labels(boxes)
+        cmds: List[str] = []
+        moved = []
+        for i, (dx, dy) in packed["moved"].items():
+            l = labels[i]
+            ox, oy, oz = l["offset"]
+            off = (ox + dx * l["per_px"], oy + dy * l["per_px"], oz)
+            cmds.append("label %s %s offset %.2f,%.2f,%.2f" % (l["spec"], l["level"], off[0], off[1], off[2]))
+            moved.append(l["text"])
+        dropped = [labels[i] for i in packed["dropped"]]
+        if dropped:
+            by_level: Dict[str, List[str]] = {}
+            for l in dropped:
+                by_level.setdefault(l["level"], []).append(l["spec"])
+            for level, specs in by_level.items():
+                cmds.append("label delete %s %s" % (" ".join(specs), level))
+        kept_specs = " ".join(labels[i]["spec"] for i in packed["kept"])
+        if kept_specs:
+            cmds.append("label %s size %d height fixed onTop true color black bgColor #ffffffd9" % (kept_specs, SIZE))
+        run = self.execute_commands(cmds, origin="tidy") if cmds else {"ok": True, "results": []}
+        return {"labels": len(labels), "kept": len(packed["kept"]), "moved": len(moved), "removed": len(dropped),
+                "removed_labels": [l["text"] for l in dropped][:40], "commands": run.get("results", []), "ok": bool(run.get("ok")),
+                "note": ("%d overlapping labels were removed; ask for specific residues to label them again." % len(dropped)) if dropped else ""}
 
     def _tables_state(self) -> List[Dict[str, Any]]:
         return [{"name": n, "rows": len(t.get("rows") or []), "columns": t.get("columns") or [],

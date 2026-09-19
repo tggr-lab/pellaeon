@@ -53,7 +53,8 @@ STEPS = [
     ("06_af",        "close everything, then open the AlphaFold model of the gene F2RL1", [], True, True, [LOOK, "view"]),
     ("07_tm",        "color the transmembrane helices orange and the rest white", [], True, True, ["view"]),
     ("08_open_hbb",  None, ["close", "open alphafold:P68871", LOOK, "view"], False, False, []),   # HBB, deterministic setup for the ClinVar step
-    ("08_clinvar",   "show the ClinVar disease variants of HBB on it", [], True, True, ["label height 1.2", "view"]),
+    ("08_clinvar",   "show the ClinVar disease variants of HBB on it", [], True, True, ["view"]),
+    ("08b_tidy",     "the labels overlap, tidy them", [], True, True, ["view"]),
     ("09_compare",   None, ["close", "open 4ake", "open 1ake", LOOK, "view"], False, False, []),
     ("09_compare_b", "compare these two models and tell me what changed", [], True, True, ["view"]),
     ("10_close",     "close everything", [], False, None, []),     # confirmation card

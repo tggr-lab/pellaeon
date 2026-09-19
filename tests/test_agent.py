@@ -15,7 +15,7 @@ class FakeExecutor:
         out = []
         for c in commands:
             self.ran.append(c)
-            if c in self.fail:
+            if any(c == f or c.startswith(f) for f in self.fail):
                 out.append({"command": c, "ok": False, "error": "Unknown command: %s" % c.split()[0]})
                 break
             out.append({"command": c, "ok": True, "info": ["ok"]})
@@ -40,6 +40,15 @@ class FakeExecutor:
 
     def list_residues(self, model):
         return {"model": "#1", "residues": {"A:10": "ALA", "A:11": "ARG", "A:12": "GLY", "B:10": "ALA"}}
+
+    def count_residues(self, spec):
+        return 40 if "1-40" in spec else 1
+
+    def label_layout(self):
+        return {"labels": [{"spec": "#1/A:10", "level": "residues", "text": "HIS 10", "x": 100, "y": 100, "w": 60, "h": 16, "per_px": 0.05, "offset": [0.0, 0.0, 0.5]},
+                           {"spec": "#1/A:11", "level": "residues", "text": "LYS 11", "x": 104, "y": 102, "w": 60, "h": 16, "per_px": 0.05, "offset": [0.0, 0.0, 0.5]},
+                           {"spec": "#1/A:50", "level": "residues", "text": "GLY 50", "x": 400, "y": 300, "w": 60, "h": 16, "per_px": 0.05, "offset": [0.0, 0.0, 0.5]}],
+                "window": [800, 600]}
 
     def set_residue_attr(self, model, attr, values):
         self.attrs = (attr, dict(values))
@@ -615,3 +624,45 @@ def test_guessed_accession_is_verified_against_uniprot_instead_of_refused():
     ex2 = Ex()
     Agent(prov2, ex2).run_turn("open the alphafold model of TERT")
     assert "open alphafold:P55085" not in ex2.ran and "UniProt says it is F2RL1" in str(prov2.requests[1])
+
+
+def test_plain_label_commands_get_readable_style_and_dense_sets_short_text():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["label #1/A:87", "label #1/A:1-40 residues", "label #1:5 height 2"]})]}, "Labeled."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    agent.run_turn("label residue 87 and the first 40 residues")
+    assert ex.ran[0] == "label #1/A:87 size 16 height fixed onTop true color black bgColor #ffffffd9"
+    assert 'text "{0.one_letter_code}{0.number}" size 12' in ex.ran[1]
+    assert ex.ran[2] == "label #1:5 height 2"          # explicit style is respected
+    assert "one-letter" in str(prov.requests[1])       # the note reached the model
+    prov2 = ScriptedProvider([{"calls": [("run_commands", {"commands": ["label #1/A:87"]})]}, "ok"])
+    ex2 = FakeExecutor()
+    Agent(prov2, ex2, config=AgentConfig(readable_labels=False)).run_turn("label 87")
+    assert ex2.ran == ["label #1/A:87"]
+
+
+def test_list_valued_tool_args_are_reduced_to_scalars():
+    from core.agent import Agent as A
+    assert A._scalar(["clinvar"]) == "clinvar" and A._scalar("['clinvar']") == "clinvar" and A._scalar('["disease", "x"]') == "disease"
+    assert A._scalar("clinvar") == "clinvar" and A._scalar(None, "variant") == "variant" and A._scalar([], "d") == "d"
+
+
+def test_tidy_labels_moves_overlaps_and_restyles():
+    prov = ScriptedProvider([{"calls": [("tidy_labels", {})]}, "Tidied."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    res = agent.run_turn("the labels overlap, tidy them")
+    assert res.reply.startswith("Tidied 3 labels")
+    assert any(c.startswith("label #1/A:11 residues offset") for c in ex.ran)
+    assert any(c.startswith("label #1/A:10 #1/A:11 #1/A:50 size") and "bgColor" in c for c in ex.ran)
+    # a complaint about labels runs the tool before the model even answers, whatever the model would have done
+    prov2 = ScriptedProvider(["The labels are tidy now."])
+    ex2 = FakeExecutor()
+    agent2 = Agent(prov2, ex2)
+    r = agent2.run_turn("the labels are unreadable")
+    assert r.reply.startswith("Tidied 3 labels: 1 moved") and not prov2.requests   # answered without the model
+    assert any(c.startswith("label #1/A:11 residues offset") for c in ex2.ran)
+    # combined with another action the model still gets the turn, with the tidy result in front of it
+    prov3 = ScriptedProvider(["Done both."])
+    Agent(prov3, FakeExecutor()).run_turn("tidy the labels and color the protein white")
+    assert "tidy_labels" in str(prov3.requests[0])

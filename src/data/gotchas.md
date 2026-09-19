@@ -12,7 +12,7 @@ Command gotchas (learned the hard way):
 - Transparency is a percent and needs a target: `transparency #1 50 target s` (surfaces), `target c` (cartoons), `target a` (atoms). Half transparent = 50.
 - Show/hide: `show #1 atoms`, `hide #1 atoms`, `cartoon #1`, `~cartoon #1` (or `cartoon hide #1`), `surface #1`, `~surface #1`. Hide everything except X: `hide #1 atoms; show #1/A atoms`.
 - Styles: `style #1 stick|ball|sphere`; `cartoon style #1 width 2 thickness 0.4`; nucleic acids: `nucleotides #1 ladder`.
-- Labels: `label #1:159` (residue labels), `label #1:159@CA atoms`, `label #1/A chains`; remove with `label delete` (or `~label #1`).
+- Labels: `label #1:159` (residue labels; Pellaeon adds a readable fixed size and background automatically, so do not add height/size/color unless the user asks for a specific look), `label #1:159@CA atoms`, `label #1/A chains`; remove with `label delete` (or `~label #1`).
 - Selection: `select #1:159`; add: `select #1:300 add`; invert: `select ~sel`; clear: `select clear` (or `~select`). Zone: `select #1:159 :<5` (residues within 5 Å).
 - Open by database: `open 1abc` (PDB), `open alphafold:P55085` (AlphaFold by UniProt accession, get it from resolve_protein), `open emdb:1080`. Never `alphafold fetch` for this.
 - AlphaFold models color by confidence (pLDDT) when opened (ChimeraX's alphafold palette: blue = very high, light blue = confident, yellow = low, orange = very low; never describe it as red-yellow-green); `color bfactor #1 palette alphafold` restores that, `color #1 white` overrides it.

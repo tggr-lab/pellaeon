@@ -58,6 +58,7 @@
         <button class="secondary small" id="sel-color">Highlight</button>
       </div>
       <div class="chips" id="chips">
+        <button data-text="tidy up the labels, they overlap">Tidy labels</button>
         <button data-text="make it look publication ready">Publication look</button>
         <button data-text="color by chain">Color by chain</button>
         <button data-text="show the ligands as sticks and hide water">Show ligands</button>
@@ -144,6 +145,7 @@
             <option value="all">Never ask</option>
           </select>
         </div>
+        <label class="check"><input type="checkbox" id="s-labels" checked> Readable labels: fixed size, drawn on top, white background (unless the request says otherwise)</label>
         <label class="check"><input type="checkbox" id="s-python"> Allow Python code (always asks first)</label>
         <label class="check"><input type="checkbox" id="s-vision"> Let the model look at screenshots of the 3D view (vision models only)</label>
         <label class="check" id="f-think"><input type="checkbox" id="s-think"> Ollama: let thinking models think (slower, sometimes smarter)</label>

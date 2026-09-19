@@ -291,6 +291,7 @@ class PanelBase:
         s.base_url = (payload.get("base_url") or "").strip()
         s.autonomy = payload.get("autonomy", s.autonomy) if payload.get("autonomy") in AUTONOMY_MODES else s.autonomy
         s.allow_python = bool(payload.get("allow_python", False))
+        s.readable_labels = bool(payload.get("readable_labels", True))
         s.vision = bool(payload.get("vision", False))
         s.think = bool(payload.get("think", False))
         s.effort = str(payload.get("effort", "") or "")
@@ -447,7 +448,7 @@ class PanelBase:
         key = self.secrets.get(s.preset)
         return {"type": "settings",
                 "settings": {"preset": s.preset, "provider": s.provider, "model": s.model, "base_url": s.base_url,
-                             "autonomy": s.autonomy, "allow_python": bool(s.allow_python), "vision": bool(s.vision),
+                             "autonomy": s.autonomy, "allow_python": bool(s.allow_python), "vision": bool(s.vision), "readable_labels": bool(getattr(s, "readable_labels", True)),
                              "think": bool(s.think), "temperature": s.temperature, "effort": s.effort,
                              "configured": bool(s.configured)},
                 "key_masked": masked(key), "key_source": self.secrets.source(s.preset)}
@@ -489,7 +490,7 @@ class PanelBase:
             pass
         directory = self.executor.knowledge.command_directory()
         cfg = AgentConfig(autonomy=getattr(self, "_runtime_autonomy", None) or s.autonomy, allow_python=bool(s.allow_python), vision=bool(s.vision),
-                          docs_per_turn=int(s.docs_per_turn), edition=self.edition)
+                          docs_per_turn=int(s.docs_per_turn), edition=self.edition, readable_labels=bool(getattr(s, "readable_labels", True)))
         if preset["provider"] == "ollama":
             # keep the conversation well inside the local context window (32k by default)
             cfg.compact_after_tokens = max(8000, int(options.get("num_ctx", 32768) * 0.55))
@@ -583,7 +584,7 @@ class PanelBase:
             msg["not_run"] = payload.get("not_run", [])
         else:
             msg["summary"] = _summarize_tool(call, result, payload)
-            if call.name in ("compare_structures", "annotate", "table_overlay") and isinstance(payload, dict):
+            if call.name in ("compare_structures", "annotate", "table_overlay", "tidy_labels") and isinstance(payload, dict):
                 msg["card"] = {k: v for k, v in payload.items() if k != "commands"}
                 msg["results"] = payload.get("commands", [])
         self.push_ts(msg)
@@ -701,7 +702,7 @@ class PanelBase:
                                 pass
                         else:
                             card = None
-                            if c.name in ("compare_structures", "annotate", "table_overlay"):
+                            if c.name in ("compare_structures", "annotate", "table_overlay", "tidy_labels"):
                                 try:
                                     card = json.loads(r.content)
                                     entry["card"] = card
@@ -753,6 +754,10 @@ def _summarize_tool(call, result, payload) -> str:
                 payload.get("compared"), payload.get("reference"), payload.get("paired_residues", 0),
                 payload.get("mean_displacement"), payload.get("residues_over_2A", 0))
         return "Comparison failed" if result is None or result.is_error else "Compared structures"
+    if name == "tidy_labels":
+        if isinstance(payload, dict) and not payload.get("error"):
+            return "Tidied labels: %d kept, %d moved, %d removed" % (payload.get("kept", 0), payload.get("moved", 0), payload.get("removed", 0))
+        return "Could not tidy labels"
     if name == "table_overlay":
         if isinstance(payload, dict) and not payload.get("error"):
             return "Colored %s by '%s': %d placed, %d not found%s" % (payload.get("model", ""), payload.get("column", ""), payload.get("mapped", 0),

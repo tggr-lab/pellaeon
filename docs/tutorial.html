@@ -23,6 +23,7 @@
 <li><a href="#step-6-open-an-alphafold-model-by-gene-name">Step 6 · Open an AlphaFold model by gene name</a></li>
 <li><a href="#step-7-paint-annotations-from-uniprot">Step 7 · Paint annotations from UniProt</a></li>
 <li><a href="#step-8-disease-variants-from-clinvar">Step 8 · Disease variants from ClinVar</a></li>
+<li><a href="#step-8b-when-labels-pile-up">Step 8b · When labels pile up</a></li>
 <li><a href="#step-9-compare-two-conformations">Step 9 · Compare two conformations</a></li>
 <li><a href="#step-10-risky-commands-ask-first">Step 10 · Risky commands ask first</a></li>
 <li><a href="#step-11-your-own-data-on-the-structure">Step 11 · Your own data on the structure</a></li>
@@ -57,7 +58,9 @@
 </ol>
 <pre><code>open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
 </code></pre>
-<p>The Pellaeon panel appears on the right. Later you find it under <strong>Tools ▸ General ▸ Pellaeon</strong>. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See <a href="install.html">Installation</a>.)</p>
+<p>The Pellaeon panel appears on the right. If you close it, or the next time you start ChimeraX, open it from the menu: <strong>Tools ▸ General ▸ Pellaeon</strong>.</p>
+<figure><img alt="Tools menu, General submenu, Pellaeon entry" src="img/tut/00_menu.png" /><figcaption>Tools menu, General submenu, Pellaeon entry</figcaption></figure>
+<p>Or type <code>ui tool show Pellaeon</code> in the command line. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See <a href="install.html">Installation</a>.)</p>
 <figure><img alt="Pellaeon docked in ChimeraX" src="img/docked_4hhb.png" /><figcaption>Pellaeon docked in ChimeraX</figcaption></figure>
 <h3 id="2-connect-an-ai-once">2. Connect an AI (once)</h3>
 <p>The panel opens on its settings page. You have two easy choices:</p>
@@ -136,6 +139,14 @@
 <figure><img alt="ClinVar variants on hemoglobin beta" src="img/tut/08_clinvar.png" /><figcaption>ClinVar variants on hemoglobin beta</figcaption></figure>
 <figure><img alt="Result card" src="img/tut/08_clinvar_panel.png" /><figcaption>Result card</figcaption></figure>
 <p>Pellaeon maps UniProt numbering onto the model's chains (PDB entries often start counting differently) and checks that the residue in the model really is the reference amino acid; mismatches are skipped and counted in the card.</p>
+<h3 id="step-8b-when-labels-pile-up">Step 8b · When labels pile up</h3>
+<p>Twenty-five variant labels on a small protein overlap. Say so:</p>
+<blockquote>
+<p>the labels overlap, tidy them</p>
+</blockquote>
+<p>Pellaeon works out where every label sits on screen, moves the colliding ones to a free spot next to their residue and removes the ones that cannot fit, then tells you which. Ask for specific residues to label those again.</p>
+<figure><img alt="Labels after tidying" src="img/tut/08b_tidy.png" /><figcaption>Labels after tidying</figcaption></figure>
+<figure><img alt="What was moved and removed" src="img/tut/08b_tidy_panel.png" /><figcaption>What was moved and removed</figcaption></figure>
 <h3 id="step-9-compare-two-conformations">Step 9 · Compare two conformations</h3>
 <p>Open two structures of the same enzyme (adenylate kinase, open and closed):</p>
 <blockquote>
@@ -169,6 +180,7 @@
 <p>The color ramp comes from <code>color byattribute</code>: every value is stored as a residue attribute (<code>pellaeon_&lt;table&gt;_&lt;column&gt;</code>), so ChimeraX's own <code>key</code> command, attribute selection (<code>select ::pellaeon_ubiquitin_hydropathy_hydropathy&gt;3</code>) and saved sessions all work with it. Table overlays are ChimeraX-edition only.</p>
 <h2 id="part-3-good-to-know">Part 3 — Good to know</h2>
 <ul>
+<li><strong>Labels</strong> are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.</li>
 <li><strong>Undo:</strong> "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).</li>
 <li><strong>When it gets a command wrong</strong>, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.</li>
 <li><strong>Export a session as a script:</strong> the ⇩ button saves every command that actually ran as a <code>.cxc</code> file; replay it with <code>open myscript.cxc</code>.</li>

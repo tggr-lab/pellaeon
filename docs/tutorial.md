@@ -26,7 +26,11 @@ The rest of this page is the full walkthrough.
 open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
 ```
 
-The Pellaeon panel appears on the right. Later you find it under **Tools ▸ General ▸ Pellaeon**. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See [Installation](install.md).)
+The Pellaeon panel appears on the right. If you close it, or the next time you start ChimeraX, open it from the menu: **Tools ▸ General ▸ Pellaeon**.
+
+![Tools menu, General submenu, Pellaeon entry](img/tut/00_menu.png)
+
+Or type `ui tool show Pellaeon` in the command line. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See [Installation](install.md).)
 
 ![Pellaeon docked in ChimeraX](img/docked_4hhb.png)
 
@@ -147,6 +151,18 @@ Hemoglobin beta again, this time the AlphaFold model, with every ClinVar missens
 
 Pellaeon maps UniProt numbering onto the model's chains (PDB entries often start counting differently) and checks that the residue in the model really is the reference amino acid; mismatches are skipped and counted in the card.
 
+### Step 8b · When labels pile up
+
+Twenty-five variant labels on a small protein overlap. Say so:
+
+> the labels overlap, tidy them
+
+Pellaeon works out where every label sits on screen, moves the colliding ones to a free spot next to their residue and removes the ones that cannot fit, then tells you which. Ask for specific residues to label those again.
+
+![Labels after tidying](img/tut/08b_tidy.png)
+
+![What was moved and removed](img/tut/08b_tidy_panel.png)
+
 ### Step 9 · Compare two conformations
 
 Open two structures of the same enzyme (adenylate kinase, open and closed):
@@ -189,6 +205,7 @@ The color ramp comes from `color byattribute`: every value is stored as a residu
 
 ## Part 3 — Good to know
 
+- **Labels** are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.
 - **Undo:** "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).
 - **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.
 - **Export a session as a script:** the ⇩ button saves every command that actually ran as a `.cxc` file; replay it with `open myscript.cxc`.

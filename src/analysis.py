@@ -169,6 +169,74 @@ def map_positions(session, model: str, accession: str, positions: List[int]) -> 
             "offsets": {t[0]: t[1] for t in targets}, "unmapped": [p for p in positions if p not in out_map], "note": note}
 
 
+def label_layout(session) -> Dict[str, Any]:
+    """Read-only: every 3D label with its screen box (pixels, lower-left origin) and the scene size of one pixel at its depth."""
+    import math
+    import numpy as np
+    from chimerax.label.label3d import ObjectLabels
+    view = session.main_view
+    cam = view.camera
+    w, h = view.window_size
+    inv = cam.position.inverse()
+    persp = hasattr(cam, "field_of_view")
+    if persp:
+        half = math.tan(math.radians(cam.field_of_view) / 2.0)
+    try:
+        from Qt.QtGui import QGuiApplication
+        px_per_pt = QGuiApplication.primaryScreen().logicalDotsPerInch() / 72.0   # label sizes are in points
+    except Exception:  # noqa: BLE001
+        px_per_pt = 96.0 / 72.0
+    items = []
+    for lm in session.models.list(type=ObjectLabels):
+        parent = lm.parent
+        for lab in lm.labels():
+            obj = getattr(lab, "object", None)
+            if obj is None or getattr(obj, "deleted", False) or not lab.visible():
+                continue
+            loc = lab.location()
+            if loc is None:
+                continue
+            xyz = parent.scene_position * np.array(loc, dtype=float) if parent is not None else np.array(loc, dtype=float)
+            p = inv * xyz
+            if persp:
+                z = -p[2]
+                if z <= 0:
+                    continue
+                per_px = 2.0 * z * half / w          # scene units per pixel at this depth
+            else:
+                per_px = cam.field_width / w
+            off = [float(v) for v in lab.offset]
+            x = w / 2.0 + (p[0] + off[0]) / per_px
+            y = h / 2.0 + (p[1] + off[1]) / per_px
+            text = lab.text
+            size = float(getattr(lab, "size", 16) or 16)
+            spec = None
+            from chimerax.atomic import Residue, Atom
+            if isinstance(obj, Residue):
+                spec = "#%s/%s:%d%s" % (obj.structure.id_string, obj.chain_id, obj.number, obj.insertion_code)
+                level = "residues"
+            elif isinstance(obj, Atom):
+                r = obj.residue
+                spec = "#%s/%s:%d%s@%s" % (r.structure.id_string, r.chain_id, r.number, r.insertion_code, obj.name)
+                level = "atoms"
+            else:
+                continue
+            px = size * px_per_pt
+            items.append({"spec": spec, "level": level, "text": text, "x": x, "y": y, "w": 0.62 * px * max(1, len(text)),
+                          "h": 1.3 * px, "per_px": per_px, "offset": off})
+    return {"labels": items, "window": [w, h]}
+
+
+def count_residues(session, spec: str) -> int:
+    """Read-only: how many residues an atom spec matches (0 when it does not parse)."""
+    from chimerax.core.commands import atomspec
+    try:
+        results = atomspec.AtomSpecArg.parse(spec, session)[0].evaluate(session)
+        return len(results.atoms.unique_residues)
+    except Exception:  # noqa: BLE001
+        return 0
+
+
 def list_residues(session, model: str) -> Dict[str, Any]:
     """Read-only: {'model': '#1', 'residues': {'A:10': 'ALA', ...}} for polymer residues with a CA atom."""
     m = _find_structure(session, model)

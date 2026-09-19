@@ -7,7 +7,7 @@ import sys
 
 DEFAULTS = {
     "configured": False, "preset": "ollama", "provider": "ollama", "model": "qwen3:8b", "base_url": "",
-    "autonomy": "auto", "allow_python": False, "vision": False, "think": False, "temperature": 0.2,
+    "autonomy": "auto", "allow_python": False, "readable_labels": True, "vision": False, "think": False, "temperature": 0.2,
     "docs_per_turn": 6, "show_tool_details": True, "last_conversation": "", "effort": "",
     "chimera_port": 0, "chimera_path": "",
 }

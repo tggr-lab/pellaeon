@@ -258,6 +258,14 @@ class ChimeraXExecutor:
                 flatten(val)
         return _run_on_main_thread(self.session, lambda: compute_displacement(self.session, prep, returns))
 
+    def label_layout(self) -> Dict[str, Any]:
+        from .analysis import label_layout
+        return _run_on_main_thread(self.session, lambda: label_layout(self.session))
+
+    def count_residues(self, spec: str) -> int:
+        from .analysis import count_residues
+        return _run_on_main_thread(self.session, lambda: count_residues(self.session, spec))
+
     def list_residues(self, model: str) -> Dict[str, Any]:
         from .analysis import list_residues
         return _run_on_main_thread(self.session, lambda: list_residues(self.session, model))
