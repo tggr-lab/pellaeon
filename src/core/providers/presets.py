@@ -20,9 +20,9 @@ PROVIDER_CLASSES = {
 PRESETS: List[Dict[str, Any]] = [
     {
         "id": "gemini", "provider": "gemini", "label": "Google Gemini (free, nothing to install)",
-        "base_url": "https://generativelanguage.googleapis.com", "model": "gemini-2.5-flash",
+        "base_url": "https://generativelanguage.googleapis.com", "model": "gemini-3.6-flash",
         "key_env": "GOOGLE_API_KEY", "free": True, "needs_key": True,
-        "models_hint": ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"],
+        "models_hint": ["gemini-3.6-flash", "gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"],
         "blurb": "Easiest start: get a free key at aistudio.google.com (2 minutes, no credit card), paste it here. Flash models are free with daily limits.",
         "key_url": "https://aistudio.google.com/apikey",
     },

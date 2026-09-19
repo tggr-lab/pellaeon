@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import re
+import time
 import threading
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -64,8 +66,47 @@ class GeminiProvider(Provider):
                 out.append({"role": "user", "parts": parts})
         return out
 
+    switched_to: str = ""     # set when Google retired the configured model and named its replacement
+
+    @staticmethod
+    def suggested_model(message: str) -> str:
+        """Google's 'no longer available ... use models/X' error names the replacement; extract X."""
+        m = re.search(r"use\s+models/([A-Za-z0-9._-]+)", message or "")
+        return m.group(1) if m else ""
+
+    @staticmethod
+    def retry_delay(message: str) -> float:
+        """Seconds to wait before retrying a 429, from Google's 'retry in 12.3s' / retryDelay hint (0 = none given)."""
+        m = re.search(r"retry(?:Delay)?[\"']?\s*[:=]?\s*[\"']?(?:in\s+)?(\d+(?:\.\d+)?)\s*s", message or "", re.I)
+        return float(m.group(1)) if m else 0.0
+
     def stream(self, system, messages, tools, on_delta: Optional[OnDelta] = None,
                cancel: Optional[threading.Event] = None) -> Tuple[Message, Usage]:
+        waited = 0.0
+        for attempt in range(4):
+            try:
+                return self._stream(system, messages, tools, on_delta, cancel)
+            except ProviderError as e:
+                text = str(e)
+                new = self.suggested_model(text)
+                if new and new != self.model:
+                    self.model = new
+                    self.switched_to = new
+                    continue
+                if ("429" in text or "503" in text) and attempt < 3 and waited < 90:
+                    delay = self.retry_delay(text) or (15.0 * (attempt + 1))
+                    delay = min(delay + 1.0, 60.0)
+                    if cancel is not None and cancel.wait(delay):
+                        raise
+                    elif cancel is None:
+                        time.sleep(delay)
+                    waited += delay
+                    continue
+                raise
+        raise ProviderError("Gemini kept refusing the request.")
+
+    def _stream(self, system, messages, tools, on_delta: Optional[OnDelta] = None,
+                cancel: Optional[threading.Event] = None) -> Tuple[Message, Usage]:
         if not self.api_key:
             raise ProviderError("No Gemini API key. Get a free one at aistudio.google.com and add it in Settings.")
         body: Dict[str, Any] = {

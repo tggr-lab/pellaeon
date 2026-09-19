@@ -587,6 +587,16 @@ class PanelBase:
         cancel = self._cancel
         try:
             result = agent.run_turn(text, cancel)
+            switched = getattr(agent.provider, "switched_to", "")
+            if switched and switched != self.settings.model:
+                # the provider retired the configured model and named a replacement: keep it
+                self.settings.model = switched
+                try:
+                    self.settings.save()
+                except Exception:  # noqa: BLE001
+                    pass
+                self.push_ts({"type": "toast", "kind": "warn", "text": "The provider retired the configured model; switched to %s (saved in Settings)." % switched})
+                self.push_ts({"type": "config", "config": self._config_summary()})
         except Exception as e:  # noqa: BLE001
             result = None
             self.push_ts({"type": "toast", "kind": "error", "text": "Pellaeon crashed: %s" % e})

@@ -157,3 +157,17 @@ def test_presets_and_factory():
     assert isinstance(p, openai_compat.OpenAICompatProvider) and p.base_url.endswith("/api/v1")
     with pytest.raises(ValueError):
         make_provider("nope", "x")
+
+
+def test_gemini_names_the_replacement_for_a_retired_model():
+    from core.providers.gemini import GeminiProvider
+    msg = "Gemini: model not found. This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.6-flash for the best experience."
+    assert GeminiProvider.suggested_model(msg) == "gemini-3.6-flash"
+    assert GeminiProvider.suggested_model("Gemini: model not found. nothing here") == ""
+
+
+def test_gemini_reads_the_retry_delay_from_the_rate_limit_message():
+    from core.providers.gemini import GeminiProvider
+    assert GeminiProvider.retry_delay("quota exceeded ... Please retry in 12.5s.") == 12.5
+    assert GeminiProvider.retry_delay('"retryDelay": "7s"') == 7.0
+    assert GeminiProvider.retry_delay("no hint") == 0.0

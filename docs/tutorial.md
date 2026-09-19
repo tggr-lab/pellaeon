@@ -38,7 +38,7 @@ Or type `ui tool show Pellaeon` in the command line. Nothing else to install: no
 
 The panel opens on its settings page. You have two easy choices:
 
-- **Nothing to install (recommended to start):** pick **Google Gemini**, click "get a key", sign in with a Google account at AI Studio, press *Create API key*, paste it into Pellaeon. Free, no credit card, takes two minutes.
+- **Nothing to install (recommended to start):** pick **Google Gemini**, click "get a key", sign in with a Google account at AI Studio, press *Create API key*, paste it into Pellaeon. Free, no credit card, takes two minutes. The free tier allows about five requests a minute; when you hit it, Pellaeon waits and retries by itself.
 - **The AI runs on your computer:** pick **Ollama**. (Structures and annotations are still fetched from the PDB, UniProt and ClinVar when you ask for them.) Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
 
 Press **Test connection**, then **Save & use**, or **Run a first request**, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.

@@ -57,7 +57,7 @@ All options:
 | Option | Cost | What to do |
 |---|---|---|
 | **Ollama** (local, private) | free | Install [Ollama](https://ollama.com/download), then press **Pull** next to `qwen3:8b` in Pellaeon's settings (needs about 6 GB of GPU memory). On a laptop without a GPU pull `qwen3:4b` instead and expect 10–30 s per request. Nothing leaves your computer except UniProt/ClinVar lookups when you ask for them. |
-| **Google Gemini** | free tier | Create a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (no credit card), paste it in. |
+| **Google Gemini** | free tier (about 5 requests a minute; Pellaeon waits and retries when the limit hits, so a request can take a minute) | Create a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (no credit card), paste it in. |
 | **Anthropic Claude** | pay per use | Key from [console.anthropic.com](https://console.anthropic.com/settings/keys). Best at long multi-step work. Claude Pro/Max subscriptions cannot be used by third-party tools. |
 | **OpenAI** | pay per use | Key from [platform.openai.com](https://platform.openai.com/api-keys). |
 | **OpenRouter / Groq** | free tiers | One key, many models. `openrouter/free` picks a free model that supports tools. |

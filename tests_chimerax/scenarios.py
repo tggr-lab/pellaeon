@@ -39,7 +39,17 @@ directory = ex.knowledge.command_directory()
 
 
 def make_agent(record):
-    prov = OllamaProvider(model, options={"think": think})
+    if ":" in model and model.split(":", 1)[0] in ("gemini", "anthropic", "openai", "openrouter", "groq"):
+        # a cloud preset with the key stored by the panel: e.g. gemini:gemini-2.5-flash
+        from chimerax.pellaeon.core.providers.presets import make_provider, preset_by_id
+        from chimerax.pellaeon.core.secrets import SecretStore
+        from chimerax.pellaeon.bridge import pellaeon_dir
+        pid, mname = model.split(":", 1)
+        preset = preset_by_id(pid) or {}
+        prov = make_provider(preset.get("provider", pid), mname or preset.get("model", ""), api_key=SecretStore(pellaeon_dir("config")).get(pid),
+                             base_url=preset.get("base_url", ""))
+    else:
+        prov = OllamaProvider(model, options={"think": think})
     cb = Callbacks(on_tool_start=lambda c: record["calls"].append((c.name, dict(c.args))),
                    on_confirm=lambda cmds, reasons: (record["confirms"].append(list(cmds)) or cmds),
                    on_ask_user=lambda q, o: record["asks"].append(q))
@@ -85,10 +95,13 @@ def evaluate(s, record, reply):
     return False, "unknown check"
 
 
+PACE = float(os.environ.get("PELLAEON_PACE", "0") or 0)    # seconds between scenarios (free cloud tiers are per-minute limited)
 report = {"model": model, "think": think, "results": []}
 passed = 0
 t_all = time.time()
 for s in SCENARIOS:
+    if PACE:
+        time.sleep(PACE)
     run(session, "close", log=False)
     run(session, "set bgColor black", log=False)
     for cmd in s.get("setup_commands", []) or []:

@@ -68,7 +68,7 @@
 <h3 id="2-connect-an-ai-once">2. Connect an AI (once)</h3>
 <p>The panel opens on its settings page. You have two easy choices:</p>
 <ul>
-<li><strong>Nothing to install (recommended to start):</strong> pick <strong>Google Gemini</strong>, click "get a key", sign in with a Google account at AI Studio, press <em>Create API key</em>, paste it into Pellaeon. Free, no credit card, takes two minutes.</li>
+<li><strong>Nothing to install (recommended to start):</strong> pick <strong>Google Gemini</strong>, click "get a key", sign in with a Google account at AI Studio, press <em>Create API key</em>, paste it into Pellaeon. Free, no credit card, takes two minutes. The free tier allows about five requests a minute; when you hit it, Pellaeon waits and retries by itself.</li>
 <li><strong>The AI runs on your computer:</strong> pick <strong>Ollama</strong>. (Structures and annotations are still fetched from the PDB, UniProt and ClinVar when you ask for them.) Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press <strong>Pull</strong> next to <code>qwen3:8b</code> once (5 GB, needs a gaming-class GPU; on a laptop pull <code>qwen3:4b</code> instead and expect slower answers).</li>
 </ul>
 <p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong>, or <strong>Run a first request</strong>, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.</p>
