@@ -102,7 +102,8 @@ footer .credits a { color: inherit; text-decoration: none; border-bottom: 1px do
 @keyframes howflow { to { stroke-dashoffset: -14; } }
 @keyframes howglow { 0%, 10%, 100% { filter: none; } 5% { filter: drop-shadow(0 0 6px var(--accent)); } }
 @media (prefers-reduced-motion: reduce) { .how .wires path, .how .node { animation: none; } }
-.how-list { display: none; padding-left: 22px; color: var(--muted); }
-.how-list li { margin: 6px 0; }
-.how-list b { color: var(--ink); }
-@media (max-width: 700px) { .howwrap { display: none; } .how-list { display: block; } }
+.howwrap-v { display: none; }
+.how.how-v { min-width: 0; max-width: 420px; }
+.how-v .wires path { marker-end: url(#ahv); }
+.how-v .wires path.loop { marker-end: url(#ah2v); }
+@media (max-width: 700px) { .howwrap { display: none; } .howwrap-v { display: block; } .nav { position: static; } }

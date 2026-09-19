@@ -47,15 +47,29 @@
 <g class="node n7" transform="translate(315,330)"><rect width="250" height="140" rx="12"/><foreignObject x="0" y="0" width="250" height="140"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>7 · Reply</b><span>Cards with every command: re-run, copy, open its ChimeraX docs. Export the chat as a .cxc script.</span></div></foreignObject></g>
 <text class="lab" x="735" y="262">error + real syntax → try again</text><text class="lab" x="165" y="300">next request</text></svg>
 </div>
-<ol class="how-list">
-  <li><b>You type.</b> Typos, "it" and gene names are fine.</li>
-  <li><b>Context.</b> What is open and selected, the documentation of your ChimeraX version indexed locally, 131 tutorial workflows, 58 recipes, a list of known model mistakes.</li>
-  <li><b>The model plans.</b> Ollama on your PC, Gemini, Claude or OpenAI. It cannot type into ChimeraX; it can only call tools.</li>
-  <li><b>Tools.</b> Run commands, read state, search docs, UniProt lookup, annotate, compare, your tables. Every call is logged.</li>
-  <li><b>Safety gate.</b> Closing, deleting, saving and scripts stop for an editable OK card.</li>
-  <li><b>ChimeraX runs it.</b> Pellaeon reads the log; an error goes back with the real syntax and a suggestion, and the model retries a bounded number of times.</li>
-  <li><b>Reply.</b> Cards with every command: re-run, copy, open its docs. Export the chat as a .cxc script.</li>
-</ol>
+<div class="howwrap-v">
+<svg class="how how-v" viewBox="0 0 420 1084" role="img" aria-label="How Pellaeon works, step by step" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ahv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><marker id="ah2v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent2)"/></marker></defs>
+<g class="wires">
+<path d="M200,138 L200,172"/>
+<path d="M200,290 L200,324"/>
+<path d="M200,442 L200,476"/>
+<path d="M200,594 L200,628"/>
+<path d="M200,746 L200,780"/>
+<path d="M200,898 L200,932"/>
+<path class="loop" d="M350,839 C410,839 410,383 350,383" marker-end="url(#ah2v)"/>
+<path class="next" d="M50,991 C-10,991 -10,79 50,79"/>
+</g>
+<g class="node n1" transform="translate(50,20)"><rect width="300" height="118" rx="12"/><foreignObject x="0" y="0" width="300" height="118"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>1 · You type</b><span>“color the transmembrane helices orange and the rest white”. Typos, “it” and gene names are fine.</span></div></foreignObject></g>
+<g class="node n2" transform="translate(50,172)"><rect width="300" height="118" rx="12"/><rect class="acc" x="14" y="0" width="272" height="4" rx="2"/><foreignObject x="0" y="0" width="300" height="118"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>2 · Context</b><span>What is open and selected. The documentation of your ChimeraX version, indexed locally. 131 tutorial workflows, 58 recipes, a list of known model mistakes.</span></div></foreignObject></g>
+<g class="node n3" transform="translate(50,324)"><rect width="300" height="118" rx="12"/><foreignObject x="0" y="0" width="300" height="118"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>3 · The model plans</b><span>Ollama on your PC, Gemini, Claude or OpenAI. It cannot type into ChimeraX; it can only call tools.</span></div></foreignObject></g>
+<g class="node n4" transform="translate(50,476)"><rect width="300" height="118" rx="12"/><rect class="acc" x="14" y="0" width="272" height="4" rx="2"/><foreignObject x="0" y="0" width="300" height="118"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>4 · Tools</b><span>run commands · read state · search docs · UniProt lookup · annotate (UniProt, ClinVar) · compare · your tables. Every call is logged.</span></div></foreignObject></g>
+<g class="node n5" transform="translate(50,628)"><rect width="300" height="118" rx="12"/><foreignObject x="0" y="0" width="300" height="118"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>5 · Safety gate</b><span>Closing, deleting, saving and scripts stop for an editable OK card. Everything else runs.</span></div></foreignObject></g>
+<g class="node n6" transform="translate(50,780)"><rect width="300" height="118" rx="12"/><rect class="acc" x="14" y="0" width="272" height="4" rx="2"/><foreignObject x="0" y="0" width="300" height="118"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>6 · ChimeraX runs it</b><span>Pellaeon reads the log: what changed, what failed. An error goes back with the real syntax and a suggestion, and the model retries a bounded number of times.</span></div></foreignObject></g>
+<g class="node n7" transform="translate(50,932)"><rect width="300" height="118" rx="12"/><foreignObject x="0" y="0" width="300" height="118"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>7 · Reply</b><span>Cards with every command: re-run, copy, open its ChimeraX docs. Export the chat as a .cxc script.</span></div></foreignObject></g>
+<text class="lab" transform="translate(410,472) rotate(90)">fix and retry</text>
+<text class="lab" transform="translate(20,536) rotate(-90)">next request</text>
+</svg>
+</div>
 
 <h2>What you get</h2>
 <div class="grid">
