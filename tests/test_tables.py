@@ -30,7 +30,8 @@ def test_numeric_overlay_reports_missing_and_mismatches():
     plan = plan_overlay(rows, residues, "#1", attr_name("scores", "conservation"))
     assert plan["numeric"] and plan["mapped"] == 2 and plan["missing"] == [999] and plan["n_mismatches"] == 1
     assert "A:11 is R, table says K" in plan["mismatches"][0]
-    assert plan["commands"][0].startswith("color byattribute r:pellaeon_scores_conservation #1 palette bluered range 0.55,0.91")
+    assert plan["commands"][0].startswith("color byattribute r:pellaeon_scores_conservation #1 palette blue:white:red range 0.55,0.91")
+    assert any(c.startswith("key blue:0.55 white:0.73 red:0.91") for c in plan["commands"])
     assert plan["assignments"] == {"A:10": 0.91, "A:12": 0.55}
 
 

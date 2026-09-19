@@ -217,17 +217,17 @@
     if (c.error) {
       h = '<div class="rrow err">' + esc(c.error) + "</div>";
     } else if (name === "compare_structures") {
-      h += '<div class="rrow"><b>' + esc(c.compared) + "</b> superposed onto <b>" + esc(c.reference) + "</b>" + (c.chain && c.chain !== "all" ? " (chain " + esc(c.chain) + ")" : "") + "</div>";
-      if (c.fit_rmsd != null) {
-        h += '<div class="rrow"><b>Fit</b> (MatchMaker, CA atoms): RMSD <b>' + c.fit_rmsd + " Å</b> over the " + c.fit_pairs + " pairs kept after pruning" +
-          (c.all_rmsd != null ? "; across all " + c.all_pairs + " aligned pairs: " + c.all_rmsd + " Å" : "") + "</div>";
-      } else if (c.rmsd) h += '<div class="rrow muted">' + esc(c.rmsd) + "</div>";
+      h += '<div class="rrow"><b>' + esc(c.compared) + "</b> superposed on <b>" + esc(c.reference) + "</b>" + (c.chain && c.chain !== "all" ? " (chain " + esc(c.chain) + ")" : "") + "</div>";
       if (c.paired_residues != null) {
-        h += '<div class="rrow"><b>Per-residue displacement</b> (CA to CA after the fit, ' + c.paired_residues + " paired residues, " + esc(c.pairing || "") + "): mean <b>" + c.mean_displacement + " Å</b> · max <b>" + c.max_displacement + " Å</b> · " + c.residues_over_2A + " residues moved over 2 Å" + (c.coverage ? " · " + esc(c.coverage) : "") + "</div>";
-        if (c.pairing_fallback) h += '<div class="rrow warn">' + esc(c.pairing_note || "Paired by residue number, not by alignment.") + "</div>";
-        if ((c.moving_regions || []).length) h += '<div class="rrow">Moving regions: ' + c.moving_regions.map((r) => viewLink(r.spec, r.chain + ":" + r.range + " (" + r.max + " Å)")).join(", ") + "</div>";
-        if (c.coloring) h += '<div class="rrow muted">' + esc(c.coloring) + "</div>";
+        h += '<div class="rrow"><b>' + c.residues_over_2A + " of " + c.paired_residues + " compared residues moved more than 2 Å</b> · mean Cα shift <b>" + c.mean_displacement + " Å</b> · max <b>" + c.max_displacement + " Å</b>" + (c.not_compared ? " · " + c.not_compared + " not compared (lavender)" : "") + "</div>";
+        if ((c.moving_regions || []).length) h += '<div class="rrow">Segments with shifts over 2 Å (maximum in each): ' + c.moving_regions.map((r) => viewLink(r.spec, r.chain + ":" + r.range + " (" + r.max + " Å)")).join(", ") + "</div>";
       }
+      if (c.fit_rmsd != null) {
+        h += '<div class="rrow muted">Fit: RMSD ' + c.fit_rmsd + " Å over the " + c.fit_pairs + " Cα pairs MatchMaker kept after pruning" + (c.all_rmsd != null ? "; over all " + c.all_pairs + " aligned pairs " + c.all_rmsd + " Å" : "") + ". Displacements are measured after this fit; gray means close after the fit, not immobile.</div>";
+      } else if (c.rmsd) h += '<div class="rrow muted">' + esc(c.rmsd) + "</div>";
+      if (c.pairing_fallback) h += '<div class="rrow warn">' + esc(c.pairing_note || "Paired by residue number, not by alignment.") + "</div>";
+      if (c.coloring) h += '<div class="rrow muted">' + esc(c.coloring) + "</div>";
+      if (c.ref_spec) h += '<div class="rrow"><button class="secondary small" data-rerun="show ' + esc(c.ref_spec) + ' models">Show reference</button> <button class="secondary small" data-rerun="hide ' + esc(c.ref_spec) + ' models">Hide reference</button> <button class="secondary small" data-rerun="view ' + esc(c.other_spec || c.compared) + '">Frame</button></div>';
       if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
     } else if (name === "save_figure") {
       h += '<div class="rrow"><b>Figure bundle saved</b> to <code>' + esc(c.folder) + "</code> · " + c.width + "×" + c.height + "</div>";

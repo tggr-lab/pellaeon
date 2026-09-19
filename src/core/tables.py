@@ -15,8 +15,8 @@ _POS_NAMES = ("position", "pos", "resnum", "resi", "residue_number", "res_num", 
 _CHAIN_NAMES = ("chain", "chain_id", "chainid", "auth_asym_id", "asym")
 _ACC_NAMES = ("accession", "uniprot", "uniprot_id", "acc", "entry")
 _REF_NAMES = ("wt", "ref", "wild_type", "wildtype", "ref_aa", "aa", "amino_acid", "resname", "res_name", "residue_name", "wt_aa", "from")
-PALETTES = {"blue-white-red": "bluered", "white-red": "white:red", "blue-white": "white:blue", "viridis": "viridis",
-            "rainbow": "rainbow", "gray-orange-red": "#d9d9d9:#ffd27f:orange:red", "green-white-magenta": "green:white:magenta"}
+PALETTES = {"blue-white-red": "blue:white:red", "white-red": "white:red", "blue-white": "white:blue", "viridis": "#440154:#31688e:#35b779:#fde725",
+            "rainbow": "blue:cyan:green:yellow:red", "gray-orange-red": "#bdbdbd:gold:orange:#b2182b", "green-white-magenta": "green:white:magenta"}
 CATEGORY_COLORS = ["cornflowerblue", "orange", "mediumseagreen", "orchid", "gold", "tomato", "steelblue", "sienna", "hotpink", "slategray", "olive", "teal"]
 
 
@@ -159,9 +159,14 @@ def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str
     if numeric:
         vals = list(assign.values())
         lo, hi = min(vals), max(vals)
-        pal = PALETTES.get(palette, palette or "bluered")
+        pal = PALETTES.get(palette, palette or "blue:white:red")
         if edition == "chimerax":
             cmds.append("color byattribute r:%s %s palette %s range %g,%g target ac novalue gray" % (attr, model, pal, lo, hi))
+            stops = pal.split(":")
+            if len(stops) >= 2 and hi > lo:
+                labels = ["%g" % (lo + (hi - lo) * i / (len(stops) - 1)) for i in range(len(stops))]
+                cmds.append("key %s pos 0.70,0.05 size 0.27,0.035 fontSize 16" % " ".join("%s:%s" % (c, l) for c, l in zip(stops, labels)))
+                cmds.append('2dlabels text "%s (gray = no value)" xpos 0.70 ypos 0.10 size 15 color black' % attr.replace("pellaeon_", "", 1).replace("_", " "))
         legend = "%s from %g (low) to %g (high), palette %s; residues without a value gray" % (attr, lo, hi, palette)
     else:
         cats = sorted({str(v) for v in assign.values()})

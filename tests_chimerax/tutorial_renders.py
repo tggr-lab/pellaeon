@@ -58,7 +58,9 @@ STEPS = [
     ("08_clinvar",   "show the ClinVar disease variants of HBB on it", [], True, True, ["view"]),
     ("08b_tidy",     "the labels overlap, tidy them", [], True, True, ["view"]),
     ("09_compare",   None, ["close", "open 1omp", "open 1anf", LOOK, "view"], False, False, []),
-    ("09_compare_b", "compare these two models and tell me what changed", [], True, True, ["view", "zoom 1.7"]),
+    ("09_compare_b", "compare these two models and tell me what changed", [], True, True,
+                     ["view", "zoom 1.7", "key delete", "2dlabels delete", "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.36,0.05 size 0.12,0.03 fontSize 20",
+                      '2dlabels text "C\u03b1 shift after fit (\u00c5)" xpos 0.36 ypos 0.095 size 20 color black']),   # key re-placed inside the 4:3 crop of the wide window
     ("10_close",     "close everything", [], False, None, []),     # confirmation card
 ]
 
@@ -75,7 +77,7 @@ def go(i):
         except Exception as e: log("TUT pre failed %s: %s" % (c, e))
     if do_panel == "figure":
         import shutil; shutil.rmtree("/tmp/pellaeon_figs", ignore_errors=True)
-        inst._act_figure_form({}, None)
+        inst._act_figure_form({"name": "heme_pocket"}, None)
         def saved():
             inst._act_figure_save({"name": "heme_pocket", "folder": "/tmp/pellaeon_figs", "width": "2400", "height": "1800", "closeup": "#1/A:87 :<6", "session": "1"}, None)
             t0 = time.time()

@@ -216,7 +216,7 @@ class PanelBase:
     def _act_figure_form(self, params, payload):
         st = self._safe_state()
         names = [m.get("name", "") for m in (st.get("models") or []) if m.get("name")]
-        default = "_".join(n for n in names[:2]) or "figure"
+        default = (params.get("name") or "").strip() or "_".join(n for n in names[:2]) or "figure"
         folder = getattr(self.settings, "figures_dir", "") or os.path.join(os.path.expanduser("~"), "Pellaeon figures")
         self.push({"type": "figure_form", "name": re.sub(r"[^A-Za-z0-9_.-]+", "_", default), "folder": folder,
                    "models": [m.get("id") for m in (st.get("models") or []) if m.get("id")]})

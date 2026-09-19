@@ -741,6 +741,13 @@ class Agent:
             out["error"] = disp["error"]
             return out
         out.update({k: v for k, v in disp.items() if k != "color_commands"})
+        n_over = disp.get("residues_over_2A", 0); n_pairs = disp.get("paired_residues", 0)
+        out["summary"] = ("%s superposed on %s: %d of %d compared residues moved more than 2 \u00c5 (mean C\u03b1 shift %.2f \u00c5, max %.1f \u00c5). "
+                          "The fit used %s retained C\u03b1 pairs (fit RMSD %s \u00c5); over all %d compared residues the RMS shift is %.2f \u00c5." % (
+                              prep["other_spec"], prep["ref_spec"], n_over, n_pairs, disp.get("mean_displacement", 0), disp.get("max_displacement", 0),
+                              out.get("fit_pairs", "the"), out.get("fit_rmsd", "?"), n_pairs, disp.get("rms_displacement", 0)))
+        out["report_verbatim"] = ("Report the 'summary' sentence as it is; the fit RMSD is NOT 'the RMSD between the structures'. "
+                                  "Then name the segments with the largest shifts.")
         if disp.get("coloring"):
             self.figure_notes.append("Comparison: %s" % disp["coloring"])
         if str(disp.get("pairing", "")).startswith("chain id"):

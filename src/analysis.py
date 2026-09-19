@@ -80,6 +80,11 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
         Residue.register_attr(session, "pellaeon_disp", "Pellaeon", attr_type=float)
     except Exception:
         pass
+    for r in b.residues:                       # stale values from an earlier comparison must not survive
+        try:
+            r.pellaeon_disp = None
+        except Exception:
+            pass
     disps = []
     rows = []
     for ref_r, oth_r in pairs:
@@ -112,17 +117,22 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
     if cur:
         regions.append(cur)
     total_other = sum(1 for r in b.residues if (not prep.get("chain") or r.chain_id == prep["chain"]) and r.find_atom("CA") is not None)
-    color_cmds = ["color byattribute r:pellaeon_disp %s palette 0,#d9d9d9:1,#ffd27f:3,orange:6,red range 0,6 target ac novalue gray" % prep["other_spec"],
-                  "color %s #b8c4d6 target ac" % prep["ref_spec"], "transparency %s 55 target c" % prep["ref_spec"]]
+    color_cmds = ["color byattribute r:pellaeon_disp %s palette 0,#bdbdbd:1,gold:3,orange:6,#b2182b range 0,6 target ac novalue #d9c6f0" % prep["other_spec"],
+                  "color %s #b8c4d6 target ac" % prep["ref_spec"], "transparency %s 60 target c" % prep["ref_spec"],
+                  "hide %s models" % prep["ref_spec"],
+                  "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.70,0.05 size 0.27,0.035 fontSize 16",
+                  '2dlabels text "C\u03b1 shift after fit (\u00c5); lavender = not compared" xpos 0.70 ypos 0.10 size 15 color black']
     return {
         "pairing": basis, "paired_residues": len(rows), "coverage": "%d of %d residues of %s paired" % (len(rows), total_other, prep["other_spec"]),
         "mean_displacement": round(float(arr.mean()), 2), "max_displacement": round(float(arr.max()), 2),
+        "rms_displacement": round(float((arr ** 2).mean() ** 0.5), 2), "not_compared": int(total_other - len(rows)),
+        "ref_spec": prep["ref_spec"], "other_spec": prep["other_spec"],
         "residues_over_2A": int((arr > 2.0).sum()),
         "top_shifted": [{"chain": c, "residue": n, "name": nm, "displacement": round(d, 2), "reference_residue": "%s:%d" % (rc, rn)}
                         for c, n, nm, d, rc, rn in top],
         "moving_regions": [{"chain": r[0], "range": "%d-%d" % (r[1], r[2]), "max": round(r[3], 2),
                             "spec": "#%s/%s:%d-%d" % (prep["other_id"], r[0], r[1], r[2])} for r in regions[:15]],
-        "coloring": "%s colored by displacement (gray unchanged, red 6 A or more); %s pale blue-gray and half transparent, as the reference" % (prep["other_spec"], prep["ref_spec"]),
+        "coloring": "%s shown alone, colored by C-alpha displacement after the fit (gray < 1 A, gold, orange, dark red 6 A or more; lavender = not compared); reference %s hidden, can be shown as a pale ghost" % (prep["other_spec"], prep["ref_spec"]),
         "color_commands": color_cmds,
     }
 

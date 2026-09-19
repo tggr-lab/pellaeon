@@ -584,7 +584,7 @@ def test_table_overlay_tool_colors_and_reports_mapping():
     res = agent.run_turn("color by the conservation score")
     assert res.reply == "Colored by score."
     assert ex.attrs[0] == "pellaeon_scores_score" and ex.attrs[1] == {"A:10": 0.9, "A:12": 0.5, "B:10": 0.9}
-    assert any(c.startswith("color byattribute r:pellaeon_scores_score #1 palette bluered") for c in ex.ran)
+    assert any(c.startswith("color byattribute r:pellaeon_scores_score #1 palette blue:white:red") for c in ex.ran)
     assert agent.layers and agent.layers[0]["mapped"] == 3
     # the state block told the model about the table
     assert "Loaded table 'scores'" in str(prov.requests[0])

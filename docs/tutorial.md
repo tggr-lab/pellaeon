@@ -7,9 +7,9 @@ The full walkthrough takes about twenty minutes: hemoglobin, a residue and its n
 1. In ChimeraX's **Command:** line, paste `open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py` and press Enter.
 2. The panel opens on its settings page. Pick **Google Gemini** (free key, nothing to install) or **Ollama** (runs on your computer), press **Test connection**, then **Save & use**.
 3. Press **Run a first request**. Pellaeon opens ubiquitin and colors it by chain.
-4. Type these, one at a time:
+4. Type these into Pellaeon's message box, one at a time:
 
-    - `open 4hhb`
+    - `close everything and open 4hhb`
     - `color it by chain and show the heme groups as spheres`
     - `make it look publication ready`
 
@@ -39,7 +39,7 @@ Or type `ui tool show Pellaeon` in the command line. Nothing else to install: no
 The panel opens on its settings page. You have two easy choices:
 
 - **Nothing to install (recommended to start):** pick **Google Gemini**, click "get a key", sign in with a Google account at AI Studio, press *Create API key*, paste it into Pellaeon. Free, no credit card, takes two minutes.
-- **Everything stays on your computer:** pick **Ollama**. Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
+- **The AI runs on your computer:** pick **Ollama**. (Structures and annotations are still fetched from the PDB, UniProt and ClinVar when you ask for them.) Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
 
 Press **Test connection**, then **Save & use**, or **Run a first request**, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.
 
@@ -47,7 +47,7 @@ Press **Test connection**, then **Save & use**, or **Run a first request**, whic
 
 ## Part 2 — Step by step
 
-Type each request into the box at the bottom and press Enter. Typos and casual phrasing are fine.
+Type each request into the box at the bottom and press Enter. Typos and casual phrasing are fine. The pictures on this page were rendered on a white background with silhouettes (`set bgColor white; lighting soft; graphics silhouettes true`); yours will be on black until step 4, which is fine.
 
 ### Step 1 · Open a structure
 
@@ -81,7 +81,7 @@ The **Ran 1 command** line is the exact ChimeraX command it used. Click it to ex
 
 ### Step 3 · Click on something and ask about it
 
-Ctrl-click any atom in the 3D view (that is ChimeraX's normal way of selecting). A bar appears above the input. **Highlight** colors the selection and shows its atoms; the two questions send it to the AI. Alt-click asks about a residue directly, without selecting first (the `pellaeon ask` mouse mode; rebind it with `ui mousemode alt leftMode "pellaeon ask"` if you use Alt for something else).
+Ctrl-click any atom in the 3D view (that is ChimeraX's normal way of selecting); to get exactly this example, type `select #1/A:87` in ChimeraX's command line (`#1` is hemoglobin, the first model). A bar appears above the input. **Highlight** colors the selection and shows its atoms; the two questions send it to the AI. Alt-click asks about a residue directly, without selecting first (the `pellaeon ask` mouse mode; rebind it with `ui mousemode alt leftMode "pellaeon ask"` if you use Alt for something else).
 
 ![Selection bar](img/tut/03_nearby_panel.png)
 
@@ -121,13 +121,32 @@ To save it: "save a picture to my desktop". Saving writes a file, so Pellaeon sh
 
 ![The answer](img/tut/05_distance_panel.png)
 
-The number is shown in the 3D view and in the reply. Angles, hydrogen bonds ("show hydrogen bonds"), clashes and contacts work the same way.
+CA is the Cα backbone atom, so this is the iron to backbone distance, about 6.5 Å, not the Fe–His coordination bond (that would be the NE2 atom of His 87, about 2.1 Å). The number is shown in the 3D view and in the reply. Angles, hydrogen bonds ("show hydrogen bonds"), clashes and contacts work the same way.
+
+### Step 5b · Save a figure you can reproduce
+
+Do this now, while hemoglobin is still open. Press **Save figure** above the composer (or say "save this as a figure called heme_pocket"). Pick a name and a folder, a size, optionally a close-up (an atom spec such as `#1/A:87 :<6`, the residues within 6 Å of His 87), and press **Save**.
+
+![Figure bundle form and result](img/tut/12_figure_panel.png)
+
+The folder contains more than the picture:
+
+| File | What it is |
+|---|---|
+| `heme_pocket.png`, `heme_pocket_closeup.png` | the image, plus the close-up if you asked for one |
+| `heme_pocket.cxs` | a ChimeraX session (when *include session* is ticked): reopen and keep working |
+| `heme_pocket.cxc` | the commands Pellaeon recorded, replayable with `open heme_pocket.cxc`; mouse rotations and commands typed outside Pellaeon are not in it, the session is |
+| `heme_pocket_colors.csv` | ribbon and atom color of every residue |
+| `heme_pocket_legend.md` | a draft legend written only from the recorded commands, annotations and tables |
+| `heme_pocket.json` | structures and their sources (PDB id, AlphaFold accession or file), camera, background, sizes |
+
+When the AI saves a figure on its own the image save asks for your OK first, like any other file write.
 
 ### Step 6 · Open an AlphaFold model by gene name
 
 > close everything, then open the AlphaFold model of the gene F2RL1
 
-Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence: blue is confident, orange is not.
+Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence (pLDDT): dark blue very confident, light blue confident, yellow low, orange very low. Confidence in the prediction of that stretch, not experimental evidence and not motion.
 
 ![AlphaFold model of PAR2](img/tut/06_af.png)
 
@@ -153,7 +172,7 @@ The same works for domains, binding sites, active sites, glycosylation, disulfid
 
 > show the ClinVar disease variants of HBB on it
 
-Hemoglobin beta again, this time the AlphaFold model, with every ClinVar missense position colored by clinical significance (red pathogenic, yellow uncertain, blue benign) and the pathogenic ones labeled, sickle-cell E7V among them.
+Hemoglobin beta again, this time the AlphaFold model, with the ClinVar missense positions that mapped onto the model colored by clinical significance: red pathogenic, orange likely pathogenic, magenta conflicting, yellow uncertain, cyan and blue (likely) benign. When several variants sit on one position the most severe class wins. The pathogenic ones are labeled; E7V is the sickle-cell mutation (ClinVar counts the initiator methionine, so it is Glu6→Val in mature-chain numbering). This is the AlphaFold model of one β chain, not the tetramer from step 1.
 
 ![ClinVar variants on hemoglobin beta](img/tut/08_clinvar.png)
 
@@ -167,7 +186,7 @@ Twenty-five variant labels on a small protein overlap. Say so:
 
 > the labels overlap, tidy them
 
-Pellaeon works out where every label sits on screen, moves the colliding ones to a free spot next to their residue and removes the ones that cannot fit, then tells you which. Ask for specific residues to label those again.
+Pellaeon works out where every label sits on screen, moves the colliding ones to a free spot next to their residue and removes the ones that cannot fit, then tells you which. It is a fix for the current view: rotate or resize and ask again. Ask for specific residues to label those again.
 
 ![Labels after tidying](img/tut/08b_tidy.png)
 
@@ -179,13 +198,13 @@ Maltose-binding protein is a classic hinge: open without ligand (1omp), closed a
 
 > close everything, open 1omp and 1anf, then compare these two models and tell me what changed
 
-![Maltose-binding protein, closed form colored by how far each residue moved from the open form](img/tut/09_compare_b.png)
+![Closed maltose-binding protein colored by how far each residue moved from the open form](img/tut/09_compare_b.png)
 
-What you are looking at: the two structures are superposed on top of each other. The pale, half-transparent one is the reference (the first model, open). The solid one is the second model, and its color says how far each residue moved between the two: gray means it stayed put, yellow a little, orange more, red 6 Å or more. The hinge region is gray because it did not move; the domain that swung shut is red.
+What you are looking at: the second model (closed, 1anf) after superposition on the first, shown alone and colored by how far each Cα moved between the two forms: gray under 1 Å, gold, orange, dark red 6 Å or more; a key sits in the corner. The reference is hidden; **Show reference** on the card draws it as a pale ghost on top. Gray means the residue sits close to its counterpart *after the fit*; it is not a statement about which part is the hinge.
 
 ![Comparison card](img/tut/09_compare_b_panel.png)
 
-The card separates two numbers that are often confused. The fit RMSD is MatchMaker's own, over the well-matching residues it kept after pruning. The per-residue displacement is measured over every aligned residue after that fit. The moving regions are clickable; each one recentres the view on it.
+The card leads with the change: how many residues moved more than 2 Å, the mean and maximum shift, and the segments with the largest shifts (each clickable). Below it, the fit details: MatchMaker's RMSD over the Cα pairs it kept after pruning, and the RMSD over all aligned pairs. They are different numbers about different sets of atoms, which is why the card keeps them apart.
 
 ### Step 10 · Risky commands ask first
 
@@ -200,7 +219,7 @@ Closing, deleting, saving files and running scripts always show this card with t
 Any per-residue table can be painted onto a structure: conservation scores, deep mutational scanning, contact changes, your own residue groups. The table needs a residue-position column; a chain column, a reference-residue column (wild-type amino acid) and an accession column are used when present.
 
 1. Open a structure (`open 1ubq`), then press the **Import table** button (⊞) in the panel header and pick a CSV or TSV. [ubiquitin_hydropathy.csv](examples/ubiquitin_hydropathy.csv) is a small example: Kyte-Doolittle hydropathy for every residue of ubiquitin.
-2. A card shows what Pellaeon detected: the position column, the reference-residue column, the chain column, and a few sample rows. Choose the column to color by, the model, the palette and whether the table uses the structure's residue numbers or UniProt numbering, then press **Apply**.
+2. A card shows what Pellaeon detected: the position column, the reference-residue column, the chain column, and a few sample rows. For the example: column `hydropathy`, model `#1`, chain left empty, numbering `structure`, palette `blue-white-red`, then **Apply**. Expect 76 residues placed and no reference mismatches. Positive Kyte-Doolittle values are hydrophobic (red), negative hydrophilic (blue); a key appears in the 3D view.
 
 ![Table preview card](img/tut/11_table_preview_panel.png)
 
@@ -213,32 +232,13 @@ Any per-residue table can be painted onto a structure: conservation scores, deep
 
 ![Result card and request](img/tut/11_table_panel.png)
 
-The color ramp comes from `color byattribute`: every value is stored as a residue attribute (`pellaeon_<table>_<column>`), so ChimeraX's own `key` command, attribute selection (`select ::pellaeon_ubiquitin_hydropathy_hydropathy>3`) and saved sessions all work with it. Table overlays are ChimeraX-edition only.
-
-### Step 12 · Save a figure you can reproduce
-
-Press **Save figure** above the composer (or say "save this as a figure called pocket"). Pick a name and a folder, a size, optionally a close-up spec, and press **Save**.
-
-![Figure bundle form and result](img/tut/12_figure_panel.png)
-
-The folder contains more than the picture:
-
-| File | What it is |
-|---|---|
-| `pocket.png`, `pocket_closeup.png` | the images, at the size you chose |
-| `pocket.cxs` | a ChimeraX session: reopen and keep working |
-| `pocket.cxc` | every command that produced the view, replayable with `open pocket.cxc` |
-| `pocket_colors.csv` | ribbon and atom color of every residue |
-| `pocket_legend.md` | a draft legend written only from the recorded commands, annotations and tables |
-| `pocket.json` | structures and their sources (PDB id, AlphaFold accession or file), camera, background, sizes |
-
-When the AI saves a figure on its own the image save asks for your OK first, like any other file write.
+Technical note: every value is stored as a residue attribute named `pellaeon_<table>_<column>`, so ChimeraX's own attribute selection (`select ::pellaeon_ubiquitin_hydropathy_hydropathy>3`) and saved sessions work with it. Table overlays are ChimeraX-edition only.
 
 ## Part 3 — Good to know
 
 - **Green means it happened:** a command that ran but matched nothing shows an amber *changed nothing* mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.
 - **Labels** are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.
-- **Undo:** "undo the last change" (ChimeraX undoes most commands; closing a model cannot be undone).
+- **Undo:** "undo the last change" runs ChimeraX's undo, which reverses supported actions only; one request can be several actions, and labels or closing a model cannot be undone. Save a session (`.cxs`) before experimenting on something you care about.
 - **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.
 - **Export a session as a script:** the ⇩ button saves every command that actually ran as a `.cxc` file; replay it with `open myscript.cxc`.
 - **Your own data:** ⊞ imports a per-residue CSV/TSV (Step 11).
