@@ -904,3 +904,34 @@ def test_no_action_nudge_is_skipped_for_requests_chimerax_cannot_fulfil():
     result = agent.run_turn("email this structure to my boss")
     assert agent.journal == []
     assert "cannot email" in result.reply
+
+
+def test_save_figure_is_refused_for_a_request_chimerax_cannot_do():
+    """The figure bundle runs its saves with origin='figure', which the save/export guard in
+    execute_commands does not inspect, so save_figure walked straight past it."""
+    ex = FakeExecutor()
+    prov = ScriptedProvider([{"text": "", "calls": [("save_figure", {"name": "for_my_boss"})]},
+                             "ChimeraX cannot email anything."])
+    agent = Agent(prov, ex, config=AgentConfig(autonomy=AUTONOMY_AUTO),
+                  callbacks=Callbacks(on_confirm=lambda c, r: c))
+    agent.run_turn("email this structure to my boss")
+    assert not any("save" in j["command"] for j in agent.journal)
+    told = [r.content for m in agent.conversation if m.role == "tool" for r in m.tool_results_list()]
+    assert any("not a step towards it" in t for t in told)
+
+
+def test_the_run_commands_example_is_not_a_runnable_request():
+    """With a real accession in the tool schema, small models opened alphafold:P55085 on turns
+    that had nothing to do with it."""
+    from core.tools import RUN_COMMANDS
+    desc = json.dumps(RUN_COMMANDS.to_dict())
+    assert "P55085" not in desc and "alphafold:" not in desc
+
+
+def test_the_only_gotchas_are_one_recipe_each():
+    from pathlib import Path
+    text = Path("src/data/gotchas.md").read_text()
+    only_lines = [l for l in text.splitlines() if l.lower().startswith('- "only') or l.lower().startswith('- "show only')]
+    assert len(only_lines) >= 3                       # one bullet per phrasing, not three recipes in one
+    cartoon = [l for l in only_lines if "cartoon" in l and "chain" not in l][0]
+    assert "show #1 atoms" not in cartoon             # the trailing show re-displayed what was hidden

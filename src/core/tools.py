@@ -37,7 +37,9 @@ RUN_COMMANDS = ToolSpec(
             "commands": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "ChimeraX commands, one per item, e.g. [\"open alphafold:P55085\", \"color white\", \"color :159 blue\"]",
+                # Deliberately not a runnable request: with a real accession here, small models
+                # opened alphafold:P55085 on turns that had nothing to do with it.
+                "description": "ChimeraX commands, one per item, each a command name followed by its arguments",
             }
         },
         "required": ["commands"],

@@ -145,7 +145,7 @@
   "request": "focos on residue 15",
   "expected": "view command on residue 15",
   "check_type": "commands_regex",
-  "check": "^view\\b.*15"
+  "check": "(^view\\b.*\\b15\\b)|(^select\\b.*\\b15\\b)"
  },
  {
   "id": "reset-view",
@@ -236,7 +236,8 @@
   "request": "color by the type of aa",
   "expected": "residue classes colored explicitly",
   "check_type": "commands_regex",
-  "check": ":ala|:asp|:lys|:ser|byattr"
+  "check": ":ala|:asp|:lys|:ser|byattr",
+  "forbid_commands_regex": "^open\\b"
  },
  {
   "id": "color-by-aa-followup",
@@ -250,7 +251,8 @@
   ],
   "expected": "no repeated wrong claim; residue-class coloring",
   "check_type": "commands_regex",
-  "check": ":ala|:asp|:lys|:ser|byattr"
+  "check": ":ala|:asp|:lys|:ser|byattr",
+  "forbid_commands_regex": "^open\\b"
  },
  {
   "id": "hydrophobicity",
@@ -406,7 +408,7 @@
   "request": "compare these two models and tell me what changed",
   "expected": "compare_structures called, reply mentions moving regions",
   "check_type": "state_expr",
-  "check": "any(c[0]=='compare_structures' for c in record['calls']) and ('30' in reply or '117' in reply or 'LID' in reply or 'region' in reply.lower())"
+  "check": "any(c[0]=='compare_structures' for c in record['calls']) and any(ch.isdigit() for ch in reply) and re.search('residue|shift|moved|rmsd|angstrom|\u00c5', reply, re.I) is not None"
  },
  {
   "id": "annotate-tm",

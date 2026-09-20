@@ -94,6 +94,13 @@ def ran_commands(record):
 def evaluate(s, record, reply):
     ct = s["check_type"]
     ran = ran_commands(record)
+    # a scenario can also name commands that must NOT run: several models passed "color by residue
+    # type" while also opening an unrelated structure, which the positive check could not see.
+    forbid = s.get("forbid_commands_regex")
+    if forbid:
+        bad = [c for c in ran if re.search(forbid, c, re.I)]
+        if bad:
+            return False, "ran a forbidden command: %s" % bad
     if ct == "no_commands":
         return len(ran) == 0, "ran %d commands" % len(ran)
     if ct == "confirm_requested":

@@ -613,6 +613,13 @@ class Agent:
                 payload = self.executor.residue_provenance(str(self._scalar(args.get("residue"), "") or ""), list(self.journal))
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "save_figure":
+                if self._impossible_ask:
+                    # a figure bundle is still a file: it is not a step towards emailing or printing,
+                    # and this path runs its saves with origin="figure", which the guard below does not see
+                    payload = {"error": "The user asked for something ChimeraX cannot do (emailing, printing, messaging "
+                                        "or uploading). Saving a figure is not a step towards it. Say in one sentence that "
+                                        "ChimeraX cannot do it and run nothing else."}
+                    return ToolResult(call.id, name, json.dumps(payload), is_error=True), payload
                 payload = self._figure_bundle(self.figures_dir or os.path.join(os.path.expanduser("~"), "Pellaeon figures"),
                                               str(self._scalar(args.get("name"), "") or ""), int(args.get("width") or 2400),
                                               int(args.get("height") or 1800), 3, bool(args.get("transparent", False)),
