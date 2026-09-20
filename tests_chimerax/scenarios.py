@@ -49,7 +49,7 @@ def _unload_other_models(keep: str):
     except Exception:  # noqa: BLE001
         pass
 
-CLOUD = ":" in model and model.split(":", 1)[0] in ("gemini", "anthropic", "openai", "openrouter", "groq")
+CLOUD = ":" in model and model.split(":", 1)[0] in ("gemini", "anthropic", "openai", "openrouter", "groq", "mistral")
 if not CLOUD:   # a cloud run must not evict the local model a parallel run is using
     _unload_other_models(model)
 ex = ChimeraXExecutor(session)  # noqa: F821

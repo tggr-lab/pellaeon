@@ -563,8 +563,12 @@ class PanelBase:
         except Exception:
             pass
         directory = self.executor.knowledge.command_directory()
+        # Groq and OpenRouter meter input tokens per minute, and every failure we measured on their
+        # free tiers was a rate limit rather than a mistake: start compact there, which costs no accuracy.
+        compact = bool((preset_by_id(getattr(s, "preset", "")) or {}).get("compact_prompt"))
         cfg = AgentConfig(autonomy=getattr(self, "_runtime_autonomy", None) or s.autonomy, allow_python=bool(s.allow_python), vision=bool(s.vision),
-                          docs_per_turn=int(s.docs_per_turn), edition=self.edition, readable_labels=bool(getattr(s, "readable_labels", True)))
+                          docs_per_turn=int(s.docs_per_turn), edition=self.edition, readable_labels=bool(getattr(s, "readable_labels", True)),
+                          compact_prompt=compact)
         if preset["provider"] == "ollama":
             # keep the conversation well inside the local context window (32k by default)
             cfg.compact_after_tokens = max(8000, int(options.get("num_ctx", 32768) * 0.55))

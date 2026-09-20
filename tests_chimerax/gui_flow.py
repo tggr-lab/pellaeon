@@ -23,6 +23,7 @@ def log(msg):   # a GUI ChimeraX prints nothing to stdout, so tee every line to 
     _logfile.flush()
 
 phase = {"n": 0, "t0": time.time(), "deadline": time.time() + 240}
+saved = {}
 
 
 def grab(tag):
@@ -34,6 +35,11 @@ def grab(tag):
 
 
 def finish(ok):
+    if saved:      # put the user's own provider back
+        for k, v in saved.items():
+            setattr(inst.settings, k, v)
+        inst.settings.save()
+        log("PELLAEON-TEST restored settings: %s / %s" % (saved.get("preset"), saved.get("model")))
     log("PELLAEON-TEST RESULT: %s" % ("PASS" if ok else "FAIL"))
     QTimer.singleShot(500, lambda: run(session, "exit"))  # noqa: F821
 
@@ -47,6 +53,8 @@ def tick():
         if not inst._page_ready:
             return QTimer.singleShot(500, tick)
         override = os.environ.get("PELLAEON_GUI_PRESET", "")   # e.g. "gemini:gemini-flash-lite-latest"
+        if override:   # ChimeraX Settings are AUTO_SAVE: assigning persists, so remember what to put back
+            saved.update({k: getattr(inst.settings, k) for k in ("preset", "provider", "model", "base_url", "configured")})
         if override or not inst.settings.configured:
             pid, _, mname = override.partition(":")
             from chimerax.pellaeon.core.providers.presets import preset_by_id
@@ -56,8 +64,7 @@ def tick():
             inst.settings.model = mname or preset.get("model", "qwen3:8b")
             inst.settings.base_url = preset.get("base_url", "")
             inst.settings.configured = True
-            if not override:            # an override is for this test run only: never saved
-                inst.settings.save()
+            inst.settings.save()
             inst.push({"type": "config", "config": inst._config_summary()})
         inst.submit("open 4hhb and color it by chain")
         phase["n"] = 1

@@ -529,9 +529,11 @@ def test_tool_name_typed_as_command_is_refused():
     assert tr["tool_misuse"] == "annotate" and "YOUR TOOLS" in tr["error"]
 
 
-def test_gemini_is_the_first_preset():
+def test_the_wizard_offers_the_free_options_first():
     from core.providers.presets import PRESETS
-    assert PRESETS[0]["id"] == "gemini" and PRESETS[1]["id"] == "ollama"
+    # measured order: Mistral (38/38, ~190 requests a minute), then Gemini (37/38, 15 a minute), then local
+    assert [p["id"] for p in PRESETS[:3]] == ["mistral", "gemini", "ollama"]
+    assert all(PRESETS[i]["free"] for i in range(3))
 
 
 def test_variant_requests_are_nudged_to_the_annotate_tool():
