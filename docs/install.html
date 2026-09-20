@@ -10,7 +10,6 @@
 <ul>
 <li><a href="#chimerax-edition">ChimeraX edition</a></li>
 <li><a href="#classic-edition-chimera-1x">Classic edition (Chimera 1.x)</a></li>
-<li><a href="#free-to-start">Free to start</a></li>
 <li><a href="#choosing-an-ai">Choosing an AI</a></li>
 <li><a href="#choosing-a-model">Choosing a model</a><ul>
 <li><a href="#what-the-free-tiers-really-allow">What the free tiers really allow</a></li>
@@ -79,22 +78,13 @@
 <li>In the launcher press <strong>Launch Chimera</strong> (it starts Chimera with its REST server and connects by itself), or start Chimera yourself, open <strong>Tools ▸ Utilities ▸ RESTServer</strong>, type the port shown in the Reply Log into the launcher and press <strong>Test</strong>.</li>
 <li>Optional: <code>python install.py</code> puts a <strong>Pellaeon Classic</strong> shortcut on your desktop and Start menu.</li>
 </ol>
-<h2 id="free-to-start">Free to start</h2>
-<p>Pellaeon needs a model to think with, and the one to start with today is <strong>Mistral</strong>. The key is free, takes two minutes and needs no credit card; the free tier allows around 190 requests a minute, where the other free tiers allow 15 a minute or 50 a day. It handled every request in our test set, and it can look at the 3D view and fix a crowded figure.</p>
-<ol>
-<li>Open <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a> and sign up.</li>
-<li>Create a key and copy it.</li>
-<li>In Pellaeon, open the gear icon, choose <strong>Mistral (free tier, no credit card)</strong>, paste the key, then press <strong>Test connection</strong> and <strong>Save &amp; use</strong>.</li>
-</ol>
-<p>The free tier serves the <strong>Ministral</strong> models; Pellaeon picks <code>ministral-8b-latest</code> for you. (<code>mistral-small</code> and <code>mistral-medium</code> are on the same key but need billing, and refuse a free request straight away.)</p>
-<p>Google Gemini is an equally good free alternative at a slower 15 requests a minute: a key from <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>, also without a credit card.</p>
-<p><strong>Before you paste anything:</strong> the free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models. For unpublished structures, run a local model with Ollama instead — nothing leaves your computer — or use a paid tier.</p>
 <h2 id="choosing-an-ai">Choosing an AI</h2>
 <p>The first time the panel opens it shows provider cards. There is one decision to make: <strong>local or cloud</strong>.</p>
 <ul>
 <li><strong>Local</strong> (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time.</li>
-<li><strong>Cloud</strong> (Mistral or Gemini free tiers, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider.</li>
+<li><strong>Cloud</strong> (Mistral or Gemini free tiers, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider. The free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models, so for unpublished structures use Ollama or a paid tier.</li>
 </ul>
+<p><strong>Mistral is the one to start with:</strong> a free key from <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, no credit card, and about 190 requests a minute against 15 a minute on Gemini. The free tier serves the <strong>Ministral</strong> models and Pellaeon picks <code>ministral-8b-latest</code>; <code>mistral-small</code> and <code>mistral-medium</code> sit on the same key but need billing and refuse a free request straight away. The <a href="tutorial.md#2-connect-an-ai-once">tutorial</a> walks through it.</p>
 <p>OpenRouter, Groq, LM Studio and custom endpoints are there too.</p>
 <p>All options:</p>
 <div class="table-wrap"><table>
@@ -158,7 +148,7 @@
 <tr>
 <td>Nothing to install</td>
 <td><strong>Mistral <code>ministral-8b-latest</code></strong> (free)</td>
-<td>Handles the whole request set, answers in about two seconds, and allows roughly 190 requests a minute — enough that you never wait. Free key, no credit card. It can also see the screen.</td>
+<td>Handles the whole request set, answers in about two seconds, and allows roughly 190 requests a minute, so you never wait. Free key, no credit card. It can also see the screen.</td>
 </tr>
 <tr>
 <td>Nothing to install, alternative</td>
@@ -216,7 +206,7 @@
 <tr>
 <td>Groq</td>
 <td>1000 a day, but ~7000 tokens a minute</td>
-<td>About one request a minute — it will work, slowly</td>
+<td>About one request a minute: it works, slowly</td>
 </tr>
 <tr>
 <td>OpenRouter</td>
@@ -227,7 +217,7 @@
 </table></div>
 <p>When a limit is hit Pellaeon waits and retries rather than failing, and on the tightest tiers it automatically shortens its prompt to fit. A quota that resets tomorrow is reported plainly instead of being retried.</p>
 <p><strong>Privacy:</strong> the free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished structures use a local model through Ollama, where nothing leaves your machine, or a paid tier.</p>
-<p>What did not work: models without tool calling (Gemma 3, Falcon 3, EXAONE, most vision-only models) cannot drive ChimeraX at all; 20B-class models spill out of a 12 GB card and take ten times longer for no gain; below 4B the small models — including several sold as tool-calling specialists — get most requests wrong. Ollama keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.</p>
+<p>What did not work: models without tool calling (Gemma 3, Falcon 3, EXAONE, most vision-only models) cannot drive ChimeraX at all; 20B-class models spill out of a 12 GB card and take ten times longer for no gain; below 4B the small models get most requests wrong, including several sold as tool-calling specialists. Ollama keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.</p>
 <h2 id="updating">Updating</h2>
 <p>ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
 <h2 id="where-things-are-stored">Where things are stored</h2>

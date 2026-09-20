@@ -1,4 +1,4 @@
-# Pellaeon Classic — for UCSF Chimera 1.x
+# Pellaeon Classic: for UCSF Chimera 1.x
 
 The same assistant, for the classic Chimera. Because Chimera 1.x runs Python 2 and Tk, Pellaeon Classic is a small
 separate program: it serves the Pellaeon panel to your web browser and drives Chimera through Chimera's built-in

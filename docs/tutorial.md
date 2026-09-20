@@ -5,7 +5,7 @@ The full walkthrough takes about twenty minutes: hemoglobin, a residue and its n
 ## Five-minute version
 
 1. In ChimeraX's **Command:** line, paste `open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py` and press Enter.
-2. The panel opens on its settings page. Pick **Google Gemini** (free key, nothing to install) or **Ollama** (runs on your computer), press **Test connection**, then **Save & use**.
+2. The panel opens on its settings page. Pick **Mistral** (free key, nothing to install) or **Ollama** (runs on your computer), press **Test connection**, then **Save & use**.
 3. Press **Run a first request**. Pellaeon opens ubiquitin and colors it by chain.
 4. Type these into Pellaeon's message box, one at a time:
 
@@ -15,7 +15,7 @@ The full walkthrough takes about twenty minutes: hemoglobin, a residue and its n
 
 The rest of this page is the full walkthrough.
 
-## Part 1 — Setup
+## Part 1: Setup
 
 ### 1. Install ChimeraX and Pellaeon
 
@@ -38,14 +38,16 @@ Or type `ui tool show Pellaeon` in the command line. Nothing else to install: no
 
 The panel opens on its settings page. You have two easy choices:
 
-- **Nothing to install (recommended to start):** pick **Google Gemini**, click "get a key", sign in with a Google account at AI Studio, press *Create API key*, paste it into Pellaeon. Free, no credit card, takes two minutes. The free tier allows about five requests a minute; when you hit it, Pellaeon waits and retries by itself.
+- **Nothing to install (recommended to start):** pick **Mistral**, click "get a key", sign up at console.mistral.ai, press *Create new key*, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses `ministral-8b-latest`, which the free tier serves at about 190 requests a minute, so you will not sit waiting on a quota. Google Gemini is just as good a choice at a slower 15 requests a minute; its key comes from AI Studio the same way.
 - **The AI runs on your computer:** pick **Ollama**. (Structures and annotations are still fetched from the PDB, UniProt and ClinVar when you ask for them.) Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
+
+One thing to know before you paste a cloud key: the free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models. What gets sent is your request, the list of open models and the current selection. For unpublished structures, use Ollama, where nothing leaves your computer, or a paid tier.
 
 Press **Test connection**, then **Save & use**, or **Run a first request**, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.
 
 ![Settings page](img/01_settings.png)
 
-## Part 2 — Step by step
+## Part 2: Step by step
 
 Type each request into the box at the bottom and press Enter. Typos and casual phrasing are fine. The pictures on this page were rendered on a white background with silhouettes (`set bgColor white; lighting soft; graphics silhouettes true`); yours will be on black until step 4, which is fine.
 
@@ -234,7 +236,7 @@ Any per-residue table can be painted onto a structure: conservation scores, deep
 
 Technical note: every value is stored as a residue attribute named `pellaeon_<table>_<column>`, so ChimeraX's own attribute selection (`select ::pellaeon_ubiquitin_hydropathy_hydropathy>3`) and saved sessions work with it. Table overlays are ChimeraX-edition only.
 
-## Part 3 — Good to know
+## Part 3: Good to know
 
 - **Review the view:** with a model that can see images (Gemini, Claude, OpenAI) and *Let the model look at screenshots* ticked in Settings ▸ Advanced, the **Review the view** chip makes Pellaeon take a screenshot, judge framing, clutter, labels and colors, fix what it can and look again. Local Ollama models cannot see the screen.
 - **Green means it happened:** a command that ran but matched nothing shows an amber *changed nothing* mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.

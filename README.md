@@ -1,6 +1,6 @@
 <img src="docs/logo.svg" width="72" align="left" alt="Pellaeon logo">
 
-# Pellaeon — talk to ChimeraX in plain English
+# Pellaeon: talk to ChimeraX in plain English
 
 Pellaeon adds a chat panel to [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/). You type what you want:
 
@@ -10,7 +10,7 @@ Pellaeon adds a chat panel to [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/
 
 …and Pellaeon runs the ChimeraX commands for you, shows every command it ran (copy or re-run any of them), retries from the error when a command fails, and asks before doing anything risky (closing models, deleting atoms, saving files).
 
-It works with **local models** (Ollama — free, private, runs on your own machine) and **cloud models** (Anthropic Claude, Google Gemini, OpenAI, and anything OpenAI-compatible such as OpenRouter, Groq or LM Studio). Gemini and OpenRouter have free tiers.
+It works with **local models** (Ollama: free, private, runs on your own machine) and **cloud models** (Anthropic Claude, Google Gemini, OpenAI, and anything OpenAI-compatible such as OpenRouter, Groq or LM Studio). Gemini and OpenRouter have free tiers.
 
 Named after Gilad Pellaeon, captain of the *Chimaera*.
 
