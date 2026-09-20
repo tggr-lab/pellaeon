@@ -986,3 +986,26 @@ def test_compact_mode_stops_retrieving_docs_every_turn():
     agent.run_turn("color it red")
     assert calls == []                                   # nothing retrieved automatically
     assert "search_docs" in {t.name for t in __import__("core.tools", fromlist=["x"]).tool_specs(compact=True)}
+
+
+def test_resolve_protein_flags_a_family_name_as_ambiguous(monkeypatch):
+    """'the PAR receptor' matches F2R, F2RL1, F2RL2 and F2RL3 equally well; picking the first
+    silently opens a different protein from the one the user meant."""
+    from core import uniprot
+
+    def entry(acc, gene, name, syn=()):
+        return {"primaryAccession": acc, "entryType": "UniProtKB reviewed (Swiss-Prot)",
+                "genes": [{"geneName": {"value": gene}, "synonyms": [{"value": s} for s in syn]}],
+                "proteinDescription": {"recommendedName": {"fullName": {"value": name}}},
+                "organism": {"scientificName": "Homo sapiens"}, "sequence": {"length": 100}}
+
+    results = [entry("Q96RI0", "F2RL3", "Proteinase-activated receptor 4", ["PAR4"]),
+               entry("P55085", "F2RL1", "Proteinase-activated receptor 2", ["PAR2"])]
+    monkeypatch.setattr(uniprot, "request_json", lambda *a, **k: {"results": results})
+    u = uniprot.UniProtClient(None)
+    out = u.resolve("the PAR receptor")
+    assert [c["gene"] for c in out["ambiguous"]] == ["F2RL3", "F2RL1"]
+    assert "ask_user" in out["note"]
+    assert out["accession"] == "Q96RI0"                       # still resolves, but says it is unsure
+    assert "ambiguous" not in u.resolve("PAR2")               # a synonym names one exactly
+    assert "ambiguous" not in u.resolve("F2RL3")

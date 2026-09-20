@@ -283,7 +283,7 @@
   "request": "make it green",
   "expected": "Only #1 (4hhb) is open after the close; 'it' unambiguously refers to #1, which gets coloured green without asking.",
   "check_type": "state_expr",
-  "check": "not any(m.id[0]==2 for m in models) and any(a.color[1]>150 and a.color[0]<100 and a.color[2]<100 for a in atoms if a.name=='CA')",
+  "check": "not any(m.id[0]==2 for m in models) and any(a.color[1]>=100 and a.color[0]<80 and a.color[2]<80 for a in atoms if a.name=='CA')",
   "followups": []
  }
 ]

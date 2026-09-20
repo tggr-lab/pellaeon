@@ -130,6 +130,20 @@ class UniProtClient:
                 out.update({"accession": best["accession"], "gene": best["gene"],
                             "protein_name": best["protein_name"], "length": best["length"],
                             "open_command": "open alphafold:%s" % best["accession"]})
+                # "the PAR receptor" matches F2R, F2RL1, F2RL2 and F2RL3 equally well, and picking the
+                # first one silently opens a different protein from the one the user meant. Say so.
+                q = query.strip().lower()
+                named = any(q == (c.get("gene") or "").lower() or q in [s.lower() for s in (c.get("synonyms") or [])]
+                            or q == (c.get("accession") or "").lower()
+                            for c in out["candidates"])
+                rival = [c for c in out["candidates"]
+                         if c.get("reviewed") and (c.get("gene") or "").upper() != (best.get("gene") or "").upper()]
+                if not named and rival:
+                    out["ambiguous"] = [{"accession": c["accession"], "gene": c["gene"],
+                                         "protein_name": c["protein_name"]}
+                                        for c in ([best] + rival)[:5]]
+                    out["note"] = ("'%s' matches several human proteins. If the request does not name one of "
+                                   "these, ask the user which one with ask_user before opening anything." % query)
                 self._store(key, out)
                 return out
         if last_err:

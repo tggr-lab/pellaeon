@@ -83,7 +83,7 @@ RESOLVE_PROTEIN = ToolSpec(
     "resolve_protein",
     "Look up a protein by gene symbol or name in UniProt and return its accession (needed for "
     "'open alphafold:ACCESSION'), gene, full name, organism and length. NEVER guess accessions; "
-    "always call this first when the user names a gene or protein.",
+    "always call this first when the user names a gene or protein. If the result carries an \"ambiguous\" list, the name matched several proteins: ask the user which one with ask_user before opening anything.",
     {
         "type": "object",
         "properties": {
