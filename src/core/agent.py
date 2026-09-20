@@ -318,7 +318,9 @@ class Agent:
             for attempt in range(2):
                 nudge = None
                 last_ctx = context
-                if self.config.nudge_on_no_action and looks_like_action_request(user_text):
+                # not for a request ChimeraX cannot fulfil: pushing the model to "do it now" there
+                # makes it invent an unrelated action (a view reset, a publication preset)
+                if self.config.nudge_on_no_action and looks_like_action_request(user_text) and not self._impossible_ask:
                     ran = self._commands_since(start_len)
                     if not outcome.get("called_tool") and _WHICH_MODEL_RE.search(self._last_assistant_text()) and self._one_model_open():
                         nudge = NUDGE_ONE_MODEL   # asked which model although only one is open
@@ -700,9 +702,9 @@ class Agent:
             if self._impossible_ask and w in ("save", "export") and origin == "model":
                 return {"ok": False, "results": [], "error":
                         "The user asked for something ChimeraX cannot do (emailing, printing, messaging or uploading). "
-                        "Saving a file is NOT a step towards it. Run no commands: say in one sentence that ChimeraX cannot "
-                        "do it, and if it helps, that they can save an image themselves and send it from their own email or "
-                        "file manager.", "impossible": True}
+                        "Saving a file is NOT a step towards it. Answer in words now: say in one sentence that ChimeraX "
+                        "cannot do it, and that they can save an image themselves and send it from their own email or file "
+                        "manager. Do not run any other command in its place.", "impossible": True}
             if w in _TOOL_NAMES:
                 return {"ok": False, "results": [], "error": "'%s' is one of YOUR TOOLS, not a ChimeraX command. Call the tool "
                         "named %s with its arguments instead of running it as text." % (w, w), "tool_misuse": w}

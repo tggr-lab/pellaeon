@@ -880,7 +880,7 @@ def test_saving_is_refused_when_the_user_asked_for_something_chimerax_cannot_do(
     agent.run_turn("email this structure to my boss")
     assert not any(j["command"].startswith("save") for j in agent.journal)
     told = [r.content for m in agent.conversation if m.role == "tool" for r in m.tool_results_list()]
-    assert any("cannot do" in t and "no commands" in t.lower() for t in told)
+    assert any("cannot do" in t and "not run any other command" in t for t in told)
 
 
 def test_saving_is_allowed_when_the_user_asked_to_save_and_send():
@@ -891,3 +891,14 @@ def test_saving_is_allowed_when_the_user_asked_to_save_and_send():
                   callbacks=Callbacks(on_confirm=lambda c, r: c))
     agent.run_turn("save a picture to my desktop so I can email it to my boss")
     assert any(j["command"].startswith("save") for j in agent.journal)
+
+
+def test_no_action_nudge_is_skipped_for_requests_chimerax_cannot_fulfil():
+    ex = FakeExecutor()
+    # the model answers in words; without the gate the nudge would push it to run something
+    prov = ScriptedProvider(["ChimeraX cannot email a structure.",
+                             {"text": "", "calls": [("run_commands", {"commands": ['preset "overall look" "publication 1"']})]}])
+    agent = Agent(prov, ex, config=AgentConfig(autonomy=AUTONOMY_AUTO))
+    result = agent.run_turn("email this structure to my boss")
+    assert agent.journal == []
+    assert "cannot email" in result.reply

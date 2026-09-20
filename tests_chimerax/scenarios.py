@@ -78,6 +78,11 @@ def make_agent(record):
 
 
 def ran_commands(record):
+    """What actually ran. The model's requests are not the same thing: Pellaeon refuses
+    some of them (a save for a request ChimeraX cannot fulfil, an unverified accession),
+    and a refused command must not count against a scenario that expects no commands."""
+    if record.get("executed") is not None:
+        return list(record["executed"])
     out = []
     for name, a in record["calls"]:
         if name == "run_commands":
@@ -146,6 +151,7 @@ for s in SCENARIOS:
     except Exception as e:  # noqa: BLE001
         err = str(e)
     dt = time.time() - t0
+    record["executed"] = [j.get("command", "") for j in getattr(agent, "journal", []) if not j.get("noop_skipped")]
     ok, detail = evaluate(s, record, reply)
     passed += ok
     line = "%s %-28s %5.1fs  %s" % ("PASS" if ok else "FAIL", s["id"], dt, "" if ok else ("| " + detail[:300] + " | reply: " + (reply or "")[:160].replace("\n", " ")))
