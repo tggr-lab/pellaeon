@@ -31,6 +31,7 @@
 <li><a href="#step-7b-re-use-a-look">Step 7b · Re-use a look</a></li>
 <li><a href="#step-8b-when-labels-pile-up">Step 8b · When labels pile up</a></li>
 <li><a href="#step-9-compare-two-conformations">Step 9 · Compare two conformations</a></li>
+<li><a href="#step-9b-which-contacts-change">Step 9b · Which contacts change</a></li>
 <li><a href="#step-10-risky-commands-ask-first">Step 10 · Risky commands ask first</a></li>
 <li><a href="#step-11-your-own-data-on-the-structure">Step 11 · Your own data on the structure</a></li>
 </ul>
@@ -226,6 +227,11 @@
 <p>What you are looking at: the second model (closed, 1anf) after superposition on the first, shown alone and colored by how far each Cα moved between the two forms: gray under 1 Å, gold, orange, dark red 6 Å or more; a key sits in the corner. The reference is hidden; <strong>Show reference</strong> on the card draws it as a pale ghost on top. Gray means the residue sits close to its counterpart <em>after the fit</em>; it is not a statement about which part is the hinge.</p>
 <figure><img alt="Comparison card" src="img/tut/09_compare_b_panel.png" /><figcaption>Comparison card</figcaption></figure>
 <p>The card leads with the change: how many residues moved more than 2 Å, the mean and maximum shift, and the segments with the largest shifts (each clickable). Below it, the fit details: MatchMaker's RMSD over the Cα pairs it kept after pruning, and the RMSD over all aligned pairs. They are different numbers about different sets of atoms, which is why the card keeps them apart.</p>
+<h3 id="step-9b-which-contacts-change">Step 9b · Which contacts change</h3>
+<blockquote>
+<p>which contacts are lost when it opens, and which salt bridges break?</p>
+</blockquote>
+<p>Where step 9 asks how far residues moved, this asks what they stopped touching. Pellaeon collects every residue-residue contact in both conformations, matches them through the same alignment, and draws the lost ones as red dashes on the closed form and the gained ones green on the open form, with a key. The reply leads with one sentence a biologist would write: how many contacts were lost and gained, which salt bridges broke, and where the change clusters. Add "for the ligand" to see only what the ligand touches in one form but not the other.</p>
 <h3 id="step-10-risky-commands-ask-first">Step 10 · Risky commands ask first</h3>
 <blockquote>
 <p>close everything</p>

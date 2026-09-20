@@ -230,6 +230,12 @@ What you are looking at: the second model (closed, 1anf) after superposition on 
 
 The card leads with the change: how many residues moved more than 2 Å, the mean and maximum shift, and the segments with the largest shifts (each clickable). Below it, the fit details: MatchMaker's RMSD over the Cα pairs it kept after pruning, and the RMSD over all aligned pairs. They are different numbers about different sets of atoms, which is why the card keeps them apart.
 
+### Step 9b · Which contacts change
+
+> which contacts are lost when it opens, and which salt bridges break?
+
+Where step 9 asks how far residues moved, this asks what they stopped touching. Pellaeon collects every residue-residue contact in both conformations, matches them through the same alignment, and draws the lost ones as red dashes on the closed form and the gained ones green on the open form, with a key. The reply leads with one sentence a biologist would write: how many contacts were lost and gained, which salt bridges broke, and where the change clusters. Add "for the ligand" to see only what the ligand touches in one form but not the other.
+
 ### Step 10 · Risky commands ask first
 
 > close everything

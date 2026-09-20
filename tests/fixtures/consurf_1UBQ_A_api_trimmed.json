@@ -1,0 +1,15 @@
+{
+ "find_chains": [
+  "A"
+ ],
+ "get_identical_chain": {
+  "identical_pdb": "6Q00",
+  "identical_chain": "A"
+ },
+ "get_final_data": {
+  "Score_File": "https://consurfdb.tau.ac.il/results/6Q00/A/6Q00_A_consurf_grades.txt",
+  "pdbUrl": "https://consurfdb.tau.ac.il/results/1UBQ/1UBQ.pdb",
+  "average_distance": 1.17,
+  "evolutionary_model": "WAG"
+ }
+}
