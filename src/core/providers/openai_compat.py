@@ -75,13 +75,23 @@ class OpenAICompatProvider(Provider):
             body["tool_choice"] = "auto"
 
         def once():
+            seen = {"text": False}
+
+            def tap(piece):
+                seen["text"] = True
+                if on_delta:
+                    on_delta(piece)
+
             try:
-                return self._stream_once(body, on_delta, cancel)
+                return self._stream_once(body, tap, cancel)
             except HttpError as e:
                 if e.status == 400 and "stream_options" in e.body and "stream_options" in body:
                     del body["stream_options"]
-                    return self._stream_once(body, on_delta, cancel)
+                    return self._stream_once(body, tap, cancel)
                 raise ProviderError(self._explain(e))
+            except ProviderError as e:
+                e.streamed = seen["text"]        # an in-stream error after text was shown: no retry
+                raise
 
         # Free tiers (Groq's tokens-per-minute, OpenRouter's daily cap) answer 429 constantly:
         # wait out the limit instead of failing the turn.

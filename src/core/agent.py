@@ -19,7 +19,7 @@ from . import prompt as prompt_mod
 from .fixups import suggest
 from .safety import AUTONOMY_AUTO, first_word, needs_confirmation, split_commands
 from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens, new_id)
-from .recovery import split_joined
+from .recovery import split_joined, _looks_like_prose
 from .tools import tool_specs
 from .http import Cancelled
 from .providers.base import Provider, ProviderError
@@ -118,7 +118,7 @@ NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, reada
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
 _TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "explain_residue", "save_figure", "resolve_protein", "protein_features", "search_docs", "get_state",
-               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands", "map_numbering", "apply_figure_style"}
+               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands", "map_numbering", "apply_figure_style", "compare_contacts"}
 
 _COMPLAINT_RE = re.compile(
     r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
@@ -229,16 +229,18 @@ class Agent:
         self.compact = True
         if not self._fixed_system:
             self._system = self._build_system()
-        for m in self.conversation:
-            ctx = m.meta.get("context") if m.meta else None
-            if ctx:
-                m.meta["context"] = prompt_mod.trim_context(ctx)
+        for m in reversed(self.conversation):    # adapters send the context of the last user message only
+            if m.role == "user":
+                ctx = m.meta.get("context") if m.meta else None
+                if ctx:
+                    m.meta["context"] = prompt_mod.trim_context(ctx)
+                break
         return True
 
     @staticmethod
     def _request_too_large(error_text: str) -> bool:
         t = (error_text or "").lower()
-        return ("413" in t or "too large" in t or "too long" in t
+        return (bool(re.search(r"\b(?:http\s*)?413\b", t)) or "too large" in t or "too long" in t
                 or "reduce your message size" in t or "context length" in t or "maximum context" in t)
 
     def _stream(self, tools, cancel, on_delta=_UNSET):
@@ -249,8 +251,15 @@ class Agent:
         except ProviderError as e:
             if self._request_too_large(str(e)) and self.go_compact():
                 self._status("The prompt was too large for this model; retrying with a shorter one…")
+                if tools:
+                    tools = self._tools()
                 return self.provider.stream(self.system_prompt, self.conversation, tools, on_delta=delta, cancel=cancel)
             raise
+
+    def _tools(self):
+        return tool_specs(self.config.allow_python,
+                          self.config.vision and getattr(self.provider, "supports_vision", False),
+                          tables=bool(self.tables), compact=self.compact)
 
     # ------------------------------------------------------------ public
     @property
@@ -308,9 +317,7 @@ class Agent:
                     self.conversation.append(Message.assistant(text))
                     self._save_hook() if hasattr(self, "_save_hook") else None
                     return TurnResult(text, len(self.conversation) - start_len, Usage(0, 0))
-            tools = tool_specs(self.config.allow_python,
-                               self.config.vision and getattr(self.provider, "supports_vision", False),
-                               tables=bool(self.tables), compact=self.compact)
+            tools = self._tools()
             outcome = self._loop(tools, cancel, usage)
             if outcome.get("asked"):
                 self.total_usage.add(usage)
@@ -615,6 +622,14 @@ class Agent:
                 payload = self._compare(str(args["reference"]), str(args["other"]), args.get("chain") or None)
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
+            elif name == "compare_contacts":
+                if not args.get("reference") or not args.get("other"):
+                    raise RuntimeError("compare_contacts needs both 'reference' and 'other' model specs.")
+                payload = self._compare_contacts(str(args["reference"]), str(args["other"]), args.get("chain") or None,
+                                                 str(self._scalar(args.get("restrict"), "") or "") or None,
+                                                 float(args.get("cutoff") or 4.0))
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
+                                    is_error="error" in payload)
             elif name == "explain_residue":
                 payload = self.executor.residue_provenance(str(self._scalar(args.get("residue"), "") or ""), list(self.journal))
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
@@ -727,7 +742,14 @@ class Agent:
                                      % (acc, (" (UniProt says it is %s, which the user did not mention)" % gene) if gene else ""),
                                      "unverified_accession": acc})
                     break
+            if blocked is not None:      # the inner break only left the accession loop
+                break
             w = first_word(c)
+            if origin == "model" and _looks_like_prose(c):
+                # the model put its own reasoning into the commands list ("Wait, no. Let me re-read...")
+                blocked = (idx, {"error": "That is a sentence, not a ChimeraX command: %r. Put only commands in the "
+                                 "list. If the request cannot be done, answer in words instead." % c[:80], "prose": True})
+                break
             if self._impossible_ask and w in ("save", "export") and origin == "model":
                 blocked = (idx, {"error":
                            "The user asked for something ChimeraX cannot do (emailing, printing, messaging or uploading). "
@@ -749,7 +771,10 @@ class Agent:
             out = self.execute_commands(commands[:stop_at], origin, preapproved)
             out.update({k: v for k, v in err.items() if k != "error"})
             out["ok"] = False
-            out["error"] = err["error"]
+            if out.get("skipped"):       # the user declined the prefix: that is the message that matters
+                out["error"] = "%s Also: %s" % (out.get("error") or "The user declined.", err["error"])
+            else:
+                out["error"] = err["error"]
             return out
 
         label_notes = []
@@ -916,6 +941,67 @@ class Agent:
             if m:
                 v = m.group(1).strip()
         return v if v is not None else default
+
+
+    def _compare_contacts(self, reference: str, other: str, chain: Optional[str],
+                          restrict: Optional[str], cutoff: float) -> Dict[str, Any]:
+        """Superpose, collect contacts on both models, compare them THROUGH the alignment and draw
+        the change. Everything that changes the scene goes through execute_commands."""
+        from .contacts import compare_contacts, contact_commands
+        if not hasattr(self.executor, "residue_contacts"):
+            return {"error": "Contact comparison needs the ChimeraX edition."}
+        prep = self.executor.prepare_compare(reference, other, chain)
+        if prep.get("error"):
+            return prep
+        cmd = "matchmaker %s %s" % (prep["other_spec"], prep["ref_spec"]) if self.config.edition == "chimera" \
+            else "matchmaker %s to %s" % (prep["other_spec"], prep["ref_spec"])
+        mm = self.execute_commands([cmd], origin="compare")
+        if not mm.get("ok"):
+            return {"error": "matchmaker did not run: %s" % mm.get("error", ""), "details": mm}
+        pairing = self.executor.residue_pairing(prep)
+        if pairing.get("error"):
+            return pairing
+        # a restrict spec is written for the reference; the same residues or ligand in the other model
+        # are addressed by swapping the model id, and may legitimately be absent (an apo form)
+        ref_restrict = oth_restrict = None
+        if restrict:
+            tail = restrict[restrict.find("/"):] if "/" in restrict else (restrict if restrict.startswith(":") else "/" + restrict)
+            ref_restrict = "#%s%s" % (prep["ref_id"], tail)
+            oth_restrict = "#%s%s" % (prep["other_id"], tail)
+        ref = self.executor.residue_contacts(prep["ref_spec"], cutoff, ref_restrict)
+        if ref.get("error"):
+            return ref
+        oth = self.executor.residue_contacts(prep["other_spec"], cutoff, oth_restrict)
+        missing = oth.get("error", "")
+        res = compare_contacts(ref["contacts"], oth.get("contacts") or [], pairing["pairing"])
+        out: Dict[str, Any] = {"reference": prep["ref_spec"], "compared": prep["other_spec"],
+                               "chain": prep.get("chain") or "all", "cutoff": cutoff,
+                               "restrict": ref_restrict or "", "pairing": pairing.get("basis"),
+                               "summary": res["summary"], "counts": res["counts"], "by_kind": res["by_kind"],
+                               "lost": res["lost"][:25], "gained": res["gained"][:25],
+                               "commands": mm["results"]}
+        if res.get("note"):
+            out["note"] = res["note"]
+        if missing:
+            out["compared_side"] = ("Nothing matched the restrict spec in %s (%s), so every restricted contact counts as lost."
+                                    % (prep["other_spec"], missing))
+        if str(pairing.get("basis", "")).startswith("chain id"):
+            out["pairing_fallback"] = True
+            out["pairing_note"] = ("Residues were paired by chain ID and residue number because no alignment was "
+                                   "available; the lost/gained lists are only meaningful if both structures use the same numbering.")
+        out["report_verbatim"] = ("Report the 'summary' sentence as it is, then name the specific contacts that broke "
+                                  "or formed. Contacts in 'lost'/'gained' are residue pairs, not distances the user measured.")
+        cmds = contact_commands(res, prep["ref_spec"], prep["other_spec"])
+        if cmds:
+            col = self.execute_commands(cmds, origin="compare")
+            out["drawn"] = bool(col.get("ok"))
+            out["commands"] = out["commands"] + col.get("results", [])
+            if col.get("skipped"):
+                out["note"] = "The user declined the display commands."
+            else:
+                self.figure_notes.append("Contact comparison: lost contacts red on %s, gained green on %s."
+                                         % (prep["ref_spec"], prep["other_spec"]))
+        return out
 
     # ------------------------------------------------------------ numbering
     def _accession_for(self, protein: str) -> Tuple[str, str]:

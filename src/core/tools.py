@@ -24,6 +24,8 @@ class Executor(Protocol):
     def compute_displacement(self, prep: Dict[str, Any]) -> Dict[str, Any]: ...
     def map_positions(self, model: str, accession: str, positions: List[int]) -> Dict[str, Any]: ...
     def chain_uniprot(self, model: str) -> Dict[str, Any]: ...
+    def residue_pairing(self, prep: Dict[str, Any]) -> Dict[str, Any]: ...
+    def residue_contacts(self, model_spec: str, cutoff: float = 4.0, restrict: Optional[str] = None) -> Dict[str, Any]: ...
     def look_at_view(self) -> Dict[str, Any]: ...
 
 
@@ -228,6 +230,23 @@ SAVE_FIGURE = ToolSpec(
      "required": []},
 )
 
+COMPARE_CONTACTS = ToolSpec(
+    "compare_contacts",
+    "Compare the INTERACTIONS of two conformations: superpose them, collect every residue-residue contact in each "
+    "(salt bridges, hydrogen-bond-capable pairs, van der Waals contacts) and report which contacts are lost, gained "
+    "and kept, matched through the alignment rather than by residue number. Draws lost contacts as red dashes on the "
+    "reference and gained ones as green dashes on the other model. Use it for 'which contacts are lost when it opens', "
+    "'what does the ligand touch in the closed form but not the open one', 'which salt bridges break'. Use "
+    "compare_structures instead when the question is how far things MOVED.",
+    {"type": "object", "properties": {
+        "reference": {"type": "string", "description": "reference model spec, e.g. '#1' (the form whose contacts can be 'lost')"},
+        "other": {"type": "string", "description": "model to compare against it, e.g. '#2'"},
+        "chain": {"type": "string", "description": "optional chain id to restrict the comparison, e.g. 'A'"},
+        "restrict": {"type": "string", "description": "optional atom spec limiting one side of every contact, e.g. a ligand ':AP5' or '/A:87'; use it for 'what does the ligand/this residue touch'"},
+        "cutoff": {"type": "number", "description": "heavy-atom distance in A that counts as a contact (default 4.0)"}},
+     "required": ["reference", "other"]},
+)
+
 MAP_NUMBERING = ToolSpec(
     "map_numbering",
     "Translate UniProt (sequence) positions into this structure's residue numbers, or say which are missing. "
@@ -253,7 +272,7 @@ APPLY_FIGURE_STYLE = ToolSpec(
      "required": ["figure"]},
 )
 
-ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, MAP_NUMBERING, APPLY_FIGURE_STYLE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+ALL_TOOLS = [RUN_COMMANDS, COMPARE, COMPARE_CONTACTS, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, MAP_NUMBERING, APPLY_FIGURE_STYLE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 
@@ -267,11 +286,14 @@ def tool_specs(allow_python: bool = False, vision: bool = False,
     panel's chips reach both of those directly if the model is not told about them).
     """
     specs = [RUN_COMMANDS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
-             PROTEIN_FEATURES, COMPARE, ANNOTATE, ASK_USER, SAVE_FIGURE]
+             PROTEIN_FEATURES, COMPARE, COMPARE_CONTACTS, ANNOTATE, ASK_USER, SAVE_FIGURE]
     if tables:
         specs.append(TABLE_OVERLAY)
+    # tidy_labels and explain_residue are demanded by nudges, map_numbering by a gotcha: a tool the
+    # prompt orders the model to call must be on the list, compact or not
+    specs.extend([TIDY_LABELS, EXPLAIN_RESIDUE, MAP_NUMBERING])
     if not compact:
-        specs.extend([TIDY_LABELS, EXPLAIN_RESIDUE, MAP_NUMBERING, APPLY_FIGURE_STYLE])
+        specs.append(APPLY_FIGURE_STYLE)
     if allow_python:
         specs.append(RUN_PYTHON)
     if vision:

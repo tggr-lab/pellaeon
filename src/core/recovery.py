@@ -32,7 +32,8 @@ def _looks_like_prose(cmd: str) -> bool:
     if re.match(r"^\w+[,:;?!]", cmd):          # "Wait," / "Note:" starts a sentence, not a command
         return True
     outside_quotes = re.sub(r"\"[^\"]*\"|'[^']*'", " ", cmd)   # label text may legitimately be English
-    return bool(_PROSE_WORDS.search(outside_quotes))
+    no_paths = " ".join(tok for tok in outside_quotes.split() if "/" not in tok and "." not in tok and "~" not in tok)
+    return bool(_PROSE_WORDS.search(no_paths))                   # /home/user/figure.png is a path, not a sentence
 
 
 def _valid(cmd: str, known: Set[str]) -> bool:
@@ -141,6 +142,9 @@ def split_joined(commands):
     """
     out = []
     for cmd in commands:
+        if first_word(cmd) in ("alias", "perframe") or "{" in cmd:   # bodies and format strings own their ';'
+            out.append(cmd.strip())
+            continue
         parts, buf, quote = [], [], ""
         for ch in cmd:
             if quote:

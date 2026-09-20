@@ -421,3 +421,40 @@ def _residues_spec(residues, max_len: int = 200) -> str:
             parts.append("%s/%s:%s" % (mid, cid, ",".join(ranges)))
     spec = " ".join(parts)
     return spec if len(spec) <= max_len else spec[:max_len] + "…"
+
+
+# --------------------------------------------------------------------------------------
+# Contact comparison (append-only). Attached to ChimeraXExecutor here instead of being
+# written inside the class body so that this file only ever grows at the end.
+# --------------------------------------------------------------------------------------
+
+def _matchmaker_returns(executor) -> List[Dict[str, Any]]:
+    """The dicts the last matchmaker command returned (its residue correspondence lives there)."""
+    returns: List[Dict[str, Any]] = []
+
+    def flatten(v):
+        if isinstance(v, dict):
+            returns.append(v)
+        elif isinstance(v, (list, tuple)):
+            for x in v:
+                flatten(x)
+    for cmd, val in getattr(executor, "last_returns", {}).items():
+        if cmd.startswith(("matchmaker", "mm ")):
+            flatten(val)
+    return returns
+
+
+def _residue_pairing(self, prep: Dict[str, Any]) -> Dict[str, Any]:
+    from .analysis import residue_pairing
+    returns = _matchmaker_returns(self)
+    return _run_on_main_thread(self.session, lambda: residue_pairing(self.session, prep, returns))
+
+
+def _residue_contacts(self, model_spec: str, cutoff: float = 4.0,
+                      restrict: Optional[str] = None) -> Dict[str, Any]:
+    from .analysis import residue_contacts
+    return _run_on_main_thread(self.session, lambda: residue_contacts(self.session, model_spec, cutoff, restrict))
+
+
+ChimeraXExecutor.residue_pairing = _residue_pairing
+ChimeraXExecutor.residue_contacts = _residue_contacts

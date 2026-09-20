@@ -167,7 +167,16 @@ class GeminiProvider(Provider):
         if e.status == 404:
             return "Gemini: model not found. %s" % msg
         if e.status == 429:
-            return "Gemini rate limit (429). The free tier allows a limited number of requests per minute. %s" % msg
+            # the retry delay and the quota name live in error.details, which `msg` leaves out
+            details = ""
+            try:
+                details = json.dumps((json.loads(e.body).get("error") or {}).get("details") or [])[:300]
+            except Exception:  # noqa: BLE001
+                pass
+            if self.is_daily_limit(msg + " " + details):
+                return ("Gemini's free daily quota for this model is used up; it resets at midnight Pacific time. "
+                        "Switch model or provider in Settings for today. %s" % msg)
+            return "Gemini rate limit (429). The free tier allows a limited number of requests per minute. %s %s" % (msg, details)
         return "Gemini HTTP %d: %s" % (e.status, str(msg)[:300])
 
     def list_models(self) -> List[str]:

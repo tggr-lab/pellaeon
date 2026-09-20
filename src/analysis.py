@@ -552,6 +552,11 @@ def residue_contacts(session, model_spec: str, cutoff: float = 4.0,
     ignored, and intra-residue and sequential-backbone pairs are dropped because they are present
     in every structure and say nothing about a conformational change.
 
+    A chain in `model_spec` ('#1/A') limits the collection to that chain, which is what the
+    comparison wants: matchmaker superposes one chain pair, so contacts of the other chains
+    could never be paired anyway. Atoms matched by `restrict` are kept whatever their chain,
+    because a ligand usually sits in a chain of its own.
+
     `restrict` is an atom spec (e.g. a ligand, '#1:AP5'): only contacts with at least one atom on
     that side are returned, and that side is always reported as ``a``.
 
@@ -565,11 +570,25 @@ def residue_contacts(session, model_spec: str, cutoff: float = 4.0,
     if m is None:
         return {"error": "No atomic model %s is open." % model_spec}
     atoms = m.atoms
+
+    wanted = set()
+    if restrict:
+        from chimerax.core.commands import atomspec
+        try:
+            sel = atomspec.AtomSpecArg.parse(restrict, session)[0].evaluate(session).atoms
+        except Exception as e:  # noqa: BLE001
+            return {"error": "Could not read restrict spec '%s': %s" % (restrict, e)}
+        wanted = set(int(p) for p in sel.pointers)   # C++ pointers identify atoms across collections
+
+    chain_m = re.search(r"/([A-Za-z0-9]+)", model_spec or "")
+    chain = chain_m.group(1) if chain_m else None
+    ptrs = [int(p) for p in atoms.pointers]
     keep = [i for i, a in enumerate(atoms)
-            if a.element.name != "H" and a.residue.name.upper() not in _SOLVENT_NAMES]
+            if a.element.name != "H" and a.residue.name.upper() not in _SOLVENT_NAMES
+            and (chain is None or a.residue.chain_id == chain or ptrs[i] in wanted)]
     if not keep:
         return {"error": "Model %s has no non-solvent heavy atoms." % model_spec}
-    atoms = atoms[keep]
+    atoms = atoms[np.array(keep, dtype=np.int32)]   # an Atoms collection only indexes with an array
     coords = atoms.scene_coords
     residues = [a.residue for a in atoms]
     names = [a.name for a in atoms]
@@ -577,13 +596,7 @@ def residue_contacts(session, model_spec: str, cutoff: float = 4.0,
 
     restrict_set = None
     if restrict:
-        from chimerax.core.commands import atomspec
-        try:
-            sel = atomspec.AtomSpecArg.parse(restrict, session)[0].evaluate(session).atoms
-        except Exception as e:  # noqa: BLE001
-            return {"error": "Could not read restrict spec '%s': %s" % (restrict, e)}
-        wanted = set(sel.pointers if hasattr(sel, "pointers") else [])
-        restrict_set = {i for i, a in enumerate(atoms) if a in sel}
+        restrict_set = {i for i, p in enumerate(atoms.pointers) if int(p) in wanted}
         if not restrict_set:
             return {"error": "The restrict spec '%s' matches nothing in %s." % (restrict, model_spec)}
 

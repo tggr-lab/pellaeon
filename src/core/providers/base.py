@@ -56,7 +56,7 @@ class Provider:
     retry_attempts = 4
 
     _RETRY_RE = re.compile(
-        r"(?:try again|retry(?:Delay)?|retry[- ]after)\D{0,24}?"
+        r"(?:try again|retry(?:Delay)?|retry[- ]after)[^0-9]{0,6}?(?:in|after|[:=])?[\s\"']{0,4}"
         r"(\d+(?:\.\d+)?)\s*(ms|m(?:in[a-z]*)?|s(?:ec[a-z]*)?)?", re.I)
     _SECONDS_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*s", re.I)
 
@@ -67,6 +67,8 @@ class Provider:
         if not m:
             return 0.0
         value, unit = float(m.group(1)), (m.group(2) or "s").lower()
+        if unit.startswith("s") and value > 600:      # "Limit 7000": a count, not a delay
+            return 0.0
         if unit == "ms":
             return value / 1000.0
         if unit.startswith("m"):
@@ -78,8 +80,7 @@ class Provider:
     def is_daily_limit(message: str) -> bool:
         """A per-day cap (OpenRouter's 50 free requests) resets tomorrow: waiting 60s is pointless."""
         t = (message or "").lower()
-        return ("per-day" in t or "per day" in t or "daily limit" in t or "daily quota" in t
-                or "requests per day" in t or "free-models-per-day" in t)
+        return bool(re.search(r"per\s*-?\s*day|daily (?:limit|quota)|free-models-per-day|perday", t))
 
     @staticmethod
     def is_rate_limited(message: str) -> bool:
@@ -89,7 +90,11 @@ class Provider:
 
     def _retrying(self, call: Callable[[], Any], cancel: Optional[threading.Event] = None,
                   on_error: Optional[Callable[[str, int], bool]] = None) -> Any:
-        """Run `call`, waiting out rate limits (and anything `on_error` says to retry)."""
+        """Run `call`, waiting out rate limits (and anything `on_error` says to retry).
+
+        A call that raises after it has already streamed text is never retried: the user has seen
+        that text, and a second full reply on top of it would read as two answers and bill twice.
+        """
         waited = 0.0
         last = None
         for attempt in range(self.retry_attempts):
@@ -97,6 +102,8 @@ class Provider:
                 return call()
             except ProviderError as e:
                 last = e
+                if getattr(e, "streamed", False):
+                    raise
                 text = str(e)
                 if on_error is not None and on_error(text, attempt):
                     continue

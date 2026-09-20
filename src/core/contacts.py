@@ -289,8 +289,10 @@ def _busiest_residues(entries: List[Dict[str, Any]], limit: int, show_chain: boo
 
 # ------------------------------------------------------------------ visualisation plan
 
-LOST_COLOR = "firebrick"
-GAINED_COLOR = "forest green"
+# Hex, not names: a color name with a space ("forest green") would not survive a command line,
+# and these match the red end of the displacement palette used by compute_displacement.
+LOST_COLOR = "#b2182b"
+GAINED_COLOR = "#1a9850"
 
 
 def _model_of(spec: str) -> str:
@@ -343,7 +345,7 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
     n_gained = len(result.get("gained") or [])
 
     cmds: List[str] = ["show %s models" % ref_model, "show %s models" % other_model,
-                       "transparency %s,%s 55 target c" % (ref_model, other_model),
+                       "transparency %s 55 target c" % ref_model, "transparency %s 55 target c" % other_model,
                        "distance delete"]      # a previous comparison's dashes must not be read as this one's
 
     for entries, model, color in ((lost, ref_model, LOST_COLOR), (gained, other_model, GAINED_COLOR)):
@@ -361,9 +363,11 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
             if e.get("a_atom") and e.get("b_atom"):
                 cmds.append("distance %s %s color %s dashes 6 radius 0.08" % (a, b, color))
 
-    cmds.append('key %s:"lost in %s" %s:"gained in %s" colorTreatment distinct pos 0.68,0.05 size 0.28,0.035 fontSize 15'
-                % (LOST_COLOR.replace(" ", ""), other_model, GAINED_COLOR.replace(" ", ""), other_model))
+    # `key` labels must be single words - it rejects even a quoted "lost in #2" - so the models
+    # are named in the 2D label underneath instead.
+    cmds.append("key %s:lost %s:gained colorTreatment distinct pos 0.68,0.05 size 0.28,0.035 fontSize 15"
+                % (LOST_COLOR, GAINED_COLOR))
     shown = "showing %d of %d lost and %d of %d gained" % (len(lost), n_lost, len(gained), n_gained)
-    cmds.append('2dlabels text "Contacts %s vs %s (%s)" xpos 0.68 ypos 0.10 size 14 color black'
+    cmds.append('2dlabels text "Contacts lost (red, on %s) and gained (green, on %s); %s" xpos 0.68 ypos 0.10 size 14 color black'
                 % (ref_model, other_model, shown))
     return cmds

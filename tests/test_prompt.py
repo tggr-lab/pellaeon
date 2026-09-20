@@ -34,3 +34,9 @@ def test_the_docs_block_says_not_to_copy_the_examples_literals():
     assert docs.index("Reference only") < docs.index("21@OG")     # the caveat precedes the example
     # and it survives the compact trim
     assert "never their residue numbers" in P.trim_context(ctx, 200)
+
+
+def test_saved_views_are_listed_in_the_state_block():
+    from core import prompt as P
+    text = P.format_state({"models": [{"id": "#1", "name": "1ubq"}], "selection": {}, "views": ["pocket", "side"]})
+    assert "Saved views (bookmarks): pocket, side" in text and "view <name>" in text

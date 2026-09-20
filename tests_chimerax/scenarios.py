@@ -158,7 +158,7 @@ for s in SCENARIOS:
     except Exception as e:  # noqa: BLE001
         err = str(e)
     dt = time.time() - t0
-    record["executed"] = [j.get("command", "") for j in getattr(agent, "journal", []) if not j.get("noop_skipped")]
+    record["executed"] = [j.get("command", "") for j in getattr(agent, "journal", []) if not j.get("noop")]
     ok, detail = evaluate(s, record, reply)
     passed += ok
     line = "%s %-28s %5.1fs  %s" % ("PASS" if ok else "FAIL", s["id"], dt, "" if ok else ("| " + detail[:300] + " | reply: " + (reply or "")[:160].replace("\n", " ")))

@@ -53,7 +53,7 @@ class ClinVarClient:
             os.makedirs(cache_dir, exist_ok=True)
 
     def _cache(self, gene: str) -> Optional[str]:
-        return os.path.join(self.cache_dir, "clinvar_%s.json" % re.sub(r"[^A-Za-z0-9_-]", "_", gene)) if self.cache_dir else None
+        return os.path.join(self.cache_dir, "clinvar2_%s.json" % re.sub(r"[^A-Za-z0-9_-]", "_", gene)) if self.cache_dir else None
 
     def missense_variants(self, gene: str, max_results: int = 2000) -> Dict[str, Any]:
         gene = (gene or "").strip().upper()

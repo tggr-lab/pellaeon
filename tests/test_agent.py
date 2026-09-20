@@ -857,7 +857,10 @@ def test_the_model_is_offered_the_tools_the_prompt_tells_it_to_use():
     assert "table_overlay" in {t.name for t in tool_specs(tables=True)}
     lean = {t.name for t in tool_specs(tables=True, compact=True)}
     assert "table_overlay" in lean and "save_figure" in lean   # kept: no other way to reach them
-    assert "tidy_labels" not in lean                           # dropped: the panel chip still reaches it
+    # the nudges order the model to call tidy_labels / explain_residue and a gotcha names map_numbering:
+    # a tool the prompt demands must be on the list even when compacting
+    assert {"tidy_labels", "explain_residue", "map_numbering"} <= lean
+    assert "apply_figure_style" not in lean
 
 
 def test_agent_offers_table_overlay_once_a_table_is_loaded():
@@ -1055,3 +1058,13 @@ def test_apply_figure_style_replays_only_the_styling(tmp_path):
     agent._apply_figure_style("pocket", model="#2")
     assert ex.ran[0] == "color #2 bychain" and "save" not in " ".join(ex.ran)
     assert "No figure bundle" in agent._apply_figure_style("nope")["error"]
+
+
+def test_narration_inside_a_tool_call_is_refused_not_run():
+    """qwen3:4b answered the commands-only prompt by putting its reasoning into the commands list;
+    the prose filter in recovery only covers text replies, so execute_commands needs its own."""
+    ex = FakeExecutor()
+    agent = Agent(ScriptedProvider([]), ex)
+    out = agent.execute_commands(["color #1 red", "Wait, no. Let me re-read the user's message. The user's actual request is different."])
+    assert ex.ran == ["color #1 red"] and out.get("prose") and "not a ChimeraX command" in out["error"]
+    assert agent.execute_commands(['label #1:5 text "the active site"'])["ok"]   # English inside quotes is fine

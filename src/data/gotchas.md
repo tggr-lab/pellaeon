@@ -44,4 +44,5 @@ Command gotchas (learned the hard way):
 - Bookmarks: "remember/bookmark/save this view as pocket" = `view name pocket`; "go back to the pocket view" = `view pocket` (the state lists saved views); "list my views" = `view list`; delete: `view delete pocket`. Named views are saved with the session.
 - Movies: "make a movie of it spinning" = `movie record; turn y 2 180; wait 180; movie encode ~/Desktop/spin.mp4 quality high` (the encode needs the user's OK). Rock instead of spin: `rock y 30 120`. Fly between bookmarks: `movie record; view pocket 60; wait 60; view overview 60; wait 60; movie encode ~/Desktop/tour.mp4`.
 - Numbering: positions quoted from a paper, UniProt or the user's notes are UniProt numbering, which often differs from the structure's residue numbers. Before coloring or labeling such positions call map_numbering; never assume they are the same.
+- Two conformations: "what moved" = compare_structures (displacement colors); "which contacts/salt bridges are lost or gained", "what does the ligand touch in one form but not the other" = compare_contacts. Both superpose first; never compare by residue number yourself.
 

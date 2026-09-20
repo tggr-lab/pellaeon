@@ -75,7 +75,7 @@ class UniProtClient:
         query = query.strip()
         if not query:
             return {"error": "empty query"}
-        key = "resolve_%s_%s" % (query.lower(), (organism or "").lower())
+        key = "resolve2_%s_%s" % (query.lower(), (organism or "").lower())
         hit = self._cached(key)
         if hit is not None:
             return hit
@@ -132,9 +132,9 @@ class UniProtClient:
                             "open_command": "open alphafold:%s" % best["accession"]})
                 # "the PAR receptor" matches F2R, F2RL1, F2RL2 and F2RL3 equally well, and picking the
                 # first one silently opens a different protein from the one the user meant. Say so.
-                q = query.strip().lower()
-                named = any(q == (c.get("gene") or "").lower() or q in [s.lower() for s in (c.get("synonyms") or [])]
-                            or q == (c.get("accession") or "").lower()
+                toks = {w for w in re.split(r"[^a-z0-9]+", query.strip().lower()) if w}
+                named = any((c.get("gene") or "").lower() in toks or (c.get("accession") or "").lower() in toks
+                            or any(s.lower() in toks for s in (c.get("synonyms") or []))
                             for c in out["candidates"])
                 rival = [c for c in out["candidates"]
                          if c.get("reviewed") and (c.get("gene") or "").upper() != (best.get("gene") or "").upper()]
