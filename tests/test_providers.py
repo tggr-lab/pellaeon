@@ -260,3 +260,14 @@ def test_a_daily_cap_is_explained_and_not_retried(monkeypatch):
     with pytest.raises(ProviderError) as err:
         prov.stream("sys", [], [])
     assert tries["n"] == 1 and "50 requests a day" in str(err.value)
+
+
+def test_gemini_explains_a_429_without_crashing():
+    """_explain is a staticmethod; a `self` reference inside it raised NameError on every Gemini 429."""
+    from core.providers.gemini import GeminiProvider
+    from core.http import HttpError
+    body = '{"error":{"code":429,"message":"You exceeded your current quota","details":[{"retryDelay":"12s","quotaId":"GenerateRequestsPerDayPerProjectPerModel"}]}}'
+    text = GeminiProvider._explain(HttpError(429, body, "u"))
+    assert "daily quota" in text and "midnight" in text
+    text = GeminiProvider._explain(HttpError(429, '{"error":{"code":429,"message":"Resource exhausted. retry in 5s"}}', "u"))
+    assert "rate limit" in text.lower()
