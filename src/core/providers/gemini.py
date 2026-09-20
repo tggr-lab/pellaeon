@@ -173,7 +173,7 @@ class GeminiProvider(Provider):
                 details = json.dumps((json.loads(e.body).get("error") or {}).get("details") or [])[:300]
             except Exception:  # noqa: BLE001
                 pass
-            if GeminiProvider.is_daily_limit(msg + " " + details):
+            if GeminiProvider.is_daily_limit(e.body):     # the quota id sits deep in error.details
                 return ("Gemini's free daily quota for this model is used up; it resets at midnight Pacific time. "
                         "Switch model or provider in Settings for today. %s" % msg)
             return "Gemini rate limit (429). The free tier allows a limited number of requests per minute. %s %s" % (msg, details)

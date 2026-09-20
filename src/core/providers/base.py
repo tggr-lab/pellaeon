@@ -80,7 +80,7 @@ class Provider:
     def is_daily_limit(message: str) -> bool:
         """A per-day cap (OpenRouter's 50 free requests) resets tomorrow: waiting 60s is pointless."""
         t = (message or "").lower()
-        return bool(re.search(r"per\s*-?\s*day|daily (?:limit|quota)|free-models-per-day|perday", t))
+        return bool(re.search(r"per\s*-?\s*day|daily (?:limit|quota)|free-models-per-day|perday|_requests_per_day|requestsperday", t))
 
     @staticmethod
     def is_rate_limited(message: str) -> bool:

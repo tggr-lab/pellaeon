@@ -271,3 +271,12 @@ def test_gemini_explains_a_429_without_crashing():
     assert "daily quota" in text and "midnight" in text
     text = GeminiProvider._explain(HttpError(429, '{"error":{"code":429,"message":"Resource exhausted. retry in 5s"}}', "u"))
     assert "rate limit" in text.lower()
+
+
+def test_gemini_daily_quota_is_recognised_from_the_full_error_body():
+    from core.providers.gemini import GeminiProvider
+    from core.http import HttpError
+    body = ('{"error":{"code":429,"message":"You exceeded your current quota","details":[' + '{"x":"%s"},' % ("y" * 400) +
+            '{"violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests",'
+            '"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]}]}}')
+    assert "daily quota" in GeminiProvider._explain(HttpError(429, body, "u"))
