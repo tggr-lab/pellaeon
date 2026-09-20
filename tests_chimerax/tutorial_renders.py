@@ -11,7 +11,10 @@ run(session, "ui tool hide Log; ui tool hide Models; ui tool show Pellaeon")
 run(session, "windowsize 1100 800", log=False)
 from chimerax.pellaeon.tool import _INSTANCES
 inst = _INSTANCES[id(session)]
-log = session.logger.info
+_LOGF = open(os.path.join(OUT, "run.log"), "a")
+def log(msg):
+    session.logger.info(msg)
+    _LOGF.write(msg + "\n"); _LOGF.flush()
 if not inst.settings.configured:
     inst.settings.preset = "ollama"; inst.settings.provider = "ollama"; inst.settings.model = "qwen3:8b"
     inst.settings.configured = True; inst.settings.save()
@@ -53,14 +56,21 @@ STEPS = [
                      ["distance style radius 0.15 color gold decimalPlaces 2", "label height 0.7", "view #1/A:87 #1/A:HEM", "zoom 0.8"]),
     ("12_figure",    None, [], False, "figure", []),     # the Save figure form + result card
     ("06_af",        "close everything, then open the AlphaFold model of the gene F2RL1", [], True, True, [LOOK, "view"]),
+    ("06b_map",      "where is UniProt residue 159 in this structure?", [], True, True, []),
+    ("06c_zoom",     "zoom in on residue 159 and bookmark this view as pocket", [], False, False, []),
+    ("06c",          "now show the whole thing, then go back to the pocket view", [], True, True, []),
     ("07_tm",        "color the transmembrane helices orange and the rest white", [], True, True, ["view"]),
     ("08_open_hbb",  None, ["close", "open alphafold:P68871", LOOK, "view"], False, False, []),   # HBB, deterministic setup for the ClinVar step
     ("08_clinvar",   "show the ClinVar disease variants of HBB on it", [], True, True, ["view"]),
     ("08b_tidy",     "the labels overlap, tidy them", [], True, True, ["view"]),
+    ("07b_open",     None, ["close"], False, False, []),   # clean scene before re-using the saved figure's style
+    ("07b_reuse",    "open 1omp and make it look like my hemoglobin figure", [], True, True, ["view"]),
     ("09_compare",   None, ["close", "open 1omp", "open 1anf", LOOK, "view"], False, False, []),
     ("09_compare_b", "compare these two models and tell me what changed", [], True, True,
                      ["view", "zoom 1.7", "key delete", "2dlabels delete", "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.36,0.05 size 0.12,0.03 fontSize 20",
                       '2dlabels text "C\u03b1 shift after fit (\u00c5)" xpos 0.36 ypos 0.095 size 20 color black']),   # key re-placed inside the 4:3 crop of the wide window
+    ("09b_open",     None, ["close", "open 1ake", "open 4ake", LOOK, "view"], False, False, []),   # adenylate kinase closed/open pair, textbook contact-comparison case
+    ("09b_contacts", "which contacts are lost when it opens, and which salt bridges break?", [], True, True, ["view"]),
     ("10_close",     "close everything", [], False, None, []),     # confirmation card
 ]
 

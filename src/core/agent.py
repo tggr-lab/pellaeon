@@ -112,6 +112,8 @@ _IMPOSSIBLE_RE = re.compile(r"\b(e-?mail|fax|whatsapp|text (it|this|them)|print 
                             r"share (it|this) (with|on))\b", re.I)
 _SAVE_WANTED_RE = re.compile(r"\b(save|export|write|download|png|jpe?g|tiff|figure file|to my (desktop|folder|computer))\b", re.I)
 
+_REMOTE_SCRIPT_RE = re.compile(r"\bhttps?://\S+\.(?:cxc|py|pyc|cxs)(?:\.(?:gz|bz2|xz|zip))?(?:\s|$|[?#])", re.I)
+
 _TIDY_RE = re.compile(r"\blabels?\b.*\b(overlap|unreadable|readable|too (small|many|big)|tidy|clean|declutter|mess)|\b(tidy|clean up|declutter)\b.*\blabels?\b", re.I)
 NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, readability, clutter). Do not re-run label commands "
               "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
@@ -752,6 +754,13 @@ class Agent:
             if blocked is not None:      # the inner break only left the accession loop
                 break
             w = first_word(c)
+            if origin == "model" and w == "open" and _REMOTE_SCRIPT_RE.search(c):
+                # "color by residue type" once became `open https://raw.githubusercontent.com/.../amino-coloring.cxc`:
+                # a script fetched from the internet, run on the user's say-so. The model knows the commands.
+                blocked = (idx, {"error": "Do not fetch and run a script from the internet (%s). Run the ChimeraX "
+                                 "commands yourself instead; if you do not know them, call search_docs or command_usage."
+                                 % c.split()[1][:80], "remote_script": True})
+                break
             if origin == "model" and _looks_like_prose(c):
                 # the model put its own reasoning into the commands list ("Wait, no. Let me re-read...")
                 blocked = (idx, {"error": "That is a sentence, not a ChimeraX command: %r. Put only commands in the "

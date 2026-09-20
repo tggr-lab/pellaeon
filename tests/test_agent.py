@@ -1104,3 +1104,13 @@ def test_fetch_annotation_loads_the_dataset_as_a_table_and_colors_by_it(monkeypa
     assert out["source"].startswith("AlphaMissense") and out["placed"] == 2
     monkeypatch.setattr(annot_sources, "conservation", lambda pdb, chain, cache, **k: {"error": "ConSurf-DB has no entry for XXXX."})
     assert "no entry" in agent._fetch_annotation("conservation", "XXXX", "#1", "A")["error"]
+
+
+def test_the_model_may_not_fetch_and_run_a_script_from_the_internet():
+    """Asked to color by residue type, one model reached for a recipe script on GitHub."""
+    ex = FakeExecutor()
+    agent = Agent(ScriptedProvider([]), ex, callbacks=Callbacks(on_confirm=lambda c, r: c))
+    out = agent.execute_commands(["open https://raw.githubusercontent.com/rbvi/chimerax-recipes/master/coloring/amino-coloring.cxc"])
+    assert ex.ran == [] and out.get("remote_script") and "search_docs" in out["error"]
+    assert agent.execute_commands(["open https://files.rcsb.org/download/1ubq.pdb"])["ok"]     # data files are fine
+    assert agent.execute_commands(["open 1ubq"])["ok"]
