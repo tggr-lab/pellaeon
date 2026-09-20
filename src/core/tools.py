@@ -23,6 +23,7 @@ class Executor(Protocol):
     def prepare_compare(self, reference: str, other: str, chain: Optional[str] = None) -> Dict[str, Any]: ...
     def compute_displacement(self, prep: Dict[str, Any]) -> Dict[str, Any]: ...
     def map_positions(self, model: str, accession: str, positions: List[int]) -> Dict[str, Any]: ...
+    def chain_uniprot(self, model: str) -> Dict[str, Any]: ...
     def look_at_view(self) -> Dict[str, Any]: ...
 
 
@@ -227,7 +228,32 @@ SAVE_FIGURE = ToolSpec(
      "required": []},
 )
 
-ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+MAP_NUMBERING = ToolSpec(
+    "map_numbering",
+    "Translate UniProt (sequence) positions into this structure's residue numbers, or say which are missing. "
+    "Use it for 'where is UniProt residue 159 in this structure', 'which residue is the S1 pocket Asp', or "
+    "before coloring positions taken from a paper, a database or the user's notes: structure numbering often "
+    "differs from UniProt numbering (missing initiator Met, expression tags, construct boundaries).",
+    {"type": "object", "properties": {
+        "model": {"type": "string", "description": "model spec, e.g. '#1'"},
+        "protein": {"type": "string", "description": "UniProt accession (P55085) or gene/protein name; the chain's own UniProt entry when omitted"},
+        "positions": {"type": "array", "items": {"type": "integer"}, "description": "UniProt positions to map"}},
+     "required": ["model", "positions"]},
+)
+
+APPLY_FIGURE_STYLE = ToolSpec(
+    "apply_figure_style",
+    "Re-use the look of a saved figure bundle on what is open now: replays that bundle's styling commands "
+    "(colors, cartoon/surface style, lighting, background, silhouettes) but not its open/close/save steps. "
+    "Use it for 'make this look like my pocket figure' or 'use the lab style'. The user names the figure "
+    "(folder name in the figures directory) or gives a path.",
+    {"type": "object", "properties": {
+        "figure": {"type": "string", "description": "figure name (folder under the figures directory) or a folder/.cxc path"},
+        "model": {"type": "string", "description": "apply to this model instead of the one the bundle names (optional)"}},
+     "required": ["figure"]},
+)
+
+ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, MAP_NUMBERING, APPLY_FIGURE_STYLE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 
@@ -245,7 +271,7 @@ def tool_specs(allow_python: bool = False, vision: bool = False,
     if tables:
         specs.append(TABLE_OVERLAY)
     if not compact:
-        specs.extend([TIDY_LABELS, EXPLAIN_RESIDUE])
+        specs.extend([TIDY_LABELS, EXPLAIN_RESIDUE, MAP_NUMBERING, APPLY_FIGURE_STYLE])
     if allow_python:
         specs.append(RUN_PYTHON)
     if vision:

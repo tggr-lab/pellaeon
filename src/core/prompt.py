@@ -173,6 +173,9 @@ def format_state(state: Dict[str, Any]) -> str:
         lines.append("Loaded table '%s': %d rows, columns %s (position column: %s). Use the table_overlay tool to color by a column.%s" % (
             t.get("name"), t.get("rows", 0), ", ".join(t.get("columns") or []), t.get("position_column"),
             (" Applied as residue attributes, select with two colons: " + ", ".join("%s>value" % a for a in t["attributes"])) if t.get("attributes") else ""))
+    if state.get("views"):
+        lines.append("Saved views (bookmarks): %s. Restore one with `view <name>`; save the current view with `view name <name>`."
+                     % ", ".join(state["views"]))
     if state.get("background"):
         lines.append("Background: %s" % state["background"])
     if state.get("last_error"):

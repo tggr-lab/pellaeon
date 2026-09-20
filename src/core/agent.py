@@ -13,7 +13,7 @@ import threading
 import time
 import traceback
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Tuple, Any, Callable, Dict, List, Optional
 
 from . import prompt as prompt_mod
 from .fixups import suggest
@@ -118,7 +118,7 @@ NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, reada
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
 _TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "explain_residue", "save_figure", "resolve_protein", "protein_features", "search_docs", "get_state",
-               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands"}
+               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands", "map_numbering", "apply_figure_style"}
 
 _COMPLAINT_RE = re.compile(
     r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
@@ -658,6 +658,19 @@ class Agent:
                 else:
                     payload = self.executor.run_python(approved[0] if approved else code)
                     result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error=not payload.get("ok", False))
+            elif name == "map_numbering":
+                positions = args.get("positions") or []
+                if not isinstance(positions, list):
+                    positions = [positions]
+                payload = self._map_numbering(str(self._scalar(args.get("model"), "#1") or "#1"),
+                                              str(self._scalar(args.get("protein"), "") or ""),
+                                              [int(p) for p in positions if str(p).strip().lstrip("-").isdigit()])
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+            elif name == "apply_figure_style":
+                payload = self._apply_figure_style(str(self._scalar(args.get("figure"), "") or ""),
+                                                   str(self._scalar(args.get("model"), "") or ""))
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"},
+                                                              ensure_ascii=False), is_error="error" in payload)
             elif name == "look_at_view":
                 if not (self.config.vision and getattr(self.provider, "supports_vision", False)):
                     raise RuntimeError("Screenshots are disabled in Settings.")
@@ -903,6 +916,132 @@ class Agent:
             if m:
                 v = m.group(1).strip()
         return v if v is not None else default
+
+    # ------------------------------------------------------------ numbering
+    def _accession_for(self, protein: str) -> Tuple[str, str]:
+        """(accession, error) for a UniProt accession or a gene/protein name."""
+        from .annotate import is_accession
+        p = (protein or "").strip()
+        if not p:
+            return "", ""
+        if is_accession(p):
+            return p.upper(), ""
+        r = self.executor.resolve_protein(p, "human")
+        if not r.get("accession"):
+            return "", "Could not find a UniProt entry for '%s'." % protein
+        return str(r["accession"]), ""
+
+    def _map_numbering(self, model: str, protein: str, positions: List[int]) -> Dict[str, Any]:
+        """UniProt positions -> this structure's residues, through the chain's own UniProt alignment.
+
+        Structure numbering routinely differs from the sequence database: a missing initiator Met,
+        a purification tag, a construct that starts at residue 20. Coloring "residue 159" from a paper
+        without this step colors the wrong residue in silence, which is the kind of mistake nobody
+        notices until a figure is in print.
+        """
+        if not positions:
+            return {"error": "map_numbering needs at least one UniProt position."}
+        if self._model_missing(model):
+            return {"error": "No model matches '%s'. Open the structure first." % model}
+        acc, err = self._accession_for(protein)
+        if err:
+            return {"error": err}
+        if not acc:
+            # no protein named: take the chain's own UniProt entry from the structure's metadata
+            info = self.executor.chain_uniprot(model) if hasattr(self.executor, "chain_uniprot") else {}
+            ids = info.get("accessions") or []
+            if len(ids) == 1:
+                acc = ids[0]
+            elif len(ids) > 1:
+                return {"error": "Model %s has chains from several UniProt entries (%s): say which protein." % (model, ", ".join(ids))}
+            else:
+                return {"error": "The structure file does not say which UniProt entry it is; give the accession or gene name."}
+        mapping = self.executor.map_positions(model, acc, sorted(set(positions)))
+        if mapping.get("error"):
+            return mapping
+        got = mapping.get("map") or {}
+        rows = []
+        for p in sorted(set(positions)):
+            m = got.get(p) or got.get(str(p))
+            if m:
+                rows.append({"uniprot": p, "chain": m.get("chain"), "residue": m.get("number"), "name": m.get("resname"),
+                             "spec": "%s/%s:%s" % (mapping.get("model", model), m.get("chain"), m.get("number"))})
+            else:
+                rows.append({"uniprot": p, "missing": True})
+        found = [r for r in rows if not r.get("missing")]
+        offsets = sorted({r["residue"] - r["uniprot"] for r in found if isinstance(r.get("residue"), int)})
+        out = {"model": mapping.get("model", model), "accession": mapping.get("accession", acc), "positions": rows,
+               "found": len(found), "missing": [r["uniprot"] for r in rows if r.get("missing")],
+               "note": mapping.get("note", "")}
+        if len(offsets) == 1:
+            out["offset"] = offsets[0]
+            out["summary"] = ("Structure numbering = UniProt %s %d for these positions." %
+                              ("+" if offsets[0] >= 0 else "-", abs(offsets[0])) if offsets[0] else
+                              "Structure numbering matches UniProt numbering for these positions.")
+        elif offsets:
+            out["summary"] = "The offset varies along the chain (%s): use the per-position specs, not a single shift." % (
+                ", ".join(str(o) for o in offsets[:6]))
+        return out
+
+    # ------------------------------------------------------------ figure style reuse
+    _STYLE_WORDS = ("color", "colour", "style", "cartoon", "surface", "show", "hide", "lighting", "graphics", "set",
+                    "material", "preset", "transparency", "size", "nucleotides", "rainbow", "label", "2dlabels", "key",
+                    "camera", "clip", "windowsize", "cofr", "view")
+
+    def _apply_figure_style(self, figure: str, model: str = "") -> Dict[str, Any]:
+        """Replay a figure bundle's styling on the open models.
+
+        A bundle's .cxc is the record of everything that produced the figure, including the opens,
+        the saves and the closes. Only the styling is wanted back: anything that would fetch, write or
+        remove something is left out, and what remains still goes through execute_commands, so the
+        usual confirmation applies to anything risky.
+        """
+        if not figure.strip():
+            return {"error": "Which figure? Give its name (the folder in the figures directory) or a path."}
+        base = self.figures_dir or os.path.join(os.path.expanduser("~"), "Pellaeon figures")
+        cand = [figure, os.path.join(base, figure), os.path.join(base, figure, figure + ".cxc")]
+        path = ""
+        for c in cand:
+            c = os.path.expanduser(c)
+            if os.path.isfile(c) and c.endswith(".cxc"):
+                path = c
+                break
+            if os.path.isdir(c):
+                scripts = [f for f in os.listdir(c) if f.endswith(".cxc")]
+                if scripts:
+                    path = os.path.join(c, sorted(scripts)[0])
+                    break
+        if not path:
+            try:
+                have = sorted(d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d)))
+            except OSError:
+                have = []
+            return {"error": "No figure bundle named '%s'.%s" % (figure, (" Saved figures: " + ", ".join(have[:12])) if have else "")}
+        cmds = []
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                w = first_word(line)
+                if w not in self._STYLE_WORDS or line.startswith("view name") or line.startswith("view initial"):
+                    continue
+                if w == "view" and len(line.split()) > 1 and not line.split()[1].startswith(("#", "sel", "matrix")):
+                    continue   # restoring a saved view of another structure makes no sense here
+                if model:
+                    line = re.sub(r"#\d+(?:\.\d+)*", model, line)
+                cmds.append(line)
+        if not cmds:
+            return {"error": "That bundle's script has no styling commands to reuse (%s)." % os.path.basename(path)}
+        run = self.execute_commands(cmds, origin="style")
+        n_ok = sum(1 for r in run.get("results") or [] if r.get("ok"))
+        out = {"figure": os.path.basename(os.path.dirname(path)) or path, "script": path, "commands": cmds,
+               "applied": n_ok, "of": len(cmds), "ok": run.get("ok", False),
+               "summary": "Applied %d of %d styling commands from %s." % (n_ok, len(cmds), os.path.basename(path))}
+        if run.get("error"):
+            out["error"] = run["error"]
+        return out
+
 
     def _figure_bundle(self, folder: str, name: str, width: int, height: int, supersample: int, transparent: bool,
                        closeup: str, include_session: bool, preapproved: bool) -> Dict[str, Any]:

@@ -41,3 +41,7 @@ Command gotchas (learned the hard way):
 - "Reset the view" means `view` (no arguments). Use `view initial` only if the user says "initial".
 - "Make it white / red" with a model open means color the model (`color #1 white`); change the background only when the user says background.
 - Repeating a command that just failed is never useful; change it or change approach.
+- Bookmarks: "remember/bookmark/save this view as pocket" = `view name pocket`; "go back to the pocket view" = `view pocket` (the state lists saved views); "list my views" = `view list`; delete: `view delete pocket`. Named views are saved with the session.
+- Movies: "make a movie of it spinning" = `movie record; turn y 2 180; wait 180; movie encode ~/Desktop/spin.mp4 quality high` (the encode needs the user's OK). Rock instead of spin: `rock y 30 120`. Fly between bookmarks: `movie record; view pocket 60; wait 60; view overview 60; wait 60; movie encode ~/Desktop/tour.mp4`.
+- Numbering: positions quoted from a paper, UniProt or the user's notes are UniProt numbering, which often differs from the structure's residue numbers. Before coloring or labeling such positions call map_numbering; never assume they are the same.
+

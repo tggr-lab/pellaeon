@@ -294,6 +294,10 @@ class ChimeraXExecutor:
         from .analysis import map_positions
         return _run_on_main_thread(self.session, lambda: map_positions(self.session, model, accession, positions))
 
+    def chain_uniprot(self, model: str) -> Dict[str, Any]:
+        from .analysis import chain_uniprot
+        return _run_on_main_thread(self.session, lambda: chain_uniprot(self.session, model))
+
     def run_python(self, code: str) -> Dict[str, Any]:
         def f():
             import contextlib
@@ -379,6 +383,15 @@ class ChimeraXExecutor:
         try:
             rgba = session.main_view.background_color
             state["background"] = "rgb(%d,%d,%d)" % tuple(int(255 * c) for c in rgba[:3])
+        except Exception:
+            pass
+        try:
+            # named views ("view name pocket" / "view pocket"): the model can only go back to a
+            # bookmark it knows exists
+            from chimerax.std_commands.view import _named_views
+            names = sorted(_named_views(session).keys())
+            if names:
+                state["views"] = names[:20]
         except Exception:
             pass
         if self.last_error:

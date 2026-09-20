@@ -179,6 +179,28 @@ def map_positions(session, model: str, accession: str, positions: List[int]) -> 
             "offsets": {t[0]: t[1] for t in targets}, "unmapped": [p for p in positions if p not in out_map], "note": note}
 
 
+def chain_uniprot(session, model: str) -> Dict[str, Any]:
+    """Read-only: the UniProt accessions the structure file associates with `model`'s chains."""
+    m = _find_structure(session, model)
+    if m is None:
+        return {"error": "No atomic model %s is open." % model, "accessions": []}
+    accs: List[str] = []
+    try:
+        from chimerax.atomic import uniprot_ids
+        for e in uniprot_ids(m):
+            uid = (getattr(e, "uniprot_id", "") or "").upper()
+            if uid and uid not in accs:
+                accs.append(uid)
+    except Exception:  # noqa: BLE001
+        pass
+    if not accs and "alphafold" in (m.name or "").lower():
+        import re as _re
+        hit = _re.search(r"[A-NR-Z][0-9][A-Z0-9]{3}[0-9]|[OPQ][0-9][A-Z0-9]{3}[0-9]", m.name.upper())
+        if hit:
+            accs.append(hit.group(0))
+    return {"model": "#" + m.id_string, "accessions": accs}
+
+
 def label_layout(session) -> Dict[str, Any]:
     """Read-only: every 3D label with its screen box (pixels, lower-left origin) and the scene size of one pixel at its depth."""
     import math

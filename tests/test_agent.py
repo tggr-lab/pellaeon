@@ -1009,3 +1009,49 @@ def test_resolve_protein_flags_a_family_name_as_ambiguous(monkeypatch):
     assert out["accession"] == "Q96RI0"                       # still resolves, but says it is unsure
     assert "ambiguous" not in u.resolve("PAR2")               # a synonym names one exactly
     assert "ambiguous" not in u.resolve("F2RL3")
+
+
+def test_map_numbering_reports_the_offset_and_the_missing_positions():
+    ex = FakeExecutor()
+    ex.spec_atoms = lambda text: {"used": text, "atoms": 10}
+    ex.map_positions = lambda model, acc, positions: {
+        "model": "#1", "accession": acc,
+        "map": {p: {"chain": "A", "number": p - 1, "resname": "ALA"} for p in positions if p != 200},
+        "unmapped": [p for p in positions if p == 200], "note": ""}
+    agent = Agent(ScriptedProvider([]), ex)
+    out = agent._map_numbering("#1", "P55085", [159, 160, 200])
+    assert out["offset"] == -1 and "UniProt - 1" in out["summary"]
+    assert out["missing"] == [200] and out["found"] == 2
+    assert out["positions"][0]["spec"] == "#1/A:158"
+
+
+def test_map_numbering_uses_the_chains_own_entry_when_no_protein_is_named():
+    ex = FakeExecutor()
+    ex.spec_atoms = lambda text: {"used": text, "atoms": 10}
+    ex.chain_uniprot = lambda model: {"accessions": ["P0CG48"]}
+    seen = {}
+    ex.map_positions = lambda model, acc, positions: seen.update(acc=acc) or {
+        "model": "#1", "map": {p: {"chain": "A", "number": p, "resname": "MET"} for p in positions}, "unmapped": []}
+    agent = Agent(ScriptedProvider([]), ex)
+    out = agent._map_numbering("#1", "", [1])
+    assert seen["acc"] == "P0CG48" and out["offset"] == 0
+
+
+def test_apply_figure_style_replays_only_the_styling(tmp_path):
+    folder = tmp_path / "pocket"
+    folder.mkdir()
+    (folder / "pocket.cxc").write_text("\n".join([
+        "# Figure bundle 'pocket'", "open 4hhb", "color #1 bychain", "show #1:HEM atoms", "style #1:HEM sphere",
+        "lighting soft", "set bgColor white", "view name pocket", "view #1:HEM",
+        'save "/tmp/x/pocket.png" width 2400', "close #1"]))
+    ex = FakeExecutor()
+    agent = Agent(ScriptedProvider([]), ex, callbacks=Callbacks(on_confirm=lambda c, r: c))
+    agent.figures_dir = str(tmp_path)
+    out = agent._apply_figure_style("pocket")
+    assert "error" not in out
+    assert ex.ran == ["color #1 bychain", "show #1:HEM atoms", "style #1:HEM sphere", "lighting soft", "set bgColor white", "view #1:HEM"]
+    # aimed at another model: the specs are rewritten
+    ex.ran.clear()
+    agent._apply_figure_style("pocket", model="#2")
+    assert ex.ran[0] == "color #2 bychain" and "save" not in " ".join(ex.ran)
+    assert "No figure bundle" in agent._apply_figure_style("nope")["error"]
