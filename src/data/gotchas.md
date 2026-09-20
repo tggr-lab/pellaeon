@@ -1,4 +1,5 @@
 Command gotchas (learned the hard way):
+- One command per list entry: never join commands with `;` in a single string.
 - Boolean options are bare words: `select #1:159 add` (WRONG: add=true). `hbonds #1 reveal true` is the exception style for true/false options; when an option takes true/false, write the word.
 - Multiple residues: `#1:159,300,326` (commas, no spaces). Ranges: `#1:100-150`. Always include the model number when several models are open.
 - Coloring residues you cannot see changes nothing visible. To highlight residues: `show #1:159 atoms; style #1:159 stick; color #1:159 blue` (and optionally `color #1:159 blue target c` for the cartoon).
@@ -23,7 +24,8 @@ Command gotchas (learned the hard way):
 - `rainbow chain` gives ONE color per chain (like bychain). To rainbow along each chain from blue (N) to red (C) use `rainbow #1` (residue level is the default).
 - Helices as tubes/cylinders: `cartoon style #1 helix tube` (not thicker ribbons). Back to ribbons: `cartoon style #1 helix default`.
 - Atom contacts within X Å between two sets, distance only: `contacts #1/A restrict #1/C distanceOnly 4 reveal true` (add `log true` to list them). `interfaces` is for buried area, not contacts.
-- Impossible requests (email, print, phone, send to someone): say plainly that ChimeraX cannot do it and run NOTHING; do not save files as a half step.
+- Impossible requests (email, print, phone, text, upload, send to someone): say plainly that ChimeraX cannot do it and run NOTHING. Saving a file first is NOT a step towards it: run no commands at all.
+- Questions about what is open, selected or loaded are already answered by the state block above: answer them in words, without running `info` or any other command.
 - After you add a label, "make it bigger/smaller" refers to the LABEL: `label #1/A:5 height 1.5` (or `size 28` when height is fixed), not sticks or the view.
 - Named groups are residue NAMES, never numbers: heme = `:HEM`, ATP = `:ATP`, NAG = `:NAG`, water = `:HOH`, all ligands = `ligand`, metal ions = `ions`. E.g. "show the hemes as red spheres": `show :HEM atoms; style :HEM sphere; color :HEM red`. Do not guess residue numbers for them.
 - Chains: `color #1/A blue; color #1/B red` or `color #1 bychain`; `rainbow #1` colors along the chain.

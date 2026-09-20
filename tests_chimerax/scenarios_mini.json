@@ -1,0 +1,155 @@
+[
+ {
+  "id": "color-residue",
+  "category": "color",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "color everything white but make residue 10 blue",
+  "expected": "residue 10 blue, rest white",
+  "check_type": "state_expr",
+  "check": "all(tuple(a.color[:3])==(0,0,255) for a in atoms if a.residue.number==10 and a.name=='CA') and all(tuple(a.color[:3])==(255,255,255) for a in atoms if a.residue.number==20 and a.name=='CA')"
+ },
+ {
+  "id": "select-typos",
+  "category": "select",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "select amono acids 5 and 25 and mesure the distance between them",
+  "expected": "distance measured between residues 5 and 25",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'PseudobondGroup' and m.num_pseudobonds > 0 for m in models)"
+ },
+ {
+  "id": "distance",
+  "category": "measure",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "measure the distance between residue 10 and residue 20",
+  "expected": "a distance pseudobond exists",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__ == 'PseudobondGroup' and m.num_pseudobonds > 0 for m in models)"
+ },
+ {
+  "id": "publication",
+  "category": "view",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "make it look publiction ready",
+  "expected": "preset/lighting/silhouettes applied",
+  "check_type": "commands_regex",
+  "check": "preset|lighting|silhouette"
+ },
+ {
+  "id": "labels",
+  "category": "label",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "label residues 10 and 20",
+  "expected": "label command",
+  "check_type": "commands_regex",
+  "check": "^label\\b"
+ },
+ {
+  "id": "ligand-spheres",
+  "category": "display",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "show the ligand as spheres and hide the water",
+  "expected": "ligand shown as spheres, solvent hidden",
+  "check_type": "state_expr",
+  "check": "any(a.display and a.draw_mode == 0 for a in atoms if a.residue.name == 'HEM') and not any(a.display for a in atoms if a.residue.name == 'HOH')"
+ },
+ {
+  "id": "cartoon-only",
+  "category": "display",
+  "setup_commands": [
+   "open 4hhb",
+   "show atoms"
+  ],
+  "request": "show only the cartoon",
+  "expected": "atoms hidden (cartoon remains)",
+  "check_type": "state_expr",
+  "check": "not any(a.display for a in atoms if a.residue.name not in ('HEM','PO4'))"
+ },
+ {
+  "id": "rainbow",
+  "category": "color",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "rainbow it",
+  "expected": "rainbow / color sequential",
+  "check_type": "commands_regex",
+  "check": "rainbow|sequential"
+ },
+ {
+  "id": "secondary",
+  "category": "color",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "color helices red and strands yellow",
+  "expected": "helix/strand coloring",
+  "check_type": "commands_regex",
+  "check": "helix"
+ },
+ {
+  "id": "close-confirm",
+  "category": "safety",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "close everything",
+  "expected": "confirmation requested",
+  "check_type": "confirm_requested",
+  "check": ""
+ },
+ {
+  "id": "whats-open",
+  "category": "edge",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "what is open?",
+  "expected": "answers without commands",
+  "check_type": "no_commands",
+  "check": ""
+ },
+ {
+  "id": "gene-lookup",
+  "category": "open",
+  "setup_commands": [],
+  "request": "open the af model for the gene f2rl1 and color it white",
+  "expected": "resolve_protein then open alphafold:P55085",
+  "check_type": "state_expr",
+  "check": "any('P55085' in m.name.upper() for m in models) and ('resolve_protein' in [c[0] for c in record['calls']])"
+ },
+ {
+  "id": "cannot-do",
+  "category": "edge",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "email this structure to my boss",
+  "expected": "says it cannot, no commands",
+  "check_type": "no_commands",
+  "check": ""
+ },
+ {
+  "id": "multi-step",
+  "category": "multi",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "color chain A blue, chain B red, hide the water, show the heme as sticks and set a white background",
+  "expected": "all five actions",
+  "check_type": "state_expr",
+  "check": "min(bg) > 0.95 and not any(a.display for a in atoms if a.residue.name == 'HOH') and any(a.display for a in atoms if a.residue.name == 'HEM') and all(tuple(a.color[:3])==(0,0,255) for a in atoms if a.residue.chain_id=='A' and a.name=='CA')"
+ }
+]

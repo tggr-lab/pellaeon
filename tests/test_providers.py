@@ -191,3 +191,51 @@ def test_ollama_capabilities_drive_vision_support():
     assert p.supports_vision is False and "thinking" not in p.capabilities()
     p._caps = ["completion", "vision", "tools", "thinking"]
     assert p.supports_vision is True
+
+
+def test_retry_delay_parsing_covers_the_wordings_free_tiers_use():
+    from core.providers.base import Provider
+    assert Provider.parse_retry_delay("Rate limit reached ... Please try again in 8.51s") == 8.51
+    assert Provider.parse_retry_delay("Please try again in 1m2.3s.") == 62.3      # Groq writes minutes+seconds
+    assert Provider.parse_retry_delay("Please try again in 30 seconds") == 30.0
+    assert Provider.parse_retry_delay("retry-after: 20") == 20.0
+    assert Provider.parse_retry_delay("nothing to see") == 0.0
+    assert Provider.is_rate_limited("HTTP 429: too many") and not Provider.is_rate_limited("HTTP 400: bad")
+
+
+def test_openai_provider_waits_out_a_rate_limit_and_succeeds(monkeypatch):
+    from core.providers import openai_compat
+    from core.providers.base import ProviderError
+    from core.http import HttpError
+    slept = []
+    lines = ['data: {"choices":[{"delta":{"content":"hi"}}]}', "", "data: [DONE]", ""]
+    attempts = {"n": 0}
+
+    def fake(method, url, headers=None, body=None, timeout=60, cancel=None):
+        attempts["n"] += 1
+        if attempts["n"] == 1:
+            raise HttpError(429, '{"error":{"message":"Rate limit reached ... Please try again in 3s"}}', url)
+        return iter(lines)
+
+    monkeypatch.setattr(openai_compat, "stream_lines", fake)
+    monkeypatch.setattr("time.sleep", lambda s: slept.append(s))
+    prov = openai_compat.OpenAICompatProvider(model="m", api_key="k")
+    msg, _usage = prov.stream("sys", [], [])
+    assert msg.text() == "hi" and attempts["n"] == 2
+    assert 3.0 <= slept[0] <= 5.0
+
+
+def test_openai_provider_gives_up_after_repeated_rate_limits(monkeypatch):
+    from core.providers import openai_compat
+    from core.providers.base import ProviderError
+    from core.http import HttpError
+
+    def fake(method, url, headers=None, body=None, timeout=60, cancel=None):
+        raise HttpError(429, "Rate limit reached ... Please try again in 2s", url)
+
+    monkeypatch.setattr(openai_compat, "stream_lines", fake)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    prov = openai_compat.OpenAICompatProvider(model="m", api_key="k")
+    with pytest.raises(ProviderError) as err:
+        prov.stream("sys", [], [])
+    assert "429" in str(err.value)

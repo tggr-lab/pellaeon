@@ -49,7 +49,9 @@ def _unload_other_models(keep: str):
     except Exception:  # noqa: BLE001
         pass
 
-_unload_other_models(model)
+CLOUD = ":" in model and model.split(":", 1)[0] in ("gemini", "anthropic", "openai", "openrouter", "groq")
+if not CLOUD:   # a cloud run must not evict the local model a parallel run is using
+    _unload_other_models(model)
 ex = ChimeraXExecutor(session)  # noqa: F821
 ex.ensure_index()
 gotchas = open(data_path("gotchas.md")).read()
@@ -58,7 +60,7 @@ directory = ex.knowledge.command_directory()
 
 
 def make_agent(record):
-    if ":" in model and model.split(":", 1)[0] in ("gemini", "anthropic", "openai", "openrouter", "groq"):
+    if CLOUD:
         # a cloud preset with the key stored by the panel: e.g. gemini:gemini-2.5-flash
         from chimerax.pellaeon.core.providers.presets import make_provider, preset_by_id
         from chimerax.pellaeon.core.secrets import SecretStore

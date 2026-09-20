@@ -19,6 +19,7 @@ from . import prompt as prompt_mod
 from .fixups import suggest
 from .safety import AUTONOMY_AUTO, first_word, needs_confirmation, split_commands
 from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens, new_id)
+from .recovery import split_joined
 from .tools import tool_specs
 from .http import Cancelled
 from .providers.base import Provider, ProviderError
@@ -33,6 +34,9 @@ class TurnCancelled(Exception):
     pass
 
 
+_UNSET = object()      # "use the default callback" (None is a meaningful value: stream silently)
+
+
 @dataclass
 class AgentConfig:
     autonomy: str = AUTONOMY_AUTO
@@ -45,6 +49,7 @@ class AgentConfig:
     nudge_on_no_action: bool = True   # re-prompt when an action request got words but no tool call
     edition: str = "chimerax"          # "chimerax" or "chimera" (classic)
     readable_labels: bool = True       # add fixed size / white background / on-top to plain label commands
+    compact_prompt: bool = False       # short prompt for providers that meter input tokens per minute
 
 
 NUDGE = ("(system) You did not call any tool, so NOTHING changed in ChimeraX. If the user asked you to change "
@@ -100,6 +105,13 @@ COMMANDS_ONLY = ("(system) You did not call the tool. Reply with ONLY the Chimer
 _LOOK_RE = re.compile(r"\b(look at|take a look|have a look|check|review|inspect|how does it look|does it look|what do you see|see the view|the screen|screenshot)\b", re.I)
 NUDGE_LOOK = ("(system) The user wants you to LOOK at the view. Call the tool look_at_view first (it returns a screenshot), "
               "describe what you see, then fix problems with commands and look again.")
+# "email this to my boss", "print it out": ChimeraX cannot, and every model tested so far
+# tries to save a file as a first step anyway. Saving is still fine if the user also asked for it.
+_IMPOSSIBLE_RE = re.compile(r"\b(e-?mail|fax|whatsapp|text (it|this|them)|print (it|this|them)( out)?|printer|"
+                            r"send (it|this|them|the \w+)\s+(to|over)|upload (it|this)|post (it|this) (to|on)|"
+                            r"share (it|this) (with|on))\b", re.I)
+_SAVE_WANTED_RE = re.compile(r"\b(save|export|write|download|png|jpe?g|tiff|figure file|to my (desktop|folder|computer))\b", re.I)
+
 _TIDY_RE = re.compile(r"\blabels?\b.*\b(overlap|unreadable|readable|too (small|many|big)|tidy|clean|declutter|mess)|\b(tidy|clean up|declutter)\b.*\blabels?\b", re.I)
 NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, readability, clutter). Do not re-run label commands "
               "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
@@ -187,6 +199,7 @@ class Agent:
         self._verified_accessions: set = set()     # accessions returned by resolve_protein in this conversation
         self._user_text_upper: str = ""
         self._failed_this_turn: set = set()
+        self._impossible_ask: bool = False
         self.archived: List[Message] = []   # messages folded into `summary` (kept for the transcript on disk)
         self.summary: str = ""
         self.total_usage = Usage()
@@ -196,11 +209,48 @@ class Agent:
         self.recovered_calls: int = 0                   # tool calls that arrived as text and were run anyway
         self.commands_only_turns: int = 0               # turns rescued by the commands-only fallback
         self.figures_dir: str = ""                      # where model-initiated figure bundles go (set by the host)
-        self._system = system_prompt or prompt_mod.build_system_prompt(
-            directory=directory, gotchas=gotchas, recipes=recipes,
+        self._fixed_system = system_prompt          # set by the caller: never rebuilt
+        self._prompt_parts = {"directory": directory, "gotchas": gotchas, "recipes": recipes}
+        self.compact = bool(self.config.compact_prompt)
+        self._system = system_prompt or self._build_system()
+
+    def _build_system(self) -> str:
+        return prompt_mod.build_system_prompt(
+            directory=self._prompt_parts["directory"], gotchas=self._prompt_parts["gotchas"],
+            recipes=self._prompt_parts["recipes"],
             allow_python=self.config.allow_python,
-            vision=self.config.vision and getattr(provider, "supports_vision", False),
-            edition=self.config.edition)
+            vision=self.config.vision and getattr(self.provider, "supports_vision", False),
+            edition=self.config.edition, compact=self.compact)
+
+    def go_compact(self) -> bool:
+        """Switch to the short prompt and shrink what was already built. False if already compact."""
+        if self.compact:
+            return False
+        self.compact = True
+        if not self._fixed_system:
+            self._system = self._build_system()
+        for m in self.conversation:
+            ctx = m.meta.get("context") if m.meta else None
+            if ctx:
+                m.meta["context"] = prompt_mod.trim_context(ctx)
+        return True
+
+    @staticmethod
+    def _request_too_large(error_text: str) -> bool:
+        t = (error_text or "").lower()
+        return ("413" in t or "too large" in t or "too long" in t
+                or "reduce your message size" in t or "context length" in t or "maximum context" in t)
+
+    def _stream(self, tools, cancel, on_delta=_UNSET):
+        """Every model call goes through here, so one 'request too large' can retry compactly."""
+        delta = self.cb.on_text_delta if on_delta is _UNSET else on_delta
+        try:
+            return self.provider.stream(self.system_prompt, self.conversation, tools, on_delta=delta, cancel=cancel)
+        except ProviderError as e:
+            if self._request_too_large(str(e)) and self.go_compact():
+                self._status("The prompt was too large for this model; retrying with a shorter one…")
+                return self.provider.stream(self.system_prompt, self.conversation, tools, on_delta=delta, cancel=cancel)
+            raise
 
     # ------------------------------------------------------------ public
     @property
@@ -223,6 +273,7 @@ class Agent:
         try:
             self._status("Thinking…")
             self._failed_this_turn = set()
+            self._impossible_ask = bool(_IMPOSSIBLE_RE.search(user_text)) and not _SAVE_WANTED_RE.search(user_text)
             self._user_text_upper += " " + user_text.upper()
             context = self._build_context(user_text)
             self.conversation.append(Message.user(user_text, context))
@@ -258,7 +309,8 @@ class Agent:
                     self._save_hook() if hasattr(self, "_save_hook") else None
                     return TurnResult(text, len(self.conversation) - start_len, Usage(0, 0))
             tools = tool_specs(self.config.allow_python,
-                               self.config.vision and getattr(self.provider, "supports_vision", False))
+                               self.config.vision and getattr(self.provider, "supports_vision", False),
+                               tables=bool(self.tables), compact=self.compact)
             outcome = self._loop(tools, cancel, usage)
             if outcome.get("asked"):
                 self.total_usage.add(usage)
@@ -335,8 +387,7 @@ class Agent:
         for _round in range(self.config.max_tool_rounds + 1):
             if cancel.is_set():
                 raise TurnCancelled()
-            reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
-                                            on_delta=self.cb.on_text_delta, cancel=cancel)
+            reply, u = self._stream(tools, cancel)
             usage.add(u)
             if not reply.text().strip() and not reply.tool_calls():
                 # empty answer (small local models do this occasionally): ask once more,
@@ -354,8 +405,7 @@ class Agent:
                     restore = opts.get("think", None)
                     opts["think"] = True
                 try:
-                    reply, u = self.provider.stream(self.system_prompt, self.conversation, tools,
-                                                    on_delta=self.cb.on_text_delta, cancel=cancel)
+                    reply, u = self._stream(tools, cancel)
                 finally:
                     if isinstance(opts, dict) and getattr(self.provider, "name", "") == "ollama":
                         if restore is None:
@@ -415,8 +465,7 @@ class Agent:
                 if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
                     self.conversation.append(Message.user(
                         "(system) Several attempts failed. Stop trying; explain briefly what failed and ask the user how to proceed."))
-                    reply, u = self.provider.stream(self.system_prompt, self.conversation, [],
-                                                    on_delta=self.cb.on_text_delta, cancel=cancel)
+                    reply, u = self._stream([], cancel)
                     usage.add(u)
                     self.conversation.append(reply)
                     if not reply.text().strip():
@@ -627,7 +676,7 @@ class Agent:
 
     def execute_commands(self, commands: List[str], origin: str = "model", preapproved: bool = False) -> Dict[str, Any]:
         """The single path for running commands: policy, repeat guard, execution, journal."""
-        commands = [c.strip() for c in commands if c and c.strip()]
+        commands = split_joined([c.strip() for c in commands if c and c.strip()])
         if not commands:
             return {"ok": False, "results": [], "error": "No commands given."}
         for c in commands:
@@ -648,6 +697,12 @@ class Agent:
                             "wrong protein. Call resolve_protein with the gene/protein name first and use the open_command it returns."
                             % (acc, (" (UniProt says it is %s, which the user did not mention)" % gene) if gene else ""), "unverified_accession": acc}
             w = first_word(c)
+            if self._impossible_ask and w in ("save", "export") and origin == "model":
+                return {"ok": False, "results": [], "error":
+                        "The user asked for something ChimeraX cannot do (emailing, printing, messaging or uploading). "
+                        "Saving a file is NOT a step towards it. Run no commands: say in one sentence that ChimeraX cannot "
+                        "do it, and if it helps, that they can save an image themselves and send it from their own email or "
+                        "file manager.", "impossible": True}
             if w in _TOOL_NAMES:
                 return {"ok": False, "results": [], "error": "'%s' is one of YOUR TOOLS, not a ChimeraX command. Call the tool "
                         "named %s with its arguments instead of running it as text." % (w, w), "tool_misuse": w}
@@ -938,7 +993,7 @@ class Agent:
         """Last resort for models that cannot produce a structured tool call: ask for bare command lines and run them."""
         from .recovery import parse_command_lines
         self.conversation.append(Message.user(COMMANDS_ONLY, context))
-        reply, u = self.provider.stream(self.system_prompt, self.conversation, [], on_delta=None, cancel=cancel)
+        reply, u = self._stream([], cancel, on_delta=None)
         usage.add(u)
         cmds = parse_command_lines(reply.text(), self._known_commands())
         if not cmds:

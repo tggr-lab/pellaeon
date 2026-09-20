@@ -229,9 +229,21 @@ ALL_TOOLS = [RUN_COMMANDS, COMPARE, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAI
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 
-def tool_specs(allow_python: bool = False, vision: bool = False) -> List[ToolSpec]:
+def tool_specs(allow_python: bool = False, vision: bool = False,
+               tables: bool = False, compact: bool = False) -> List[ToolSpec]:
+    """The tools offered to the model this turn.
+
+    Every tool costs input tokens on each request, so the ones that only apply in a
+    particular situation are offered only in that situation: table_overlay once the user
+    has loaded a table, and tidy_labels / explain_residue whenever there is room (the
+    panel's chips reach both of those directly if the model is not told about them).
+    """
     specs = [RUN_COMMANDS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
-             PROTEIN_FEATURES, COMPARE, ANNOTATE, ASK_USER]
+             PROTEIN_FEATURES, COMPARE, ANNOTATE, ASK_USER, SAVE_FIGURE]
+    if tables:
+        specs.append(TABLE_OVERLAY)
+    if not compact:
+        specs.extend([TIDY_LABELS, EXPLAIN_RESIDUE])
     if allow_python:
         specs.append(RUN_PYTHON)
     if vision:

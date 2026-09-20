@@ -788,3 +788,106 @@ def test_asking_which_model_with_one_open_gets_a_pointed_nudge():
     agent = Agent(prov, ex)
     assert agent.run_turn("color it red").reply == "Colored #1 red."
     assert any("Exactly ONE model is open" in str(r) for r in prov.requests)
+
+
+def test_compact_prompt_drops_recipes_and_shortens_the_directory():
+    from core import prompt as P
+    directory = [("cmd%02d" % i, "purpose number %d, described at some length" % i) for i in range(200)]
+    recipes = [{"request": "color it blue", "commands": ["color blue"]}] * 30
+    full = P.build_system_prompt(directory=directory, gotchas="- rule one\n- rule two", recipes=recipes)
+    small = P.build_system_prompt(directory=directory, gotchas="- rule one\n- rule two", recipes=recipes, compact=True)
+    assert len(small) < 0.6 * len(full)
+    assert "color it blue" in full and "color it blue" not in small     # recipes dropped
+    assert "rule one" in small and "rule two" in small                  # gotchas kept: they are what small models need
+    assert "cmd00" in small                                             # the directory is shortened, not removed
+
+
+def test_trim_context_shrinks_only_the_docs_block():
+    from core import prompt as P
+    ctx = P.build_context({"models": []}, [{"title": "color", "section": "usage", "text": "x" * 4000}])
+    small = P.trim_context(ctx, 500)
+    assert "<chimerax_state>" in small and len(small) < len(ctx)
+
+
+def test_agent_retries_compactly_when_the_request_is_too_large():
+    from core.providers.base import ProviderError
+    ex = FakeExecutor()
+    prov = ScriptedProvider([])
+    sizes = []
+
+    def stream(system, messages, tools, on_delta=None, cancel=None):
+        sizes.append(len(system))
+        if len(sizes) == 1:
+            raise ProviderError("HTTP 413: Request too large ... on input tokens per minute (ITPM): Limit 7000")
+        return Message("assistant", [TextPart("ok")]), Usage()
+
+    prov.stream = stream
+    agent = Agent(prov, ex, directory=[("color", "color things")] * 300,
+                  gotchas="- a rule", recipes=[{"request": "r", "commands": ["c"]}])
+    result = agent.run_turn("color it blue")
+    assert result.reply == "ok"
+    assert len(sizes) >= 2 and sizes[1] < sizes[0]     # retried with a shorter prompt
+    assert all(z == sizes[1] for z in sizes[1:])       # and stayed compact for the rest of the turn
+    assert agent.compact
+
+
+def test_agent_does_not_loop_when_compact_is_still_too_large():
+    from core.providers.base import ProviderError
+    prov = ScriptedProvider([])
+    calls = {"n": 0}
+
+    def stream(system, messages, tools, on_delta=None, cancel=None):
+        calls["n"] += 1
+        raise ProviderError("HTTP 413: Request too large")
+
+    prov.stream = stream
+    agent = Agent(prov, FakeExecutor(), directory=[("color", "color things")], gotchas="- a rule")
+    result = agent.run_turn("color it blue")
+    assert calls["n"] == 2 and result.error
+
+
+def test_the_model_is_offered_the_tools_the_prompt_tells_it_to_use():
+    from core.tools import tool_specs
+    names = {t.name for t in tool_specs()}
+    # the gotchas tell the model to use these by name, so they have to be on the list
+    assert "save_figure" in names and "tidy_labels" in names and "explain_residue" in names
+    assert "table_overlay" not in names                       # nothing loaded yet
+    assert "table_overlay" in {t.name for t in tool_specs(tables=True)}
+    lean = {t.name for t in tool_specs(tables=True, compact=True)}
+    assert "table_overlay" in lean and "save_figure" in lean   # kept: no other way to reach them
+    assert "tidy_labels" not in lean                           # dropped: the panel chip still reaches it
+
+
+def test_agent_offers_table_overlay_once_a_table_is_loaded():
+    ex = FakeExecutor()
+    prov = ScriptedProvider(["done"])
+    agent = Agent(prov, ex)
+    agent.run_turn("hello")
+    assert "table_overlay" not in {t.name for t in prov.requests[0][2]}
+    agent.tables["hydropathy"] = {"columns": ["kd"]}
+    prov.script = ["done"]
+    agent.run_turn("color by the table")
+    offered = {t.name for _sys, _msgs, tools in prov.requests[1:] for t in tools}
+    assert "table_overlay" in offered
+
+
+def test_saving_is_refused_when_the_user_asked_for_something_chimerax_cannot_do():
+    ex = FakeExecutor()
+    prov = ScriptedProvider([{"text": "", "calls": [("run_commands", {"commands": ["save ~/Desktop/x.png"]})]},
+                             "ChimeraX cannot email a structure."])
+    agent = Agent(prov, ex, config=AgentConfig(autonomy=AUTONOMY_AUTO),
+                  callbacks=Callbacks(on_confirm=lambda c, r: c))
+    agent.run_turn("email this structure to my boss")
+    assert not any(j["command"].startswith("save") for j in agent.journal)
+    told = [r.content for m in agent.conversation if m.role == "tool" for r in m.tool_results_list()]
+    assert any("cannot do" in t and "no commands" in t.lower() for t in told)
+
+
+def test_saving_is_allowed_when_the_user_asked_to_save_and_send():
+    ex = FakeExecutor()
+    prov = ScriptedProvider([{"text": "", "calls": [("run_commands", {"commands": ["save ~/Desktop/x.png"]})]},
+                             "Saved."])
+    agent = Agent(prov, ex, config=AgentConfig(autonomy=AUTONOMY_AUTO),
+                  callbacks=Callbacks(on_confirm=lambda c, r: c))
+    agent.run_turn("save a picture to my desktop so I can email it to my boss")
+    assert any(j["command"].startswith("save") for j in agent.journal)

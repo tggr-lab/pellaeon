@@ -6,6 +6,8 @@ into the user message as a context block.
 """
 from __future__ import annotations
 
+import re
+
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -98,20 +100,30 @@ ATOMSPEC_CHIMERA = """Atom specification cheat-sheet (classic Chimera; models st
 - Ranges across chains need the chain: :10-50.A. Multi-chain models: a bare residue number matches every chain; include `.A`."""
 
 
+# Compact mode: what a request may cost when the provider's free tier meters tokens per minute.
+# Groq's free tier rejects anything over 7000 input tokens outright, and our full prompt is ~7200.
+COMPACT_DIRECTORY_CHARS = 1800
+COMPACT_DOC_CHARS = 1800
+
+
 def build_system_prompt(directory: Optional[List[Tuple[str, str]]] = None,
                         gotchas: Optional[str] = None,
                         recipes: Optional[List[Dict[str, Any]]] = None,
                         allow_python: bool = False,
                         vision: bool = False,
-                        edition: str = "chimerax") -> str:
+                        edition: str = "chimerax",
+                        compact: bool = False) -> str:
+    """compact=True drops what the model can fetch on demand (recipes, most of the command
+    directory) and keeps what it cannot: the identity, the atomspec rules and the gotchas."""
     if edition == "chimera":
         sections = [IDENTITY_CHIMERA, ATOMSPEC_CHIMERA, (gotchas or "").strip()]
     else:
         sections = [IDENTITY, ATOMSPEC, (gotchas or GOTCHAS_FALLBACK).strip()]
     if directory:
         sections.append("%s commands you can use (name: purpose). Use `command_usage` or `search_docs` for syntax details:\n%s" % (
-            "Chimera" if edition == "chimera" else "ChimeraX", command_directory_text(directory)))
-    if recipes:
+            "Chimera" if edition == "chimera" else "ChimeraX",
+            command_directory_text(directory, COMPACT_DIRECTORY_CHARS if compact else 6000)))
+    if recipes and not compact:
         sections.append("Examples of requests and the commands that satisfy them (the user's real phrasing, typos included):\n\n"
                         + recipes_text(recipes))
     if allow_python:
@@ -166,6 +178,19 @@ def format_state(state: Dict[str, Any]) -> str:
     if state.get("last_error"):
         lines.append("Last command error: %s" % state["last_error"])
     return "\n".join(lines)
+
+
+_DOCS_BLOCK = re.compile(r"<docs>\n(.*?)\n</docs>", re.S)
+
+
+def trim_context(ctx: str, max_doc_chars: int = COMPACT_DOC_CHARS) -> str:
+    """Shrink the retrieved-docs block of an already-built context (used when falling back to compact)."""
+    def cut(m):
+        body = m.group(1)
+        if len(body) <= max_doc_chars:
+            return m.group(0)
+        return "<docs>\n%s\n</docs>" % body[:max_doc_chars].rsplit("\n\n", 1)[0]
+    return _DOCS_BLOCK.sub(cut, ctx)
 
 
 def build_context(state: Optional[Dict[str, Any]], docs: List[Dict[str, Any]], max_doc_chars: int = 5000,

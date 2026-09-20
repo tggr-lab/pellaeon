@@ -115,3 +115,29 @@ def parse_command_lines(text: str, known: Optional[Iterable[str]] = None) -> Lis
             if _valid(piece, kn):
                 out.append(piece.strip())
     return out[:20]
+
+
+def split_joined(commands):
+    """ChimeraX accepts several commands joined by ';', and weaker models write them that way.
+    Split them into separate entries so each one gets its own status, outcome check and journal
+    line. Semicolons inside quotes (label text, file names) are left alone.
+    """
+    out = []
+    for cmd in commands:
+        parts, buf, quote = [], [], ""
+        for ch in cmd:
+            if quote:
+                if ch == quote:
+                    quote = ""
+                buf.append(ch)
+            elif ch in "\"'":
+                quote = ch
+                buf.append(ch)
+            elif ch == ";":
+                parts.append("".join(buf))
+                buf = []
+            else:
+                buf.append(ch)
+        parts.append("".join(buf))
+        out.extend([p.strip() for p in parts if p.strip()] or [cmd])
+    return out

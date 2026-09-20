@@ -73,13 +73,19 @@ class OpenAICompatProvider(Provider):
         if tools:
             body["tools"] = [{"type": "function", "function": t.to_dict()} for t in tools]
             body["tool_choice"] = "auto"
-        try:
-            return self._stream_once(body, on_delta, cancel)
-        except HttpError as e:
-            if e.status == 400 and "stream_options" in e.body and "stream_options" in body:
-                del body["stream_options"]
+
+        def once():
+            try:
                 return self._stream_once(body, on_delta, cancel)
-            raise ProviderError(self._explain(e))
+            except HttpError as e:
+                if e.status == 400 and "stream_options" in e.body and "stream_options" in body:
+                    del body["stream_options"]
+                    return self._stream_once(body, on_delta, cancel)
+                raise ProviderError(self._explain(e))
+
+        # Free tiers (Groq's tokens-per-minute, OpenRouter's daily cap) answer 429 constantly:
+        # wait out the limit instead of failing the turn.
+        return self._retrying(once, cancel)
 
     def _stream_once(self, body, on_delta, cancel) -> Tuple[Message, Usage]:
         text_parts: List[str] = []
@@ -136,7 +142,7 @@ class OpenAICompatProvider(Provider):
         if e.status == 404:
             return "Model or endpoint not found (404): %s" % e.body[:200]
         if e.status == 429:
-            return "Rate limited (429). Wait a moment or switch model/provider. %s" % e.body[:200]
+            return "Rate limited (429). %s" % e.body[:300]
         return "HTTP %d: %s" % (e.status, e.body[:300])
 
     def list_models(self) -> List[str]:

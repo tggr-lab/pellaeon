@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import re
-import time
 import threading
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -11,7 +10,8 @@ from ..http import request_json, stream_lines, iter_sse, HttpError
 from ..schema import Message, TextPart, ToolCall, ToolSpec, Usage, new_id
 from .base import Provider, ProviderError, OnDelta
 
-DEFAULT_MODEL = "gemini-3.5-flash-lite"
+# The "-latest" alias tracks the current Flash-Lite, so a Google retirement cannot strand a user
+DEFAULT_MODEL = "gemini-flash-lite-latest"
 
 
 def _clean_schema(schema: Any) -> Any:
@@ -75,36 +75,24 @@ class GeminiProvider(Provider):
         m = re.search(r"use\s+models/([A-Za-z0-9._-]+)", message or "")
         return m.group(1) if m else ""
 
-    @staticmethod
-    def retry_delay(message: str) -> float:
+    @classmethod
+    def retry_delay(cls, message: str) -> float:
         """Seconds to wait before retrying a 429, from Google's 'retry in 12.3s' / retryDelay hint (0 = none given)."""
-        m = re.search(r"retry(?:Delay)?[\"']?\s*[:=]?\s*[\"']?(?:in\s+)?(\d+(?:\.\d+)?)\s*s", message or "", re.I)
-        return float(m.group(1)) if m else 0.0
+        return cls.parse_retry_delay(message)
 
     def stream(self, system, messages, tools, on_delta: Optional[OnDelta] = None,
                cancel: Optional[threading.Event] = None) -> Tuple[Message, Usage]:
-        waited = 0.0
-        for attempt in range(4):
-            try:
-                return self._stream(system, messages, tools, on_delta, cancel)
-            except ProviderError as e:
-                text = str(e)
-                new = self.suggested_model(text)
-                if new and new != self.model:
-                    self.model = new
-                    self.switched_to = new
-                    continue
-                if ("429" in text or "503" in text) and attempt < 3 and waited < 90:
-                    delay = self.retry_delay(text) or (15.0 * (attempt + 1))
-                    delay = min(delay + 1.0, 60.0)
-                    if cancel is not None and cancel.wait(delay):
-                        raise
-                    elif cancel is None:
-                        time.sleep(delay)
-                    waited += delay
-                    continue
-                raise
-        raise ProviderError("Gemini kept refusing the request.")
+        def switched(text: str, attempt: int) -> bool:
+            """Google retires models: its error names the replacement, so move to it and retry."""
+            new = self.suggested_model(text)
+            if new and new != self.model:
+                self.model = new
+                self.switched_to = new
+                return True
+            return False
+
+        return self._retrying(lambda: self._stream(system, messages, tools, on_delta, cancel),
+                              cancel, on_error=switched)
 
     def _stream(self, system, messages, tools, on_delta: Optional[OnDelta] = None,
                 cancel: Optional[threading.Event] = None) -> Tuple[Message, Usage]:

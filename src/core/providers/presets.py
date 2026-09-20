@@ -20,11 +20,12 @@ PROVIDER_CLASSES = {
 PRESETS: List[Dict[str, Any]] = [
     {
         "id": "gemini", "provider": "gemini", "label": "Google Gemini (free, nothing to install)",
-        "base_url": "https://generativelanguage.googleapis.com", "model": "gemini-3.5-flash-lite",
+        "base_url": "https://generativelanguage.googleapis.com", "model": "gemini-flash-lite-latest",
         "key_env": "GOOGLE_API_KEY", "free": True, "needs_key": True,
-        "models_hint": ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash", "gemini-3.1-pro-preview"],
+        "models_hint": ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.8-flash"],
         "blurb": "Easiest start: get a free key at aistudio.google.com (2 minutes, no credit card), paste it here. "
-                 "On the free tier Flash-Lite allows 15 requests a minute and Flash only 5; Pellaeon waits and retries when a limit hits. Pro needs billing.",
+                 "Flash-Lite is the default because the free tier allows it 15 requests a minute, against 5 for Flash; "
+                 "Pellaeon waits and retries when a limit hits. Pro models answer only with billing enabled.",
         "key_url": "https://aistudio.google.com/apikey",
     },
     {
@@ -56,16 +57,20 @@ PRESETS: List[Dict[str, Any]] = [
         "id": "openrouter", "provider": "openai", "label": "OpenRouter (many models, free ones too)",
         "base_url": "https://openrouter.ai/api/v1", "model": "openrouter/free",
         "key_env": "OPENROUTER_API_KEY", "free": True, "needs_key": True,
-        "models_hint": ["openrouter/free", "anthropic/claude-sonnet-4.5", "google/gemini-2.5-flash", "qwen/qwen3-32b:free"],
-        "blurb": "One key for dozens of models. 'openrouter/free' routes to a free model that supports tools (50 requests/day free).",
+        "models_hint": ["openrouter/free", "nvidia/nemotron-3-super-120b-a12b:free", "qwen/qwen3.8-27b:free",
+                        "google/gemma-4-31b-it:free", "anthropic/claude-sonnet-4.5"],
+        "blurb": "One key for dozens of models. 'openrouter/free' routes to a free model that can use tools. "
+                 "The free models allow 50 requests a day in total \u2014 roughly a dozen questions \u2014 so it suits trying things out "
+                 "rather than a working day; paid models on the same key have no such cap.",
         "key_url": "https://openrouter.ai/keys",
     },
     {
         "id": "groq", "provider": "openai", "label": "Groq (fast, free tier)",
-        "base_url": "https://api.groq.com/openai/v1", "model": "llama-3.3-70b-versatile",
+        "base_url": "https://api.groq.com/openai/v1", "model": "openai/gpt-oss-20b",
         "key_env": "GROQ_API_KEY", "free": True, "needs_key": True,
-        "models_hint": ["llama-3.3-70b-versatile", "qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct"],
-        "blurb": "Very fast inference with a generous free tier.",
+        "models_hint": ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"],
+        "blurb": "Very fast answers. The free tier allows 1000 requests a day but only 8000 tokens a minute, "
+                 "which is about one Pellaeon request per minute; Pellaeon waits out the limit rather than failing.",
         "key_url": "https://console.groq.com/keys",
     },
     {

@@ -27,3 +27,12 @@ def test_bare_command_lines_as_the_whole_reply_are_commands():
     assert parse_textual_tool_call("The view has been reset to the default orientation.") == []
     assert parse_textual_tool_call("View the structure from the top.") == []
     assert parse_textual_tool_call("show the ligand as spheres") == []      # prose with 'the'
+
+
+def test_split_joined_separates_semicolon_commands():
+    from core.recovery import split_joined
+    assert split_joined(["surface #1 ; transparency #1 50 target s"]) == ["surface #1", "transparency #1 50 target s"]
+    assert split_joined(["color red", "view"]) == ["color red", "view"]
+    # a semicolon inside quotes belongs to the command
+    assert split_joined(['2dlabels text "one; two" size 20']) == ['2dlabels text "one; two" size 20']
+    assert split_joined(["color blue;"]) == ["color blue"]
