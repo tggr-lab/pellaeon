@@ -688,7 +688,8 @@ class Agent:
         commands = split_joined([c.strip() for c in commands if c and c.strip()])
         if not commands:
             return {"ok": False, "results": [], "error": "No commands given."}
-        for c in commands:
+        blocked = None
+        for idx, c in enumerate(commands):
             for acc in re.findall(r"alphafold:([A-Za-z0-9]+)", c, re.I):
                 if acc.upper() not in self._verified_accessions and acc.upper() not in self._user_text_upper:
                     # verify instead of refusing: does this accession belong to a gene/protein the user named?
@@ -702,19 +703,36 @@ class Agent:
                     if gene and any(n and n.upper() in self._user_text_upper for n in names):
                         self._verified_accessions.add(acc.upper())
                         continue
-                    return {"ok": False, "results": [], "error": "Accession %s was NOT obtained from resolve_protein%s, so it may be the "
-                            "wrong protein. Call resolve_protein with the gene/protein name first and use the open_command it returns."
-                            % (acc, (" (UniProt says it is %s, which the user did not mention)" % gene) if gene else ""), "unverified_accession": acc}
+                    blocked = (idx, {"error": "Accession %s was NOT obtained from resolve_protein%s, so it may be the "
+                                     "wrong protein. Call resolve_protein with the gene/protein name first and use the open_command it returns."
+                                     % (acc, (" (UniProt says it is %s, which the user did not mention)" % gene) if gene else ""),
+                                     "unverified_accession": acc})
+                    break
             w = first_word(c)
             if self._impossible_ask and w in ("save", "export") and origin == "model":
-                return {"ok": False, "results": [], "error":
-                        "The user asked for something ChimeraX cannot do (emailing, printing, messaging or uploading). "
-                        "Saving a file is NOT a step towards it. Answer in words now: say in one sentence that ChimeraX "
-                        "cannot do it, and that they can save an image themselves and send it from their own email or file "
-                        "manager. Do not run any other command in its place.", "impossible": True}
+                blocked = (idx, {"error":
+                           "The user asked for something ChimeraX cannot do (emailing, printing, messaging or uploading). "
+                           "Saving a file is NOT a step towards it. Answer in words now: say in one sentence that ChimeraX "
+                           "cannot do it, and that they can save an image themselves and send it from their own email or file "
+                           "manager. Do not run any other command in its place.", "impossible": True})
+                break
             if w in _TOOL_NAMES:
-                return {"ok": False, "results": [], "error": "'%s' is one of YOUR TOOLS, not a ChimeraX command. Call the tool "
-                        "named %s with its arguments instead of running it as text." % (w, w), "tool_misuse": w}
+                blocked = (idx, {"error": "'%s' is one of YOUR TOOLS, not a ChimeraX command. Call the tool "
+                           "named %s with its arguments instead of running it as text." % (w, w), "tool_misuse": w})
+                break
+        if blocked is not None:
+            # The batch used to be discarded whole: asked to "open the AlphaFold model of PAR2 and show
+            # its variants", a model that wrote `annotate ...` as text lost the `open` in front of it too,
+            # and then reported the model as open. Run what came first, then report the offender.
+            stop_at, err = blocked
+            if stop_at == 0:
+                return dict(err, ok=False, results=[])
+            out = self.execute_commands(commands[:stop_at], origin, preapproved)
+            out.update({k: v for k, v in err.items() if k != "error"})
+            out["ok"] = False
+            out["error"] = err["error"]
+            return out
+
         label_notes = []
         if self.config.readable_labels and self.config.edition == "chimerax":
             from .labels import style_label_command, label_spec
@@ -1196,6 +1214,14 @@ class Agent:
             self.layers = [l for l in self.layers if not (l["dataset"] == layer["dataset"] and l["column"] == layer["column"])] + [layer]
         return out
 
+    def _model_missing(self, spec: str) -> bool:
+        """True when `spec` matches nothing in the session (and we could actually check)."""
+        try:
+            got = self.executor.spec_atoms(spec or "")
+        except Exception:  # noqa: BLE001
+            return False
+        return bool(got.get("used")) and got.get("atoms", 0) == 0
+
     def _annotate(self, model: str, accession: str, kind: str, color: str, label: bool) -> Dict[str, Any]:
         from .annotate import normalize_kind, uniprot_items, clinvar_items, build_annotation, is_accession
         if not re.match(r"^(#[0-9a-fA-F]{6}|[A-Za-z][A-Za-z ]{1,30})$", color or ""):
@@ -1233,6 +1259,11 @@ class Agent:
             items = uniprot_items(feats, only_disease)
             source = "UniProt %s features: %s" % (acc, ", ".join(kinds or []))
         if not items:
+            # Check the target exists before reporting "nothing to annotate": with an empty session this
+            # returned quietly and the model announced the structure as open. map_positions would have
+            # caught it, but it is only reached when there are items to place.
+            if self._model_missing(model):
+                return {"error": "No model matches '%s'. Open the structure first, then annotate it." % model}
             return {"accession": acc, "kind": kind, "count": 0, "message": "No matching annotations (%s)." % source}
         positions = sorted({p for it in items for p in it["positions"]})
         mapping = self.executor.map_positions(model, acc, positions)

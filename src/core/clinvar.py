@@ -1,6 +1,9 @@
 """ClinVar missense variants for a gene via NCBI E-utilities (stdlib only, disk-cached).
 
-Ported from the user's earlier ClinVARing script: esearch for "<gene>[gene] AND missense[consequence]",
+Ported from the user's earlier ClinVARing script, whose query used the tag "[consequence]".
+That is not a ClinVar field, and NCBI silently treats an unknown tag as free text, so genes such
+as F2RL1, F2R and F2RL3 came back with no variants at all. We esearch for
+"<gene>[gene] AND \"missense variant\"[molecular consequence]",
 esummary in batches, parse the p.HGVS protein change, keep the most severe classification per position.
 """
 from __future__ import annotations
@@ -63,8 +66,11 @@ class ClinVarClient:
             except Exception:
                 pass
         try:
-            q = urllib.parse.urlencode({"db": "clinvar", "term": "%s[gene] AND missense[consequence]" % gene,
-                                        "retmode": "json", "retmax": max_results})
+            # "[consequence]" is not a ClinVar field tag. NCBI silently treats an unknown tag as free
+            # text, so this searched for the word "missense" anywhere: F2RL1, F2R and F2RL3 returned
+            # nothing at all, while BRCA1 quietly lost 11% of its records.
+            term = '%s[gene] AND "missense variant"[molecular consequence]' % gene
+            q = urllib.parse.urlencode({"db": "clinvar", "term": term, "retmode": "json", "retmax": max_results})
             data = request_json("GET", "%s/esearch.fcgi?%s" % (_EUTILS, q), timeout=self.timeout)
             ids = (data.get("esearchresult") or {}).get("idlist") or []
             per_pos: Dict[int, Dict[str, Any]] = {}

@@ -39,3 +39,13 @@ def test_guide_chunks_are_searchable():
     idx = BM25Index()
     idx.build(ch)
     assert idx.search("rainbow along the chain", 1)[0][1].section == "Coloring"
+
+
+def test_clinvar_uses_a_real_field_tag_for_missense():
+    """'missense[consequence]' is not a ClinVar field tag; NCBI degrades an unknown tag to free
+    text, which returned zero variants for F2RL1, F2R and F2RL3."""
+    import inspect
+    from core import clinvar
+    src = inspect.getsource(clinvar)
+    assert "missense[consequence]" not in src
+    assert '"missense variant"[molecular consequence]' in src

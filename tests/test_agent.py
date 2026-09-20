@@ -935,3 +935,33 @@ def test_the_only_gotchas_are_one_recipe_each():
     assert len(only_lines) >= 3                       # one bullet per phrasing, not three recipes in one
     cartoon = [l for l in only_lines if "cartoon" in l and "chain" not in l][0]
     assert "show #1 atoms" not in cartoon             # the trailing show re-displayed what was hidden
+
+
+def test_commands_before_a_misused_tool_name_still_run():
+    """The whole batch used to be discarded: 'open the AlphaFold model and annotate it' lost the
+    open as well, and the model then said the structure was open when nothing was."""
+    ex = FakeExecutor()
+    agent = Agent(ScriptedProvider([]), ex)
+    out = agent.execute_commands(["open 1ubq", "color red", "annotate #1 accession P1 kind domain", "view"])
+    assert ex.ran == ["open 1ubq", "color red"]          # the prefix ran
+    assert out["ok"] is False and out.get("tool_misuse") == "annotate"
+    assert [r["command"] for r in out["results"]] == ["open 1ubq", "color red"]
+    assert [j["command"] for j in agent.journal] == ["open 1ubq", "color red"]   # and was journalled
+
+
+def test_a_misused_tool_name_first_still_runs_nothing():
+    ex = FakeExecutor()
+    agent = Agent(ScriptedProvider([]), ex)
+    out = agent.execute_commands(["annotate #1 accession P1 kind domain", "color red"])
+    assert ex.ran == [] and out["ok"] is False and out.get("tool_misuse") == "annotate"
+
+
+def test_annotate_says_so_when_the_model_is_not_open():
+    """With nothing open, annotate returned 'no matching annotations' and the model told the user
+    the structure was open."""
+    ex = FakeExecutor()
+    ex.spec_atoms = lambda text: {"used": text, "atoms": 0}
+    ex.protein_features = lambda acc, kinds=None: {"gene": "F2RL1", "features": []}
+    agent = Agent(ScriptedProvider([]), ex)
+    out = agent._annotate("#1", "P55085", "domain", "orange", False)
+    assert "error" in out and "No model matches" in out["error"]
