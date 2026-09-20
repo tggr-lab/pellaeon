@@ -10,6 +10,7 @@
 <ul>
 <li><a href="#chimerax-edition">ChimeraX edition</a></li>
 <li><a href="#classic-edition-chimera-1x">Classic edition (Chimera 1.x)</a></li>
+<li><a href="#free-to-start">Free to start</a></li>
 <li><a href="#choosing-an-ai">Choosing an AI</a></li>
 <li><a href="#choosing-a-model">Choosing a model</a><ul>
 <li><a href="#what-the-free-tiers-really-allow">What the free tiers really allow</a></li>
@@ -78,11 +79,21 @@
 <li>In the launcher press <strong>Launch Chimera</strong> (it starts Chimera with its REST server and connects by itself), or start Chimera yourself, open <strong>Tools ▸ Utilities ▸ RESTServer</strong>, type the port shown in the Reply Log into the launcher and press <strong>Test</strong>.</li>
 <li>Optional: <code>python install.py</code> puts a <strong>Pellaeon Classic</strong> shortcut on your desktop and Start menu.</li>
 </ol>
+<h2 id="free-to-start">Free to start</h2>
+<p>Pellaeon needs a model to think with, and the one to start with today is <strong>Mistral</strong>. The key is free, takes two minutes and needs no credit card; the free tier allows around 190 requests a minute, where the other free tiers allow 15 a minute or 50 a day. It handled every request in our test set, and it can look at the 3D view and fix a crowded figure.</p>
+<ol>
+<li>Open <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a> and sign up.</li>
+<li>Create a key and copy it.</li>
+<li>In Pellaeon, open the gear icon, choose <strong>Mistral (free tier, no credit card)</strong>, paste the key, then press <strong>Test connection</strong> and <strong>Save &amp; use</strong>.</li>
+</ol>
+<p>The free tier serves the <strong>Ministral</strong> models; Pellaeon picks <code>ministral-8b-latest</code> for you. (<code>mistral-small</code> and <code>mistral-medium</code> are on the same key but need billing, and refuse a free request straight away.)</p>
+<p>Google Gemini is an equally good free alternative at a slower 15 requests a minute: a key from <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>, also without a credit card.</p>
+<p><strong>Before you paste anything:</strong> the free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models. For unpublished structures, run a local model with Ollama instead — nothing leaves your computer — or use a paid tier.</p>
 <h2 id="choosing-an-ai">Choosing an AI</h2>
 <p>The first time the panel opens it shows provider cards. There is one decision to make: <strong>local or cloud</strong>.</p>
 <ul>
 <li><strong>Local</strong> (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time.</li>
-<li><strong>Cloud</strong> (Gemini free tier, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider.</li>
+<li><strong>Cloud</strong> (Mistral or Gemini free tiers, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider.</li>
 </ul>
 <p>OpenRouter, Groq, LM Studio and custom endpoints are there too.</p>
 <p>All options:</p>
@@ -101,8 +112,13 @@
 <td>Install <a href="https://ollama.com/download">Ollama</a>, then press <strong>Pull</strong> next to <code>qwen3:8b</code> in Pellaeon's settings (needs about 6 GB of GPU memory). On a laptop without a GPU pull <code>qwen3:4b</code> instead and expect 10–30 s per request. Nothing leaves your computer except UniProt/ClinVar lookups when you ask for them.</td>
 </tr>
 <tr>
+<td><strong>Mistral</strong> (recommended free option)</td>
+<td>free tier, about 190 requests a minute</td>
+<td>Create a key at <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a> (no credit card), paste it in. Pellaeon uses <code>ministral-8b-latest</code>.</td>
+</tr>
+<tr>
 <td><strong>Google Gemini</strong></td>
-<td>free tier (about 5 requests a minute; Pellaeon waits and retries when the limit hits, so a request can take a minute)</td>
+<td>free tier, 15 requests a minute on Flash-Lite</td>
 <td>Create a key at <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a> (no credit card), paste it in.</td>
 </tr>
 <tr>
@@ -117,8 +133,8 @@
 </tr>
 <tr>
 <td><strong>OpenRouter / Groq</strong></td>
-<td>free tiers</td>
-<td>One key, many models. <code>openrouter/free</code> picks a free model that supports tools.</td>
+<td>free tiers, but tight</td>
+<td>One key, many models. OpenRouter allows 50 requests a day in total; Groq allows plenty of requests but few tokens a minute, so expect about one request a minute.</td>
 </tr>
 <tr>
 <td><strong>LM Studio, llama.cpp, vLLM</strong></td>
@@ -127,7 +143,7 @@
 </tr>
 </tbody>
 </table></div>
-<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong> or <strong>Run a first request</strong> (it saves the settings and has the AI open ubiquitin and color it by chain). Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
+<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong> or <strong>Run a first request</strong> (it saves the settings and has the AI open ubiquitin and color it by chain). Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>MISTRAL_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
 <h2 id="choosing-a-model">Choosing a model</h2>
 <p>Tested with Pellaeon's own request set (colors, selections, measurements, AlphaFold and UniProt lookups, comparisons, confirmations, typos, follow-ups), on an RTX 4070 Super with 12 GB.</p>
 <div class="table-wrap"><table>
