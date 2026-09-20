@@ -20,9 +20,26 @@ split stop style surface swapaa sym tile toolshed torsion transparency turn ui u
 _TOOL_NAMES = ("run_commands",)
 
 
+# Small local models narrate ("Wait, the system prompt says: ..."), and `wait`, `set`, `show`,
+# `close` and `open` are all real ChimeraX commands, so a sentence can pass a first-word check.
+_PROSE_WORDS = re.compile(r"\b(?:the|is|are|was|were|will|would|should|could|maybe|perhaps|because|"
+                          r"however|says|said|think|thinking|user|assistant|system|prompt|instead|"
+                          r"actually|they|does|doesn|isn|can\'t|cannot|need|needs|trying|means)\b", re.I)
+# deliberately no one- or two-letter words: "a" would match the chain spec /A, "it" an atom name.
+
+
+def _looks_like_prose(cmd: str) -> bool:
+    if re.match(r"^\w+[,:;?!]", cmd):          # "Wait," / "Note:" starts a sentence, not a command
+        return True
+    outside_quotes = re.sub(r"\"[^\"]*\"|'[^']*'", " ", cmd)   # label text may legitimately be English
+    return bool(_PROSE_WORDS.search(outside_quotes))
+
+
 def _valid(cmd: str, known: Set[str]) -> bool:
     w = first_word(cmd)
-    return bool(w) and (w in known or w.rstrip("s") in known) and len(cmd) < 400
+    if not w or len(cmd) >= 400 or _looks_like_prose(cmd):
+        return False
+    return w in known or w.rstrip("s") in known
 
 
 def _clean_line(line: str) -> str:

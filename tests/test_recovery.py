@@ -36,3 +36,22 @@ def test_split_joined_separates_semicolon_commands():
     # a semicolon inside quotes belongs to the command
     assert split_joined(['2dlabels text "one; two" size 20']) == ['2dlabels text "one; two" size 20']
     assert split_joined(["color blue;"]) == ["color blue"]
+
+
+def test_a_models_narration_is_not_run_as_a_command():
+    """`wait`, `set`, `show`, `open` and `close` are real commands, so a first-word check alone
+    lets a sentence through. qwen3:4b narrated and Pellaeon tried to run the narration."""
+    from core.recovery import parse_command_lines
+    known = ["color", "open", "wait", "set", "show", "close", "view", "label"]
+    prose = [
+        'Wait, the system prompt says: "You did not call the tool."',
+        "So maybe the user is trying to do something else, but the context here is different",
+        "Open the structure first, then we should color it",
+        "Note: close everything is risky",
+    ]
+    for line in prose:
+        assert parse_command_lines(line, known) == [], line
+    # real commands still come through, including one with English inside a quoted label
+    assert parse_command_lines("color #1 red", known) == ["color #1 red"]
+    assert parse_command_lines("open 4hhb\nview\nset bgColor white", known) == ["open 4hhb", "view", "set bgColor white"]
+    assert parse_command_lines('label #1:5 text "the active site"', known) == ['label #1:5 text "the active site"']
