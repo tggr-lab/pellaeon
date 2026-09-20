@@ -142,7 +142,13 @@ class OpenAICompatProvider(Provider):
         if e.status == 404:
             return "Model or endpoint not found (404): %s" % e.body[:200]
         if e.status == 429:
-            return "Rate limited (429). %s" % e.body[:300]
+            if self.is_daily_limit(e.body):
+                where = "OpenRouter" if "openrouter" in self.base_url else "This provider"
+                extra = (" OpenRouter's free models share 50 requests a day across your key; "
+                         "the count resets at midnight UTC." if "openrouter" in self.base_url else "")
+                return ("%s's free daily request limit is used up, so it will not answer again today.%s "
+                        "Pick a different provider in Settings, or a paid model on the same key." % (where, extra))
+            return "Rate limited: the provider is asking us to slow down. %s" % e.body[:200]
         return "HTTP %d: %s" % (e.status, e.body[:300])
 
     def list_models(self) -> List[str]:

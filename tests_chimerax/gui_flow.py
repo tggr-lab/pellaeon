@@ -14,7 +14,14 @@ os.makedirs(out, exist_ok=True)
 run(session, "ui tool show Pellaeon")  # noqa: F821
 from chimerax.pellaeon.tool import _INSTANCES  # noqa: E402
 inst = _INSTANCES.get(id(session))  # noqa: F821
-log = session.logger.info  # noqa: F821
+_logfile = open(os.path.join(out, "gui_flow.log"), "w")
+
+
+def log(msg):   # a GUI ChimeraX prints nothing to stdout, so tee every line to a file
+    session.logger.info(msg)  # noqa: F821
+    _logfile.write(msg + "\n")
+    _logfile.flush()
+
 phase = {"n": 0, "t0": time.time(), "deadline": time.time() + 240}
 
 
@@ -39,9 +46,18 @@ def tick():
     if n == 0:
         if not inst._page_ready:
             return QTimer.singleShot(500, tick)
-        if not inst.settings.configured:
-            inst.settings.preset = "ollama"; inst.settings.provider = "ollama"; inst.settings.model = "qwen3:8b"
-            inst.settings.configured = True; inst.settings.save()
+        override = os.environ.get("PELLAEON_GUI_PRESET", "")   # e.g. "gemini:gemini-flash-lite-latest"
+        if override or not inst.settings.configured:
+            pid, _, mname = override.partition(":")
+            from chimerax.pellaeon.core.providers.presets import preset_by_id
+            preset = preset_by_id(pid or "ollama") or {}
+            inst.settings.preset = pid or "ollama"
+            inst.settings.provider = preset.get("provider", "ollama")
+            inst.settings.model = mname or preset.get("model", "qwen3:8b")
+            inst.settings.base_url = preset.get("base_url", "")
+            inst.settings.configured = True
+            if not override:            # an override is for this test run only: never saved
+                inst.settings.save()
             inst.push({"type": "config", "config": inst._config_summary()})
         inst.submit("open 4hhb and color it by chain")
         phase["n"] = 1

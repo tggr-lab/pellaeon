@@ -75,6 +75,13 @@ class Provider:
         return value
 
     @staticmethod
+    def is_daily_limit(message: str) -> bool:
+        """A per-day cap (OpenRouter's 50 free requests) resets tomorrow: waiting 60s is pointless."""
+        t = (message or "").lower()
+        return ("per-day" in t or "per day" in t or "daily limit" in t or "daily quota" in t
+                or "requests per day" in t or "free-models-per-day" in t)
+
+    @staticmethod
     def is_rate_limited(message: str) -> bool:
         text = message or ""
         return ("429" in text or "503" in text or "529" in text
@@ -93,7 +100,8 @@ class Provider:
                 text = str(e)
                 if on_error is not None and on_error(text, attempt):
                     continue
-                if attempt + 1 >= self.retry_attempts or waited >= self.max_retry_wait or not self.is_rate_limited(text):
+                if (attempt + 1 >= self.retry_attempts or waited >= self.max_retry_wait
+                        or not self.is_rate_limited(text) or self.is_daily_limit(text)):
                     raise
                 delay = min((self.parse_retry_delay(text) or 15.0 * (attempt + 1)) + 1.0, 60.0)
                 if cancel is not None:

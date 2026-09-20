@@ -238,4 +238,25 @@ def test_openai_provider_gives_up_after_repeated_rate_limits(monkeypatch):
     prov = openai_compat.OpenAICompatProvider(model="m", api_key="k")
     with pytest.raises(ProviderError) as err:
         prov.stream("sys", [], [])
-    assert "429" in str(err.value)
+    assert "slow down" in str(err.value)
+
+
+def test_a_daily_cap_is_explained_and_not_retried(monkeypatch):
+    from core.providers import openai_compat
+    from core.providers.base import Provider, ProviderError
+    from core.http import HttpError
+    body = ('{"error":{"message":"Rate limit exceeded: free-models-per-day. Add 10 credits to unlock 1000 free '
+            'model requests per day","code":429}}')
+    assert Provider.is_daily_limit(body) and Provider.is_rate_limited(body)
+    tries = {"n": 0}
+
+    def fake(method, url, headers=None, body=None, timeout=60, cancel=None):
+        tries["n"] += 1
+        raise HttpError(429, '{"error":{"message":"Rate limit exceeded: free-models-per-day"}}', url)
+
+    monkeypatch.setattr(openai_compat, "stream_lines", fake)
+    monkeypatch.setattr("time.sleep", lambda s: pytest.fail("a daily cap must not be waited out"))
+    prov = openai_compat.OpenAICompatProvider(model="m", api_key="k", base_url="https://openrouter.ai/api/v1")
+    with pytest.raises(ProviderError) as err:
+        prov.stream("sys", [], [])
+    assert tries["n"] == 1 and "50 requests a day" in str(err.value)
