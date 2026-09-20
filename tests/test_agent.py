@@ -965,3 +965,24 @@ def test_annotate_says_so_when_the_model_is_not_open():
     agent = Agent(ScriptedProvider([]), ex)
     out = agent._annotate("#1", "P55085", "domain", "orange", False)
     assert "error" in out and "No model matches" in out["error"]
+
+
+def test_compact_mode_stops_retrieving_docs_every_turn():
+    """The static prompt caches; the per-turn docs block cannot, so it is most of the billed cost.
+    In compact mode the model fetches documentation on demand with search_docs instead."""
+    calls = []
+
+    class Ex(FakeExecutor):
+        def search_docs(self, q, k):
+            calls.append(k)
+            return [{"title": "color", "section": "usage", "text": "color spec color"}]
+
+    ex = Ex()
+    agent = Agent(ScriptedProvider(["done"]), ex, config=AgentConfig(docs_per_turn=6))
+    agent.run_turn("color it blue")
+    assert calls == [6]
+    assert agent.go_compact()
+    calls.clear()
+    agent.run_turn("color it red")
+    assert calls == []                                   # nothing retrieved automatically
+    assert "search_docs" in {t.name for t in __import__("core.tools", fromlist=["x"]).tool_specs(compact=True)}
