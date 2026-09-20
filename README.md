@@ -45,6 +45,8 @@ Local: Ollama, free and private (`qwen3:8b` on a GPU, `qwen3:4b` on a CPU-only m
 
 Try it with a fresh session: `open 4hhb`, then "color by chain", "show the ligand as spheres and hide water", "make it spin", "stop", "label residues 10 and 20", "close everything" (asks first).
 
+Newer things it does: bookmark a view and return to it by name; make a spin, rock or bookmark-tour movie; map UniProt positions onto the structure's own numbering before coloring them; re-use a saved figure's styling on another structure; answer "why is this red?" from its own record of what it ran.
+
 ## How it works
 
 Pellaeon is a normal ChimeraX bundle (pure Python, no extra packages). It runs inside ChimeraX, so it can execute commands directly, read the log output and errors, and inspect the open models and selection. Documentation for the exact ChimeraX version you run is indexed on first launch from the docs that ship with ChimeraX, so the assistant always sees current syntax. Requests are answered by the model you choose through a small tool-calling loop: the model can run commands, check the session state, look up command syntax, search the docs, resolve proteins via UniProt, fetch UniProt annotations, or ask you a question.

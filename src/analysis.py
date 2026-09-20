@@ -493,3 +493,162 @@ class AskMouseMode:
                          "name": res.name, "number": int(res.number), "chain": res.chain_id,
                          "model": res.structure.name, "atom": atom.name if atom is not None else ""})
         return _Mode(session)
+
+
+# --------------------------------------------------------------------------------------
+# Contact comparison (added by the contact-comparison module; append-only).
+# Collector half of src/core/contacts.py: everything below reads the session and returns
+# plain data, so the comparison itself stays ChimeraX-free and unit-testable.
+# --------------------------------------------------------------------------------------
+
+_SOLVENT_NAMES = {"HOH", "WAT", "DOD", "H2O"}
+
+
+def residue_pairing(session, prep: Dict[str, Any], matchmaker_returns=None) -> Dict[str, Any]:
+    """Reference residue spec -> compared model's residue spec, from matchmaker's own residue
+    correspondence (the same pairs ``compute_displacement`` uses), falling back to chain+number.
+
+    Contacts must be compared through this map, never by residue number: the two entries may be
+    numbered differently, and then a number-based comparison compares unrelated residues.
+    """
+    a = _find_structure(session, "#" + prep["ref_id"])
+    b = _find_structure(session, "#" + prep["other_id"])
+    if a is None or b is None:
+        return {"error": "Models changed during the comparison."}
+    pairing: Dict[str, str] = {}
+    basis = "matchmaker alignment"
+    for rv in (matchmaker_returns or []):
+        if not isinstance(rv, dict):
+            continue
+        ra, ma = rv.get("full ref atoms"), rv.get("full match atoms")
+        if ra is None or ma is None:
+            continue
+        for x, y in zip(ra, ma):
+            if x.structure is a and y.structure is b:
+                pairing["/%s:%d" % (x.residue.chain_id, int(x.residue.number))] = \
+                    "/%s:%d" % (y.residue.chain_id, int(y.residue.number))
+    if not pairing:
+        basis = "chain id + residue number (no alignment available)"
+        chain = prep.get("chain")
+        have = {(r.chain_id, int(r.number)) for r in b.residues}
+        for r in a.residues:
+            if chain and r.chain_id != chain:
+                continue
+            if (r.chain_id, int(r.number)) in have:
+                pairing["/%s:%d" % (r.chain_id, int(r.number))] = "/%s:%d" % (r.chain_id, int(r.number))
+    if not pairing:
+        return {"error": "No residues could be paired between %s and %s." % (prep["ref_spec"], prep["other_spec"])}
+    return {"pairing": pairing, "basis": basis, "paired_residues": len(pairing)}
+
+
+def residue_contacts(session, model_spec: str, cutoff: float = 4.0,
+                     restrict: Optional[str] = None) -> Dict[str, Any]:
+    """Read-only: every residue-residue contact inside one model, as plain dicts.
+
+    A contact is a pair of residues with at least one pair of heavy atoms within `cutoff` A;
+    the reported ``min_dist`` and atom names are that closest pair, which is what a picture of
+    the interaction should be drawn between. Hydrogens are ignored (most crystal structures have
+    none, so including them would make two otherwise identical structures differ), solvent is
+    ignored, and intra-residue and sequential-backbone pairs are dropped because they are present
+    in every structure and say nothing about a conformational change.
+
+    `restrict` is an atom spec (e.g. a ligand, '#1:AP5'): only contacts with at least one atom on
+    that side are returned, and that side is always reported as ``a``.
+
+    Returns {'model': '#1', 'contacts': [{a, a_name, a_atom, b, b_name, b_atom, min_dist, kind}, ...]}.
+    """
+    import numpy as np
+    from chimerax.geometry import find_close_points
+    from .core.contacts import classify_contact, strongest_kind
+
+    m = _find_structure(session, model_spec)
+    if m is None:
+        return {"error": "No atomic model %s is open." % model_spec}
+    atoms = m.atoms
+    keep = [i for i, a in enumerate(atoms)
+            if a.element.name != "H" and a.residue.name.upper() not in _SOLVENT_NAMES]
+    if not keep:
+        return {"error": "Model %s has no non-solvent heavy atoms." % model_spec}
+    atoms = atoms[keep]
+    coords = atoms.scene_coords
+    residues = [a.residue for a in atoms]
+    names = [a.name for a in atoms]
+    elements = [a.element.name for a in atoms]
+
+    restrict_set = None
+    if restrict:
+        from chimerax.core.commands import atomspec
+        try:
+            sel = atomspec.AtomSpecArg.parse(restrict, session)[0].evaluate(session).atoms
+        except Exception as e:  # noqa: BLE001
+            return {"error": "Could not read restrict spec '%s': %s" % (restrict, e)}
+        wanted = set(sel.pointers if hasattr(sel, "pointers") else [])
+        restrict_set = {i for i, a in enumerate(atoms) if a in sel}
+        if not restrict_set:
+            return {"error": "The restrict spec '%s' matches nothing in %s." % (restrict, model_spec)}
+
+    by_res: Dict[Any, List[int]] = {}
+    for i, r in enumerate(residues):
+        by_res.setdefault(r, []).append(i)
+
+    def spec_of(r) -> str:
+        return "/%s:%d%s" % (r.chain_id, int(r.number), r.insertion_code or "")
+
+    # (residue_a, residue_b) -> (min_dist, atom_a, atom_b, [kinds])
+    best: Dict[Any, Any] = {}
+    for r, idxs in by_res.items():
+        if restrict_set is not None and not any(i in restrict_set for i in idxs):
+            continue        # with a restrict spec only that side seeds the search
+        rc = coords[idxs]
+        near = find_close_points(rc, coords, float(cutoff))[1]
+        for j in near:
+            other = residues[j]
+            if other is r or (restrict_set is not None and j in restrict_set):
+                continue    # ligand-internal contacts are not what "what does it touch" means
+            if _sequential(r, other):
+                continue
+            key = (r, other) if restrict_set is not None else _ordered(r, other)
+            d = np.linalg.norm(rc - coords[j], axis=1)
+            k = int(d.argmin())
+            dist = float(d[k])
+            if dist > cutoff:
+                continue
+            ai = idxs[k]
+            if key[0] is r:
+                pair_atoms = (names[ai], names[j], elements[ai], elements[j])
+            else:
+                pair_atoms = (names[j], names[ai], elements[j], elements[ai])
+            kind = classify_contact(key[0].name, pair_atoms[0], key[1].name, pair_atoms[1], dist,
+                                    a_element=pair_atoms[2], b_element=pair_atoms[3],
+                                    a_standard=key[0].polymer_type != 0, b_standard=key[1].polymer_type != 0)
+            prev = best.get(key)
+            if prev is None:
+                best[key] = [dist, pair_atoms[0], pair_atoms[1], {kind}]
+            else:
+                prev[3].add(kind)
+                if dist < prev[0]:
+                    prev[0], prev[1], prev[2] = dist, pair_atoms[0], pair_atoms[1]
+
+    out: List[Dict[str, Any]] = []
+    for (ra, rb), (dist, an, bn, kinds) in best.items():
+        out.append({"a": spec_of(ra), "a_name": ra.name, "a_atom": an,
+                    "b": spec_of(rb), "b_name": rb.name, "b_atom": bn,
+                    "min_dist": round(dist, 2), "kind": strongest_kind(sorted(kinds))})
+    out.sort(key=lambda c: (c["a"].split(":")[0], int(re.sub(r"\D", "", c["a"].split(":")[1]) or 0),
+                            c["b"].split(":")[0], int(re.sub(r"\D", "", c["b"].split(":")[1]) or 0)))
+    return {"model": "#" + m.id_string, "cutoff": float(cutoff), "contacts": out,
+            "restrict": restrict or "", "count": len(out)}
+
+
+def _sequential(r1, r2) -> bool:
+    """True for two polymer residues adjacent in sequence: their backbone touches in every
+    structure, so the pair carries no information about a conformational change."""
+    return (r1.chain_id == r2.chain_id and r1.polymer_type != 0 and r2.polymer_type != 0
+            and abs(int(r1.number) - int(r2.number)) <= 1)
+
+
+def _ordered(r1, r2):
+    """Stable order for an undirected residue pair, so each contact is stored once."""
+    k1 = (r1.chain_id, int(r1.number), r1.insertion_code or "")
+    k2 = (r2.chain_id, int(r2.number), r2.insertion_code or "")
+    return (r1, r2) if k1 <= k2 else (r2, r1)

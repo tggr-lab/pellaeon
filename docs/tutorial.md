@@ -156,6 +156,20 @@ Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and open
 
 "close everything" asked for confirmation first: closing models is one of the risky actions.
 
+### Step 6b · Numbering from a paper
+
+> where is UniProt residue 159 in this structure?
+
+The AlphaFold model uses UniProt numbering, so here it is residue 159 exactly. Try the same on an experimental structure and the answer is often different: a missing initiator methionine, an expression tag or a construct that starts at residue 20 shifts every number. Pellaeon maps the positions through the chain's own UniProt alignment and reports the offset, or that it varies along the chain, before anything gets colored. Ask "color UniProt positions 120 to 135 orange" and it maps them first.
+
+### Step 6c · Bookmark a view
+
+> zoom in on residue 159 and bookmark this view as pocket
+
+> now show the whole thing, then go back to the pocket view
+
+Bookmarks are ChimeraX's named views: Pellaeon lists the ones you have saved in what it tells the model, so "back to the pocket view" works, and "make a movie touring my bookmarks" produces a fly-through (the encode step asks for your OK, like any file save).
+
 ### Step 7 · Paint annotations from UniProt
 
 > color the transmembrane helices orange and the rest white
@@ -181,6 +195,14 @@ Hemoglobin beta again, this time the AlphaFold model, with the ClinVar missense 
 ![Result card](img/tut/08_clinvar_panel.png)
 
 Pellaeon maps UniProt numbering onto the model's chains (PDB entries often start counting differently) and checks that the residue in the model really is the reference amino acid; mismatches are skipped and counted in the card.
+
+### Step 7b · Re-use a look
+
+Once you have saved a figure bundle (step 5b), its styling can be applied to something else:
+
+> open 1omp and make it look like my hemoglobin figure
+
+Pellaeon replays the bundle's styling commands, colors, cartoon and surface style, lighting and background, on the new structure and leaves out the bundle's own open, save and close steps. That is how a lab keeps one look across a paper.
 
 ### Step 8b · When labels pile up
 
