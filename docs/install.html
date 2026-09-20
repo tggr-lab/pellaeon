@@ -11,6 +11,7 @@
 <li><a href="#chimerax-edition">ChimeraX edition</a></li>
 <li><a href="#classic-edition-chimera-1x">Classic edition (Chimera 1.x)</a></li>
 <li><a href="#choosing-an-ai">Choosing an AI</a></li>
+<li><a href="#choosing-a-model">Choosing a model</a></li>
 <li><a href="#updating">Updating</a></li>
 <li><a href="#where-things-are-stored">Where things are stored</a></li>
 </ul>
@@ -124,6 +125,45 @@
 </tbody>
 </table></div>
 <p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong> or <strong>Run a first request</strong> (it saves the settings and has the AI open ubiquitin and color it by chain). Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
+<h2 id="choosing-a-model">Choosing a model</h2>
+<p>Tested with Pellaeon's own request set (colors, selections, measurements, AlphaFold and UniProt lookups, comparisons, confirmations, typos, follow-ups), on this machine: an RTX 4070 Super with 12 GB.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Want</th>
+<th>Pick</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nothing to install, fast</td>
+<td><strong>Gemini 3.5 Flash-Lite</strong> (free)</td>
+<td>About two seconds a request, 15 requests a minute free, and it can look at screenshots. As accurate on our set as the best local models.</td>
+</tr>
+<tr>
+<td>Private, on a gaming GPU</td>
+<td><strong>qwen3:8b</strong></td>
+<td>The reference local model: reliable and quick on a 12 GB card.</td>
+</tr>
+<tr>
+<td>Private, and able to see the screen</td>
+<td><strong>gemma4:e4b</strong></td>
+<td>Vision plus tools; nearly as accurate as qwen3:8b and the only local model here that can review the view.</td>
+</tr>
+<tr>
+<td>Private, small GPU or CPU</td>
+<td><strong>qwen3:4b</strong></td>
+<td>Accurate but slow: expect 10 to 20 seconds a request. Below 4B parameters the models miss too much to be useful.</td>
+</tr>
+<tr>
+<td>Best cloud quality</td>
+<td>Claude, OpenAI, or Gemini Flash / Pro with billing</td>
+<td>Gemini Flash and Pro have no usable free quota for multi-step requests.</td>
+</tr>
+</tbody>
+</table></div>
+<p>What did not work: models without tool calling (Gemma 3, most vision-only models) cannot drive ChimeraX at all; 20B-class models spill out of a 12 GB card and take ten times longer for no gain in accuracy; the 1.7B and 3B models get most requests wrong. Ollama keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.</p>
 <h2 id="updating">Updating</h2>
 <p>ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
 <h2 id="where-things-are-stored">Where things are stored</h2>

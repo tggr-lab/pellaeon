@@ -65,6 +65,20 @@ All options:
 
 Press **Test connection**, then **Save & use** or **Run a first request** (it saves the settings and has the AI open ubiquitin and color it by chain). Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (`ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `OPENAI_API_KEY`) are picked up automatically.
 
+## Choosing a model
+
+Tested with Pellaeon's own request set (colors, selections, measurements, AlphaFold and UniProt lookups, comparisons, confirmations, typos, follow-ups), on this machine: an RTX 4070 Super with 12 GB.
+
+| Want | Pick | Why |
+|---|---|---|
+| Nothing to install, fast | **Gemini 3.5 Flash-Lite** (free) | About two seconds a request, 15 requests a minute free, and it can look at screenshots. As accurate on our set as the best local models. |
+| Private, on a gaming GPU | **qwen3:8b** | The reference local model: reliable and quick on a 12 GB card. |
+| Private, and able to see the screen | **gemma4:e4b** | Vision plus tools; nearly as accurate as qwen3:8b and the only local model here that can review the view. |
+| Private, small GPU or CPU | **qwen3:4b** | Accurate but slow: expect 10 to 20 seconds a request. Below 4B parameters the models miss too much to be useful. |
+| Best cloud quality | Claude, OpenAI, or Gemini Flash / Pro with billing | Gemini Flash and Pro have no usable free quota for multi-step requests. |
+
+What did not work: models without tool calling (Gemma 3, most vision-only models) cannot drive ChimeraX at all; 20B-class models spill out of a 12 GB card and take ten times longer for no gain in accuracy; the 1.7B and 3B models get most requests wrong. Ollama keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.
+
 ## Updating
 
 ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.
