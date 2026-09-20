@@ -1469,6 +1469,20 @@ class Agent:
                 return {"error": "Could not find a UniProt accession for '%s'." % accession}
             acc = r["accession"]
             gene = r.get("gene") or gene
+        # Hemoglobin is two gene products (alpha on A/C, beta on B/D). Asked for "the disease
+        # variants on this structure", models picked one in silence. If the structure carries several
+        # UniProt entries and the user named none of them, that is a question, not a guess.
+        if hasattr(self.executor, "chain_uniprot"):
+            try:
+                entries = [e for e in (self.executor.chain_uniprot(model).get("accessions") or []) if e]
+            except Exception:  # noqa: BLE001
+                entries = []
+            if len(entries) > 1:
+                said = self._user_text_upper
+                if acc.upper() not in said and (gene or "").upper() not in said and not any(e in said for e in entries):
+                    return {"error": "Model %s has chains from several proteins (UniProt %s) and the user did not say which. "
+                                     "Ask with ask_user which protein or chain they mean before annotating." % (model, ", ".join(entries)),
+                            "ambiguous": entries}
         if use_clinvar:
             clinvar = getattr(self.executor, "clinvar", None)
             if clinvar is None:

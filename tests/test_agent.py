@@ -1068,3 +1068,19 @@ def test_narration_inside_a_tool_call_is_refused_not_run():
     out = agent.execute_commands(["color #1 red", "Wait, no. Let me re-read the user's message. The user's actual request is different."])
     assert ex.ran == ["color #1 red"] and out.get("prose") and "not a ChimeraX command" in out["error"]
     assert agent.execute_commands(['label #1:5 text "the active site"'])["ok"]   # English inside quotes is fine
+
+
+def test_annotate_asks_when_the_structure_has_several_proteins_and_the_user_named_none():
+    """4hhb is alpha- and beta-globin; 'show the disease variants on this structure' must not
+    quietly pick one."""
+    ex = FakeExecutor()
+    ex.spec_atoms = lambda text: {"used": text, "atoms": 10}
+    ex.chain_uniprot = lambda model: {"accessions": ["P69905", "P68871"]}
+    ex.protein_features = lambda acc, kinds=None: {"gene": "HBA1", "features": []}
+    agent = Agent(ScriptedProvider([]), ex)
+    agent._user_text_upper = " SHOW THE DISEASE VARIANTS ON THIS STRUCTURE"
+    out = agent._annotate("#1", "P69905", "clinvar", "orange", False)
+    assert "ambiguous" in out and "ask_user" in out["error"]
+    agent._user_text_upper = " SHOW THE HBA1 VARIANTS"            # the user named it: no question
+    out = agent._annotate("#1", "P69905", "clinvar", "orange", False)
+    assert "ambiguous" not in out
