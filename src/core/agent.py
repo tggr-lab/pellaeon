@@ -107,9 +107,18 @@ NUDGE_LOOK = ("(system) The user wants you to LOOK at the view. Call the tool lo
               "describe what you see, then fix problems with commands and look again.")
 # "email this to my boss", "print it out": ChimeraX cannot, and every model tested so far
 # tries to save a file as a first step anyway. Saving is still fine if the user also asked for it.
-_IMPOSSIBLE_RE = re.compile(r"\b(e-?mail|fax|whatsapp|text (it|this|them)|print (it|this|them)( out)?|printer|"
-                            r"send (it|this|them|the \w+)\s+(to|over)|upload (it|this)|post (it|this) (to|on)|"
-                            r"share (it|this) (with|on))\b", re.I)
+_IMPOSSIBLE_RE = re.compile(r"\b(e-?mail|fax|whatsapp|text (me|it|this|them|him|her|us)|message me|call me|"
+                            r"print (it|this|them)( out)?|printer|send (it|this|them|me|the \w+)\s+(to|over|the)|"
+                            r"upload (it|this)|post (it|this) (to|on)|share (it|this) (with|on)|tweet|"
+                            r"order (a|an|the|some|more|new)?\s*\w*\s*(reagent|kit|plasmid|antibod\w*|primer\w*|from)|"
+                            r"buy|purchase|ship (it|this|them))\b", re.I)
+# does the request also ask for something ChimeraX can do? "color it red and email it" keeps its color
+_ACTION_RE = re.compile(r"\b(colou?r|show|hide|display|open|load|fetch|select|label|rotate|spin|turn|roll|rock|zoom|"
+                        r"view|focus|center|centre|measure|distance|style|stick|sphere|ball|cartoon|ribbon|surface|"
+                        r"transparen\w*|save|export|render|picture|image|figure|movie|close|delete|remove|compare|"
+                        r"superpose|align|annotate|highlight|paint|rainbow|background|light\w*|silhouette\w*|"
+                        r"undo|reset|bookmark|clip|slab|contact\w*|h-?bond\w*|clash\w*|mutat\w*|swap)\b", re.I)
+
 _SAVE_WANTED_RE = re.compile(r"\b(save|export|write|download|png|jpe?g|tiff|figure file|to my (desktop|folder|computer))\b", re.I)
 
 _REMOTE_SCRIPT_RE = re.compile(r"\bhttps?://\S+\.(?:cxc|py|pyc|cxs)(?:\.(?:gz|bz2|xz|zip))?(?:\s|$|[?#])", re.I)
@@ -206,6 +215,7 @@ class Agent:
         self._user_text_upper: str = ""
         self._failed_this_turn: set = set()
         self._impossible_ask: bool = False
+        self._impossible_only: bool = False
         self.archived: List[Message] = []   # messages folded into `summary` (kept for the transcript on disk)
         self.summary: str = ""
         self.total_usage = Usage()
@@ -289,6 +299,8 @@ class Agent:
             self._status("Thinking…")
             self._failed_this_turn = set()
             self._impossible_ask = bool(_IMPOSSIBLE_RE.search(user_text)) and not _SAVE_WANTED_RE.search(user_text)
+            # the whole request is the impossible thing: then nothing the model runs can be right
+            self._impossible_only = self._impossible_ask and not _ACTION_RE.search(user_text)
             self._user_text_upper += " " + user_text.upper()
             context = self._build_context(user_text)
             self.conversation.append(Message.user(user_text, context))
@@ -758,6 +770,13 @@ class Agent:
             if blocked is not None:      # the inner break only left the accession loop
                 break
             w = first_word(c)
+            if origin == "model" and getattr(self, "_impossible_only", False):
+                # "dock this and text me", "order the reagent": models answered with a surface, a recipe
+                # script, a publication preset. There is no command that helps; say so.
+                blocked = (idx, {"error": "The user asked only for something ChimeraX cannot do (emailing, printing, "
+                                 "messaging, ordering, uploading). No command helps with that. Say in one sentence that "
+                                 "ChimeraX cannot do it. Do not run any other command in its place.", "impossible": True})
+                break
             if origin == "model" and w == "open" and _REMOTE_SCRIPT_RE.search(c) and not _RBVI_RECIPE_RE.search(c):
                 # "color by residue type" once became `open https://raw.githubusercontent.com/.../amino-coloring.cxc`:
                 # a script fetched from the internet, run on the user's say-so. The model knows the commands.

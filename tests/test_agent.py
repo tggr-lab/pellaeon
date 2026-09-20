@@ -1127,3 +1127,16 @@ def test_bookmarking_is_not_a_step_towards_emailing_either():
                                     "ChimeraX cannot email."]), ex, callbacks=Callbacks(on_confirm=lambda c, r: c))
     agent.run_turn("email the view to my boss")
     assert agent.journal == []
+
+
+def test_a_purely_impossible_request_runs_no_command_at_all():
+    ex = FakeExecutor()
+    agent = Agent(ScriptedProvider([{"text": "", "calls": [("run_commands", {"commands": ["surface zone #1 near :C dist 8"]})]},
+                                    "ChimeraX cannot text anyone."]), ex, callbacks=Callbacks(on_confirm=lambda c, r: c))
+    agent.run_turn("dock the ligand and text me the result")
+    assert ex.ran == [] and agent.journal == []
+    # but a request that also asks for a real action keeps that action
+    agent = Agent(ScriptedProvider([{"text": "", "calls": [("run_commands", {"commands": ["color #1 red"]})]}, "done"]),
+                  ex, callbacks=Callbacks(on_confirm=lambda c, r: c))
+    agent.run_turn("color it red and email it to my boss")
+    assert ex.ran == ["color #1 red"]
