@@ -118,7 +118,7 @@ NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, reada
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
 _TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "explain_residue", "save_figure", "resolve_protein", "protein_features", "search_docs", "get_state",
-               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands", "map_numbering", "apply_figure_style", "compare_contacts"}
+               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands", "map_numbering", "apply_figure_style", "compare_contacts", "fetch_annotation"}
 
 _COMPLAINT_RE = re.compile(
     r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
@@ -673,6 +673,13 @@ class Agent:
                 else:
                     payload = self.executor.run_python(approved[0] if approved else code)
                     result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error=not payload.get("ok", False))
+            elif name == "fetch_annotation":
+                payload = self._fetch_annotation(str(self._scalar(args.get("source"), "alphamissense") or "alphamissense"),
+                                                 str(self._scalar(args.get("protein"), "") or ""),
+                                                 str(self._scalar(args.get("model"), "#1") or "#1"),
+                                                 str(self._scalar(args.get("chain"), "") or ""))
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"},
+                                                              ensure_ascii=False), is_error="error" in payload)
             elif name == "map_numbering":
                 positions = args.get("positions") or []
                 if not isinstance(positions, list):
@@ -1002,6 +1009,46 @@ class Agent:
                 self.figure_notes.append("Contact comparison: lost contacts red on %s, gained green on %s."
                                          % (prep["ref_spec"], prep["other_spec"]))
         return out
+
+
+    # ------------------------------------------------------------ published annotations
+    def _fetch_annotation(self, source: str, protein: str, model: str, chain: str) -> Dict[str, Any]:
+        """AlphaMissense or ConSurf as a table overlay: the dataset lands in self.tables like a
+        user-loaded CSV, so placement, the key, the layers list and the figure legend come for free."""
+        from .annot_sources import alphamissense, conservation
+        from .tables import guess_columns
+        if not protein.strip():
+            return {"error": "fetch_annotation needs the protein: a UniProt accession for AlphaMissense, a PDB ID for conservation."}
+        if self._model_missing(model):
+            return {"error": "No model matches '%s'. Open the structure first." % model}
+        cache = None
+        clinvar = getattr(self.executor, "clinvar", None)
+        if clinvar is not None and getattr(clinvar, "cache_dir", None):
+            cache = os.path.join(os.path.dirname(clinvar.cache_dir.rstrip(os.sep)), "annotations")
+        src = source.strip().lower()
+        if src.startswith("alpha"):
+            acc, err = self._accession_for(protein)
+            if err:
+                return {"error": err}
+            ds = alphamissense(acc, cache)
+        else:
+            ds = conservation(protein, chain, cache)
+        if ds.get("error"):
+            return {"error": ds["error"], "source": src}
+        name = ds["name"]
+        self.tables[name] = {"id": name, "name": name, "path": ds.get("source_url", ""), "columns": ds["columns"],
+                             "rows": ds["rows"], "guess": guess_columns(ds["columns"], ds["rows"]),
+                             "delimiter": ds.get("delimiter", ","), "accession": ds.get("accession", "")}
+        column = "am_mean" if src.startswith("alpha") else "consurf_grade"
+        payload = self._table_overlay(name, column, chain or None, ds.get("palette") or "blue-white-red", model,
+                                      ds.get("accession") or None, False)
+        payload = dict(payload, source=ds["source"], dataset=name, n_positions=ds.get("n_positions"),
+                       value_range=ds.get("value_range"))
+        if ds.get("note"):
+            payload["note"] = ds["note"]
+        if "error" not in payload:
+            self.figure_notes.append("%s: %s." % (ds["source"], payload.get("summary") or column))
+        return payload
 
     # ------------------------------------------------------------ numbering
     def _accession_for(self, protein: str) -> Tuple[str, str]:

@@ -247,6 +247,23 @@ COMPARE_CONTACTS = ToolSpec(
      "required": ["reference", "other"]},
 )
 
+FETCH_ANNOTATION = ToolSpec(
+    "fetch_annotation",
+    "Fetch a published per-residue annotation from a database and color the structure by it. "
+    "source='alphamissense': AlphaMissense predicted pathogenicity for a HUMAN protein, per position the mean over "
+    "the 19 substitutions (0 benign, 1 pathogenic; classes at the published cutoffs 0.34 / 0.564); needs a UniProt "
+    "accession and works on any model of that protein, AlphaFold included. source='conservation': ConSurf-DB "
+    "evolutionary conservation grades 1 (variable) to 9 (conserved); indexed by PDB entry and chain ONLY, so give a "
+    "4-character PDB ID, not an accession; there is none for an AlphaFold model without a PDB entry. Reports how many "
+    "residues were colored and the value range. Never invent these numbers: if the source has no data, say so.",
+    {"type": "object", "properties": {
+        "source": {"type": "string", "enum": ["alphamissense", "conservation"], "description": "which database"},
+        "protein": {"type": "string", "description": "UniProt accession for alphamissense (P55085); 4-character PDB ID for conservation (1UBQ)"},
+        "model": {"type": "string", "description": "model spec to color, default '#1'"},
+        "chain": {"type": "string", "description": "chain id; conservation needs it when the entry has several chains"}},
+     "required": ["source", "protein"]},
+)
+
 MAP_NUMBERING = ToolSpec(
     "map_numbering",
     "Translate UniProt (sequence) positions into this structure's residue numbers, or say which are missing. "
@@ -272,7 +289,7 @@ APPLY_FIGURE_STYLE = ToolSpec(
      "required": ["figure"]},
 )
 
-ALL_TOOLS = [RUN_COMMANDS, COMPARE, COMPARE_CONTACTS, ANNOTATE, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, MAP_NUMBERING, APPLY_FIGURE_STYLE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
+ALL_TOOLS = [RUN_COMMANDS, COMPARE, COMPARE_CONTACTS, ANNOTATE, FETCH_ANNOTATION, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, MAP_NUMBERING, APPLY_FIGURE_STYLE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
 
 
@@ -286,7 +303,7 @@ def tool_specs(allow_python: bool = False, vision: bool = False,
     panel's chips reach both of those directly if the model is not told about them).
     """
     specs = [RUN_COMMANDS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
-             PROTEIN_FEATURES, COMPARE, COMPARE_CONTACTS, ANNOTATE, ASK_USER, SAVE_FIGURE]
+             PROTEIN_FEATURES, COMPARE, COMPARE_CONTACTS, ANNOTATE, FETCH_ANNOTATION, ASK_USER, SAVE_FIGURE]
     if tables:
         specs.append(TABLE_OVERLAY)
     # tidy_labels and explain_residue are demanded by nudges, map_numbering by a gotcha: a tool the

@@ -16,7 +16,10 @@ _CHAIN_NAMES = ("chain", "chain_id", "chainid", "auth_asym_id", "asym")
 _ACC_NAMES = ("accession", "uniprot", "uniprot_id", "acc", "entry")
 _REF_NAMES = ("wt", "ref", "wild_type", "wildtype", "ref_aa", "aa", "amino_acid", "resname", "res_name", "residue_name", "wt_aa", "from")
 PALETTES = {"blue-white-red": "blue:white:red", "white-red": "white:red", "blue-white": "white:blue", "viridis": "#440154:#31688e:#35b779:#fde725",
-            "rainbow": "blue:cyan:green:yellow:red", "gray-orange-red": "#bdbdbd:gold:orange:#b2182b", "green-white-magenta": "green:white:magenta"}
+            "rainbow": "blue:cyan:green:yellow:red", "gray-orange-red": "#bdbdbd:gold:orange:#b2182b", "green-white-magenta": "green:white:magenta",
+            # AlphaMissense benign -> pathogenic (ColorBrewer RdBu ends); ConSurf's published grade colours 1 -> 9
+            "alphamissense": "#2166ac:#f7f7f7:#b2182b",
+            "consurf": "#10C8D1:#8CFFFF:#D7FFFF:#EAFFFF:#FFFFFF:#FCEDF4:#FAC9DE:#F07DAB:#A02560"}
 CATEGORY_COLORS = ["cornflowerblue", "orange", "mediumseagreen", "orchid", "gold", "tomato", "steelblue", "sienna", "hotpink", "slategray", "olive", "teal"]
 
 

@@ -1084,3 +1084,23 @@ def test_annotate_asks_when_the_structure_has_several_proteins_and_the_user_name
     agent._user_text_upper = " SHOW THE HBA1 VARIANTS"            # the user named it: no question
     out = agent._annotate("#1", "P69905", "clinvar", "orange", False)
     assert "ambiguous" not in out
+
+
+def test_fetch_annotation_loads_the_dataset_as_a_table_and_colors_by_it(monkeypatch):
+    from core import annot_sources
+    ds = {"name": "alphamissense_p55085", "columns": ["position", "wt", "am_mean", "am_max", "am_class"],
+          "rows": [["1", "M", "0.2", "0.4", "likely benign"], ["2", "R", "0.8", "0.9", "likely pathogenic"]],
+          "delimiter": ",", "accession": "P55085", "source": "AlphaMissense via AlphaFold DB", "source_url": "u",
+          "palette": "alphamissense", "n_positions": 2, "value_range": [0.2, 0.8]}
+    monkeypatch.setattr(annot_sources, "alphamissense", lambda acc, cache, **k: ds)
+    ex = FakeExecutor()
+    ex.spec_atoms = lambda text: {"used": text, "atoms": 10}
+    seen = {}
+    agent = Agent(ScriptedProvider([]), ex)
+    agent._table_overlay = lambda *a: seen.update(args=a) or {"summary": "2 residues colored", "placed": 2}
+    out = agent._fetch_annotation("alphamissense", "P55085", "#1", "")
+    assert "alphamissense_p55085" in agent.tables and agent.tables["alphamissense_p55085"]["accession"] == "P55085"
+    assert seen["args"][:2] == ("alphamissense_p55085", "am_mean") and seen["args"][3] == "alphamissense"
+    assert out["source"].startswith("AlphaMissense") and out["placed"] == 2
+    monkeypatch.setattr(annot_sources, "conservation", lambda pdb, chain, cache, **k: {"error": "ConSurf-DB has no entry for XXXX."})
+    assert "no entry" in agent._fetch_annotation("conservation", "XXXX", "#1", "A")["error"]
