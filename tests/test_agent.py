@@ -1119,3 +1119,11 @@ def test_the_model_may_not_fetch_and_run_a_script_from_the_internet():
     assert asked and "convexhull.py" in asked[0][0]
     assert agent.execute_commands(["open https://files.rcsb.org/download/1ubq.pdb"])["ok"]     # data files are fine
     assert agent.execute_commands(["open 1ubq"])["ok"]
+
+
+def test_bookmarking_is_not_a_step_towards_emailing_either():
+    ex = FakeExecutor()
+    agent = Agent(ScriptedProvider([{"text": "", "calls": [("run_commands", {"commands": ["view name for_boss"]})]},
+                                    "ChimeraX cannot email."]), ex, callbacks=Callbacks(on_confirm=lambda c, r: c))
+    agent.run_turn("email the view to my boss")
+    assert agent.journal == []

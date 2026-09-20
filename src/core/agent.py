@@ -770,7 +770,11 @@ class Agent:
                 blocked = (idx, {"error": "That is a sentence, not a ChimeraX command: %r. Put only commands in the "
                                  "list. If the request cannot be done, answer in words instead." % c[:80], "prose": True})
                 break
-            if self._impossible_ask and w in ("save", "export") and origin == "model":
+            if self._impossible_ask and origin == "model" and (
+                    w in ("save", "export", "write", "movie", "snapshot", "copy") or c.lower().startswith("view name")
+                    or c.lower().startswith("log save")):
+                # anything that stores or produces something is a "half step" towards the impossible ask:
+                # with bookmarks available, "email the view" became `view name hemoglobin_view`
                 blocked = (idx, {"error":
                            "The user asked for something ChimeraX cannot do (emailing, printing, messaging or uploading). "
                            "Saving a file is NOT a step towards it. Answer in words now: say in one sentence that ChimeraX "
