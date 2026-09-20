@@ -67,17 +67,34 @@ Press **Test connection**, then **Save & use** or **Run a first request** (it sa
 
 ## Choosing a model
 
-Tested with Pellaeon's own request set (colors, selections, measurements, AlphaFold and UniProt lookups, comparisons, confirmations, typos, follow-ups), on this machine: an RTX 4070 Super with 12 GB.
+Tested with Pellaeon's own request set (colors, selections, measurements, AlphaFold and UniProt lookups, comparisons, confirmations, typos, follow-ups), on an RTX 4070 Super with 12 GB.
 
 | Want | Pick | Why |
 |---|---|---|
-| Nothing to install, fast | **Gemini 3.5 Flash-Lite** (free) | About two seconds a request, 15 requests a minute free, and it can look at screenshots. As accurate on our set as the best local models. |
+| Nothing to install | **Mistral `ministral-8b-latest`** (free) | Handles the whole request set, answers in about two seconds, and allows roughly 190 requests a minute — enough that you never wait. Free key, no credit card. It can also see the screen. |
+| Nothing to install, alternative | **Gemini `gemini-flash-lite-latest`** (free) | Just as reliable and can see the screen; 15 requests a minute is plenty for one person working normally. |
 | Private, on a gaming GPU | **qwen3:8b** | The reference local model: reliable and quick on a 12 GB card. |
-| Private, and able to see the screen | **gemma4:e4b** | Vision plus tools; nearly as accurate as qwen3:8b and the only local model here that can review the view. |
-| Private, small GPU or CPU | **qwen3:4b** | Accurate but slow: expect 10 to 20 seconds a request. Below 4B parameters the models miss too much to be useful. |
-| Best cloud quality | Claude, OpenAI, or Gemini Flash / Pro with billing | Gemini Flash and Pro have no usable free quota for multi-step requests. |
+| Private, and able to see the screen | **gemma4:e4b** | Vision plus tools; the only local model here that can review the view. |
+| Private, small GPU or CPU | **qwen3:4b** | Accurate but slower: expect 10 to 20 seconds a request. Below about 4B parameters models miss too much to be useful. |
+| Best quality, paid | Claude, OpenAI, Gemini Pro, or Mistral Medium | Worth it for long multi-step sessions. |
 
-What did not work: models without tool calling (Gemma 3, most vision-only models) cannot drive ChimeraX at all; 20B-class models spill out of a 12 GB card and take ten times longer for no gain in accuracy; the 1.7B and 3B models get most requests wrong. Ollama keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.
+### What the free tiers really allow
+
+The limit matters more than the model. A single request carries your structure's state and the tool definitions, so it is a few thousand tokens, and one question usually takes two to four requests.
+
+| Free tier | Room | Good for |
+|---|---|---|
+| Mistral | ~190 requests a minute | Normal work, all day |
+| Gemini Flash-Lite | 15 requests a minute | Normal work |
+| Gemini Flash / Pro | 5 a minute / none | Not usable free: Pellaeon spends the session waiting |
+| Groq | 1000 a day, but ~7000 tokens a minute | About one request a minute — it will work, slowly |
+| OpenRouter | 50 requests a day, whole key | Trying it out; that is roughly a dozen questions |
+
+When a limit is hit Pellaeon waits and retries rather than failing, and on the tightest tiers it automatically shortens its prompt to fit. A quota that resets tomorrow is reported plainly instead of being retried.
+
+**Privacy:** the free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished structures use a local model through Ollama, where nothing leaves your machine, or a paid tier.
+
+What did not work: models without tool calling (Gemma 3, Falcon 3, EXAONE, most vision-only models) cannot drive ChimeraX at all; 20B-class models spill out of a 12 GB card and take ten times longer for no gain; below 4B the small models — including several sold as tool-calling specialists — get most requests wrong. Ollama keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.
 
 ## Updating
 
