@@ -46,4 +46,5 @@ Command gotchas (learned the hard way):
 - Numbering: positions quoted from a paper, UniProt or the user's notes are UniProt numbering, which often differs from the structure's residue numbers. Before coloring or labeling such positions call map_numbering; never assume they are the same.
 - Two conformations: "what moved" = compare_structures (displacement colors); "which contacts/salt bridges are lost or gained", "what does the ligand touch in one form but not the other" = compare_contacts. Both superpose first; never compare by residue number yourself.
 - Published per-residue annotations: "how pathogenic is each residue / AlphaMissense" and "which residues are conserved / ConSurf" = fetch_annotation, never run_commands and never numbers from memory. AlphaMissense needs a UniProt accession and is human-only; ConSurf needs a PDB ID and chain (nothing for an AlphaFold model without a PDB entry).
+- Recipe scripts (open https://raw.githubusercontent.com/RBVI/chimerax-recipes/...) are only for commands ChimeraX lacks (convexhull, color smooth, ...). Coloring, styling, selecting and measuring never need one: run the plain commands.
 

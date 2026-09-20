@@ -114,6 +114,10 @@ _SAVE_WANTED_RE = re.compile(r"\b(save|export|write|download|png|jpe?g|tiff|figu
 
 _REMOTE_SCRIPT_RE = re.compile(r"\bhttps?://\S+\.(?:cxc|py|pyc|cxs)(?:\.(?:gz|bz2|xz|zip))?(?:\s|$|[?#])", re.I)
 
+# RBVI's own recipes repository defines commands ChimeraX lacks (convexhull, color smooth, ...);
+# 21 entries of our recipe library need it, and the safety gate still asks before it runs.
+_RBVI_RECIPE_RE = re.compile(r"https?://raw\.githubusercontent\.com/rbvi/chimerax-recipes/", re.I)
+
 _TIDY_RE = re.compile(r"\blabels?\b.*\b(overlap|unreadable|readable|too (small|many|big)|tidy|clean|declutter|mess)|\b(tidy|clean up|declutter)\b.*\blabels?\b", re.I)
 NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, readability, clutter). Do not re-run label commands "
               "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
@@ -754,7 +758,7 @@ class Agent:
             if blocked is not None:      # the inner break only left the accession loop
                 break
             w = first_word(c)
-            if origin == "model" and w == "open" and _REMOTE_SCRIPT_RE.search(c):
+            if origin == "model" and w == "open" and _REMOTE_SCRIPT_RE.search(c) and not _RBVI_RECIPE_RE.search(c):
                 # "color by residue type" once became `open https://raw.githubusercontent.com/.../amino-coloring.cxc`:
                 # a script fetched from the internet, run on the user's say-so. The model knows the commands.
                 blocked = (idx, {"error": "Do not fetch and run a script from the internet (%s). Run the ChimeraX "
