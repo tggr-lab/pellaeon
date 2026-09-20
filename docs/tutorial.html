@@ -181,12 +181,15 @@
 <p>where is UniProt residue 159 in this structure?</p>
 </blockquote>
 <p>The AlphaFold model uses UniProt numbering, so here it is residue 159 exactly. Try the same on an experimental structure and the answer is often different: a missing initiator methionine, an expression tag or a construct that starts at residue 20 shifts every number. Pellaeon maps the positions through the chain's own UniProt alignment and reports the offset, or that it varies along the chain, before anything gets colored. Ask "color UniProt positions 120 to 135 orange" and it maps them first.</p>
+<figure><img alt="Residue 159 mapped through the chain's UniProt entry" src="img/tut/06b_map_panel.png" /><figcaption>Residue 159 mapped through the chain's UniProt entry</figcaption></figure>
 <h3 id="step-6c-bookmark-a-view">Step 6c · Bookmark a view</h3>
 <blockquote>
 <p>zoom in on residue 159 and bookmark this view as pocket</p>
 <p>now show the whole thing, then go back to the pocket view</p>
 </blockquote>
 <p>Bookmarks are ChimeraX's named views: Pellaeon lists the ones you have saved in what it tells the model, so "back to the pocket view" works, and "make a movie touring my bookmarks" produces a fly-through (the encode step asks for your OK, like any file save).</p>
+<figure><img alt="Back at the bookmarked view" src="img/tut/06c.png" /><figcaption>Back at the bookmarked view</figcaption></figure>
+<figure><img alt="Bookmark round-trip" src="img/tut/06c_panel.png" /><figcaption>Bookmark round-trip</figcaption></figure>
 <h3 id="step-7-paint-annotations-from-uniprot">Step 7 · Paint annotations from UniProt</h3>
 <blockquote>
 <p>color the transmembrane helices orange and the rest white</p>
@@ -210,6 +213,8 @@
 <p>open 1omp and make it look like my hemoglobin figure</p>
 </blockquote>
 <p>Pellaeon replays the bundle's styling commands, colors, cartoon and surface style, lighting and background, on the new structure and leaves out the bundle's own open, save and close steps. That is how a lab keeps one look across a paper.</p>
+<figure><img alt="1omp styled like the hemoglobin figure" src="img/tut/07b_reuse.png" /><figcaption>1omp styled like the hemoglobin figure</figcaption></figure>
+<figure><img alt="What Pellaeon replayed" src="img/tut/07b_reuse_panel.png" /><figcaption>What Pellaeon replayed</figcaption></figure>
 <h3 id="step-8b-when-labels-pile-up">Step 8b · When labels pile up</h3>
 <p>Twenty-five variant labels on a small protein overlap. Say so:</p>
 <blockquote>
@@ -232,6 +237,8 @@
 <p>which contacts are lost when it opens, and which salt bridges break?</p>
 </blockquote>
 <p>Where step 9 asks how far residues moved, this asks what they stopped touching. Pellaeon collects every residue-residue contact in both conformations, matches them through the same alignment, and draws the lost ones as red dashes on the closed form and the gained ones green on the open form, with a key. The reply leads with one sentence a biologist would write: how many contacts were lost and gained, which salt bridges broke, and where the change clusters. Add "for the ligand" to see only what the ligand touches in one form but not the other.</p>
+<figure><img alt="Contacts lost (red) and gained (green)" src="img/tut/09b_contacts.png" /><figcaption>Contacts lost (red) and gained (green)</figcaption></figure>
+<figure><img alt="The salt bridges that break" src="img/tut/09b_contacts_panel.png" /><figcaption>The salt bridges that break</figcaption></figure>
 <h3 id="step-10-risky-commands-ask-first">Step 10 · Risky commands ask first</h3>
 <blockquote>
 <p>close everything</p>

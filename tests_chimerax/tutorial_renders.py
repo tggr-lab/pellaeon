@@ -23,10 +23,23 @@ if inst.agent: inst.agent.config.autonomy = "auto"
 LOOK = "set bgColor white; lighting soft; graphics silhouettes true"
 
 def later(s, f): QTimer.singleShot(int(s * 1000), f)
-def panel(tag):
+NOT_BUSY_JS = "!(document.getElementById('send') && document.getElementById('send').classList.contains('stop'))"
+HAS_CONFIRM_JS = "!!document.querySelector('.card[data-confirm]')"
+def panel(tag, then=None, ready_js=NOT_BUSY_JS, tries=0, max_tries=25):
+    """Grab the panel widget once the DOM (checked via JS, the actual source of truth for what will be
+    painted) reports `ready_js` true, not just once our Python-side state says so: the web view's
+    rendered texture can lag a beat behind both its DOM and our busy flag, so trusting either alone
+    risks a stale or mid-turn frame."""
     inst.html_view.runJavaScript("var t=document.getElementById('transcript'); if(t) t.scrollTop = t.scrollHeight;")
-    mw = session.ui.main_window; pix = mw.grab(); v = inst.html_view; tl = v.mapTo(mw, QPoint(0, 0))
-    pix.copy(tl.x(), tl.y(), v.width(), v.height()).save(os.path.join(OUT, "panel_%s.png" % tag)); log("TUT panel " + tag)
+    def cb(ready):
+        if not ready and tries < max_tries:
+            later(0.4, lambda: panel(tag, then, ready_js, tries + 1, max_tries)); return
+        def grab():
+            mw = session.ui.main_window; pix = mw.grab(); v = inst.html_view; tl = v.mapTo(mw, QPoint(0, 0))
+            pix.copy(tl.x(), tl.y(), v.width(), v.height()).save(os.path.join(OUT, "panel_%s.png" % tag)); log("TUT panel " + tag)
+            if then: then()
+        later(0.3, grab)
+    inst.html_view.runJavaScript("(function(){return (%s);})()" % ready_js, cb)
 def render(tag):
     gw = session.ui.main_window.graphics_window.widget
     w, h = gw.width(), gw.height()
@@ -38,7 +51,7 @@ def wait_idle(then, timeout=240):
         if inst._busy: seen[0] = True
         if inst._confirms and not getattr(inst, "_tut_hold", False):
             cid = list(inst._confirms)[0]; inst._act_confirm({"confirm_id": cid, "decision": "run"}, None)
-        if (seen[0] and not inst._busy) or time.time() - t0 > timeout: later(2.5, then)
+        if (seen[0] and not inst._busy) or time.time() - t0 > timeout: later(6.0, then)
         else: later(0.4, poll)
     later(0.3, poll)
 
@@ -92,30 +105,39 @@ def go(i):
             inst._act_figure_save({"name": "heme_pocket", "folder": "/tmp/pellaeon_figs", "width": "2400", "height": "1800", "closeup": "#1/A:87 :<6", "session": "1"}, None)
             t0 = time.time()
             def poll():
-                if not inst._busy and time.time() - t0 > 3: later(1.5, lambda: (panel(tag), go(i + 1)))
+                if not inst._busy and time.time() - t0 > 3: later(1.5, lambda: panel(tag, then=lambda: go(i + 1)))
                 elif time.time() - t0 > 120: go(i + 1)
                 else: later(0.5, poll)
             later(1.0, poll)
         later(1.5, saved); return
     if do_panel == "settings":
         inst.push({"type": "show_page", "page": "settings"})
-        later(1.5, lambda: (panel(tag), inst.push({"type": "show_page", "page": "chat"}), later(1.0, lambda: go(i + 1)))); return
+        def after_settings():
+            inst.push({"type": "show_page", "page": "chat"}); later(1.0, lambda: go(i + 1))
+        later(1.5, lambda: panel(tag, then=after_settings)); return
     if tag == "10_close":
         inst._tut_hold = True
         inst.submit(req)
         t0 = time.time()
         def poll():
-            if inst._confirms: later(2.5, lambda: (panel(tag), setattr(inst, "_tut_hold", False), inst._act_confirm({"confirm_id": list(inst._confirms)[0], "decision": "run"}, None), wait_idle(lambda: go(i + 1))))
+            if inst._confirms:
+                def approve():
+                    setattr(inst, "_tut_hold", False)
+                    if inst._confirms: inst._act_confirm({"confirm_id": list(inst._confirms)[0], "decision": "run"}, None)
+                    wait_idle(lambda: go(i + 1))
+                later(1.0, lambda: panel(tag, then=approve, ready_js=HAS_CONFIRM_JS))
             elif time.time() - t0 > 90 or not inst._busy: log("TUT no confirm"); go(i + 1)
             else: later(0.4, poll)
         later(0.5, poll); return
     def after():
-        if do_panel: panel(tag)
-        for c in post:
-            try: run(session, c, log=False)
-            except Exception as e: log("TUT post failed %s: %s" % (c, e))
-        if do_render: later(0.8, lambda: (render(tag), go(i + 1)))
-        else: go(i + 1)
+        def cont():
+            for c in post:
+                try: run(session, c, log=False)
+                except Exception as e: log("TUT post failed %s: %s" % (c, e))
+            if do_render: later(0.8, lambda: (render(tag), go(i + 1)))
+            else: go(i + 1)
+        if do_panel: panel(tag, then=cont)
+        else: cont()
     if req:
         inst.submit(req); wait_idle(after)
     else:

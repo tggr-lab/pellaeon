@@ -162,6 +162,8 @@ Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and open
 
 The AlphaFold model uses UniProt numbering, so here it is residue 159 exactly. Try the same on an experimental structure and the answer is often different: a missing initiator methionine, an expression tag or a construct that starts at residue 20 shifts every number. Pellaeon maps the positions through the chain's own UniProt alignment and reports the offset, or that it varies along the chain, before anything gets colored. Ask "color UniProt positions 120 to 135 orange" and it maps them first.
 
+![Residue 159 mapped through the chain's UniProt entry](img/tut/06b_map_panel.png)
+
 ### Step 6c · Bookmark a view
 
 > zoom in on residue 159 and bookmark this view as pocket
@@ -169,6 +171,10 @@ The AlphaFold model uses UniProt numbering, so here it is residue 159 exactly. T
 > now show the whole thing, then go back to the pocket view
 
 Bookmarks are ChimeraX's named views: Pellaeon lists the ones you have saved in what it tells the model, so "back to the pocket view" works, and "make a movie touring my bookmarks" produces a fly-through (the encode step asks for your OK, like any file save).
+
+![Back at the bookmarked view](img/tut/06c.png)
+
+![Bookmark round-trip](img/tut/06c_panel.png)
 
 ### Step 7 · Paint annotations from UniProt
 
@@ -204,6 +210,10 @@ Once you have saved a figure bundle (step 5b), its styling can be applied to som
 
 Pellaeon replays the bundle's styling commands, colors, cartoon and surface style, lighting and background, on the new structure and leaves out the bundle's own open, save and close steps. That is how a lab keeps one look across a paper.
 
+![1omp styled like the hemoglobin figure](img/tut/07b_reuse.png)
+
+![What Pellaeon replayed](img/tut/07b_reuse_panel.png)
+
 ### Step 8b · When labels pile up
 
 Twenty-five variant labels on a small protein overlap. Say so:
@@ -235,6 +245,10 @@ The card leads with the change: how many residues moved more than 2 Å, the mean
 > which contacts are lost when it opens, and which salt bridges break?
 
 Where step 9 asks how far residues moved, this asks what they stopped touching. Pellaeon collects every residue-residue contact in both conformations, matches them through the same alignment, and draws the lost ones as red dashes on the closed form and the gained ones green on the open form, with a key. The reply leads with one sentence a biologist would write: how many contacts were lost and gained, which salt bridges broke, and where the change clusters. Add "for the ligand" to see only what the ligand touches in one form but not the other.
+
+![Contacts lost (red) and gained (green)](img/tut/09b_contacts.png)
+
+![The salt bridges that break](img/tut/09b_contacts_panel.png)
 
 ### Step 10 · Risky commands ask first
 
