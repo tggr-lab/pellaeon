@@ -208,5 +208,12 @@ def build_context(state: Optional[Dict[str, Any]], docs: List[Dict[str, Any]], m
             buf.append(entry)
             total += len(entry)
         if buf:
-            parts.append("<docs>\n%s\n</docs>" % "\n\n".join(buf))
+            # These passages are retrieved from the manual and from workflow examples written against
+            # other structures. Small models copied their residue numbers verbatim: the top hit for
+            # "measure the distance between them" carries `distance :21@OG :302@O1B`, and several
+            # models measured 21 to 302 instead of the residues the user named.
+            parts.append("<docs>\nReference only: syntax examples from the manual and from other structures. "
+                         "Follow their syntax, never their residue numbers, chain ids or file names; "
+                         "use what the user asked for and what the state above shows.\n\n%s\n</docs>"
+                         % "\n\n".join(buf))
     return "\n\n".join(parts)

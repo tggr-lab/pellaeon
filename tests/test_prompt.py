@@ -21,3 +21,16 @@ def test_context_and_state():
     assert "Selection: 10 atoms, 2 residues (#1:159,300)" in ctx
     assert "<docs>" in ctx and "Usage: color spec" in ctx
     assert "Nothing is open." in prompt.build_context({}, [])
+
+
+def test_the_docs_block_says_not_to_copy_the_examples_literals():
+    """The retrieved workflow for a distance measurement carries `distance :21@OG :302@O1B`, and
+    weak models used 21 and 302 instead of the residues the user named."""
+    from core import prompt as P
+    ctx = P.build_context({"models": []}, [{"title": "Measure distances", "section": "workflow",
+                                            "text": "distance :21@OG :302@O1B"}])
+    docs = ctx[ctx.index("<docs>"):]
+    assert "never their residue numbers" in docs
+    assert docs.index("Reference only") < docs.index("21@OG")     # the caveat precedes the example
+    # and it survives the compact trim
+    assert "never their residue numbers" in P.trim_context(ctx, 200)

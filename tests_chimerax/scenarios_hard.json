@@ -1,0 +1,289 @@
+[
+ {
+  "id": "hard-ambiguous-par-family",
+  "category": "ambiguous-gene",
+  "request": "open the alphafold model of the PAR receptor and show me its 7TM helices",
+  "expected": "F2R/F2RL1/F2RL2/F2RL3 (PAR1-4) are all 'the PAR receptor'; genuinely ambiguous which one, so it must ask which one rather than guessing (e.g. silently defaulting to PAR1/F2R or PAR2/F2RL1).",
+  "check_type": "state_expr",
+  "check": "bool(record['asks']) and len(ran) == 0",
+  "setup_commands": [],
+  "followups": []
+ },
+ {
+  "id": "hard-ambiguous-hemoglobin-gene-variants",
+  "category": "ambiguous-gene",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "show me the disease-linked variants on this structure",
+  "expected": "4hhb contains two different gene products (alpha-globin on chains A/C, beta-globin on chains B/D); with no gene or chain named this is genuinely ambiguous, so it should ask which one rather than guessing.",
+  "check_type": "state_expr",
+  "check": "bool(record['asks'])",
+  "followups": []
+ },
+ {
+  "id": "hard-beta-chain-biological-naming",
+  "category": "naming",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "color the beta chains of hemoglobin salmon and leave the alpha chains white",
+  "expected": "Resolves 'beta chains' to the beta-globin chains (B and D, per the chain descriptions ChimeraX reports) and 'alpha chains' to A and C: B/D end up salmon, A/C end up white.",
+  "check_type": "state_expr",
+  "check": "(lambda beta, alpha: len(beta) > 0 and len(alpha) > 0 and all(abs(a.color[0]-250) <= 25 and abs(a.color[1]-128) <= 35 and abs(a.color[2]-114) <= 35 for a in beta) and all(a.color[0] >= 245 and a.color[1] >= 245 and a.color[2] >= 245 for a in alpha))([a for a in atoms if a.name=='CA' and a.residue.chain_id in ('B','D')], [a for a in atoms if a.name=='CA' and a.residue.chain_id in ('A','C')])",
+  "followups": []
+ },
+ {
+  "id": "hard-gene-symbol-plddt-color",
+  "category": "gene-pipeline",
+  "request": "open the alphafold model for F2RL3 and color it by pLDDT confidence",
+  "expected": "resolve_protein resolves F2RL3 (PAR4) to its UniProt accession, opens alphafold:ACCESSION (never an invented accession), and the ribbon shows the multi-colour AlphaFold confidence gradient, not a flat single colour.",
+  "check_type": "state_expr",
+  "check": "any(re.search(r'alphafold:', c, re.I) for c in ran) and any(m.__class__.__name__=='AtomicStructure' and len({tuple(c) for c in m.residues.ribbon_colors}) >= 3 for m in models)",
+  "setup_commands": [],
+  "followups": []
+ },
+ {
+  "id": "hard-two-genes-open-and-compare",
+  "category": "gene-pipeline",
+  "request": "open the alphafold models for F2R and F2RL1 and tell me how similar they are",
+  "expected": "Resolves both gene symbols via resolve_protein, opens two distinct AlphaFold models, then calls compare_structures to superpose and report differences (never invents accessions or skips straight to a guess).",
+  "check_type": "state_expr",
+  "check": "sum(1 for c in ran if re.search(r'alphafold:', c, re.I)) >= 2 and any(c[0]=='compare_structures' for c in record['calls'])",
+  "setup_commands": [],
+  "followups": []
+ },
+ {
+  "id": "hard-annotate-glycosylation-gene-pipeline",
+  "category": "gene-pipeline",
+  "request": "open the af modle for F2RL2 and hilite any glycosylation sites",
+  "expected": "Typo-tolerant: resolves F2RL2 (PAR3) via resolve_protein, opens its AlphaFold model, then calls the annotate tool with kind glycosylation (not invented residue numbers).",
+  "check_type": "state_expr",
+  "check": "any(re.search(r'alphafold:', c, re.I) for c in ran) and any(c[0]=='annotate' and 'glyco' in str(c[1].get('kind','')).lower() for c in record['calls'])",
+  "setup_commands": [],
+  "followups": []
+ },
+ {
+  "id": "hard-clinvar-gene-pipeline",
+  "category": "gene-pipeline",
+  "request": "show me the clinvar variants for f2rl3 on its af model, color by pathogenicity",
+  "expected": "Resolves F2RL3 (PAR4), opens its AlphaFold model, and calls annotate with a clinvar/pathogenic kind (never invents variant positions or colours from memory).",
+  "check_type": "state_expr",
+  "check": "any(re.search(r'alphafold:', c, re.I) for c in ran) and any(c[0]=='annotate' and str(c[1].get('kind','')).lower() in ('clinvar','pathogenic','clinical') for c in record['calls'])",
+  "setup_commands": [],
+  "followups": []
+ },
+ {
+  "id": "hard-multiturn-select-then-hide-except",
+  "category": "multi-turn",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "select residues 10 through 20",
+  "followups": [
+   "now hide everything except that selection"
+  ],
+  "expected": "'that selection' refers to residues 10-20 selected in the previous turn; final state shows only those residues' atoms, everything else hidden.",
+  "check_type": "state_expr",
+  "check": "atoms.filter((atoms.residues.numbers>=10)&(atoms.residues.numbers<=20)).displays.all() and not atoms.filter((atoms.residues.numbers<10)|(atoms.residues.numbers>20)).displays.any()"
+ },
+ {
+  "id": "hard-anaphora-three-turns",
+  "category": "multi-turn",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "color chain A red",
+  "followups": [
+   "now do the same for the other chain but in blue",
+   "make both of them half transparent"
+  ],
+  "expected": "'the other chain' resolves to chain B (coloured blue); 'both of them' in the third turn resolves to chains A and B together, and both get ~50% transparency.",
+  "check_type": "state_expr",
+  "check": "(lambda a,b: len(a)>0 and len(b)>0 and all(x.color[0]>150 and x.color[1]<100 and x.color[2]<100 for x in a) and all(x.color[2]>150 and x.color[0]<100 and x.color[1]<100 for x in b))([x for x in atoms if x.name=='CA' and x.residue.chain_id=='A'],[x for x in atoms if x.name=='CA' and x.residue.chain_id=='B']) and any(re.search(r'transparency\\b.*50', c, re.I) for c in ran)"
+ },
+ {
+  "id": "hard-correction-followup-chain-color",
+  "category": "correction",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "color chain A green",
+  "followups": [
+   "no, I meant chain B, and it should be purple not green"
+  ],
+  "expected": "Corrects course and colours chain B purple. (Chain A's colour is not checked; the point of the correction is that A was the wrong target, and either leaving or reverting it is defensible.)",
+  "check_type": "state_expr",
+  "check": "(lambda cas: len(cas)>0 and all(a.color[0]>60 and a.color[2]>90 and a.color[1]<a.color[0]-15 and a.color[1]<a.color[2]-15 for a in cas))([a for a in atoms if a.name=='CA' and a.residue.chain_id=='B'])"
+ },
+ {
+  "id": "hard-conflicting-instructions-one-sentence",
+  "category": "conflicting",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "color the protein red, and don't change its color",
+  "expected": "The request contradicts itself. Either asking for clarification (ask_user) or making no colour change is acceptable; silently recolouring the protein red while the sentence also says not to is not.",
+  "check_type": "state_expr",
+  "check": "bool(record['asks']) or len(ran) == 0",
+  "followups": []
+ },
+ {
+  "id": "hard-self-correcting-single-sentence-background",
+  "category": "self-correction",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "set the background to white, actually no, black, hold on, make it white after all",
+  "expected": "Tracks the chain of self-corrections within one sentence and lands on the final stated colour: white.",
+  "check_type": "state_expr",
+  "check": "sum(bg[:3]) >= 2.4",
+  "followups": []
+ },
+ {
+  "id": "hard-obvious-nomatch-residue-out-of-range",
+  "category": "silent-nomatch",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "select residue 200 and show it as sticks",
+  "expected": "Ubiquitin (1ubq) only has 76 residues. A competent assistant notices this from the residue range already given in context and tells the user residue 200 doesn't exist, rather than silently running a select/style command that matches nothing and implying it worked.",
+  "check_type": "state_expr",
+  "check": "re.search(r'76\\b|no residue|does(n.t| not) exist|out of range|only (has |goes )?(up to )?76|highest residue|last residue|max(imum)? residue|only \\d+ residues|doesn.?t have (a )?residue|no such residue', reply, re.I) is not None",
+  "followups": []
+ },
+ {
+  "id": "hard-obvious-nomatch-chain-hide",
+  "category": "silent-nomatch",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "hide chain B",
+  "expected": "1ubq has only chain A. The request should be recognised as matching nothing and reported plainly, instead of quietly running a no-op hide and saying nothing about it.",
+  "check_type": "state_expr",
+  "check": "re.search(r'only (has |have )?(one |a single )?chain a\\b|no chain b|doesn.?t have (a )?chain b|does not have (a )?chain b|single chain|only one chain|there.?s (only )?(one )?chain', reply, re.I) is not None",
+  "followups": []
+ },
+ {
+  "id": "hard-obvious-error-distance-missing-chain",
+  "category": "silent-nomatch",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "measure the distance between the CA of residue 10 in chain A and the CA of residue 10 in chain B",
+  "expected": "Chain B doesn't exist on 1ubq, so this fails (distance needs exactly two real atoms). The assistant reads the failure and tells the user honestly instead of claiming a distance was measured.",
+  "check_type": "state_expr",
+  "check": "not any(m.__class__.__name__=='PseudobondGroup' and m.num_pseudobonds>0 for m in models) and re.search(r'chain b|only .*chain a|single chain|doesn.?t (have|exist)|does not (have|exist)|no such chain|couldn.?t|could not|unable|fail|error', reply, re.I) is not None",
+  "followups": []
+ },
+ {
+  "id": "hard-impossible-dock-and-text",
+  "category": "impossible",
+  "setup_commands": [
+   "open 6lu7"
+  ],
+  "request": "dock a new inhibitor into this pocket using AutoDock Vina and text me the binding affinity when it's done",
+  "expected": "Pellaeon has no docking engine and cannot send texts; states this plainly and runs nothing (not even a partial 'helpful' step like saving the pocket).",
+  "check_type": "no_commands",
+  "check": "",
+  "followups": []
+ },
+ {
+  "id": "hard-impossible-order-reagent",
+  "category": "impossible",
+  "request": "order me 500 mg of this receptor protein from a vendor for the wet lab",
+  "expected": "Purchasing reagents is outside what ChimeraX/Pellaeon can do; states this plainly and runs nothing.",
+  "check_type": "no_commands",
+  "check": "",
+  "setup_commands": [],
+  "followups": []
+ },
+ {
+  "id": "hard-other-language-french",
+  "category": "other-language",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "colore la cha\u00eene A en rouge et affiche les ligands en sph\u00e8res",
+  "expected": "Understands French: chain A's polymer becomes red, and the heme ligands are shown as spheres.",
+  "check_type": "state_expr",
+  "check": "(lambda r, lig: len(r) > 0 and (r.ribbon_colors[:,0] > 180).all() and (r.ribbon_colors[:,1] < 100).all() and (r.ribbon_colors[:,2] < 100).all() and len(lig) > 0 and (lig.draw_modes == atoms.SPHERE_STYLE).mean() > 0.5)((lambda rr: rr.filter(rr.polymer_types != 0))(atoms.filter(atoms.chain_ids == 'A').unique_residues), atoms.filter(atoms.structure_categories == 'ligand'))",
+  "followups": []
+ },
+ {
+  "id": "hard-typo-multipart-safety-gate",
+  "category": "multi-part-typo",
+  "request": "opne 2gbp, hid the ions, and safe a pic to my desktop",
+  "expected": "Typo-tolerant: opens 2gbp, hides the bound calcium ion (structure category ions), and proposes saving an image, which is gated behind a confirmation card.",
+  "check_type": "state_expr",
+  "check": "not atoms.filter(atoms.structure_categories == 'ions').displays.any() and bool(record['confirms'])",
+  "setup_commands": [],
+  "followups": []
+ },
+ {
+  "id": "hard-explain-residue-followup",
+  "category": "followup-tool",
+  "setup_commands": [
+   "open 3nir"
+  ],
+  "request": "color residue 12 red",
+  "followups": [
+   "why does residue 12 look red now?"
+  ],
+  "expected": "Answers using the explain_residue tool (which reports the actual command that coloured it) rather than guessing a biological reason or blindly re-running a colour command.",
+  "check_type": "state_expr",
+  "check": "(lambda cas: len(cas) > 0 and all(a.color[0] > 180 and a.color[1] < 80 and a.color[2] < 80 for a in cas))([a for a in atoms if a.name=='CA' and a.residue.number==12]) and any(c[0]=='explain_residue' for c in record['calls']) and sum(1 for c in ran if re.search(r'color.*red', c, re.I)) <= 1"
+ },
+ {
+  "id": "hard-tidy-labels-followup",
+  "category": "followup-tool",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "label residues 10, 20, 30 and 40 of chain A",
+  "followups": [
+   "the labels are overlapping and hard to read, clean them up"
+  ],
+  "expected": "Uses the tidy_labels tool to declutter the existing labels rather than deleting them all or asking what to do.",
+  "check_type": "state_expr",
+  "check": "any(c[0]=='tidy_labels' for c in record['calls']) and any(m.__class__.__name__=='ObjectLabels' and len(m.labels())>=1 for m in models)"
+ },
+ {
+  "id": "hard-multipart-select-color-label",
+  "category": "multi-part",
+  "setup_commands": [
+   "open 1zik"
+  ],
+  "request": "select residues 5 to 15, color them cyan, and label residue 8",
+  "expected": "All three sub-requests completed: residues 5-15 selected and coloured cyan, and residue 8 labelled.",
+  "check_type": "state_expr",
+  "check": "(lambda cas: len(cas)>0 and all(a.color[1]>200 and a.color[2]>200 and a.color[0]<80 for a in cas))([a for a in atoms if a.name=='CA' and 5<=a.residue.number<=15]) and any(m.__class__.__name__=='ObjectLabels' and len(m.labels())>=1 for m in models)",
+  "followups": []
+ },
+ {
+  "id": "hard-impossible-mid-multipart-no-fake-partial",
+  "category": "impossible",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "color the protein blue and then upload the session to our lab dropbox",
+  "expected": "Colours the protein blue (a normal, doable request) but refuses the Dropbox upload plainly; does not fabricate an upload action or any command mentioning dropbox/upload.",
+  "check_type": "state_expr",
+  "check": "all(a.color[2]>180 and a.color[0]<100 and a.color[1]<100 for a in atoms if a.name=='CA') and not any(re.search(r'dropbox|upload', c, re.I) for c in ran)",
+  "followups": []
+ },
+ {
+  "id": "hard-pronoun-after-close",
+  "category": "multi-turn",
+  "setup_commands": [
+   "open 4hhb",
+   "open 1zik",
+   "close #2"
+  ],
+  "request": "make it green",
+  "expected": "Only #1 (4hhb) is open after the close; 'it' unambiguously refers to #1, which gets coloured green without asking.",
+  "check_type": "state_expr",
+  "check": "len(models)==1 and any(a.color[1]>150 and a.color[0]<100 and a.color[2]<100 for a in atoms if a.name=='CA')",
+  "followups": []
+ }
+]
