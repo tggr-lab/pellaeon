@@ -107,7 +107,7 @@ A command that runs without error but matches nothing (wrong residue numbers, wr
 
 ### Step 4 · Make it look like a figure
 
-> make it look publication ready and focus on the heme of chain A
+> make it look publication ready and focus on the heme of chain A, shown as sticks with its iron as a small sphere
 
 This applies ChimeraX's publication preset and centres the view on the heme of chain A:
 

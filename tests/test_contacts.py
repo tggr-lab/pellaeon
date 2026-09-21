@@ -388,7 +388,11 @@ def test_a_restriction_no_residue_of_which_is_paired_never_calls_the_other_colle
 
     def only_reference(model_spec, cutoff=4.0, restrict=None):
         ex.asked.append((model_spec, restrict))
-        assert model_spec.startswith("#1"), "the ligand has no counterpart: nothing to ask for"
+        # the ligand has no counterpart, so the other model is never asked with the restriction;
+        # the whole-chain comparison that accompanies an empty restriction may ask it unrestricted
+        assert model_spec.startswith("#1") or restrict is None, "no restricted call for the other model"
+        if model_spec.startswith("#2"):
+            return {"model": "#2", "contacts": [], "count": 0, "restrict_residues": [], "restrict": ""}
         return {"model": "#1", "contacts": [c("/A:215", "/A:10", a_name="AP5")], "count": 1,
                 "restrict_residues": ["/A:215"], "restrict": restrict or ""}
 

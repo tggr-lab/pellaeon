@@ -1097,6 +1097,17 @@ class Agent:
         if res.get("note"):
             out["note"] = res["note"]
         if missing:
+            # the restriction names something the other form does not have (a ligand in the apo
+            # form): say so, and answer the wider question as well, because "what is lost when it
+            # opens" is about the whole chain, not only the ligand pocket
+            ref_all = self.executor.residue_contacts(prep["ref_spec"], cutoff, None)
+            oth_all = self.executor.residue_contacts(prep["other_spec"], cutoff, None)
+            if not ref_all.get("error") and not oth_all.get("error"):
+                overall = compare_contacts(ref_all["contacts"], oth_all.get("contacts") or [], pairing["pairing"])
+                out["overall"] = {"summary": overall["summary"], "counts": overall["counts"],
+                                  "lost": overall["lost"][:15], "gained": overall["gained"][:15]}
+                out["report_verbatim"] = ("Report the restricted result first (the restriction matched nothing in %s), then the "
+                                          "'overall' summary sentence for the whole chain, verbatim." % prep["other_spec"])
             out["compared_side"] = ("%s Contacts whose residues are both in the alignment are judged as usual; "
                                     "the rest could not be judged and are counted as unmapped, not as lost." % missing)
         if str(pairing.get("basis", "")).startswith("chain id"):
