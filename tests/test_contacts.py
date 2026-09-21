@@ -189,7 +189,9 @@ def test_commands_cap_how_much_is_drawn():
     r = compare_contacts(ref, [], pairing)
     cmds = contact_commands(r, "#1", "#2", max_drawn=5)
     assert sum(1 for cmd in cmds if cmd.startswith("distance #")) == 5
-    assert any("showing 5 of 39 lost" in cmd for cmd in cmds)
+    assert "label delete pseudobonds" in cmds                       # dashes carry no distance numbers
+    assert not any("showing" in cmd for cmd in cmds)               # the counts live in the result card, not the title
+    assert any(cmd.startswith('2dlabels create pellaeon_title text "Contacts lost (red, #1) and gained (green, #2)"') for cmd in cmds)
 
 
 def test_commands_without_atom_names_still_show_residues():

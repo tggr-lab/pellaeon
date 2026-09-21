@@ -143,9 +143,9 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
                   # floating next to the result; hide them so only what was analysed is on screen
                   *(["hide #%s & ~/%s target acs" % (prep["ref_id"], prep["chain"]),
                      "hide #%s & ~/%s target acs" % (prep["other_id"], prep["chain"])] if prep.get("chain") else []),
-                  "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.36,0.04 size 0.28,0.035 fontSize 16",
-                  '2dlabels create pellaeon_title text "C\u03b1 shift after fit (\u00c5); lavender = not compared" xpos 0.36 ypos 0.09 size 15 color black',
-                  'zoom 0.85']
+                  "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.30,0.035 size 0.40,0.04 fontSize 20",
+                  '2dlabels create pellaeon_title text "C\u03b1 shift after fit (\u00c5); lavender = not compared" xpos 0.30 ypos 0.125 size 20 color black',
+                  'view %s' % prep['other_spec'], 'zoom 0.85']
     return {
         "pairing": basis, "paired_residues": len(rows), "coverage": "%d of %d residues of %s paired" % (len(rows), total_other, prep["other_spec"]),
         "mean_displacement": round(float(arr.mean()), 2), "max_displacement": round(float(arr.max()), 2),
