@@ -36,6 +36,24 @@ def layout(title, body, active, toc_html=""):
 <main>%s</main>
 <script>if(window.innerWidth<820){document.querySelectorAll(".toc details[open]").forEach(function(d){d.removeAttribute("open");});}</script>
 <footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-play").forEach(function(btn){
+    var img = btn.querySelector("img"), badge = btn.querySelector(".badge");
+    btn.addEventListener("click", function(){
+      var playing = img.getAttribute("src") === img.dataset.gif;
+      img.setAttribute("src", playing ? img.dataset.poster : img.dataset.gif + "?t=" + Date.now());
+      badge.textContent = playing ? "play" : "pause";
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
 </body></html>""" % (html.escape(title), DESC, html.escape(title), DESC, SITE, SITE, active, nav, REPO, main, VERSION)
 
 
@@ -75,7 +93,7 @@ INDEX = """
     <p class="lead">Open structures, inspect residues, compare models, and make figures from a chat panel inside ChimeraX. See the commands Pellaeon runs and copy or reuse them.</p>
     <div class="cmdbox"><pre id="install-cmd">open %(installer)s</pre><button onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').textContent).then(()=>this.textContent='Copied')">Copy</button></div>
     <p class="small">Paste into ChimeraX's command line.</p>
-    <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="tutorial.html">See examples</a></div>
+    <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="#see-it-work">See examples</a></div>
     <p class="small"><a href="%(repo)s/releases">Downloads</a></p>
   </div>
   <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
@@ -88,10 +106,11 @@ INDEX = """
   <li><b>Run the built-in test request.</b> A button on the settings page opens ubiquitin and colors it by chain.</li>
 </ol>
 
-<h2>Example requests</h2>
-<div class="example">open the AlphaFold model of ADRB2 and color residue 113 blue</div>
-<div class="example">measure the distance between residues 100 and 150</div>
-<div class="example">compare these two models and tell me what changed</div>
+<h2 id="see-it-work">See it work</h2>
+<p class="small">Recorded in ChimeraX with the panel. Click a recording to play or pause it.</p>
+<div class="demos">
+%(demos)s
+</div>
 
 <h2>How it works</h2>
 <p>Your request goes to the model you chose together with what is open in ChimeraX and the documentation for your ChimeraX version. The model does not type into ChimeraX; it calls a fixed set of logged tools, and a command that fails is sent back with the ChimeraX error for another attempt.</p>
@@ -104,6 +123,13 @@ INDEX = """
 %(vsvg)s
 </div>
 </details>
+
+<h2>Reading a command</h2>
+<p class="small">Every reply shows the ChimeraX commands it ran. Point at each part.</p>
+<div class="cmd" id="cmd">
+<span data-t="color: the command; paints atoms and cartoons">color</span> <span data-t="#1: model 1, the first structure opened">#1</span><span data-t="/A: chain A of that model">/A</span><span data-t=":113: residue 113 of that chain">:113</span> <span data-t="blue: a named ChimeraX color; hex values work too">blue</span>
+</div>
+<p class="small" id="cmd-hint">model 1, chain A, residue 113, colored blue</p>
 
 <h2>What you can do</h2>
 <div class="group">
@@ -137,8 +163,35 @@ INDEX = """
 """
 
 
+
+DEMOS = [("figure", "A readable figure"), ("table", "A table on a structure"), ("compare", "Two conformations")]
+
+
+def demos_html():
+    """Three recorded workflows: poster shown, click plays the recording, commands underneath."""
+    out = []
+    for name, title in DEMOS:
+        p = os.path.join(DOCS, "img", "demo_%s.txt" % name)
+        if not os.path.exists(p):
+            continue
+        lines = [l.strip() for l in open(p, encoding="utf-8").read().splitlines() if l.strip()]
+        request, result, commands = (lines + ["", "", ""])[:3]
+        cmds = "\n".join(c.strip() for c in commands.split(" ; ") if c.strip())
+        out.append(
+            '<figure class="demo">'
+            '<figcaption><b>%s</b><span class="req">%s</span></figcaption>'
+            '<button class="demo-play" type="button" aria-label="Play the recording">'
+            '<img src="img/demo_%s_poster.png" data-poster="img/demo_%s_poster.png" data-gif="img/demo_%s.gif" alt="%s" loading="lazy">'
+            '<span class="badge">play</span></button>'
+            '<p class="small">%s <a href="img/demo_%s.gif">Open full size</a></p>'
+            '<details><summary>Commands it ran</summary><pre>%s</pre></details>'
+            '</figure>' % (html.escape(title), html.escape(request), name, name, name, html.escape(title),
+                           html.escape(result), name, html.escape(cmds)))
+    return "\n".join(out)
+
+
 def index_page():
-    body = INDEX % {"installer": REPO + "/releases/latest/download/install_pellaeon.py", "repo": REPO, "svg": HOW_SVG, "vsvg": HOW_VSVG}
+    body = INDEX % {"installer": REPO + "/releases/latest/download/install_pellaeon.py", "repo": REPO, "svg": HOW_SVG, "vsvg": HOW_VSVG, "demos": demos_html()}
     open(os.path.join(DOCS, "index.html"), "w", encoding="utf-8").write(layout("Pellaeon: talk to ChimeraX in plain English", body, "index.html"))
     print("wrote index.html")
 

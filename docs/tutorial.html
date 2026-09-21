@@ -314,4 +314,22 @@
 <p>Yes, sir.</p></article></div></main>
 <script>if(window.innerWidth<820){document.querySelectorAll(".toc details[open]").forEach(function(d){d.removeAttribute("open");});}</script>
 <footer><div class="in">Pellaeon v0.2.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-play").forEach(function(btn){
+    var img = btn.querySelector("img"), badge = btn.querySelector(".badge");
+    btn.addEventListener("click", function(){
+      var playing = img.getAttribute("src") === img.dataset.gif;
+      img.setAttribute("src", playing ? img.dataset.poster : img.dataset.gif + "?t=" + Date.now());
+      badge.textContent = playing ? "play" : "pause";
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
 </body></html>

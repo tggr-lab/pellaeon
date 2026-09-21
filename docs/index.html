@@ -14,7 +14,7 @@
     <p class="lead">Open structures, inspect residues, compare models, and make figures from a chat panel inside ChimeraX. See the commands Pellaeon runs and copy or reuse them.</p>
     <div class="cmdbox"><pre id="install-cmd">open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py</pre><button onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').textContent).then(()=>this.textContent='Copied')">Copy</button></div>
     <p class="small">Paste into ChimeraX's command line.</p>
-    <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="tutorial.html">See examples</a></div>
+    <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="#see-it-work">See examples</a></div>
     <p class="small"><a href="https://github.com/tggr-lab/pellaeon/releases">Downloads</a></p>
   </div>
   <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
@@ -27,10 +27,51 @@
   <li><b>Run the built-in test request.</b> A button on the settings page opens ubiquitin and colors it by chain.</li>
 </ol>
 
-<h2>Example requests</h2>
-<div class="example">open the AlphaFold model of ADRB2 and color residue 113 blue</div>
-<div class="example">measure the distance between residues 100 and 150</div>
-<div class="example">compare these two models and tell me what changed</div>
+<h2 id="see-it-work">See it work</h2>
+<p class="small">Recorded in ChimeraX with the panel. Click a recording to play or pause it.</p>
+<div class="demos">
+<figure class="demo"><figcaption><b>A readable figure</b><span class="req">On 4hhb colored by chain with residues 80-100 of chain A labeled (piled up on purpose): &quot;the labels overlap, tidy them&quot;, then &quot;save this as a figure called hemoglobin&quot;</span></figcaption><button class="demo-play" type="button" aria-label="Play the recording"><img src="img/demo_figure_poster.png" data-poster="img/demo_figure_poster.png" data-gif="img/demo_figure.gif" alt="A readable figure" loading="lazy"><span class="badge">play</span></button><p class="small">Tidy labels nudges the crowded chain-A label pile apart and drops the ones that still overlap (14 kept, 13 moved, 7 removed), then the figure bundle (PNG, ChimeraX session, replay script, per-residue colors, draft legend) is written to ~/Pellaeon figures/hemoglobin and the saved-files card lists all six. <a href="img/demo_figure.gif">Open full size</a></p><details><summary>Commands it ran</summary><pre>label #1/A:97 residues offset 0.00,9.08,0.00
+label #1/A:96 residues offset 0.00,-14.31,0.00
+label #1/A:94 residues offset -29.19,0.00,0.00
+label #1/A:99 residues offset 0.00,19.42,0.00
+label #1/A:93 residues offset 40.85,0.00,0.00
+label #1/A:95 residues offset -20.65,14.43,0.00
+label #1/A:98 residues offset 28.54,19.95,0.00
+label #1/A:91 residues offset 29.91,-20.91,0.00
+label #1/A:92 residues offset -29.76,-20.80,0.00
+label #1/A:90 residues offset -30.34,21.20,0.00
+label #1/A:89 residues offset 0.00,20.86,0.00
+label #1/A:84 residues offset 29.85,0.00,0.00
+label #1/A:85 residues offset 29.75,20.79,0.00
+label delete #1/A:87 #1/A:86 #1/A:88 #1/A:83 #1/A:82 #1/A:80 #1/A:81 residues
+label #1/A:100 #1/A:97 #1/A:96 #1/A:94 #1/A:99 #1/A:93 #1/A:95 #1/A:98 #1/A:91 #1/A:92 #1/A:90 #1/A:89 #1/A:84 #1/A:85 size 16 height fixed onTop true color black bgColor #ffffffd9
+save &quot;/home/yamir/Pellaeon figures/hemoglobin/hemoglobin.png&quot; width 2400 height 1800 supersample 3
+save &quot;/home/yamir/Pellaeon figures/hemoglobin/hemoglobin.cxs&quot;</pre></details></figure>
+<figure class="demo"><figcaption><b>A table on a structure</b><span class="req">Loaded docs/examples/ubiquitin_hydropathy.csv through the panel&#x27;s Import table action on 1ubq, then used the preview card&#x27;s Apply to color chain A by the hydropathy column.</span></figcaption><button class="demo-play" type="button" aria-label="Play the recording"><img src="img/demo_table_poster.png" data-poster="img/demo_table_poster.png" data-gif="img/demo_table.gif" alt="A table on a structure" loading="lazy"><span class="badge">play</span></button><p class="small">The structure turns blue-to-red by Kyte-Doolittle hydropathy with all 76 table rows mapped onto chain A (0 positions missing), shown with a color key and title. <a href="img/demo_table.gif">Open full size</a></p><details><summary>Commands it ran</summary><pre>color byattribute r:pellaeon_ubiquitin_hydropathy_hydropathy #1 palette blue:white:red range -4.5,4.5 target ac noValueColor gray
+key blue:-4.5 white:0 red:4.5 pos 0.70,0.05 size 0.27,0.035 fontSize 16
+2dlabels text &quot;ubiquitin hydropathy hydropathy (gray = no value)&quot; xpos 0.70 ypos 0.10 size 15 color black</pre></details></figure>
+<figure class="demo"><figcaption><b>Two conformations</b><span class="req">&quot;compare these two models and tell me what changed&quot; then &quot;which salt bridges break when it opens?&quot; (on adenylate kinase closed 1ake vs. open 4ake)</span></figcaption><button class="demo-play" type="button" aria-label="Play the recording"><img src="img/demo_compare_poster.png" data-poster="img/demo_compare_poster.png" data-gif="img/demo_compare.gif" alt="Two conformations" loading="lazy"><span class="badge">play</span></button><p class="small">The open form is superposed on the closed form and colored by C-alpha displacement after the fit, then contacts that break on opening are drawn as red dashes on the closed model and new ones as green dashes on the open model, with a lost/gained key. <a href="img/demo_compare.gif">Open full size</a></p><details><summary>Commands it ran</summary><pre>matchmaker #2/A to #1/A
+color byattribute r:pellaeon_disp #2/A palette 0,#bdbdbd:1,gold:3,orange:6,#b2182b range 0,6 target ac noValueColor #d9c6f0
+color #1/A #b8c4d6 target ac
+transparency #1/A 60 target c
+hide #1/A models
+key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.70,0.05 size 0.27,0.035 fontSize 16
+2dlabels text &quot;Cα shift after fit (Å); lavender = not compared&quot; xpos 0.70 ypos 0.10 size 15 color black
+matchmaker #2/A to #1/A
+show #1 models
+show #2 models
+transparency #1 55 target c
+transparency #2 55 target c
+distance delete
+show #1/A:10,11,15,18,33,36,53,54,55,56,116,119,130,131,132,138,156,158,163,164,166,167,198,199 atoms
+color #1/A:10,11,15,18,33,36,53,54,55,56,116,119,130,131,132,138,156,158,163,164,166,167,198,199 #b2182b target a
+distance #1/A:119@NH1 #1/A:10@O color #b2182b dashes 6 radius 0.08 (and 14 more lost-contact distance commands between the two listed residue sets)
+show #2/A:113,114,117,118,165 atoms
+color #2/A:113,114,117,118,165 #1a9850 target a
+distance #2/A:165@NH2 #2/A:114@OE1 color #1a9850 dashes 6 radius 0.08 (and 3 more gained-contact distance commands)
+key #b2182b:lost #1a9850:gained colorTreatment distinct pos 0.68,0.05 size 0.28,0.035 fontSize 15
+2dlabels text &quot;Contacts lost (red, on #1) and gained (green, on #2); showing 16 of 16 lost and 4 of 4 gained&quot; xpos 0.68 ypos 0.10 size 14 color black</pre></details></figure>
+</div>
 
 <h2>How it works</h2>
 <p>Your request goes to the model you chose together with what is open in ChimeraX and the documentation for your ChimeraX version. The model does not type into ChimeraX; it calls a fixed set of logged tools, and a command that fails is sent back with the ChimeraX error for another attempt.</p>
@@ -74,6 +115,13 @@
 </div>
 </details>
 
+<h2>Reading a command</h2>
+<p class="small">Every reply shows the ChimeraX commands it ran. Point at each part.</p>
+<div class="cmd" id="cmd">
+<span data-t="color: the command; paints atoms and cartoons">color</span> <span data-t="#1: model 1, the first structure opened">#1</span><span data-t="/A: chain A of that model">/A</span><span data-t=":113: residue 113 of that chain">:113</span> <span data-t="blue: a named ChimeraX color; hex values work too">blue</span>
+</div>
+<p class="small" id="cmd-hint">model 1, chain A, residue 113, colored blue</p>
+
 <h2>What you can do</h2>
 <div class="group">
   <div><h3>Explore a structure</h3><p>Select a residue, inspect its neighbours, measure distances, or add annotations.</p></div>
@@ -106,4 +154,22 @@
 </main>
 <script>if(window.innerWidth<820){document.querySelectorAll(".toc details[open]").forEach(function(d){d.removeAttribute("open");});}</script>
 <footer><div class="in">Pellaeon v0.2.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-play").forEach(function(btn){
+    var img = btn.querySelector("img"), badge = btn.querySelector(".badge");
+    btn.addEventListener("click", function(){
+      var playing = img.getAttribute("src") === img.dataset.gif;
+      img.setAttribute("src", playing ? img.dataset.poster : img.dataset.gif + "?t=" + Date.now());
+      badge.textContent = playing ? "play" : "pause";
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
 </body></html>

@@ -156,3 +156,18 @@ figure img { max-height: 78vh; width: auto; max-width: 100%; margin: 0 auto; }
   .shot { padding: 6px; }
   footer .in { padding: 14px 16px; }
 }
+
+/* recorded demonstrations */
+.demos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.demo { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.demo figcaption { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.demo .req { font-family: ui-monospace, "UbuntuMono Nerd Font Mono", Menlo, monospace; font-size: 0.85em; color: var(--muted); }
+.demo-play { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 8px; overflow: hidden; }
+.demo-play img { display: block; width: 100%; height: auto; }
+.demo-play .badge { position: absolute; right: 10px; bottom: 10px; background: var(--accent); color: #fff; font-size: 0.8em; padding: 3px 9px; border-radius: 999px; }
+.demo-play:focus-visible { outline: 2px solid var(--accent2); }
+.demo pre { font-size: 0.78em; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
+/* command explainer */
+.cmd { font-family: ui-monospace, "UbuntuMono Nerd Font Mono", Menlo, monospace; font-size: 1.35em; background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; display: inline-block; }
+.cmd span { border-bottom: 2px solid var(--accent2); padding: 0 1px; cursor: help; }
+.cmd span:hover, .cmd span:focus { background: var(--accent); color: #fff; outline: none; border-radius: 3px; }

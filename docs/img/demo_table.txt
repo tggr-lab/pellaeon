@@ -1,0 +1,3 @@
+Loaded docs/examples/ubiquitin_hydropathy.csv through the panel's Import table action on 1ubq, then used the preview card's Apply to color chain A by the hydropathy column.
+The structure turns blue-to-red by Kyte-Doolittle hydropathy with all 76 table rows mapped onto chain A (0 positions missing), shown with a color key and title.
+color byattribute r:pellaeon_ubiquitin_hydropathy_hydropathy #1 palette blue:white:red range -4.5,4.5 target ac noValueColor gray ; key blue:-4.5 white:0 red:4.5 pos 0.70,0.05 size 0.27,0.035 fontSize 16 ; 2dlabels text "ubiquitin hydropathy hydropathy (gray = no value)" xpos 0.70 ypos 0.10 size 15 color black
