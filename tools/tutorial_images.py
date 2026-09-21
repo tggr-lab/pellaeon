@@ -56,8 +56,45 @@ def newest_turn(im):
     start = max(0, (yb - 6) if yb is not None else 96)
     return im.crop((0, start, w, min(h, end + 12)))
 
+def crop43(im):
+    w, h = im.size
+    tw = int(h * 4 / 3)
+    return im.crop(((w - tw) // 2, 0, (w - tw) // 2 + tw, h)) if w > tw else im
+
+
+def two_up(left, right, captions, out, width=900):
+    """One image showing two named views side by side, each captioned under its own panel.
+
+    Step 6c is about bookmarks: a single still cannot show that a view was left and returned to,
+    so the whole-model view and the restored pocket view are shown together, captioned, with a
+    white gutter between them.
+    """
+    from PIL import ImageDraw, ImageFont
+    gut, bar = 14, 34
+    ims = [crop43(Image.open(p).convert("RGB")) for p in (left, right)]
+    pw = (width - gut) // 2
+    ph = int(pw * ims[0].height / ims[0].width)
+    ims = [im.resize((pw, ph), Image.LANCZOS) for im in ims]
+    canvas = Image.new("RGB", (width, ph + bar), "white")
+    d = ImageDraw.Draw(canvas)
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 17)
+    except Exception:  # noqa: BLE001
+        font = ImageFont.load_default()
+    for k, (im, cap) in enumerate(zip(ims, captions)):
+        x = k * (pw + gut)
+        canvas.paste(im, (x, 0))
+        d.rectangle([x, 0, x + pw - 1, ph - 1], outline="#d7dbde")
+        tw = d.textbbox((0, 0), cap, font=font)[2]
+        d.text((x + (pw - tw) // 2, ph + 8), cap, fill="#333b42", font=font)
+    canvas.save(out, optimize=True)
+    print("ok two-up", os.path.basename(out))
+
+
+SKIP = {"render_06c_zoom.png", "render_06c_wide.png"}    # only used to build the 6c pair below
+
 for name in sorted(os.listdir(SRC)):
-    if not name.endswith(".png"):
+    if not name.endswith(".png") or name in SKIP:
         continue
     im = Image.open(os.path.join(SRC, name)).convert("RGB")
     if name.startswith("render_"):
@@ -79,3 +116,8 @@ for name in sorted(os.listdir(SRC)):
         crop = crop.resize((crop.width * 2, crop.height * 2), Image.LANCZOS)
         crop.save(os.path.join(DST, tag + "_panel.png"), optimize=True)
     print("ok", name)
+
+wide, pocket = os.path.join(SRC, "render_06c_wide.png"), os.path.join(SRC, "render_06c.png")
+if os.path.exists(wide) and os.path.exists(pocket):
+    two_up(wide, pocket, ("the whole receptor", "back at the “pocket” bookmark"),
+           os.path.join(DST, "06c.png"))

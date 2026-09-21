@@ -408,13 +408,13 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
 
     # `key` labels must be single words - it rejects even a quoted "lost in #2" - so the models
     # are named in the 2D label underneath instead.
-    cmds.append("key %s:lost %s:gained colorTreatment distinct pos 0.30,0.035 size 0.40,0.04 fontSize 20"
+    cmds.append("key %s:lost %s:gained colorTreatment distinct pos 0.30,0.075 size 0.40,0.04 fontSize 20"
                 % (LOST_COLOR, GAINED_COLOR))
     shown = "showing %d of %d lost and %d of %d gained" % (len(lost), n_lost, len(gained), n_gained)
     # the dashes are drawn with `distance`, which labels each one with its length: on a figure with
     # dozens of them that is noise, and the numbers are in the result card anyway
     cmds.append("label delete pseudobonds")
-    cmds.append('2dlabels create pellaeon_title text "Contacts lost (red, %s) and gained (green, %s)" xpos 0.30 ypos 0.125 size 20 color black'
+    cmds.append('2dlabels create pellaeon_title text "Contacts lost (red, %s) and gained (green, %s)" xpos 0.30 ypos 0.165 size 20 color black'
                 % (ref_model, other_model))
     cmds.append('view %s %s' % (ref_spec, other_spec))   # fit the analysed chains, then leave the legend a band
     cmds.append('zoom 0.85')

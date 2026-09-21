@@ -841,7 +841,7 @@ class Agent:
             styled = []
             for c in commands:
                 styled.append(c)
-                if _DISTANCE_RE.match(c):
+                if _DISTANCE_RE.match(c) and not re.search(r"\bcolor\b", c, re.I):
                     styled.append("distance style color %s" % ("#1f3a5f" if light else "gold"))
             commands = styled
 
@@ -1053,6 +1053,15 @@ class Agent:
         if restrict:
             ref_restrict = model_restriction(restrict, prep["ref_id"])
         ref = self.executor.residue_contacts(prep["ref_spec"], cutoff, ref_restrict)
+        if ref_restrict and not ref.get("error"):
+            # "restrict to #1/A" or "protein" selects the whole chain, which excluded every contact and
+            # answered "nothing changed" with confidence; treat a restriction covering most of the chain
+            # as no restriction at all
+            selected = len(ref.get("restrict_residues") or [])
+            if selected and selected >= 0.8 * max(1, int(pairing.get("paired_residues") or selected)):
+                ref_restrict = oth_restrict = None
+                restrict = None
+                ref = self.executor.residue_contacts(prep["ref_spec"], cutoff, None)
         if ref.get("error"):
             return ref
         if ref.get("empty_selection"):
@@ -1151,6 +1160,15 @@ class Agent:
         return payload
 
 
+
+    def _background_is_dark(self) -> bool:
+        try:
+            bg = str((self.executor.get_state() or {}).get("background") or "")
+        except Exception:  # noqa: BLE001
+            return False
+        nums = [int(x) for x in re.findall(r"\d+", bg)][:3]
+        return bool(nums) and sum(nums) / len(nums) <= 140
+
     # ------------------------------------------------------------ one legend at a time
     def _one_legend(self, commands: List[str]) -> List[str]:
         """Keys and titles replace the previous ones instead of piling up.
@@ -1169,6 +1187,8 @@ class Agent:
                 if not any(o.strip().lower().startswith("key delete") for o in out):
                     out.append("key delete")
             if low.startswith("2dlabels create pellaeon_title "):
+                if self._background_is_dark():
+                    c = re.sub(r"\bcolor black\b", "color white", c)
                 if getattr(self, "_legend_title", False):
                     c = "2dlabels change pellaeon_title " + c.strip()[len("2dlabels create pellaeon_title "):]
                 self._legend_title = True

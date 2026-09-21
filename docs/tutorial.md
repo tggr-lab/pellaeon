@@ -206,7 +206,7 @@ Pellaeon maps UniProt numbering onto the model's chains (PDB entries often start
 
 ### Step 8b · When labels pile up
 
-Twenty-five variant labels on a small protein overlap. Say so:
+Forty variant labels on a small protein overlap. Say so:
 
 > the labels overlap, tidy them
 

@@ -125,7 +125,7 @@ INDEX = """
     <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="#see-it-work">See examples</a></div>
     <p class="small"><a href="%(repo)s/releases">Downloads</a></p>
   </div>
-  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
+  <div class="shot hero-gif"><picture><source srcset="img/hero_mobile_poster.png" media="(prefers-reduced-motion: reduce) and (max-width: 700px)"><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
 </section>
 
 <h2>Three steps</h2>
@@ -143,7 +143,7 @@ INDEX = """
 
 <h2>How it works</h2>
 <p>Pellaeon uses your current session and ChimeraX documentation to turn requests into commands. Each command is shown, and errors are returned to the model for correction.</p>
-<details class="howdet">
+<details class="howdet" open>
 <summary>How requests are handled</summary>
 <div class="howwrap">
 %(svg)s

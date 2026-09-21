@@ -348,7 +348,11 @@ class ChimeraXExecutor:
                 if AtomicStructure is not None and not isinstance(m, AtomicStructure):
                     entry["note"] = "not a structure: a key, label or surface model; do not compare or annotate it"
                 if AtomicStructure is not None and isinstance(m, AtomicStructure):
-                    entry["num_residues"] = int(m.num_residues)
+                    try:   # polymer residues; the raw count includes waters, ions and ligands and misleads
+                        entry["num_residues"] = int(sum(len(c.existing_residues) for c in m.chains))
+                        entry["num_residues_all"] = int(m.num_residues)
+                    except Exception:  # noqa: BLE001
+                        entry["num_residues"] = int(m.num_residues)
                     if "alphafold" in (m.name or "").lower():
                         entry["note"] = "AlphaFold model, colored by pLDDT confidence when opened: dark blue very high, light blue confident, yellow low, orange very low"
                     entry["num_atoms"] = int(m.num_atoms)

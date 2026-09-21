@@ -15,6 +15,15 @@ _POS_NAMES = ("position", "pos", "resnum", "resi", "residue_number", "res_num", 
 _CHAIN_NAMES = ("chain", "chain_id", "chainid", "auth_asym_id", "asym")
 _ACC_NAMES = ("accession", "uniprot", "uniprot_id", "acc", "entry")
 _REF_NAMES = ("wt", "ref", "wild_type", "wildtype", "ref_aa", "aa", "amino_acid", "resname", "res_name", "residue_name", "wt_aa", "from")
+def _title_words(attr: str) -> str:
+    """'pellaeon_ubiquitin_hydropathy_hydropathy' -> 'ubiquitin hydropathy' (the column repeats the table name)."""
+    out = []
+    for w in attr.replace("pellaeon_", "", 1).split("_"):
+        if w and (not out or w.lower() != out[-1].lower()):
+            out.append(w)
+    return " ".join(out)
+
+
 PALETTES = {"blue-white-red": "blue:white:red", "white-red": "white:red", "blue-white": "white:blue", "viridis": "#440154:#31688e:#35b779:#fde725",
             "rainbow": "blue:cyan:green:yellow:red", "gray-orange-red": "#bdbdbd:gold:orange:#b2182b", "green-white-magenta": "green:white:magenta",
             # AlphaMissense benign -> pathogenic (ColorBrewer RdBu ends); ConSurf's published grade colours 1 -> 9
@@ -168,8 +177,8 @@ def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str
             stops = pal.split(":")
             if len(stops) >= 2 and hi > lo:
                 labels = ["%g" % (lo + (hi - lo) * i / (len(stops) - 1)) for i in range(len(stops))]
-                cmds.append("key %s pos 0.30,0.035 size 0.40,0.04 fontSize 20" % " ".join("%s:%s" % (c, l) for c, l in zip(stops, labels)))
-                cmds.append('2dlabels create pellaeon_title text "%s (gray = no value)" xpos 0.30 ypos 0.125 size 20 color black' % attr.replace("pellaeon_", "", 1).replace("_", " "))
+                cmds.append("key %s pos 0.30,0.075 size 0.40,0.04 fontSize 20" % " ".join("%s:%s" % (c, l) for c, l in zip(stops, labels)))
+                cmds.append('2dlabels create pellaeon_title text "%s (gray = no value)" xpos 0.30 ypos 0.165 size 20 color black' % _title_words(attr))
                 cmds.append('view %s' % model)   # fit what was colored, then leave the legend its own band
                 cmds.append('zoom 0.85')
         legend = "%s from %g (low) to %g (high), palette %s; residues without a value gray" % (attr, lo, hi, palette)

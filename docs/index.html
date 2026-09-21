@@ -17,7 +17,7 @@
     <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="#see-it-work">See examples</a></div>
     <p class="small"><a href="https://github.com/tggr-lab/pellaeon/releases">Downloads</a></p>
   </div>
-  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
+  <div class="shot hero-gif"><picture><source srcset="img/hero_mobile_poster.png" media="(prefers-reduced-motion: reduce) and (max-width: 700px)"><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
 </section>
 
 <h2>Three steps</h2>
@@ -53,27 +53,16 @@ show #2/A:113,114,117,118,165 atoms
 color #2/A:113,114,117,118,165 #1a9850 target a
 distance #2/A:165@NH2 #2/A:114@OE1 color #1a9850 dashes 6 radius 0.08
 key #b2182b:lost #1a9850:gained colorTreatment distinct pos 0.68,0.05 size 0.28,0.035 fontSize 15
-2dlabels text &quot;Contacts lost (red, on #1) and gained (green, on #2); showing 16 of 16 lost and 4 of 4 gained&quot; xpos 0.68 ypos 0.10 size 14 color black</pre></details></figure><figure class="demo-panel" id="demo-figure" hidden><button class="demo-play" type="button" aria-label="Play the recording"><img src="img/demo_figure_poster.png" data-poster="img/demo_figure_poster.png" data-gif="img/demo_figure.gif" alt="Prepare a figure" loading="lazy"><span class="badge">Play</span></button><figcaption><span class="req">Rearrange overlapping labels, then save the figure.</span><span class="res">Labels rearranged; 7 removed. Figure and session saved.</span></figcaption><p class="small"><a href="tutorial.html#step-8b-when-labels-pile-up">Follow this guide</a> &middot; <a href="https://github.com/tggr-lab/pellaeon/tree/main/docs/examples/figure">Get the example files</a> &middot; <a href="img/demo_figure.gif">Open full size</a></p><details><summary>Details</summary><p>On 4hhb colored by chain with residues 80-100 of chain A labeled (piled up on purpose): &quot;the labels overlap, tidy them&quot;, then &quot;save this as a figure called hemoglobin&quot;</p><p>Tidy labels nudges the crowded chain-A label pile apart and drops the ones that still overlap (14 kept, 13 moved, 7 removed), then the figure bundle (PNG, ChimeraX session, replay script, per-residue colors, draft legend) is written to ~/Pellaeon figures/hemoglobin and the saved-files card lists all six.</p></details><details><summary>Selected commands</summary><pre>label #1/A:97 residues offset 0.00,9.08,0.00
-label #1/A:96 residues offset 0.00,-14.31,0.00
-label #1/A:94 residues offset -29.19,0.00,0.00
-label #1/A:99 residues offset 0.00,19.42,0.00
-label #1/A:93 residues offset 40.85,0.00,0.00
-label #1/A:95 residues offset -20.65,14.43,0.00
-label #1/A:98 residues offset 28.54,19.95,0.00
-label #1/A:91 residues offset 29.91,-20.91,0.00
-label #1/A:92 residues offset -29.76,-20.80,0.00
-label #1/A:90 residues offset -30.34,21.20,0.00
-label #1/A:89 residues offset 0.00,20.86,0.00
-label #1/A:84 residues offset 29.85,0.00,0.00
-label #1/A:85 residues offset 29.75,20.79,0.00
-label delete #1/A:87 #1/A:86 #1/A:88 #1/A:83 #1/A:82 #1/A:80 #1/A:81 residues
-label #1/A:100 #1/A:97 #1/A:96 #1/A:94 #1/A:99 #1/A:93 #1/A:95 #1/A:98 #1/A:91 #1/A:92 #1/A:90 #1/A:89 #1/A:84 #1/A:85 size 16 height fixed onTop true color black bgColor #ffffffd9
+2dlabels text &quot;Contacts lost (red, on #1) and gained (green, on #2); showing 16 of 16 lost and 4 of 4 gained&quot; xpos 0.68 ypos 0.10 size 14 color black</pre></details></figure><figure class="demo-panel" id="demo-figure" hidden><button class="demo-play" type="button" aria-label="Play the recording"><img src="img/demo_figure_poster.png" data-poster="img/demo_figure_poster.png" data-gif="img/demo_figure.gif" alt="Prepare a figure" loading="lazy"><span class="badge">Play</span></button><figcaption><span class="req">Rearrange overlapping labels, then save the figure.</span><span class="res">Labels rearranged; 7 removed. Figure and session saved.</span></figcaption><p class="small"><a href="tutorial.html#step-8b-when-labels-pile-up">Follow this guide</a> &middot; <a href="https://github.com/tggr-lab/pellaeon/tree/main/docs/examples/figure">Get the example files</a> &middot; <a href="img/demo_figure.gif">Open full size</a></p><details><summary>Details</summary><p>On 4hhb colored by chain with residues 80-100 of chain A labeled (piled up on purpose): &quot;the labels overlap, tidy them&quot;, then &quot;save this as a figure called hemoglobin&quot;</p><p>Tidy labels nudged 2 of the 21 crowded chain-A labels to a free spot and dropped the 18 that could not fit, leaving 3 readable ones; the figure bundle (PNG, ChimeraX session, replay script, per-residue colors, draft legend, sources) was written to ~/Pellaeon figures/hemoglobin and the recording ends on the exported PNG itself.</p></details><details><summary>Selected commands</summary><pre>label #1/A:97 residues offset 0.00,9.08,0.00
+label #1/A:86 residues offset 0.00,9.53,0.00
+label delete #1/A:96 #1/A:94 #1/A:99 #1/A:93 #1/A:95 #1/A:98 #1/A:91 #1/A:92 #1/A:87 #1/A:90 #1/A:88 #1/A:89 #1/A:83 #1/A:84 #1/A:85 #1/A:82 #1/A:80 #1/A:81 residues
+label #1/A:100 #1/A:97 #1/A:86 size 16 height fixed onTop true color black bgColor #ffffffd9
 save &quot;/home/yamir/Pellaeon figures/hemoglobin/hemoglobin.png&quot; width 2400 height 1800 supersample 3
 save &quot;/home/yamir/Pellaeon figures/hemoglobin/hemoglobin.cxs&quot;</pre></details></figure></div>
 
 <h2>How it works</h2>
 <p>Pellaeon uses your current session and ChimeraX documentation to turn requests into commands. Each command is shown, and errors are returned to the model for correction.</p>
-<details class="howdet">
+<details class="howdet" open>
 <summary>How requests are handled</summary>
 <div class="howwrap">
 <svg class="how" viewBox="0 0 1180 500" role="img" aria-labelledby="how-title" xmlns="http://www.w3.org/2000/svg"><title id="how-title">How Pellaeon turns a sentence into ChimeraX commands and checks the result</title>
