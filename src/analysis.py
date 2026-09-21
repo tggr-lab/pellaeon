@@ -140,8 +140,8 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
                   "color %s #b8c4d6 target ac" % prep["ref_spec"], "transparency %s 60 target c" % prep["ref_spec"],
                   "hide %s models" % prep["ref_spec"],
                   "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.36,0.04 size 0.28,0.035 fontSize 16",
-                  '2dlabels text "C\u03b1 shift after fit (\u00c5); lavender = not compared" xpos 0.36 ypos 0.09 size 15 color black']
-                  'zoom 0.85',   # leave the legend its own band
+                  '2dlabels text "C\u03b1 shift after fit (\u00c5); lavender = not compared" xpos 0.36 ypos 0.09 size 15 color black',
+                  'zoom 0.85']
     return {
         "pairing": basis, "paired_residues": len(rows), "coverage": "%d of %d residues of %s paired" % (len(rows), total_other, prep["other_spec"]),
         "mean_displacement": round(float(arr.mean()), 2), "max_displacement": round(float(arr.max()), 2),
