@@ -402,3 +402,17 @@ def test_a_restriction_no_residue_of_which_is_paired_never_calls_the_other_colle
     assert "outside the alignment" in out["compared_side"]
     assert out["counts"]["lost"] == 0 and out["counts"]["unmapped_reference"] == 1
     assert out["summary"].startswith("No contacts could be compared")
+
+
+def test_second_cutoff_in_the_same_request_is_refused():
+    """ministral re-ran the comparison at 3.5 A after 4.0 A and merged the two answers."""
+    from core.schema import ToolCall
+    ex = StubExecutor({"model": "#2", "contacts": [], "count": 0, "restrict_residues": [], "restrict": ""})
+    ag = _agent(ex)
+    ag._contacts_runs = {}
+    res1, p1 = ag._dispatch(ToolCall("t1", "compare_contacts", {"reference": "#1", "other": "#2", "cutoff": 4.0}))
+    res2, p2 = ag._dispatch(ToolCall("t2", "compare_contacts", {"reference": "#1", "other": "#2", "cutoff": 3.5}))
+    res3, p3 = ag._dispatch(ToolCall("t3", "compare_contacts", {"reference": "#1", "other": "#2", "cutoff": 4.0}))
+    assert "error" not in p1
+    assert "already ran" in p2.get("error", "") and res2.is_error
+    assert "error" not in p3, "the same cutoff again is allowed (idempotent)"

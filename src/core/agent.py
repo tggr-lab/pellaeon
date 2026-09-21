@@ -300,6 +300,7 @@ class Agent:
         try:
             self._status("Thinking…")
             self._failed_this_turn = set()
+            self._contacts_runs = {}
             self._impossible_ask = bool(_IMPOSSIBLE_RE.search(user_text)) and not _SAVE_WANTED_RE.search(user_text)
             # the whole request is the impossible thing: then nothing the model runs can be right
             self._impossible_only = self._impossible_ask and not _ACTION_RE.search(user_text)
@@ -650,9 +651,21 @@ class Agent:
             elif name == "compare_contacts":
                 if not args.get("reference") or not args.get("other"):
                     raise RuntimeError("compare_contacts needs both 'reference' and 'other' model specs.")
-                payload = self._compare_contacts(str(args["reference"]), str(args["other"]), args.get("chain") or None,
-                                                 str(self._scalar(args.get("restrict"), "") or "") or None,
-                                                 float(args.get("cutoff") or 4.0))
+                restrict = str(self._scalar(args.get("restrict"), "") or "") or None
+                cutoff = float(args.get("cutoff") or 4.0)
+                key = (str(args["reference"]), str(args["other"]), args.get("chain") or None, restrict)
+                runs = getattr(self, "_contacts_runs", None)
+                if runs is None:
+                    runs = self._contacts_runs = {}
+                if key in runs and abs(runs[key] - cutoff) > 1e-6:
+                    # a second pass at another cutoff produces a second, different answer that the model
+                    # then merges with the first; the standard cutoff's result stands unless the user asks
+                    payload = {"error": "compare_contacts already ran for %s vs %s at %.1f A in this request. "
+                                        "Report that result; do not repeat the comparison at another cutoff "
+                                        "unless the user asks for a specific distance." % (key[0], key[1], runs[key])}
+                else:
+                    runs[key] = cutoff
+                    payload = self._compare_contacts(key[0], key[1], key[2], restrict, cutoff)
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
             elif name == "explain_residue":

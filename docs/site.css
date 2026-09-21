@@ -190,3 +190,12 @@ figure img { max-height: 78vh; width: auto; max-width: 100%; margin: 0 auto; }
 .demo-ctl[data-playing="1"] .tri { border: 0; width: 10px; height: 10px; background: #fff; border-radius: 2px; }
 .demo-ctl[data-playing="1"] { background: var(--panel); color: var(--ink); border-color: var(--line); }
 .demo-ctl[data-playing="1"] .tri { background: var(--ink); }
+
+/* Pellaeon vs mcp diagram: two lanes, one shared node */
+.how-mcp .lanet { fill: var(--ink); font-size: 17px; font-weight: 700; text-anchor: middle; }
+.how-mcp .wires path { marker-end: var(--mk); }
+.how-mcp .wires path.loop { marker-end: var(--mk2); }
+.how.how-mcp { min-width: 700px; max-width: 900px; }
+.how.how-v.how-mcp { min-width: 0; max-width: 440px; }
+.how-mcp .node.shared rect { stroke: var(--accent2); stroke-width: 1.6; }
+.how-mcp .node.shared { animation: none; }

@@ -10,6 +10,10 @@ from typing import List, Optional, Tuple
 
 # (command regex, error regex or None, suggestion)
 _RULES: List[Tuple[str, Optional[str], str]] = [
+    (r"::\w+\s*(>=|<=|>|<|=)", r"not supported between instances",
+     "An attribute test compares against a bare number with no space and no unit: select ::attr>3 . "
+     "Quote text values: select ::attr=\"hydrophobic\" . If the attribute was set outside Pellaeon it may be "
+     "unregistered; color by it instead: color byattribute r:attr #1 palette bluered"),
     (r"^color\b.*\bby(aa|aminoacid|residue|restype|type|residuetype)\b", None,
      "There is no such color scheme. Color residue classes explicitly: "
      "color #1:ala,val,ile,leu,met,phe,trp,pro,gly white ; color #1:ser,thr,asn,gln,cys,tyr green ; "

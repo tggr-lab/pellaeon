@@ -12,11 +12,15 @@ dynamic = ["classifiers", "requires-python", "version"]
 
 [project.readme]
 content-type = "text"
-text = """Pellaeon adds a chat panel to ChimeraX. Describe what you want in plain
-English ("open the AlphaFold model of ADRB2 and color residue 113 blue") and
-Pellaeon runs the ChimeraX commands for you, shows exactly what it ran, and
-fixes its own mistakes. Works with Ollama (local, free), Anthropic Claude,
-Google Gemini, OpenAI and any OpenAI-compatible server."""
+text = """Pellaeon adds a chat panel to ChimeraX. Type what you want in plain English
+("open the AlphaFold model of ADRB2 and color residue 113 blue", "which contacts
+are lost between these two conformations", "color it by ClinVar variants") and
+Pellaeon runs the ChimeraX commands, lists every command it ran so you can copy
+or re-run it, sends errors back to the model for one corrected attempt, and
+asks before closing, deleting, saving or running scripts. Works with free cloud
+tiers (Mistral, Google Gemini), local models through Ollama (nothing leaves your
+computer), and paid Anthropic, OpenAI or OpenAI-compatible servers. Pure Python,
+no extra packages. Not affiliated with UCSF."""
 
 [project.urls]
 Home = "https://github.com/tggr-lab/pellaeon"

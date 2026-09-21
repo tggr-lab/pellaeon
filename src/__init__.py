@@ -1,7 +1,7 @@
 # Pellaeon: plain-English control of UCSF ChimeraX.
 # Bundle entry point. Everything ChimeraX-specific stays in tool.py / bridge.py /
 # cmd.py; the "core" package is plain Python and can be unit-tested anywhere.
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from chimerax.core.toolshed import BundleAPI
 

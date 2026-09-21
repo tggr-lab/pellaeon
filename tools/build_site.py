@@ -15,7 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
 REPO = "https://github.com/tggr-lab/pellaeon"
 VERSION = re.search(r'__version__ = "([^"]+)"', open(os.path.join(ROOT, "src", "__init__.py")).read()).group(1)
-NAV = [("index.html", "Home"), ("install.html", "Install"), ("tutorial.html", "Tutorial"), ("models.html", "Tested models"), ("classic.html", "Classic edition")]
+NAV = [("index.html", "Home"), ("install.html", "Install"), ("tutorial.html", "Tutorial"), ("models.html", "Tested models"), ("mcp.html", "Pellaeon and MCP"), ("classic.html", "Classic edition")]
 
 
 DESC = "Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."
@@ -94,7 +94,7 @@ def md_page(src, out, active, title=None):
     text = open(src, encoding="utf-8").read()
     # links between markdown docs -> generated pages; relative image paths stay (docs/img)
     text = (text.replace("../docs/img/", "img/").replace("classic/README.md", "classic.html").replace("docs/tutorial.md", "tutorial.html"))
-    text = re.sub(r"\((tutorial|install|classic|models)\.md(#[^)]*)?\)", lambda m: "(%s.html%s)" % (m.group(1), m.group(2) or ""), text)
+    text = re.sub(r"\((tutorial|install|classic|models|mcp)\.md(#[^)]*)?\)", lambda m: "(%s.html%s)" % (m.group(1), m.group(2) or ""), text)
     # developer sections stay in the repository README, not on the public page
     text = re.split(r"^## (?:Developing|Development|Building)\b.*$", text, maxsplit=1, flags=re.M)[0].rstrip() + "\n"
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"], extension_configs={"toc": {"toc_depth": "2-3"}})
@@ -108,6 +108,7 @@ def md_page(src, out, active, title=None):
             return m.group(0)
         return "<figure>%s<figcaption>%s</figcaption></figure>" % (tag, alt.group(1))
     body = re.sub(r"<p>(<img [^>]*>)</p>", _fig, body)
+    body = body.replace("<!--MCP_DIAGRAM-->", mcp_diagram_html())
     t = title or (re.search(r"^# (.+)$", text, re.M).group(1) if re.search(r"^# (.+)$", text, re.M) else active)
     page = layout("%s - Pellaeon" % t, body, active, md.toc)
     open(os.path.join(DOCS, out), "w", encoding="utf-8").write(page)
@@ -147,6 +148,7 @@ INDEX = """
 <div class="howwrap-v">
 %(vsvg)s
 </div>
+<p class="small">Using Claude Desktop or Cursor with ChimeraX's own <code>mcp</code> command? <a href="mcp.html">How the two differ, and how they work together.</a></p>
 
 <h2>Reading a command</h2>
 <p class="small">Every reply shows the ChimeraX commands it ran. Tap or focus on a part to see what it means.</p>
@@ -217,6 +219,88 @@ def _demo_commands(raw):
     cmd_lines = [c.strip() for c in cleaned.split(" ; ") if c.strip()]
     notes = [o[len("(and "):-1].strip() for o in omissions]
     return cmd_lines, notes
+
+
+# ---------------------------------------------------------------- Pellaeon vs the mcp command diagram
+
+MCP_LANES = [
+    ("ChimeraX's mcp command", "acc", [
+        ("An assistant outside ChimeraX", "Claude Desktop, Cursor or VS Code Copilot. Its own model, its own subscription."),
+        ("MCP bridge process", "A Python program the assistant starts. Speaks MCP to the assistant, HTTP to ChimeraX."),
+        ("ChimeraX REST server", "`mcp start` opens a port. Commands arrive as text, the log comes back as text."),
+        ("Tools", "run_command, list_models, get_shown, get_model_info, get_chain_info, command docs, atom-spec guide."),
+        ("Runs and reports", "Whatever the assistant sends runs. Retries and safety are the assistant's job."),
+    ]),
+    ("Pellaeon", "", [
+        ("A panel inside ChimeraX", "Docked next to the 3D view. Ollama on your PC, or Mistral, Gemini, Claude, OpenAI keys."),
+        ("In-process", "No bridge, no port. Reads what is open and selected, the log, errors, and your loaded tables."),
+        ("Context", "Your ChimeraX version's docs indexed locally, 131 workflows, 58 recipes, known model mistakes."),
+        ("Tools", "run commands, state, docs, UniProt, ClinVar, AlphaMissense, ConSurf, tables, contacts, tidy labels, figures with provenance."),
+        ("Checks and gates", "Errors go back with the real syntax for a bounded retry. Close, delete, save and scripts stop for an OK card."),
+    ]),
+]
+MCP_SHARED = ("pellaeon tool ... commands", "Pellaeon's analysis tools are ChimeraX commands too, so an assistant on the mcp bridge, a .cxc script or the command line can call them without any chat: pellaeon tool contacts #1 #2, pellaeon tool annotate #1 P07550 variant, pellaeon tool fetch alphamissense P07550.")
+
+
+def _node(x, y, w, h, title, text, acc=False, cls="node"):
+    bar = '<rect class="acc" x="14" y="0" width="%d" height="4" rx="2"/>' % (w - 28) if acc else ""
+    return ('<g class="%s" transform="translate(%d,%d)"><rect width="%d" height="%d" rx="12"/>%s'
+            '<foreignObject x="0" y="0" width="%d" height="%d"><div xmlns="http://www.w3.org/1999/xhtml" class="nb">'
+            '<b>%s</b><span>%s</span></div></foreignObject></g>' % (cls, x, y, w, h, bar, w, h, html.escape(title), html.escape(text)))
+
+
+def mcp_svg(vertical=False):
+    """Two lanes of five steps and one shared node. Desktop: lanes side by side. Phone: lanes stacked."""
+    nw, nh, gap, top = 400, 104, 26, 44
+    lane_w = nw + 40
+    parts, wires = [], []
+    if not vertical:
+        W = lane_w * 2 + 20
+        for li, (title, acc, steps) in enumerate(MCP_LANES):
+            x = 20 + li * (lane_w + 20)
+            parts.append('<text class="lanet" x="%d" y="28">%s</text>' % (x + nw // 2, html.escape(title)))
+            for si, (b, t) in enumerate(steps):
+                y = top + si * (nh + gap)
+                parts.append(_node(x, y, nw, nh, b, t, acc=bool(acc), cls="node n%d" % (si + 1)))
+                if si:
+                    wires.append('<path d="M%d,%d L%d,%d"/>' % (x + nw // 2, y - gap, x + nw // 2, y))
+        ybot = top + 5 * (nh + gap) + 10
+        sw = W - 40
+        parts.append(_node(20, ybot, sw, 118, MCP_SHARED[0], MCP_SHARED[1], acc=True, cls="node shared"))
+        for li in range(2):
+            x = 20 + li * (lane_w + 20) + nw // 2
+            wires.append('<path class="loop" d="M%d,%d L%d,%d"/>' % (x, ybot - gap - 10, x, ybot))
+        H = ybot + 118 + 20
+        vb = "0 0 %d %d" % (W, H)
+        cls = "how how-mcp"
+    else:
+        W = nw + 40
+        y = 0
+        for li, (title, acc, steps) in enumerate(MCP_LANES):
+            y += 34
+            parts.append('<text class="lanet" x="%d" y="%d">%s</text>' % (20 + nw // 2, y - 8, html.escape(title)))
+            for si, (b, t) in enumerate(steps):
+                parts.append(_node(20, y, nw, nh, b, t, acc=bool(acc), cls="node n%d" % (si + 1)))
+                if si:
+                    wires.append('<path d="M%d,%d L%d,%d"/>' % (20 + nw // 2, y - gap, 20 + nw // 2, y))
+                y += nh + gap
+            y += 12
+        parts.append(_node(20, y, nw, 150, MCP_SHARED[0], MCP_SHARED[1], acc=True, cls="node shared"))
+        wires.append('<path class="loop" d="M%d,%d L%d,%d"/>' % (20 + nw // 2, y - gap - 12, 20 + nw // 2, y))
+        H = y + 150 + 20
+        vb = "0 0 %d %d" % (W, H)
+        cls = "how how-v how-mcp"
+    mk = "mv" if vertical else "md"
+    defs = ('<defs><marker id="ah%s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+            '<path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><marker id="ah2%s" viewBox="0 0 10 10" refX="9" refY="5" '
+            'markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent2)"/></marker></defs>' % (mk, mk))
+    return ('<svg class="%s" viewBox="%s" role="img" aria-label="ChimeraX\'s mcp command and Pellaeon, step by step, and the commands they share" '
+            'xmlns="http://www.w3.org/2000/svg" style="--mk:url(#ah%s);--mk2:url(#ah2%s)">%s<g class="wires">%s</g>%s</svg>'
+            % (cls, vb, mk, mk, defs, "".join(wires), "".join(parts)))
+
+
+def mcp_diagram_html():
+    return ('<div class="howwrap">%s</div><div class="howwrap-v">%s</div>' % (mcp_svg(False), mcp_svg(True)))
 
 
 def demos_html():
@@ -296,5 +380,6 @@ if __name__ == "__main__":
     md_page(os.path.join(DOCS, "install.md"), "install.html", "install.html")
     md_page(os.path.join(DOCS, "tutorial.md"), "tutorial.html", "tutorial.html")
     md_page(os.path.join(DOCS, "models.md"), "models.html", "models.html", "Tested models")
+    md_page(os.path.join(DOCS, "mcp.md"), "mcp.html", "mcp.html", "Pellaeon and MCP")
     md_page(os.path.join(ROOT, "classic", "README.md"), "classic.html", "classic.html", "Classic edition")
     check_links()

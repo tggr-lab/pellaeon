@@ -4,7 +4,7 @@ Which model to run, and what each one did when Pellaeon's own request sets were 
 
 ## How these numbers were produced
 
-- Tested on 2026-09-20 and 2026-09-21, with Pellaeon 0.2.0.
+- Tested on 2026-09-20 and 2026-09-21, with Pellaeon 0.2.0; 0.2.1 changes no model-facing behaviour except the compare_contacts guard.
 - Three request sets: a basic set of **38 requests**; a set of **62 follow-ups and edge cases**; a harder set of **24 multi-turn and ambiguous requests**.
 - Each request was scored automatically: the checks look at the resulting ChimeraX state, the commands that were executed, and the confirmation or question cards that appeared. Checked by the program, not by eye.
 - Local models ran on one machine: RTX 4070 Super (12 GB) with a Ryzen 5950X. Times below are from that machine and will differ on yours.

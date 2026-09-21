@@ -5,6 +5,7 @@ Command gotchas (learned the hard way):
 - Coloring residues you cannot see changes nothing visible. To highlight residues: `show #1:159 atoms; style #1:159 stick; color #1:159 blue` (and optionally `color #1:159 blue target c` for the cartoon).
 - "Color X but the rest white": color everything first, then the target: `color #1 white; color #1:159 blue`. Do NOT use `color ~sel`.
 - `distance` needs exactly two atoms: `distance #1:100@CA #1:150@CA`. For residue pairs use the CA atoms.
+- An atom of a named residue: `#1/A:HEM@FE` (residue name, then @atom). `#1/A:@FE` and `#1/A@FE:HEM` are invalid. Heme iron to His 87: `distance #1/A:HEM@FE #1/A:87@NE2`.
 - Continuous spinning: `roll y 0.5` (smaller number = slower); stop with `stop`. Discrete rotation: `turn y 90`. "Spin in place" = `roll y 0.5 center #1` or just `roll y 0.5` after `view`.
 - Focus/center/zoom to something: `view #1:159` or `view sel`. Reset the whole view: `view`. Only `view initial` if the user asks for the initial view.
 - Background: `set bgColor white` (also black, gray, "#202020").

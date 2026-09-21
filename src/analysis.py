@@ -476,10 +476,12 @@ def set_residue_attr(session, model: str, attr: str, values: Dict[str, Any]) -> 
     m = _find_structure(session, model)
     if m is None:
         return {"error": _no_structure(session, model)}
+    warning = None
     try:
         Residue.register_attr(session, attr, "Pellaeon", attr_type=float)
-    except Exception:
-        pass
+    except Exception as e:  # an earlier registration with another type: values still color, tests like ::attr>3 will not
+        warning = "attribute %s could not be registered as a number (%s); 'select ::%s>value' will not work, coloring will" % (attr, e, attr)
+        session.logger.warning("Pellaeon: " + warning)
     by_key = {"%s:%d" % (r.chain_id, int(r.number)): r for r in m.residues}
     n = 0
     for k, v in values.items():
@@ -489,7 +491,10 @@ def set_residue_attr(session, model: str, attr: str, values: Dict[str, Any]) -> 
                 setattr(r, attr, float(v)); n += 1
             except (TypeError, ValueError):
                 pass
-    return {"set": n, "attr": attr}
+    out = {"set": n, "attr": attr}
+    if warning:
+        out["warning"] = warning
+    return out
 
 
 class AskMouseMode:

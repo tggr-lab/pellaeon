@@ -237,7 +237,8 @@ COMPARE_CONTACTS = ToolSpec(
     "and kept, matched through the alignment rather than by residue number. Draws lost contacts as red dashes on the "
     "reference and gained ones as green dashes on the other model. Use it for 'which contacts are lost when it opens', "
     "'what does the ligand touch in the closed form but not the open one', 'which salt bridges break'. Use "
-    "compare_structures instead when the question is how far things MOVED.",
+    "compare_structures instead when the question is how far things MOVED. Call it ONCE per request and report that "
+    "result; do not repeat it at other cutoffs.",
     {"type": "object", "properties": {
         "reference": {"type": "string", "description": "reference model spec, e.g. '#1' (the form whose contacts can be 'lost')"},
         "other": {"type": "string", "description": "model to compare against it, e.g. '#2'"},

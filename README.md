@@ -47,6 +47,7 @@ Every reply lists the commands it ran with copy, re-run and a link to the Chimer
 
 - [Website](https://tggr-lab.github.io/pellaeon/) and [illustrated tutorial](https://tggr-lab.github.io/pellaeon/tutorial.html)
 - [Install guide](https://tggr-lab.github.io/pellaeon/install.html) (providers, privacy, where things are stored)
+- [Pellaeon and ChimeraX's mcp command](https://tggr-lab.github.io/pellaeon/mcp.html): how they differ, and the `pellaeon tool ...` commands that work from either
 - [Classic edition](classic/README.md) for UCSF Chimera 1.x
 
 ## Development

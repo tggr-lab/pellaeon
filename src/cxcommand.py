@@ -35,3 +35,5 @@ def register(name, logger):
     desc = CmdDesc(optional=[("request", RestOfLine)],
                    synopsis="Ask Pellaeon to do something in plain English")
     _register(name, desc, pellaeon_cmd, logger=logger)
+    from .cxtools import register_tools
+    register_tools(name, logger)
