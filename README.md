@@ -4,7 +4,7 @@
 
 Pellaeon adds a chat panel to [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/). You type what you want:
 
-> open the AlphaFold model of F2RL1 and color residue 159 blue
+> open the AlphaFold model of ADRB2 and color residue 159 blue
 > make it look publication ready
 > measure the distance between residues 100 and 150
 

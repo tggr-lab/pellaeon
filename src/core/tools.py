@@ -41,7 +41,7 @@ RUN_COMMANDS = ToolSpec(
                 "type": "array",
                 "items": {"type": "string"},
                 # Deliberately not a runnable request: with a real accession here, small models
-                # opened alphafold:P55085 on turns that had nothing to do with it.
+                # opened alphafold:P07550 on turns that had nothing to do with it.
                 "description": "ChimeraX commands, one per item, each a command name followed by its arguments",
             }
         },
@@ -90,7 +90,7 @@ RESOLVE_PROTEIN = ToolSpec(
     {
         "type": "object",
         "properties": {
-            "query": {"type": "string", "description": "Gene symbol or protein name, e.g. 'F2RL1', 'PAR2', 'human insulin receptor'"},
+            "query": {"type": "string", "description": "Gene symbol or protein name, e.g. 'ADRB2', 'ADRB2', 'human insulin receptor'"},
             "organism": {"type": "string", "description": "Organism name or NCBI taxon id; default 'human'", "default": "human"},
         },
         "required": ["query"],
@@ -105,7 +105,7 @@ PROTEIN_FEATURES = ToolSpec(
     {
         "type": "object",
         "properties": {
-            "accession": {"type": "string", "description": "UniProt accession, e.g. P55085"},
+            "accession": {"type": "string", "description": "UniProt accession, e.g. P07550"},
             "kinds": {
                 "type": "array",
                 "items": {"type": "string"},
@@ -258,7 +258,7 @@ FETCH_ANNOTATION = ToolSpec(
     "residues were colored and the value range. Never invent these numbers: if the source has no data, say so.",
     {"type": "object", "properties": {
         "source": {"type": "string", "enum": ["alphamissense", "conservation"], "description": "which database"},
-        "protein": {"type": "string", "description": "UniProt accession for alphamissense (P55085); 4-character PDB ID for conservation (1UBQ)"},
+        "protein": {"type": "string", "description": "UniProt accession for alphamissense (P07550); 4-character PDB ID for conservation (1UBQ)"},
         "model": {"type": "string", "description": "model spec to color, default '#1'"},
         "chain": {"type": "string", "description": "chain id; conservation needs it when the entry has several chains"}},
      "required": ["source", "protein"]},
@@ -272,7 +272,7 @@ MAP_NUMBERING = ToolSpec(
     "differs from UniProt numbering (missing initiator Met, expression tags, construct boundaries).",
     {"type": "object", "properties": {
         "model": {"type": "string", "description": "model spec, e.g. '#1'"},
-        "protein": {"type": "string", "description": "UniProt accession (P55085) or gene/protein name; the chain's own UniProt entry when omitted"},
+        "protein": {"type": "string", "description": "UniProt accession (P07550) or gene/protein name; the chain's own UniProt entry when omitted"},
         "positions": {"type": "array", "items": {"type": "integer"}, "description": "UniProt positions to map"}},
      "required": ["model", "positions"]},
 )

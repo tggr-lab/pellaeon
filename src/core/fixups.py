@@ -38,7 +38,7 @@ _RULES: List[Tuple[str, Optional[str], str]] = [
      "There is no 'only'. Hide everything, then show the part: hide #1 target acs ; cartoon #1/B ; show #1/B atoms"),
     (r"^(cartoon|ribbon)\s+hide\b", None, "Use: ~cartoon #1  or  cartoon hide #1 (spec after hide)"),
     (r"^transparency\b", r"expected", "Syntax: transparency #1 50 target s   (s=surfaces, c=cartoons, a=atoms)"),
-    (r"^open\s+alphafold\s", None, "Use the prefix form without a space: open alphafold:P55085"),
+    (r"^open\s+alphafold\s", None, "Use the prefix form without a space: open alphafold:P07550"),
     (r"^(alphafold|esmfold)\s+fetch\b", None, "Use: open alphafold:ACCESSION (get the accession with resolve_protein)"),
     (r"^open\b", r"404|not found|failed", "That identifier does not exist. Use resolve_protein for gene/protein names, or a real 4-character PDB id."),
     (r"^(surface|surf)\b.*\bcolor\b", None, "Make the surface first, then color it: surface #1 ; color #1 red target s"),

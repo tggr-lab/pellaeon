@@ -125,10 +125,10 @@
   "id": "gene-lookup",
   "category": "open",
   "setup_commands": [],
-  "request": "open the af model for the gene f2rl1 and color it white",
-  "expected": "resolve_protein then open alphafold:P55085",
+  "request": "open the af model for the gene adrb2 and color it white",
+  "expected": "resolve_protein then open alphafold:P07550",
   "check_type": "state_expr",
-  "check": "any('P55085' in m.name.upper() for m in models) and ('resolve_protein' in [c[0] for c in record['calls']])"
+  "check": "any('P07550' in m.name.upper() for m in models) and ('resolve_protein' in [c[0] for c in record['calls']])"
  },
  {
   "id": "cannot-do",

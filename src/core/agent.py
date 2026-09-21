@@ -805,7 +805,7 @@ class Agent:
                            "named %s with its arguments instead of running it as text." % (w, w), "tool_misuse": w})
                 break
         if blocked is not None:
-            # The batch used to be discarded whole: asked to "open the AlphaFold model of PAR2 and show
+            # The batch used to be discarded whole: asked to "open the AlphaFold model of ADRB2 and show
             # its variants", a model that wrote `annotate ...` as text lost the `open` in front of it too,
             # and then reported the model as open. Run what came first, then report the offender.
             stop_at, err = blocked

@@ -1,9 +1,9 @@
 [
  {
-  "id": "hard-ambiguous-par-family",
+  "id": "hard-ambiguous-receptor-family",
   "category": "ambiguous-gene",
-  "request": "open the alphafold model of the PAR receptor and show me its 7TM helices",
-  "expected": "F2R/F2RL1/F2RL2/F2RL3 (PAR1-4) are all 'the PAR receptor'; genuinely ambiguous which one, so it must ask which one rather than guessing (e.g. silently defaulting to PAR1/F2R or PAR2/F2RL1).",
+  "request": "open the alphafold model of the adrenergic receptor and show me its 7TM helices",
+  "expected": "ADRA1A, ADRA2A, ADRB1, ADRB2 and more are all 'the adrenergic receptor'; genuinely ambiguous which one, so it must ask which one rather than guessing (e.g. silently defaulting to ADRB1/ADRB1 or ADRB2/ADRB2).",
   "check_type": "state_expr",
   "check": "bool(record['asks']) and len(ran) == 0",
   "setup_commands": [],
@@ -36,8 +36,8 @@
  {
   "id": "hard-gene-symbol-plddt-color",
   "category": "gene-pipeline",
-  "request": "open the alphafold model for F2RL3 and color it by pLDDT confidence",
-  "expected": "resolve_protein resolves F2RL3 (PAR4) to its UniProt accession, opens alphafold:ACCESSION (never an invented accession), and the ribbon shows the multi-colour AlphaFold confidence gradient, not a flat single colour.",
+  "request": "open the alphafold model for ADRA2A and color it by pLDDT confidence",
+  "expected": "resolve_protein resolves ADRA2A to its UniProt accession, opens alphafold:ACCESSION (never an invented accession), and the ribbon shows the multi-colour AlphaFold confidence gradient, not a flat single colour.",
   "check_type": "state_expr",
   "check": "any(re.search(r'alphafold:', c, re.I) for c in ran) and any(m.__class__.__name__=='AtomicStructure' and len({tuple(c) for c in m.residues.ribbon_colors}) >= 3 for m in models)",
   "setup_commands": [],
@@ -46,7 +46,7 @@
  {
   "id": "hard-two-genes-open-and-compare",
   "category": "gene-pipeline",
-  "request": "open the alphafold models for F2R and F2RL1 and tell me how similar they are",
+  "request": "open the alphafold models for ADRB1 and ADRB2 and tell me how similar they are",
   "expected": "Resolves both gene symbols via resolve_protein, opens two distinct AlphaFold models, then calls compare_structures to superpose and report differences (never invents accessions or skips straight to a guess).",
   "check_type": "state_expr",
   "check": "sum(1 for c in ran if re.search(r'alphafold:', c, re.I)) >= 2 and any(c[0]=='compare_structures' for c in record['calls'])",
@@ -56,8 +56,8 @@
  {
   "id": "hard-annotate-glycosylation-gene-pipeline",
   "category": "gene-pipeline",
-  "request": "open the af modle for F2RL2 and hilite any glycosylation sites",
-  "expected": "Typo-tolerant: resolves F2RL2 (PAR3) via resolve_protein, opens its AlphaFold model, then calls the annotate tool with kind glycosylation (not invented residue numbers).",
+  "request": "open the af modle for ADRB1 and hilite any glycosylation sites",
+  "expected": "Typo-tolerant: resolves ADRB1 via resolve_protein, opens its AlphaFold model, then calls the annotate tool with kind glycosylation (not invented residue numbers).",
   "check_type": "state_expr",
   "check": "any(re.search(r'alphafold:', c, re.I) for c in ran) and any(c[0]=='annotate' and 'glyco' in str(c[1].get('kind','')).lower() for c in record['calls'])",
   "setup_commands": [],
@@ -66,8 +66,8 @@
  {
   "id": "hard-clinvar-gene-pipeline",
   "category": "gene-pipeline",
-  "request": "show me the clinvar variants for f2rl3 on its af model, color by pathogenicity",
-  "expected": "Resolves F2RL3 (PAR4), opens its AlphaFold model, and calls annotate with a clinvar/pathogenic kind (never invents variant positions or colours from memory).",
+  "request": "show me the clinvar variants for adra2a on its af model, color by pathogenicity",
+  "expected": "Resolves ADRA2A, opens its AlphaFold model, and calls annotate with a clinvar/pathogenic kind (never invents variant positions or colours from memory).",
   "check_type": "state_expr",
   "check": "any(re.search(r'alphafold:', c, re.I) for c in ran) and any(c[0]=='annotate' and str(c[1].get('kind','')).lower() in ('clinvar','pathogenic','clinical') for c in record['calls'])",
   "setup_commands": [],

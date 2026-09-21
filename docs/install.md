@@ -99,6 +99,31 @@ When a limit is hit Pellaeon waits and retries rather than failing, and on the t
 
 What did not work: models without tool calling (Gemma 3, Falcon 3, EXAONE, most vision-only models) cannot drive ChimeraX at all; 20B-class models spill out of a 12 GB card and take ten times longer for no gain; below 4B the small models get most requests wrong, including several sold as tool-calling specialists. Ollama keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.
 
+### Models we tried
+
+The same request set, run through the real panel on this machine (RTX 4070 Super, 12 GB), plus a harder set of follow-ups, corrections and ambiguous requests. "Handled" means the request came out right in ChimeraX, checked by the program rather than by eye.
+
+| Model | Runs where | Handled | Speed | Free allowance | Notes |
+|---|---|---|---|---|---|
+| Mistral `ministral-8b-latest` | cloud, free key | all of the basic set, nearly all of the hard set | 2 to 3 s a request | ~190 requests a minute | The default. Can see the screen. |
+| Mistral `ministral-14b-latest` | cloud, free key | all of the basic set | 4 to 5 s | 30 a minute | No better than 8b here. |
+| Mistral `ministral-3b-latest` | cloud, free key | most | 2 s | 750 a minute | Misses the subtler requests. |
+| Gemini Flash-Lite | cloud, free key | all but one of the basic set | 7 s | 15 a minute, and a daily cap | Just as capable; slower, and a day of heavy use hits the daily cap. |
+| Gemini Flash | cloud, free key | unusable free | | 5 a minute | Every miss was a rate limit, not a mistake. |
+| Groq gpt-oss-20b / 120b / qwen3.8-27b | cloud, free key | unusable free | ~90 s once metered | 7000 to 8000 tokens a minute | Good models; the token meter allows about one request a minute. |
+| OpenRouter `openrouter/free` | cloud, free key | nearly all of a short set | 15 s | 50 requests a day in total | A dozen questions a day. |
+| qwen3:8b | Ollama, local | all of the basic set | 3 s | | The local reference. |
+| qwen3:4b | Ollama, local | all but one | 20 s | | 2.5 GB; the smallest that works. |
+| granite4.1:8b | Ollama, local | all but one | 5 s | | A close second locally. |
+| gemma4:e4b | Ollama, local | all but one | 5 s | | Sees the screen. |
+| qwen3:14b, gpt-oss:20b | Ollama, local | all but two | 8 s, 15 s | | Bigger, not better; 20b spills out of 12 GB. |
+| ministral-3:3b (local) | Ollama, local | most | 2 s | | 3 GB with vision; the best under 4B. |
+| command-r7b, cogito:8b, mistral-nemo:12b, granite4:micro, qwen2.5:3b | Ollama, local | about two thirds | | | Not enough. |
+| lfm2.5:8b, llama3.2:3b, llama3-groq-tool-use:8b, granite3.3:2b, smollm2:1.7b, nemotron-mini:4b | Ollama, local | half or less | | | Models sold as tool-calling specialists did worst. |
+| gemma3, falcon3, exaone3.5 | Ollama, local | cannot | | | No tool calling at all. |
+
+Two things carried across every model. Published function-calling benchmarks predicted almost nothing about driving real software. And on the free cloud tiers the allowance mattered more than the model: every failure we measured on Groq and Gemini Flash was a rate limit.
+
 ## Updating
 
 ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.

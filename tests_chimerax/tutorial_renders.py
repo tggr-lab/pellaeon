@@ -68,7 +68,7 @@ STEPS = [
     ("05_distance",  "measure the distance between the iron of the heme in chain A and the CA of residue 87 in chain A", [], True, True,
                      ["distance style radius 0.15 color gold decimalPlaces 2", "label height 0.7", "view #1/A:87 #1/A:HEM", "zoom 0.8"]),
     ("12_figure",    None, [], False, "figure", []),     # the Save figure form + result card
-    ("06_af",        "close everything, then open the AlphaFold model of the gene F2RL1", [], True, True, [LOOK, "view"]),
+    ("06_af",        "close everything, then open the AlphaFold model of the gene ADRB2", [], True, True, [LOOK, "view"]),
     ("06b_map",      "where is UniProt residue 159 in this structure?", [], True, True, []),
     ("06c_zoom",     "zoom in on residue 159 and bookmark this view as pocket", [], False, False, []),
     ("06c",          "now show the whole thing, then go back to the pocket view", [], True, True, []),

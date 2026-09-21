@@ -1,6 +1,6 @@
 """AlphaMissense / ConSurf-DB fetchers, driven by recorded responses (no network in the unit suite).
 
-The fixtures are trimmed copies of what the live endpoints actually returned for P55085 and 1UBQ on
+The fixtures are trimmed copies of what the live endpoints actually returned for P07550 and 1UBQ on
 2026-09-21; see the docstrings in core/annot_sources.py for the URLs.
 """
 import json
@@ -13,8 +13,8 @@ from conftest import FIXTURES
 from core import annot_sources as A
 from core.tables import guess_columns, table_rows, plan_overlay
 
-AM_CSV = open(os.path.join(FIXTURES, "alphamissense_P55085_trimmed.csv"), encoding="utf-8").read()
-AM_PRED = json.load(open(os.path.join(FIXTURES, "alphafold_prediction_P55085_trimmed.json"), encoding="utf-8"))
+AM_CSV = open(os.path.join(FIXTURES, "alphamissense_P07550_trimmed.csv"), encoding="utf-8").read()
+AM_PRED = json.load(open(os.path.join(FIXTURES, "alphafold_prediction_P07550_trimmed.json"), encoding="utf-8"))
 GRADES = open(os.path.join(FIXTURES, "consurf_6Q00_A_grades_trimmed.txt"), encoding="utf-8").read()
 CONSURF_API = json.load(open(os.path.join(FIXTURES, "consurf_1UBQ_A_api_trimmed.json"), encoding="utf-8"))
 
@@ -58,30 +58,29 @@ def _fake_consurf(monkeypatch, grades=GRADES, api=None, calls=None):
 
 def test_alphamissense_aggregates_per_position(monkeypatch, tmp_path):
     _fake_am(monkeypatch)
-    d = A.alphamissense("P55085", str(tmp_path))
+    d = A.alphamissense("P07550", str(tmp_path))
     assert d["columns"] == ["position", "wt", "am_mean", "am_max", "am_class"]
     assert [r[0] for r in d["rows"]] == ["1", "2", "3", "11", "30", "35"]
     first = d["rows"][0]
-    assert first[1] == "M" and first[2] == "0.2920" and first[3] == "0.6693"
+    assert first[1] == "M" and first[2] == "0.2803" and first[3] == "0.5542"
     assert d["n_variants"] == 133 and d["n_positions"] == 6
-    assert [r[4] for r in d["rows"]] == ["likely benign", "likely benign", "likely benign",
-                                         "ambiguous", "likely benign", "likely pathogenic"]
+    assert [r[4] for r in d["rows"]] == ['likely benign', 'likely benign', 'likely benign', 'likely benign', 'likely benign', 'ambiguous']
 
 
 def test_alphamissense_mean_and_max_match_hand_computation(monkeypatch, tmp_path):
     _fake_am(monkeypatch)
-    d = A.alphamissense("P55085", str(tmp_path))
-    scores = [float(l.split(",")[1]) for l in AM_CSV.splitlines()[1:] if l.startswith("R2")]
+    d = A.alphamissense("P07550", str(tmp_path))
+    scores = [float(l.split(",")[1]) for l in AM_CSV.splitlines()[1:] if l.startswith("G2")]
     assert float(d["rows"][1][2]) == pytest.approx(sum(scores) / len(scores), abs=5e-5)
     assert float(d["rows"][1][3]) == pytest.approx(max(scores), abs=5e-5)
 
 
 def test_position_with_two_wild_types_uses_the_canonical_sequence(monkeypatch, tmp_path):
-    # position 30 carries both N (canonical) and S substitutions; only N's 19 may be summarised
+    # position 30 carries both E (canonical) and S substitutions; only the canonical 19 may be summarised
     _fake_am(monkeypatch)
-    d = A.alphamissense("P55085", str(tmp_path))
+    d = A.alphamissense("P07550", str(tmp_path))
     pos30 = [r for r in d["rows"] if r[0] == "30"][0]
-    assert pos30[1] == "N" and float(pos30[2]) == pytest.approx(0.1134, abs=1e-4)
+    assert pos30[1] == "E" and float(pos30[2]) == pytest.approx(0.2726, abs=1e-4)
 
 
 def test_am_class_cutoffs():
@@ -95,14 +94,14 @@ def test_am_class_cutoffs():
 
 def test_am_class_of_the_mean_is_what_the_row_carries(monkeypatch, tmp_path):
     _fake_am(monkeypatch)
-    for pos, wt, mean, mx, cls in A.alphamissense("P55085", str(tmp_path))["rows"]:
+    for pos, wt, mean, mx, cls in A.alphamissense("P07550", str(tmp_path))["rows"]:
         assert cls == A.am_class(float(mean)) and float(mx) >= float(mean)
 
 
 def test_alphamissense_dataset_is_uniprot_numbered_and_named(monkeypatch, tmp_path):
     _fake_am(monkeypatch)
-    d = A.alphamissense("p55085", str(tmp_path))
-    assert d["accession"] == "P55085" and d["position_numbering"] == "uniprot"
+    d = A.alphamissense("p07550", str(tmp_path))
+    assert d["accession"] == "P07550" and d["position_numbering"] == "uniprot"
     assert d["source"].startswith("AlphaMissense") and "alphafold.ebi.ac.uk" in d["source_url"]
     assert d["palette"] == "blue-white-red"
 
@@ -122,7 +121,7 @@ def test_alphamissense_network_failure_is_reported_not_raised(monkeypatch, tmp_p
     def boom(*a, **k):
         raise ConnectionError("Could not reach alphafold.ebi.ac.uk")
     monkeypatch.setattr(A, "request_json", boom)
-    d = A.alphamissense("P55085", str(tmp_path))
+    d = A.alphamissense("P07550", str(tmp_path))
     assert d["error"].startswith("AlphaMissense request failed") and "alphafold" in d["error"]
 
 
@@ -133,14 +132,14 @@ def test_alphamissense_requires_an_accession(tmp_path):
 def test_alphamissense_cache_is_reused_and_expires(monkeypatch, tmp_path):
     calls = []
     _fake_am(monkeypatch, calls=calls)
-    A.alphamissense("P55085", str(tmp_path))
+    A.alphamissense("P07550", str(tmp_path))
     n = len(calls)
-    A.alphamissense("P55085", str(tmp_path))
+    A.alphamissense("P07550", str(tmp_path))
     assert len(calls) == n, "second call must come from disk"
-    cached = tmp_path / "alphamissense_P55085.json"
+    cached = tmp_path / "alphamissense_P07550.json"
     assert cached.exists()
     os.utime(cached, (0, time.time() - 31 * 86400))
-    A.alphamissense("P55085", str(tmp_path))
+    A.alphamissense("P07550", str(tmp_path))
     assert len(calls) == 2 * n, "a 31-day-old cache entry must be refetched"
 
 
@@ -180,8 +179,8 @@ def test_consurf_skips_positions_with_no_atom_record(monkeypatch, tmp_path):
 
 
 def test_consurf_rejects_a_uniprot_accession_with_an_actionable_message(tmp_path):
-    d = A.conservation("P55085", "A", str(tmp_path))
-    assert "PDB" in d["error"] and "P55085" in d["error"]
+    d = A.conservation("P07550", "A", str(tmp_path))
+    assert "PDB" in d["error"] and "P07550" in d["error"]
 
 
 def test_consurf_unknown_entry(monkeypatch, tmp_path):
@@ -221,7 +220,7 @@ def test_consurf_failure_is_reported(monkeypatch, tmp_path):
 
 def test_alphamissense_dataset_feeds_guess_and_plan(monkeypatch, tmp_path):
     _fake_am(monkeypatch)
-    d = A.alphamissense("P55085", str(tmp_path))
+    d = A.alphamissense("P07550", str(tmp_path))
     g = guess_columns(d["columns"], d["rows"])
     assert g["position"] == 0 and g["reference"] == 1 and g["default_value"] == 2 and g["categories"] == [4]
     rows = table_rows(d, g, 2)

@@ -1,7 +1,7 @@
 """Headless check of the fetched annotation overlays (needs the network):
 chimerax --nogui --exit --script tests_chimerax/annot_sources_test.py
 
-Fetches AlphaMissense for the PAR2 AlphaFold model and ConSurf-DB grades for 1ubq, then drives the
+Fetches AlphaMissense for the ADRB2 AlphaFold model and ConSurf-DB grades for 1ubq, then drives the
 existing table-overlay path (agent._table_overlay) over each, exactly as table_overlay_test.py does.
 """
 import os
@@ -52,17 +52,17 @@ def report(tag, out, expect_min):
 ex = ChimeraXExecutor(session)  # noqa: F821 - ChimeraX injects `session`
 agent = Agent(NoProvider(), ex)
 
-# --- AlphaMissense on the PAR2 AlphaFold model (UniProt numbering) --------------------------------
-run(session, "open alphafold:P55085", log=False)  # noqa: F821
-am = annot_sources.alphamissense("P55085", CACHE)
+# --- AlphaMissense on the ADRB2 AlphaFold model (UniProt numbering) --------------------------------
+run(session, "open alphafold:P07550", log=False)  # noqa: F821
+am = annot_sources.alphamissense("P07550", CACHE)
 if am.get("error"):
     print("FAIL alphamissense fetch: %s" % am["error"])
 else:
     print("alphamissense: %d positions, %d variants, source %s" % (am["n_positions"], am["n_variants"], am["source"]))
-    load(agent, am, "alphamissense_P55085")
-    out = agent._table_overlay("alphamissense_P55085", "am_mean", None, "blue-white-red", "#1", am["accession"], False)
+    load(agent, am, "alphamissense_P07550")
+    out = agent._table_overlay("alphamissense_P07550", "am_mean", None, "blue-white-red", "#1", am["accession"], False)
     report("alphamissense mean", out, 350)
-    out = agent._table_overlay("alphamissense_P55085", "am_class", None, "", "#1", am["accession"], False)
+    out = agent._table_overlay("alphamissense_P07550", "am_class", None, "", "#1", am["accession"], False)
     print("  classes:", out.get("legend", out.get("error")))
 
 # --- ConSurf-DB on 1ubq (PDB numbering, no accession) ---------------------------------------------
@@ -77,5 +77,5 @@ else:
     report("consurf grade", out, 70)
 
 # --- the error path a user will actually hit ------------------------------------------------------
-print("PASS error path" if "PDB" in (annot_sources.conservation("P55085", "A", CACHE).get("error") or "")
+print("PASS error path" if "PDB" in (annot_sources.conservation("P07550", "A", CACHE).get("error") or "")
       else "FAIL error path")

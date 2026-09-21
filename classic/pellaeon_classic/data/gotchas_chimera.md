@@ -8,7 +8,7 @@ Classic Chimera command gotchas (Midas syntax; this is NOT ChimeraX):
 - Distance: `distance :10.A@CA :20.A@CA` (two atoms). Labels: `rlabel :10` (residue), `label :10@CA` (atom); remove: `~rlabel`, `~label`.
 - Hydrogen bonds: `findhbond`; clashes: `findclash :10 test others`; contacts are `findclash ... overlap -0.4 hbond false`.
 - Transparency: `transparency 50 #0` (surfaces); ribbons/atoms via `color red,r` with alpha? use `transparency 50,r #0`.
-- Open by id: `open 1zik` (PDB), AlphaFold: `open https://alphafold.ebi.ac.uk/files/AF-P55085-F1-model_v4.pdb` (get the accession with resolve_protein).
+- Open by id: `open 1zik` (PDB), AlphaFold: `open https://alphafold.ebi.ac.uk/files/AF-P07550-F1-model_v4.pdb` (get the accession with resolve_protein).
 - Color by B-factor / pLDDT: `rangecolor bfactor,a,r 50 red 70 yellow 90 blue`. Secondary structure: `color red,r helix; color yellow,r strand; color gray,r coil`.
 - Align two models: `matchmaker #1 #0` (or `mm #1 #0`); RMSD only: `rmsd #0:1-100@CA #1:1-100@CA`.
 - Ligands and water: `display ligand; represent sphere ligand`, `~display solvent`, `delete solvent` (asks first).

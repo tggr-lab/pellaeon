@@ -13,11 +13,11 @@ def test_system_prompt_sections():
 
 
 def test_context_and_state():
-    state = {"models": [{"id": "#1", "name": "P55085", "type": "AtomicStructure", "num_residues": 397,
+    state = {"models": [{"id": "#1", "name": "P07550", "type": "AtomicStructure", "num_residues": 397,
                          "chains": [{"id": "A", "range": "1-397"}]}],
              "selection": {"num_atoms": 10, "num_residues": 2, "spec": "#1:159,300"}, "background": "black"}
     ctx = prompt.build_context(state, [{"title": "color", "section": "usage", "text": "Usage: color spec"}])
-    assert "#1 P55085 [AtomicStructure; 397 residues; chains A(1-397)]" in ctx
+    assert "#1 P07550 [AtomicStructure; 397 residues; chains A(1-397)]" in ctx
     assert "Selection: 10 atoms, 2 residues (#1:159,300)" in ctx
     assert "<docs>" in ctx and "Usage: color spec" in ctx
     assert "Nothing is open." in prompt.build_context({}, [])

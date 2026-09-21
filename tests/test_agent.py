@@ -33,7 +33,7 @@ class FakeExecutor:
         return [{"title": "color", "section": "usage", "text": "Usage: color spec color-spec"}]
 
     def resolve_protein(self, query, organism="human"):
-        return {"accession": "P55085", "gene": "F2RL1", "open_command": "open alphafold:P55085"}
+        return {"accession": "P07550", "gene": "ADRB2", "open_command": "open alphafold:P07550"}
 
     def protein_features(self, accession, kinds=None):
         return {"features": []}
@@ -126,18 +126,18 @@ class ScriptedProvider:
 
 def test_happy_path_open_and_color():
     prov = ScriptedProvider([
-        {"text": "Looking it up.", "calls": [("resolve_protein", {"query": "f2rl1"})]},
-        {"calls": [("run_commands", {"commands": ["open alphafold:P55085", "color #1 white"]})]},
-        "Opened F2RL1 and colored it white.",
+        {"text": "Looking it up.", "calls": [("resolve_protein", {"query": "adrb2"})]},
+        {"calls": [("run_commands", {"commands": ["open alphafold:P07550", "color #1 white"]})]},
+        "Opened ADRB2 and colored it white.",
     ])
     ex = FakeExecutor()
     seen = {"tools": [], "deltas": []}
     cb = Callbacks(on_text_delta=seen["deltas"].append, on_tool_start=lambda c: seen["tools"].append(c.name))
     agent = Agent(prov, ex, callbacks=cb, config=AgentConfig(autonomy=AUTONOMY_AUTO))
-    res = agent.run_turn("open the af model for f2rl1 and color it white")
-    assert res.reply == "Opened F2RL1 and colored it white."
+    res = agent.run_turn("open the af model for adrb2 and color it white")
+    assert res.reply == "Opened ADRB2 and colored it white."
     assert res.error is None
-    assert ex.ran == ["open alphafold:P55085", "color #1 white"]
+    assert ex.ran == ["open alphafold:P07550", "color #1 white"]
     assert seen["tools"] == ["resolve_protein", "run_commands"]
     roles = [m.role for m in agent.conversation]
     assert roles == ["user", "assistant", "tool", "assistant", "tool", "assistant"]
@@ -549,11 +549,11 @@ def test_variant_requests_are_nudged_to_the_annotate_tool():
 def test_unverified_alphafold_accession_is_refused():
     prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:P69905"]})]},
                              {"calls": [("resolve_protein", {"query": "HBB"})]},
-                             {"calls": [("run_commands", {"commands": ["open alphafold:P55085"]})]}, "done"])
+                             {"calls": [("run_commands", {"commands": ["open alphafold:P07550"]})]}, "done"])
     ex = FakeExecutor()
     agent = Agent(prov, ex, config=AgentConfig(nudge_on_no_action=False))
     agent.run_turn("open the alphafold model of the gene HBB")
-    assert "open alphafold:P69905" not in ex.ran and "open alphafold:P55085" in ex.ran  # P55085 came from resolve_protein
+    assert "open alphafold:P69905" not in ex.ran and "open alphafold:P07550" in ex.ran  # P07550 came from resolve_protein
     tr = json.loads(agent.conversation[2].tool_results_list()[0].content)
     assert tr["unverified_accession"] == "P69905"
     # an accession typed by the user is fine without a lookup
@@ -637,17 +637,17 @@ def test_table_column_words_do_not_trigger_residue_type_recoloring():
 def test_guessed_accession_is_verified_against_uniprot_instead_of_refused():
     class Ex(FakeExecutor):
         def protein_features(self, accession, kinds=None):
-            return {"gene": "F2RL1", "names": ["Proteinase-activated receptor 2"], "features": []}
-    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:P55085"]})]}, "Opened PAR2."])
+            return {"gene": "ADRB2", "names": ["Adrenergic receptor"], "features": []}
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:P07550"]})]}, "Opened ADRB2."])
     ex = Ex()
     agent = Agent(prov, ex)
-    res = agent.run_turn("open the alphafold model of F2RL1")
-    assert res.reply == "Opened PAR2." and "open alphafold:P55085" in ex.ran and len(prov.requests) == 2
+    res = agent.run_turn("open the alphafold model of ADRB2")
+    assert res.reply == "Opened ADRB2." and "open alphafold:P07550" in ex.ran and len(prov.requests) == 2
     # a guessed accession for a protein the user did not name is still refused, with the real gene named
-    prov2 = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:P55085"]})]}, "Hmm."])
+    prov2 = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open alphafold:P07550"]})]}, "Hmm."])
     ex2 = Ex()
     Agent(prov2, ex2).run_turn("open the alphafold model of TERT")
-    assert "open alphafold:P55085" not in ex2.ran and "UniProt says it is F2RL1" in str(prov2.requests[1])
+    assert "open alphafold:P07550" not in ex2.ran and "UniProt says it is ADRB2" in str(prov2.requests[1])
 
 
 def test_plain_label_commands_get_readable_style_and_dense_sets_short_text():
@@ -924,11 +924,11 @@ def test_save_figure_is_refused_for_a_request_chimerax_cannot_do():
 
 
 def test_the_run_commands_example_is_not_a_runnable_request():
-    """With a real accession in the tool schema, small models opened alphafold:P55085 on turns
+    """With a real accession in the tool schema, small models opened alphafold:P07550 on turns
     that had nothing to do with it."""
     from core.tools import RUN_COMMANDS
     desc = json.dumps(RUN_COMMANDS.to_dict())
-    assert "P55085" not in desc and "alphafold:" not in desc
+    assert "P07550" not in desc and "alphafold:" not in desc
 
 
 def test_the_only_gotchas_are_one_recipe_each():
@@ -964,9 +964,9 @@ def test_annotate_says_so_when_the_model_is_not_open():
     the structure was open."""
     ex = FakeExecutor()
     ex.spec_atoms = lambda text: {"used": text, "atoms": 0}
-    ex.protein_features = lambda acc, kinds=None: {"gene": "F2RL1", "features": []}
+    ex.protein_features = lambda acc, kinds=None: {"gene": "ADRB2", "features": []}
     agent = Agent(ScriptedProvider([]), ex)
-    out = agent._annotate("#1", "P55085", "domain", "orange", False)
+    out = agent._annotate("#1", "P07550", "domain", "orange", False)
     assert "error" in out and "No model matches" in out["error"]
 
 
@@ -992,7 +992,7 @@ def test_compact_mode_stops_retrieving_docs_every_turn():
 
 
 def test_resolve_protein_flags_a_family_name_as_ambiguous(monkeypatch):
-    """'the PAR receptor' matches F2R, F2RL1, F2RL2 and F2RL3 equally well; picking the first
+    """'the adrenergic receptor' matches ADRA1A, ADRA2A, ADRB1 and ADRB2 equally well; picking the first
     silently opens a different protein from the one the user meant."""
     from core import uniprot
 
@@ -1002,16 +1002,16 @@ def test_resolve_protein_flags_a_family_name_as_ambiguous(monkeypatch):
                 "proteinDescription": {"recommendedName": {"fullName": {"value": name}}},
                 "organism": {"scientificName": "Homo sapiens"}, "sequence": {"length": 100}}
 
-    results = [entry("Q96RI0", "F2RL3", "Proteinase-activated receptor 4", ["PAR4"]),
-               entry("P55085", "F2RL1", "Proteinase-activated receptor 2", ["PAR2"])]
+    results = [entry("P08913", "ADRA2A", "Adrenergic receptor", ["ADRA2A"]),
+               entry("P07550", "ADRB2", "Adrenergic receptor", ["ADRB2"])]
     monkeypatch.setattr(uniprot, "request_json", lambda *a, **k: {"results": results})
     u = uniprot.UniProtClient(None)
-    out = u.resolve("the PAR receptor")
-    assert [c["gene"] for c in out["ambiguous"]] == ["F2RL3", "F2RL1"]
+    out = u.resolve("the adrenergic receptor")
+    assert [c["gene"] for c in out["ambiguous"]] == ["ADRA2A", "ADRB2"]
     assert "ask_user" in out["note"]
-    assert out["accession"] == "Q96RI0"                       # still resolves, but says it is unsure
-    assert "ambiguous" not in u.resolve("PAR2")               # a synonym names one exactly
-    assert "ambiguous" not in u.resolve("F2RL3")
+    assert out["accession"] == "P08913"                       # still resolves, but says it is unsure
+    assert "ambiguous" not in u.resolve("ADRB2")               # a synonym names one exactly
+    assert "ambiguous" not in u.resolve("ADRA2A")
 
 
 def test_map_numbering_reports_the_offset_and_the_missing_positions():
@@ -1022,7 +1022,7 @@ def test_map_numbering_reports_the_offset_and_the_missing_positions():
         "map": {p: {"chain": "A", "number": p - 1, "resname": "ALA"} for p in positions if p != 200},
         "unmapped": [p for p in positions if p == 200], "note": ""}
     agent = Agent(ScriptedProvider([]), ex)
-    out = agent._map_numbering("#1", "P55085", [159, 160, 200])
+    out = agent._map_numbering("#1", "P07550", [159, 160, 200])
     assert out["offset"] == -1 and "UniProt - 1" in out["summary"]
     assert out["missing"] == [200] and out["found"] == 2
     assert out["positions"][0]["spec"] == "#1/A:158"
@@ -1088,9 +1088,9 @@ def test_annotate_asks_when_the_structure_has_several_proteins_and_the_user_name
 
 def test_fetch_annotation_loads_the_dataset_as_a_table_and_colors_by_it(monkeypatch):
     from core import annot_sources
-    ds = {"name": "alphamissense_p55085", "columns": ["position", "wt", "am_mean", "am_max", "am_class"],
+    ds = {"name": "alphamissense_p07550", "columns": ["position", "wt", "am_mean", "am_max", "am_class"],
           "rows": [["1", "M", "0.2", "0.4", "likely benign"], ["2", "R", "0.8", "0.9", "likely pathogenic"]],
-          "delimiter": ",", "accession": "P55085", "source": "AlphaMissense via AlphaFold DB", "source_url": "u",
+          "delimiter": ",", "accession": "P07550", "source": "AlphaMissense via AlphaFold DB", "source_url": "u",
           "palette": "alphamissense", "n_positions": 2, "value_range": [0.2, 0.8]}
     monkeypatch.setattr(annot_sources, "alphamissense", lambda acc, cache, **k: ds)
     ex = FakeExecutor()
@@ -1098,9 +1098,9 @@ def test_fetch_annotation_loads_the_dataset_as_a_table_and_colors_by_it(monkeypa
     seen = {}
     agent = Agent(ScriptedProvider([]), ex)
     agent._table_overlay = lambda *a: seen.update(args=a) or {"summary": "2 residues colored", "placed": 2}
-    out = agent._fetch_annotation("alphamissense", "P55085", "#1", "")
-    assert "alphamissense_p55085" in agent.tables and agent.tables["alphamissense_p55085"]["accession"] == "P55085"
-    assert seen["args"][:2] == ("alphamissense_p55085", "am_mean") and seen["args"][3] == "alphamissense"
+    out = agent._fetch_annotation("alphamissense", "P07550", "#1", "")
+    assert "alphamissense_p07550" in agent.tables and agent.tables["alphamissense_p07550"]["accession"] == "P07550"
+    assert seen["args"][:2] == ("alphamissense_p07550", "am_mean") and seen["args"][3] == "alphamissense"
     assert out["source"].startswith("AlphaMissense") and out["placed"] == 2
     monkeypatch.setattr(annot_sources, "conservation", lambda pdb, chain, cache, **k: {"error": "ConSurf-DB has no entry for XXXX."})
     assert "no entry" in agent._fetch_annotation("conservation", "XXXX", "#1", "A")["error"]

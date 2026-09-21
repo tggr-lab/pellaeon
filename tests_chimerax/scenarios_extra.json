@@ -1,11 +1,11 @@
 [
  {
-  "id": "novice-open_gene_af_f2rl1",
+  "id": "novice-open_gene_af_adrb2",
   "category": "opening",
-  "request": "open the af model for the gene f2rl1",
-  "expected": "Pellaeon resolves F2RL1 through UniProt to P55085 (never guessing) and opens the AlphaFold model, a 397-residue structure named 'AlphaFold ...'.",
+  "request": "open the af model for the gene adrb2",
+  "expected": "Pellaeon resolves ADRB2 through UniProt to P07550 (never guessing) and opens the AlphaFold model, a 413-residue structure named 'AlphaFold ...'.",
   "check_type": "state_expr",
-  "check": "any('ALPHAFOLD' in m.name.upper() for m in models) and any(getattr(m, 'num_residues', 0) == 397 for m in models)",
+  "check": "any('ALPHAFOLD' in m.name.upper() for m in models) and any(getattr(m, 'num_residues', 0) == 413 for m in models)",
   "setup_commands": []
  },
  {
@@ -345,11 +345,11 @@
   "id": "power-color_by_plddt",
   "category": "coloring",
   "request": "color it by pLDDT confidence again",
-  "expected": "Runs color bfactor with the alphafold palette on the PAR2 AlphaFold model, restoring a multi-color ribbon after the setup painted it white.",
+  "expected": "Runs color bfactor with the alphafold palette on the ADRB2 AlphaFold model, restoring a multi-color ribbon after the setup painted it white.",
   "check_type": "state_expr",
   "check": "any(m.__class__.__name__ == 'AtomicStructure' and len({tuple(c) for c in m.residues.ribbon_colors}) >= 3 for m in models)",
   "setup_commands": [
-   "open alphafold:P55085",
+   "open alphafold:P07550",
    "color #1 white"
   ]
  },

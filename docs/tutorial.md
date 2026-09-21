@@ -146,11 +146,11 @@ When the AI saves a figure on its own the image save asks for your OK first, lik
 
 ### Step 6 · Open an AlphaFold model by gene name
 
-> close everything, then open the AlphaFold model of the gene F2RL1
+> close everything, then open the AlphaFold model of the gene ADRB2
 
-Pellaeon looks the gene up in UniProt (F2RL1 is PAR2, accession P55085) and opens the AlphaFold model. AlphaFold models are colored by confidence (pLDDT): dark blue very confident, light blue confident, yellow low, orange very low. Confidence in the prediction of that stretch, not experimental evidence and not motion.
+Pellaeon looks the gene up in UniProt (ADRB2 is the beta-2 adrenergic receptor, accession P07550) and opens the AlphaFold model. AlphaFold models are colored by confidence (pLDDT): dark blue very confident, light blue confident, yellow low, orange very low. Confidence in the prediction of that stretch, not experimental evidence and not motion.
 
-![AlphaFold model of PAR2](img/tut/06_af.png)
+![AlphaFold model of ADRB2](img/tut/06_af.png)
 
 ![UniProt lookup then open](img/tut/06_af_panel.png)
 

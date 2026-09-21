@@ -43,7 +43,7 @@ def test_guide_chunks_are_searchable():
 
 def test_clinvar_uses_a_real_field_tag_for_missense():
     """'missense[consequence]' is not a ClinVar field tag; NCBI degrades an unknown tag to free
-    text, which returned zero variants for F2RL1, F2R and F2RL3."""
+    text, which returned zero variants for several genes we tried."""
     import inspect
     from core import clinvar
     src = inspect.getsource(clinvar)

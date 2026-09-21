@@ -2,7 +2,7 @@
 
 Ported from the user's earlier ClinVARing script, whose query used the tag "[consequence]".
 That is not a ClinVar field, and NCBI silently treats an unknown tag as free text, so genes such
-as F2RL1, F2R and F2RL3 came back with no variants at all. We esearch for
+as several genes we tried came back with no variants at all. We esearch for
 "<gene>[gene] AND \"missense variant\"[molecular consequence]",
 esummary in batches, parse the p.HGVS protein change, keep the most severe classification per position.
 """
@@ -67,7 +67,7 @@ class ClinVarClient:
                 pass
         try:
             # "[consequence]" is not a ClinVar field tag. NCBI silently treats an unknown tag as free
-            # text, so this searched for the word "missense" anywhere: F2RL1, F2R and F2RL3 returned
+            # text, so this searched for the word "missense" anywhere: several genes we tried returned
             # nothing at all, while BRCA1 quietly lost 11% of its records.
             term = '%s[gene] AND "missense variant"[molecular consequence]' % gene
             q = urllib.parse.urlencode({"db": "clinvar", "term": term, "retmode": "json", "retmax": max_results})

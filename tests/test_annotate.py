@@ -4,7 +4,7 @@ from core.annotate import build_annotation, uniprot_items, clinvar_items, normal
 def test_kinds_and_accessions():
     assert normalize_kind("clinvar") == (None, False, True)
     assert normalize_kind("disease")[1] is True and normalize_kind("tm")[0] == ["Transmembrane"]
-    assert is_accession("P55085") and is_accession("A0A024R161") and not is_accession("HBB")
+    assert is_accession("P07550") and is_accession("A0A024R161") and not is_accession("HBB")
 
 
 def test_build_annotation_ranges_labels_and_chimera_syntax():

@@ -1,6 +1,6 @@
 """ChimeraX command-line entry points:
 
-    pellaeon "open the alphafold model of F2RL1 and color it white"
+    pellaeon "open the alphafold model of ADRB2 and color it white"
     pellaeon settings            (open the panel on the settings page)
     pellaeon index rebuild       (rebuild the docs index)
 """

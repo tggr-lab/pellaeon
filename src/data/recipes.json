@@ -1,15 +1,15 @@
 [
  {
-  "request": "open the af model for the gene f2rl1",
+  "request": "open the af model for the gene adrb2",
   "commands": [
-   "open alphafold:P55085"
+   "open alphafold:P07550"
   ],
-  "note": "P55085 came from resolve_protein('F2RL1'); never guess accessions."
+  "note": "P07550 came from resolve_protein('ADRB2'); never guess accessions."
  },
  {
-  "request": "open the alphafold model for the gene f2rl1, after that color it in white but color amino acid 159 in blue",
+  "request": "open the alphafold model for the gene adrb2, after that color it in white but color amino acid 159 in blue",
   "commands": [
-   "open alphafold:P55085",
+   "open alphafold:P07550",
    "color #1 white",
    "show #1:159 atoms",
    "style #1:159 stick",
@@ -18,9 +18,9 @@
   ]
  },
  {
-  "request": "i want to see the human protein coded by the gene f2rl2",
+  "request": "i want to see the human protein coded by the gene adrb1",
   "commands": [
-   "open alphafold:P55085"
+   "open alphafold:P07550"
   ],
   "note": "resolve_protein first; open the AlphaFold model by accession."
  },
@@ -63,10 +63,10 @@
   "note": "delete needs confirmation."
  },
  {
-  "request": "close it, instead open f2rl3, and make it look publiction ready",
+  "request": "close it, instead open adra2a, and make it look publiction ready",
   "commands": [
    "close #1",
-   "open alphafold:Q96RI0",
+   "open alphafold:P08913",
    "preset \"overall look\" \"publication 1\"",
    "lighting soft",
    "graphics silhouettes true",
@@ -186,12 +186,12 @@
   ]
  },
  {
-  "request": "show the transmembrane helices of PAR2 in orange",
+  "request": "show the transmembrane helices of ADRB2 in orange",
   "commands": [
    "color #1 white",
    "color #1:47-73,84-107,124-147,169-192,222-247,271-294,305-329 orange target ac"
   ],
-  "note": "ranges from protein_features(accession, ['Transmembrane']) after resolve_protein('PAR2')."
+  "note": "ranges from protein_features(accession, ['Transmembrane']) after resolve_protein('ADRB2')."
  },
  {
   "request": "save a picture",

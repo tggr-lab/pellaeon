@@ -1,5 +1,5 @@
 [
- {"request": "open the af model for the gene f2rl1", "commands": ["open https://alphafold.ebi.ac.uk/files/AF-P55085-F1-model_v4.pdb"], "note": "P55085 from resolve_protein('F2RL1')."},
+ {"request": "open the af model for the gene adrb2", "commands": ["open https://alphafold.ebi.ac.uk/files/AF-P07550-F1-model_v4.pdb"], "note": "P07550 from resolve_protein('ADRB2')."},
  {"request": "color it white but make residue 159 blue", "commands": ["color white #0", "display :159", "represent stick :159", "color blue :159", "focus :159"]},
  {"request": "select amino acids 227 156 159 and show their atoms", "commands": ["select :227,156,159", "display sel", "represent stick sel"]},
  {"request": "mesure the distance between residues 100 and 150", "commands": ["distance :100.A@CA :150.A@CA"]},

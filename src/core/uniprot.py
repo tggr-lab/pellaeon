@@ -130,7 +130,7 @@ class UniProtClient:
                 out.update({"accession": best["accession"], "gene": best["gene"],
                             "protein_name": best["protein_name"], "length": best["length"],
                             "open_command": "open alphafold:%s" % best["accession"]})
-                # "the PAR receptor" matches F2R, F2RL1, F2RL2 and F2RL3 equally well, and picking the
+                # "the adrenergic receptor" matches ADRA1A, ADRA2A, ADRB1 and ADRB2 equally well, and picking the
                 # first one silently opens a different protein from the one the user meant. Say so.
                 toks = {w for w in re.split(r"[^a-z0-9]+", query.strip().lower()) if w}
                 named = any((c.get("gene") or "").lower() in toks or (c.get("accession") or "").lower() in toks

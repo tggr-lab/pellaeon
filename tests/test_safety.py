@@ -2,7 +2,7 @@ from core.safety import classify, needs_confirmation, split_commands, AUTONOMY_A
 
 
 def test_safe_commands():
-    for cmd in ["color #1 red", "open 1abc", "open alphafold:P55085", "open emdb:1080",
+    for cmd in ["color #1 red", "open 1abc", "open alphafold:P07550", "open emdb:1080",
                 "select #1:159", "view", "roll y 0.5", "surface #1", "open https://x.org/a.pdb",
                 "~cartoon #1", "hide solvent", "set bgColor white", "undo"]:
         assert not classify(cmd).confirm, cmd
