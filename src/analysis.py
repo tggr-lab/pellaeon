@@ -6,6 +6,24 @@ from typing import Any, Dict, List, Optional
 
 
 
+
+def _no_structure(session, spec: str) -> str:
+    """The error for a spec that is not an atomic model, naming the ones that are.
+
+    In a tutorial run the model asked to compare '#1' and '#2' after a color key and a
+    2D-label model had taken those ids; 'No atomic model #1 is open' gave it nothing to
+    recover with and it reported that the tool could not find protein residues.
+    """
+    from chimerax.atomic import AtomicStructure
+    have = ["#%s %s" % (m.id_string, m.name) for m in session.models.list() if isinstance(m, AtomicStructure)]
+    what = ""
+    for m in session.models.list():
+        if "#" + m.id_string == (spec or "").strip() or m.id_string == (spec or "").strip().lstrip("#"):
+            what = " (%s is a %s, not a structure)" % (spec, m.__class__.__name__)
+            break
+    return "No atomic model %s is open%s. Atomic models open: %s." % (spec, what, ", ".join(have) or "none")
+
+
 def _find_structure(session, spec: str):
     """Accept '#1', '1', '#1.1', a model name, or (if only one structure is open) anything."""
     from chimerax.atomic import AtomicStructure
@@ -32,7 +50,8 @@ def prepare_compare(session, reference: str, other: str, chain: Optional[str] = 
     a = _find_structure(session, reference)
     b = _find_structure(session, other)
     if a is None or b is None:
-        return {"error": "Need two open atomic models, e.g. #1 and #2 (got %s, %s)." % (reference, other)}
+        return {"error": "Need two open atomic models. %s %s" % (_no_structure(session, reference) if a is None else "",
+                                                                  _no_structure(session, other) if b is None else "")}
     if a is b:
         return {"error": "Reference and compared model are the same (%s)." % reference}
     if not chain and len(a.chains) > 1:
@@ -142,7 +161,7 @@ def map_positions(session, model: str, accession: str, positions: List[int]) -> 
     using the mmCIF/PDB struct_ref mapping (numbering offsets) when the file has it."""
     m = _find_structure(session, model)
     if m is None:
-        return {"error": "No atomic model %s is open." % model}
+        return {"error": _no_structure(session, model)}
     acc = (accession or "").upper()
     targets: List[Tuple[str, int, Tuple[int, int]]] = []   # (chain_id, offset, (db_start, db_end))
     note = ""
@@ -183,7 +202,7 @@ def chain_uniprot(session, model: str) -> Dict[str, Any]:
     """Read-only: the UniProt accessions the structure file associates with `model`'s chains."""
     m = _find_structure(session, model)
     if m is None:
-        return {"error": "No atomic model %s is open." % model, "accessions": []}
+        return {"error": _no_structure(session, model), "accessions": []}
     accs: List[str] = []
     try:
         from chimerax.atomic import uniprot_ids
@@ -435,7 +454,7 @@ def list_residues(session, model: str) -> Dict[str, Any]:
     """Read-only: {'model': '#1', 'residues': {'A:10': 'ALA', ...}} for polymer residues with a CA atom."""
     m = _find_structure(session, model)
     if m is None:
-        return {"error": "No atomic model %s is open." % model}
+        return {"error": _no_structure(session, model)}
     out = {}
     for r in m.residues:
         if r.polymer_type != 0 or r.find_atom("CA") is not None:
@@ -451,7 +470,7 @@ def set_residue_attr(session, model: str, attr: str, values: Dict[str, Any]) -> 
         return {"error": "Bad attribute name %r" % attr}
     m = _find_structure(session, model)
     if m is None:
-        return {"error": "No atomic model %s is open." % model}
+        return {"error": _no_structure(session, model)}
     try:
         Residue.register_attr(session, attr, "Pellaeon", attr_type=float)
     except Exception:
@@ -568,7 +587,7 @@ def residue_contacts(session, model_spec: str, cutoff: float = 4.0,
 
     m = _find_structure(session, model_spec)
     if m is None:
-        return {"error": "No atomic model %s is open." % model_spec}
+        return {"error": _no_structure(session, model_spec)}
     atoms = m.atoms
 
     wanted = set()

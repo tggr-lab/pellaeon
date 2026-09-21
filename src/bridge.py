@@ -345,6 +345,8 @@ class ChimeraXExecutor:
                         continue
                 entry: Dict[str, Any] = {"id": "#" + m.id_string, "name": m.name, "type": m.__class__.__name__,
                                          "display": bool(getattr(m, "display", True))}
+                if AtomicStructure is not None and not isinstance(m, AtomicStructure):
+                    entry["note"] = "not a structure: a key, label or surface model; do not compare or annotate it"
                 if AtomicStructure is not None and isinstance(m, AtomicStructure):
                     entry["num_residues"] = int(m.num_residues)
                     if "alphafold" in (m.name or "").lower():
