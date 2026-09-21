@@ -136,21 +136,14 @@ INDEX = """
 <div class="btns"><a class="btn primary" href="install.html">Install Pellaeon</a></div>
 <p class="small">Setup steps: <a href="install.html">install guide</a>. Choosing a local or cloud model: <a href="models.html#choosing-a-model">model guidance</a>. With the default confirmation setting, file writes and destructive actions wait for your approval.</p>
 
-<h2 id="see-it-work">See it work</h2>
-<p class="small">Recorded in ChimeraX with the panel. Choose an example, then play or stop the recording.</p>
-%(demos)s
-
 <h2>How it works</h2>
 <p>Pellaeon uses your current session and ChimeraX documentation to turn requests into commands. Each command is shown, and errors are returned to the model for correction.</p>
-<details class="howdet" open>
-<summary>How requests are handled</summary>
 <div class="howwrap">
 %(svg)s
 </div>
 <div class="howwrap-v">
 %(vsvg)s
 </div>
-</details>
 
 <h2>Reading a command</h2>
 <p class="small">Every reply shows the ChimeraX commands it ran. Tap or focus on a part to see what it means.</p>
@@ -176,6 +169,10 @@ INDEX = """
   <div><h3>Save figures and views</h3><p>Export images with their recorded commands and sources. Save views and reuse figure styles.</p></div>
   <a class="shot" href="img/tut/04_pub.png" title="Click to enlarge"><img src="img/tut/04_pub.png" alt="A publication-style close-up of a histidine side chain next to a heme"></a>
 </div>
+
+<h2 id="see-it-work">See it work</h2>
+<p class="small">Recorded in ChimeraX with the panel. Choose an example, then play or stop the recording.</p>
+%(demos)s
 
 <h2>Two editions</h2>
 <p>The ChimeraX edition is a native bundle with a docked panel (<a href="install.html">install it</a>); the classic edition drives UCSF Chimera 1.x through its REST server and shows the panel in your browser (<a href="classic.html">classic edition</a>). Both editions share the chat interface and model providers. Table overlays and some analysis tools are ChimeraX-only: <a href="classic.html#differences-from-the-chimerax-edition">see the feature differences</a>.</p>
@@ -245,7 +242,7 @@ def demos_html():
             '<figure class="demo-panel" id="demo-%s"%s>'
             '<button class="demo-play" type="button" aria-label="Play the recording">'
             '<img src="img/demo_%s_poster.png" data-poster="img/demo_%s_poster.png" data-gif="img/demo_%s.gif" alt="%s" loading="lazy">'
-            '<span class="play-overlay" aria-hidden="true"><span class="play-icon"></span><span class="badge">Play recording</span></span></button>'
+            '<span class="badge"><span class="tri" aria-hidden="true"></span>Play</span></button>'
             '<figcaption><span class="req">%s</span><span class="res">%s</span></figcaption>'
             '<p class="small"><a href="%s">Follow this guide</a> &middot; '
             '<a href="%s/tree/main/docs/examples/%s">Get the example files</a> &middot; '
