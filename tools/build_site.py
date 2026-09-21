@@ -42,8 +42,8 @@ def layout(title, body, active, toc_html=""):
 def md_page(src, out, active, title=None):
     text = open(src, encoding="utf-8").read()
     # links between markdown docs -> generated pages; relative image paths stay (docs/img)
-    text = (text.replace("../docs/img/", "img/").replace("classic/README.md", "classic.html").replace("docs/tutorial.md", "tutorial.html")
-                .replace("(tutorial.md)", "(tutorial.html)").replace("(install.md)", "(install.html)").replace("(classic.md)", "(classic.html)"))
+    text = (text.replace("../docs/img/", "img/").replace("classic/README.md", "classic.html").replace("docs/tutorial.md", "tutorial.html"))
+    text = re.sub(r"\((tutorial|install|classic)\.md(#[^)]*)?\)", lambda m: "(%s.html%s)" % (m.group(1), m.group(2) or ""), text)
     # developer sections stay in the repository README, not on the public page
     text = re.split(r"^## (?:Developing|Development|Building)\b.*$", text, maxsplit=1, flags=re.M)[0].rstrip() + "\n"
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"], extension_configs={"toc": {"toc_depth": "2-3"}})
@@ -106,8 +106,8 @@ INDEX = """
 <h2>What you get</h2>
 <div class="grid">
   <div class="card"><h3>Every command, visible</h3><p>Each reply lists the exact ChimeraX commands it ran, with copy, re-run and a link to ChimeraX's documentation for that command. Export a chat as a replayable .cxc script.</p></div>
-  <div class="card"><h3>Risky things ask first</h3><p>Closing models, deleting atoms, saving files and running scripts show an editable confirmation card. Everything else just happens.</p></div>
-  <div class="card"><h3>Local or cloud AI</h3><p>A free Mistral or Gemini key, Ollama on your own machine (free, private, nothing leaves it), Claude, OpenAI, or any OpenAI-compatible server. <a href="install.html#choosing-a-model">Which one?</a> <a href="install.html#models-we-tried">What we measured</a></p></div>
+  <div class="card"><h3>Risky things ask first</h3><p>Closing models, deleting atoms, saving files and running scripts show an editable confirmation card. Everything else runs without asking.</p></div>
+  <div class="card"><h3>Local or cloud AI</h3><p>A free Mistral or Gemini key, Ollama on your own machine (free, private, nothing leaves it), Claude, OpenAI, or any OpenAI-compatible server. <a href="install.html#choosing-a-model">Which one?</a> <a href="install.html#models-we-tried">Models we tried</a></p></div>
   <div class="card"><h3>Figures you can reproduce</h3><p>Save figure writes a folder, not a file: the image, a ChimeraX session, the replayable script, a per-residue color table, where every model came from, and a draft legend built only from what actually ran.</p></div>
   <div class="card"><h3>Ask why</h3><p>Select a residue and ask "why is this red?". Pellaeon answers from its own record: the command, table column, annotation or comparison that colored it, with the value and where it came from. A command that matched nothing is marked as such instead of getting a green tick.</p></div>
   <div class="card"><h3>Labels you can read</h3><p>Labels come out at a fixed size, on top of everything, black on white. Say "the labels overlap" and Pellaeon measures where each one lands on screen, nudges the ones that collide and removes the ones that cannot fit.</p></div>

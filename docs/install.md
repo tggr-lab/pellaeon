@@ -26,7 +26,7 @@ open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pella
 
 No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.
 
-**Offline or blocked download?** Get the `.whl` file from the [releases page](https://github.com/tggr-lab/pellaeon/releases) and type (quotes needed when the path has spaces):
+**Offline install:** get the `.whl` file from the [releases page](https://github.com/tggr-lab/pellaeon/releases) and type (quotes needed when the path has spaces):
 
 ```
 toolshed install "C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.whl"
@@ -48,7 +48,7 @@ toolshed install "C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.wh
 The first time the panel opens it shows provider cards. There is one decision to make: **local or cloud**.
 
 - **Local** (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time.
-- **Cloud** (Mistral or Gemini free tiers, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider. The free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models, so for unpublished structures use Ollama or a paid tier.
+- **Cloud** (Mistral or Gemini free tiers, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider; see **Privacy** below before using a free tier on unpublished structures.
 
 **Mistral is the one to start with:** a free key from [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys), no credit card, and about 190 requests a minute against 15 a minute on Gemini. The free tier serves the **Ministral** models and Pellaeon picks `ministral-8b-latest`; `mistral-small` and `mistral-medium` sit on the same key but need billing and refuse a free request straight away. The [tutorial](tutorial.md#2-connect-an-ai-once) walks through it.
 
@@ -70,18 +70,18 @@ Press **Test connection**, then **Save & use** or **Run a first request** (it sa
 
 ## Choosing a model
 
-Tested with Pellaeon's own request set (colors, selections, measurements, AlphaFold and UniProt lookups, comparisons, confirmations, typos, follow-ups), on an RTX 4070 Super with 12 GB.
+Picks below come from running Pellaeon's own request set on each model; full numbers are under Models we tried below.
 
 | Want | Pick | Why |
 |---|---|---|
 | Nothing to install | **Mistral `ministral-8b-latest`** (free) | Handles the whole request set, answers in about two seconds, and allows roughly 190 requests a minute, so you never wait. Free key, no credit card. It can also see the screen. |
-| Nothing to install, alternative | **Gemini `gemini-flash-lite-latest`** (free) | Just as reliable and can see the screen; 15 requests a minute is plenty for one person working normally. |
+| Nothing to install, alternative | **Gemini `gemini-flash-lite-latest`** (free) | Equally reliable and can see the screen; 15 requests a minute is plenty for one person working normally. |
 | Private, on a gaming GPU | **qwen3:8b** | The reference local model: reliable and quick on a 12 GB card. |
 | Private, and able to see the screen | **gemma4:e4b** | Vision plus tools; the only local model here that can review the view. |
 | Private, small GPU or CPU | **qwen3:4b** | Accurate but slower: expect 10 to 20 seconds a request. Below about 4B parameters models miss too much to be useful. |
 | Best quality, paid | Claude, OpenAI, Gemini Pro, or Mistral Medium | Worth it for long multi-step sessions. |
 
-### What the free tiers really allow
+### What the free tiers allow
 
 The limit matters more than the model. A single request carries your structure's state and the tool definitions, so it is a few thousand tokens, and one question usually takes two to four requests.
 
@@ -108,7 +108,7 @@ The same request set, run through the real panel on this machine (RTX 4070 Super
 | Mistral `ministral-8b-latest` | cloud, free key | all of the basic set, nearly all of the hard set | 2 to 3 s a request | ~190 requests a minute | The default. Can see the screen. |
 | Mistral `ministral-14b-latest` | cloud, free key | all of the basic set | 4 to 5 s | 30 a minute | No better than 8b here. |
 | Mistral `ministral-3b-latest` | cloud, free key | most | 2 s | 750 a minute | Misses the subtler requests. |
-| Gemini Flash-Lite | cloud, free key | all but one of the basic set | 7 s | 15 a minute, and a daily cap | Just as capable; slower, and a day of heavy use hits the daily cap. |
+| Gemini Flash-Lite | cloud, free key | all but one of the basic set | 7 s | 15 a minute, and a daily cap | As capable; slower, and a day of heavy use hits the daily cap. |
 | Gemini Flash | cloud, free key | unusable free | | 5 a minute | Every miss was a rate limit, not a mistake. |
 | Groq gpt-oss-20b / 120b / qwen3.8-27b | cloud, free key | unusable free | ~90 s once metered | 7000 to 8000 tokens a minute | Good models; the token meter allows about one request a minute. |
 | OpenRouter `openrouter/free` | cloud, free key | nearly all of a short set | 15 s | 50 requests a day in total | A dozen questions a day. |
@@ -122,7 +122,7 @@ The same request set, run through the real panel on this machine (RTX 4070 Super
 | lfm2.5:8b, llama3.2:3b, llama3-groq-tool-use:8b, granite3.3:2b, smollm2:1.7b, nemotron-mini:4b | Ollama, local | half or less | | | Models sold as tool-calling specialists did worst. |
 | gemma3, falcon3, exaone3.5 | Ollama, local | cannot | | | No tool calling at all. |
 
-Two things carried across every model. Published function-calling benchmarks predicted almost nothing about driving real software. And on the free cloud tiers the allowance mattered more than the model: every failure we measured on Groq and Gemini Flash was a rate limit.
+Two patterns held across every model: published function-calling benchmarks predicted almost nothing about driving real software, and on the free cloud tiers the allowance mattered more than the model. Every failure on Groq and Gemini Flash was a rate limit, not a mistake.
 
 ## Updating
 

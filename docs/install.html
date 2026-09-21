@@ -12,7 +12,7 @@
 <li><a href="#classic-edition-chimera-1x">Classic edition (Chimera 1.x)</a></li>
 <li><a href="#choosing-an-ai">Choosing an AI</a></li>
 <li><a href="#choosing-a-model">Choosing a model</a><ul>
-<li><a href="#what-the-free-tiers-really-allow">What the free tiers really allow</a></li>
+<li><a href="#what-the-free-tiers-allow">What the free tiers allow</a></li>
 <li><a href="#models-we-tried">Models we tried</a></li>
 </ul>
 </li>
@@ -66,7 +66,7 @@
 <li>The Pellaeon panel opens on the right and asks you to choose an AI. Later you find it under <strong>Tools ▸ General ▸ Pellaeon</strong>, and the <code>pellaeon</code> command works on the ChimeraX command line.</li>
 </ol>
 <p>No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.</p>
-<p><strong>Offline or blocked download?</strong> Get the <code>.whl</code> file from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and type (quotes needed when the path has spaces):</p>
+<p><strong>Offline install:</strong> get the <code>.whl</code> file from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and type (quotes needed when the path has spaces):</p>
 <pre><code>toolshed install &quot;C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.whl&quot;
 </code></pre>
 <p><strong>Uninstall:</strong> <code>toolshed uninstall ChimeraX-Pellaeon</code> in ChimeraX.</p>
@@ -83,9 +83,9 @@
 <p>The first time the panel opens it shows provider cards. There is one decision to make: <strong>local or cloud</strong>.</p>
 <ul>
 <li><strong>Local</strong> (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time.</li>
-<li><strong>Cloud</strong> (Mistral or Gemini free tiers, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider. The free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models, so for unpublished structures use Ollama or a paid tier.</li>
+<li><strong>Cloud</strong> (Mistral or Gemini free tiers, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider; see <strong>Privacy</strong> below before using a free tier on unpublished structures.</li>
 </ul>
-<p><strong>Mistral is the one to start with:</strong> a free key from <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, no credit card, and about 190 requests a minute against 15 a minute on Gemini. The free tier serves the <strong>Ministral</strong> models and Pellaeon picks <code>ministral-8b-latest</code>; <code>mistral-small</code> and <code>mistral-medium</code> sit on the same key but need billing and refuse a free request straight away. The <a href="tutorial.md#2-connect-an-ai-once">tutorial</a> walks through it.</p>
+<p><strong>Mistral is the one to start with:</strong> a free key from <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, no credit card, and about 190 requests a minute against 15 a minute on Gemini. The free tier serves the <strong>Ministral</strong> models and Pellaeon picks <code>ministral-8b-latest</code>; <code>mistral-small</code> and <code>mistral-medium</code> sit on the same key but need billing and refuse a free request straight away. The <a href="tutorial.html#2-connect-an-ai-once">tutorial</a> walks through it.</p>
 <p>OpenRouter, Groq, LM Studio and custom endpoints are there too.</p>
 <p>All options:</p>
 <div class="table-wrap"><table>
@@ -136,7 +136,7 @@
 </table></div>
 <p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong> or <strong>Run a first request</strong> (it saves the settings and has the AI open ubiquitin and color it by chain). Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>MISTRAL_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
 <h2 id="choosing-a-model">Choosing a model</h2>
-<p>Tested with Pellaeon's own request set (colors, selections, measurements, AlphaFold and UniProt lookups, comparisons, confirmations, typos, follow-ups), on an RTX 4070 Super with 12 GB.</p>
+<p>Picks below come from running Pellaeon's own request set on each model; full numbers are under Models we tried below.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -154,7 +154,7 @@
 <tr>
 <td>Nothing to install, alternative</td>
 <td><strong>Gemini <code>gemini-flash-lite-latest</code></strong> (free)</td>
-<td>Just as reliable and can see the screen; 15 requests a minute is plenty for one person working normally.</td>
+<td>Equally reliable and can see the screen; 15 requests a minute is plenty for one person working normally.</td>
 </tr>
 <tr>
 <td>Private, on a gaming GPU</td>
@@ -178,7 +178,7 @@
 </tr>
 </tbody>
 </table></div>
-<h3 id="what-the-free-tiers-really-allow">What the free tiers really allow</h3>
+<h3 id="what-the-free-tiers-allow">What the free tiers allow</h3>
 <p>The limit matters more than the model. A single request carries your structure's state and the tool definitions, so it is a few thousand tokens, and one question usually takes two to four requests.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -263,7 +263,7 @@
 <td>all but one of the basic set</td>
 <td>7 s</td>
 <td>15 a minute, and a daily cap</td>
-<td>Just as capable; slower, and a day of heavy use hits the daily cap.</td>
+<td>As capable; slower, and a day of heavy use hits the daily cap.</td>
 </tr>
 <tr>
 <td>Gemini Flash</td>
@@ -363,7 +363,7 @@
 </tr>
 </tbody>
 </table></div>
-<p>Two things carried across every model. Published function-calling benchmarks predicted almost nothing about driving real software. And on the free cloud tiers the allowance mattered more than the model: every failure we measured on Groq and Gemini Flash was a rate limit.</p>
+<p>Two patterns held across every model: published function-calling benchmarks predicted almost nothing about driving real software, and on the free cloud tiers the allowance mattered more than the model. Every failure on Groq and Gemini Flash was a rate limit, not a mistake.</p>
 <h2 id="updating">Updating</h2>
 <p>ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
 <h2 id="where-things-are-stored">Where things are stored</h2>

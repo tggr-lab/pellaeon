@@ -30,7 +30,7 @@ The Pellaeon panel appears on the right. If you close it, or the next time you s
 
 ![Tools menu, General submenu, Pellaeon entry](img/tut/00_menu.png)
 
-Or type `ui tool show Pellaeon` in the command line. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See [Installation](install.md).)
+Or type `ui tool show Pellaeon` in the command line. Nothing else to install: no Python, no terminal, no admin rights. (For an offline install, see [Installation](install.md).)
 
 ![Pellaeon docked in ChimeraX](img/docked_4hhb.png)
 
@@ -38,7 +38,7 @@ Or type `ui tool show Pellaeon` in the command line. Nothing else to install: no
 
 The panel opens on its settings page. You have two easy choices:
 
-- **Nothing to install (recommended to start):** pick **Mistral**, click "get a key", sign up at console.mistral.ai, press *Create new key*, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses `ministral-8b-latest`, which the free tier serves at about 190 requests a minute, so you will not sit waiting on a quota. Google Gemini is just as good a choice at a slower 15 requests a minute; its key comes from AI Studio the same way.
+- **Nothing to install (recommended to start):** pick **Mistral**, click "get a key", sign up at console.mistral.ai, press *Create new key*, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses `ministral-8b-latest`, which the free tier serves at about 190 requests a minute, so you will not sit waiting on a quota. Google Gemini is an equally good choice at a slower 15 requests a minute; its key comes from AI Studio the same way.
 - **The AI runs on your computer:** pick **Ollama**. (Structures and annotations are still fetched from the PDB, UniProt and ClinVar when you ask for them.) Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
 
 One thing to know before you paste a cloud key: the free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models. What gets sent is your request, the list of open models and the current selection. For unpublished structures, use Ollama, where nothing leaves your computer, or a paid tier.
@@ -101,7 +101,7 @@ Select a residue and press **Why this color?**, or type it. Pellaeon does not gu
 
 ![Answer from the record](img/tut/03c_why_panel.png)
 
-Related: a command that runs without error but matches nothing (wrong residue numbers, wrong chain) is marked *changed nothing* with an amber dot, and the model is told to fix it, instead of getting a green tick.
+A command that runs without error but matches nothing (wrong residue numbers, wrong chain) is marked *changed nothing* with an amber dot, and the model is told to fix it, instead of getting a green tick.
 
 ### Step 4 · Make it look like a figure
 
@@ -276,7 +276,7 @@ Any per-residue table can be painted onto a structure: conservation scores, deep
 
 ![Result card and request](img/tut/11_table_panel.png)
 
-Technical note: every value is stored as a residue attribute named `pellaeon_<table>_<column>`, so ChimeraX's own attribute selection (`select ::pellaeon_ubiquitin_hydropathy_hydropathy>3`) and saved sessions work with it. Table overlays are ChimeraX-edition only.
+Every value is stored as a residue attribute named `pellaeon_<table>_<column>`, so ChimeraX's own attribute selection (`select ::pellaeon_ubiquitin_hydropathy_hydropathy>3`) and saved sessions work with it. Table overlays are ChimeraX-edition only.
 
 ## Part 3: Good to know
 
@@ -302,4 +302,4 @@ Technical note: every value is stored as a residue attribute named `pellaeon_<ta
 | Panel is blank | `Tools ▸ General ▸ Pellaeon` again, or restart ChimeraX. |
 | Something changed that you did not want | "undo", or reopen the structure. |
 
-Named after Gilad Pellaeon, captain of the *Chimaera*. Yes, sir.
+Yes, sir.

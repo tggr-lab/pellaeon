@@ -67,12 +67,12 @@
 </code></pre>
 <p>The Pellaeon panel appears on the right. If you close it, or the next time you start ChimeraX, open it from the menu: <strong>Tools ▸ General ▸ Pellaeon</strong>.</p>
 <figure><img alt="Tools menu, General submenu, Pellaeon entry" src="img/tut/00_menu.png" /><figcaption>Tools menu, General submenu, Pellaeon entry</figcaption></figure>
-<p>Or type <code>ui tool show Pellaeon</code> in the command line. Nothing else to install: no Python, no terminal, no admin rights. (Offline? See <a href="install.html">Installation</a>.)</p>
+<p>Or type <code>ui tool show Pellaeon</code> in the command line. Nothing else to install: no Python, no terminal, no admin rights. (For an offline install, see <a href="install.html">Installation</a>.)</p>
 <figure><img alt="Pellaeon docked in ChimeraX" src="img/docked_4hhb.png" /><figcaption>Pellaeon docked in ChimeraX</figcaption></figure>
 <h3 id="2-connect-an-ai-once">2. Connect an AI (once)</h3>
 <p>The panel opens on its settings page. You have two easy choices:</p>
 <ul>
-<li><strong>Nothing to install (recommended to start):</strong> pick <strong>Mistral</strong>, click "get a key", sign up at console.mistral.ai, press <em>Create new key</em>, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses <code>ministral-8b-latest</code>, which the free tier serves at about 190 requests a minute, so you will not sit waiting on a quota. Google Gemini is just as good a choice at a slower 15 requests a minute; its key comes from AI Studio the same way.</li>
+<li><strong>Nothing to install (recommended to start):</strong> pick <strong>Mistral</strong>, click "get a key", sign up at console.mistral.ai, press <em>Create new key</em>, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses <code>ministral-8b-latest</code>, which the free tier serves at about 190 requests a minute, so you will not sit waiting on a quota. Google Gemini is an equally good choice at a slower 15 requests a minute; its key comes from AI Studio the same way.</li>
 <li><strong>The AI runs on your computer:</strong> pick <strong>Ollama</strong>. (Structures and annotations are still fetched from the PDB, UniProt and ClinVar when you ask for them.) Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press <strong>Pull</strong> next to <code>qwen3:8b</code> once (5 GB, needs a gaming-class GPU; on a laptop pull <code>qwen3:4b</code> instead and expect slower answers).</li>
 </ul>
 <p>One thing to know before you paste a cloud key: the free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models. What gets sent is your request, the list of open models and the current selection. For unpublished structures, use Ollama, where nothing leaves your computer, or a paid tier.</p>
@@ -113,7 +113,7 @@
 <p>Why is residue 87 (HIS) of chain A in 4hhb this color?</p>
 </blockquote>
 <figure><img alt="Answer from the record" src="img/tut/03c_why_panel.png" /><figcaption>Answer from the record</figcaption></figure>
-<p>Related: a command that runs without error but matches nothing (wrong residue numbers, wrong chain) is marked <em>changed nothing</em> with an amber dot, and the model is told to fix it, instead of getting a green tick.</p>
+<p>A command that runs without error but matches nothing (wrong residue numbers, wrong chain) is marked <em>changed nothing</em> with an amber dot, and the model is told to fix it, instead of getting a green tick.</p>
 <h3 id="step-4-make-it-look-like-a-figure">Step 4 · Make it look like a figure</h3>
 <blockquote>
 <p>make it look publication ready and focus on the heme of chain A</p>
@@ -261,7 +261,7 @@
 </blockquote>
 <figure><img alt="Ubiquitin colored by hydropathy" src="img/tut/11_table.png" /><figcaption>Ubiquitin colored by hydropathy</figcaption></figure>
 <figure><img alt="Result card and request" src="img/tut/11_table_panel.png" /><figcaption>Result card and request</figcaption></figure>
-<p>Technical note: every value is stored as a residue attribute named <code>pellaeon_&lt;table&gt;_&lt;column&gt;</code>, so ChimeraX's own attribute selection (<code>select ::pellaeon_ubiquitin_hydropathy_hydropathy&gt;3</code>) and saved sessions work with it. Table overlays are ChimeraX-edition only.</p>
+<p>Every value is stored as a residue attribute named <code>pellaeon_&lt;table&gt;_&lt;column&gt;</code>, so ChimeraX's own attribute selection (<code>select ::pellaeon_ubiquitin_hydropathy_hydropathy&gt;3</code>) and saved sessions work with it. Table overlays are ChimeraX-edition only.</p>
 <h2 id="part-3-good-to-know">Part 3: Good to know</h2>
 <ul>
 <li><strong>Review the view:</strong> with a model that can see images (Gemini, Claude, OpenAI) and <em>Let the model look at screenshots</em> ticked in Settings ▸ Advanced, the <strong>Review the view</strong> chip makes Pellaeon take a screenshot, judge framing, clutter, labels and colors, fix what it can and look again. Local Ollama models cannot see the screen.</li>
@@ -310,7 +310,7 @@
 </tr>
 </tbody>
 </table></div>
-<p>Named after Gilad Pellaeon, captain of the <em>Chimaera</em>. Yes, sir.</p></article></div></main>
+<p>Yes, sir.</p></article></div></main>
 <script>if(window.innerWidth<820){document.querySelectorAll(".toc details[open]").forEach(function(d){d.removeAttribute("open");});}</script>
 <footer><div class="in">Pellaeon v0.2.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
 </body></html>
