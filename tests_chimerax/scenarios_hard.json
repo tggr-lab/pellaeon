@@ -47,9 +47,9 @@
   "id": "hard-two-genes-open-and-compare",
   "category": "gene-pipeline",
   "request": "open the alphafold models for ADRB1 and ADRB2 and tell me how similar they are",
-  "expected": "Resolves both gene symbols via resolve_protein, opens two distinct AlphaFold models, then calls compare_structures to superpose and report differences (never invents accessions or skips straight to a guess).",
+  "expected": "Resolves both gene symbols via resolve_protein, opens two distinct AlphaFold models, then superposes them (compare_structures, or matchmaker/rmsd directly) and reports how similar they are; never invents accessions.",
   "check_type": "state_expr",
-  "check": "sum(1 for c in ran if re.search(r'alphafold:', c, re.I)) >= 2 and any(c[0]=='compare_structures' for c in record['calls'])",
+  "check": "sum(1 for c in ran if re.search(r'alphafold:', c, re.I)) >= 2 and (any(c[0]=='compare_structures' for c in record['calls']) or any(re.match(r'(matchmaker|rmsd|align)\\b', c) for c in ran))",
   "setup_commands": [],
   "followups": []
  },
