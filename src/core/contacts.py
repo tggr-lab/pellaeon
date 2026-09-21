@@ -385,6 +385,9 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
     n_gained = len(result.get("gained") or [])
 
     cmds: List[str] = ["show %s models" % ref_model, "show %s models" % other_model,
+                       # keep the chains that were not compared out of the picture
+                       *["hide %s & ~/%s target acs" % (m, spec.split("/", 1)[1].split(":")[0])
+                         for m, spec in ((ref_model, ref_spec), (other_model, other_spec)) if "/" in spec],
                        "transparency %s 55 target c" % ref_model, "transparency %s 55 target c" % other_model,
                        "distance delete"]      # a previous comparison's dashes must not be read as this one's
 

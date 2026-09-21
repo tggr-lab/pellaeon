@@ -139,6 +139,10 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
     color_cmds = ["color byattribute r:pellaeon_disp %s palette 0,#bdbdbd:1,gold:3,orange:6,#b2182b range 0,6 target ac novalue #d9c6f0" % prep["other_spec"],
                   "color %s #b8c4d6 target ac" % prep["ref_spec"], "transparency %s 60 target c" % prep["ref_spec"],
                   "hide %s models" % prep["ref_spec"],
+                  # a chain-restricted comparison leaves the other chains of both models as untouched copies
+                  # floating next to the result; hide them so only what was analysed is on screen
+                  *(["hide #%s & ~/%s target acs" % (prep["ref_id"], prep["chain"]),
+                     "hide #%s & ~/%s target acs" % (prep["other_id"], prep["chain"])] if prep.get("chain") else []),
                   "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.36,0.04 size 0.28,0.035 fontSize 16",
                   '2dlabels create pellaeon_title text "C\u03b1 shift after fit (\u00c5); lavender = not compared" xpos 0.36 ypos 0.09 size 15 color black',
                   'zoom 0.85']
