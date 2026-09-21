@@ -1,0 +1,7 @@
+# Selected commands from the recorded run. Reproduce by typing the requests
+# in README.md; the column attribute below only exists after Pellaeon's
+# Import table action has run.
+open 1ubq
+color byattribute r:pellaeon_ubiquitin_hydropathy_hydropathy #1 palette blue:white:red range -4.5,4.5 target ac noValueColor gray
+key blue:-4.5 white:0 red:4.5 pos 0.70,0.05 size 0.27,0.035 fontSize 16
+2dlabels text "ubiquitin hydropathy hydropathy (gray = no value)" xpos 0.70 ypos 0.10 size 15 color black

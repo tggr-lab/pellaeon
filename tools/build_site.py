@@ -34,16 +34,45 @@ def layout(title, body, active, toc_html=""):
 <script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
 <script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <main>%s</main>
-<script>if(window.innerWidth<820){document.querySelectorAll(".toc details[open]").forEach(function(d){d.removeAttribute("open");});}</script>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
 <footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
 <script>
 (function(){
   document.querySelectorAll(".demo-play").forEach(function(btn){
     var img = btn.querySelector("img"), badge = btn.querySelector(".badge");
+    btn.dataset.playing = "0";
     btn.addEventListener("click", function(){
-      var playing = img.getAttribute("src") === img.dataset.gif;
-      img.setAttribute("src", playing ? img.dataset.poster : img.dataset.gif + "?t=" + Date.now());
-      badge.textContent = playing ? "play" : "pause";
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      badge.textContent = playing ? "Stop" : "Play";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    });
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) %% tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
     });
   });
   var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
@@ -105,15 +134,15 @@ INDEX = """
   <li><b>Connect a model.</b> Point Pellaeon at Ollama on your computer, or paste a key for a cloud provider. <a href="install.html#choosing-an-ai">Local or cloud</a></li>
   <li><b>Run the built-in test request.</b> A button on the settings page opens ubiquitin and colors it by chain.</li>
 </ol>
+<div class="btns"><a class="btn primary" href="install.html">Install Pellaeon</a></div>
+<p class="small">Setup steps: <a href="install.html">install guide</a>. Choosing a local or cloud model: <a href="models.html#choosing-a-model">model guidance</a>. With the default confirmation setting, file writes and destructive actions wait for your approval.</p>
 
 <h2 id="see-it-work">See it work</h2>
-<p class="small">Recorded in ChimeraX with the panel. Click a recording to play or pause it.</p>
-<div class="demos">
+<p class="small">Recorded in ChimeraX with the panel. Choose an example, then play or stop the recording.</p>
 %(demos)s
-</div>
 
 <h2>How it works</h2>
-<p>Your request goes to the model you chose together with what is open in ChimeraX and the documentation for your ChimeraX version. The model does not type into ChimeraX; it calls a fixed set of logged tools, and a command that fails is sent back with the ChimeraX error for another attempt.</p>
+<p>Pellaeon uses your current session and ChimeraX documentation to turn requests into commands. Each command is shown, and errors are returned to the model for correction.</p>
 <details class="howdet">
 <summary>How requests are handled</summary>
 <div class="howwrap">
@@ -125,7 +154,7 @@ INDEX = """
 </details>
 
 <h2>Reading a command</h2>
-<p class="small">Every reply shows the ChimeraX commands it ran. Point at each part.</p>
+<p class="small">Every reply shows the ChimeraX commands it ran. Tap or focus on a part to see what it means.</p>
 <div class="cmd" id="cmd">
 <span data-t="color: the command; paints atoms and cartoons">color</span> <span data-t="#1: model 1, the first structure opened">#1</span><span data-t="/A: chain A of that model">/A</span><span data-t=":113: residue 113 of that chain">:113</span> <span data-t="blue: a named ChimeraX color; hex values work too">blue</span>
 </div>
@@ -149,11 +178,6 @@ INDEX = """
   <a class="shot" href="img/tut/04_pub.png" title="Click to enlarge"><img src="img/tut/04_pub.png" alt="A publication-style close-up of a histidine side chain next to a heme"></a>
 </div>
 
-<h2>Get started</h2>
-<p>Install the panel, choose a local model or cloud provider, and run the built-in test request.</p>
-<p class="small">Local or cloud: Use Ollama on your computer or connect a supported cloud provider. Structure and annotation downloads still use external services. <a href="models.html#choosing-a-model">Which model</a></p>
-<p class="small">With the default confirmation setting, file writes and destructive actions wait for your approval.</p>
-
 <h2>Two editions</h2>
 <p>The ChimeraX edition is a native bundle with a docked panel (<a href="install.html">install it</a>); the classic edition drives UCSF Chimera 1.x through its REST server and shows the panel in your browser (<a href="classic.html">classic edition</a>). Both editions share the chat interface and model providers. Table overlays and some analysis tools are ChimeraX-only: <a href="classic.html#differences-from-the-chimerax-edition">see the feature differences</a>.</p>
 
@@ -164,30 +188,82 @@ INDEX = """
 
 
 
-DEMOS = [("figure", "A readable figure"), ("table", "A table on a structure"), ("compare", "Two conformations")]
+DEMOS = [
+    {
+        "key": "table", "label": "Map a table",
+        "req": "Import hydropathy scores and color ubiquitin.",
+        "res": "76 residues mapped, with a color legend.",
+        "guide": "tutorial.html#step-11-your-own-data-on-the-structure",
+    },
+    {
+        "key": "compare", "label": "Compare structures",
+        "req": "Compare structures and inspect contact differences.",
+        "res": "Residue displacements and lost/gained contacts shown.",
+        "guide": "tutorial.html#step-9-compare-two-conformations",
+    },
+    {
+        "key": "figure", "label": "Prepare a figure",
+        "req": "Rearrange overlapping labels, then save the figure.",
+        "res": "Labels rearranged; 7 removed. Figure and session saved.",
+        "guide": "tutorial.html#step-8b-when-labels-pile-up",
+    },
+]
+
+
+def _demo_commands(raw):
+    """Strip parenthetical asides ("(and 14 more ... commands)") out of the command log;
+    return the cleaned command lines plus a human note about what was left out."""
+    omissions = re.findall(r"\(and [^)]*\)", raw)
+    cleaned = re.sub(r"\s*\(and [^)]*\)", "", raw)
+    cmd_lines = [c.strip() for c in cleaned.split(" ; ") if c.strip()]
+    notes = [o[len("(and "):-1].strip() for o in omissions]
+    return cmd_lines, notes
 
 
 def demos_html():
-    """Three recorded workflows: poster shown, click plays the recording, commands underneath."""
-    out = []
-    for name, title in DEMOS:
-        p = os.path.join(DOCS, "img", "demo_%s.txt" % name)
-        if not os.path.exists(p):
-            continue
-        lines = [l.strip() for l in open(p, encoding="utf-8").read().splitlines() if l.strip()]
-        request, result, commands = (lines + ["", "", ""])[:3]
-        cmds = "\n".join(c.strip() for c in commands.split(" ; ") if c.strip())
-        out.append(
-            '<figure class="demo">'
-            '<figcaption><b>%s</b><span class="req">%s</span></figcaption>'
+    """One large player plus a row of selectable examples above it; poster shown until played."""
+    tabs, panels = [], []
+    for i, ex in enumerate(DEMOS):
+        key = ex["key"]
+        p = os.path.join(DOCS, "img", "demo_%s.txt" % key)
+        lines = [l.strip() for l in open(p, encoding="utf-8").read().splitlines() if l.strip()] if os.path.exists(p) else []
+        starting, outcome, commands = (lines + ["", "", ""])[:3]
+        cmd_lines, notes = _demo_commands(commands)
+
+        tabs.append(
+            '<button type="button" class="demo-tab%s" data-target="demo-%s" aria-selected="%s">%s</button>'
+            % (" active" if i == 0 else "", key, "true" if i == 0 else "false", html.escape(ex["label"])))
+
+        details_bits = []
+        if starting:
+            details_bits.append("<p>%s</p>" % html.escape(starting))
+        if outcome:
+            details_bits.append("<p>%s</p>" % html.escape(outcome))
+        if notes:
+            details_bits.append("<p>Selected commands below omit: %s.</p>" % "; ".join(html.escape(n) for n in notes))
+
+        panels.append(
+            '<figure class="demo-panel" id="demo-%s"%s>'
             '<button class="demo-play" type="button" aria-label="Play the recording">'
             '<img src="img/demo_%s_poster.png" data-poster="img/demo_%s_poster.png" data-gif="img/demo_%s.gif" alt="%s" loading="lazy">'
-            '<span class="badge">play</span></button>'
-            '<p class="small">%s <a href="img/demo_%s.gif">Open full size</a></p>'
-            '<details><summary>Commands it ran</summary><pre>%s</pre></details>'
-            '</figure>' % (html.escape(title), html.escape(request), name, name, name, html.escape(title),
-                           html.escape(result), name, html.escape(cmds)))
-    return "\n".join(out)
+            '<span class="badge">Play</span></button>'
+            '<figcaption><span class="req">%s</span><span class="res">%s</span></figcaption>'
+            '<p class="small"><a href="%s">Follow this guide</a> &middot; '
+            '<a href="%s/tree/main/docs/examples/%s">Get the example files</a> &middot; '
+            '<a href="img/demo_%s.gif">Open full size</a></p>'
+            '<details><summary>Details</summary>%s</details>'
+            '<details><summary>Selected commands</summary><pre>%s</pre></details>'
+            '</figure>' % (
+                key, "" if i == 0 else " hidden",
+                key, key, key, html.escape(ex["label"]),
+                html.escape(ex["req"]), html.escape(ex["res"]),
+                ex["guide"], REPO, key, key,
+                "".join(details_bits), html.escape("\n".join(cmd_lines)),
+            ))
+    return (
+        '<div class="demo-tabs" role="tablist" aria-label="Choose an example">%s</div>'
+        '<div class="demo-panels">%s</div>' % ("".join(tabs), "".join(panels))
+    )
 
 
 def index_page():

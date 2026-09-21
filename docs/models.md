@@ -20,7 +20,7 @@ Reviewing screenshots requires a vision-capable model and the review-the-view op
 | Nothing to install, alternative | Gemini `gemini-flash-lite-latest` (free) | 37/38 on the basic set and vision-capable; 15 requests a minute is enough for one person working normally. |
 | Private, on a gaming GPU | `qwen3:8b` | The local reference: 38/38 on the basic set, about three seconds a request on a 12 GB card. |
 | Private, and able to review screenshots | `gemma4:e4b` | 37/38, and vision plus tool calling in one local model. |
-| Private, small GPU or CPU | `qwen3:4b` | 37/38 but slower: 10 to 20 seconds a request. Below about 4B parameters the models miss too much to be useful. |
+| Private, small GPU or CPU | `qwen3:4b` | 37/38 but slower: 10 to 20 seconds a request. Of the models below 4B parameters tested here, on these request sets, most missed too much to be useful. |
 | Long multi-step sessions, paid | Claude, OpenAI, Gemini Pro or Mistral Medium | No free-tier limit to work around. |
 
 ## Cloud models
@@ -64,4 +64,6 @@ A single request carries the state of your structures and the tool definitions, 
 | `gemma3:12b`, `falcon3:3b`, `exaone3.5:2.4b` | no tool calling | | | cannot drive ChimeraX at all |
 | `cogito:3b`, `hermes3:3b`, `granite3.1-moe:3b` | hung | | | the run did not finish |
 
-Two things to keep in mind when reading the local numbers. The 20B-class models spilled out of the 12 GB card and took roughly ten times longer without scoring higher, and several models sold as tool-calling specialists scored near the bottom of this table. Ollama also keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.
+Two things to keep in mind when reading the local numbers. On this machine, larger models did not improve the basic-set score and were slower: the 20B-class models spilled out of the 12 GB card and slowed down accordingly, and several models sold as tool-calling specialists scored near the bottom of this table. Ollama also keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.
+
+Request sets used for these scores are in the repository: [`scenarios.json`](https://github.com/tggr-lab/pellaeon/blob/main/tests_chimerax/scenarios.json) (basic set), [`scenarios_extra.json`](https://github.com/tggr-lab/pellaeon/blob/main/tests_chimerax/scenarios_extra.json) (follow-ups and edge cases), [`scenarios_hard.json`](https://github.com/tggr-lab/pellaeon/blob/main/tests_chimerax/scenarios_hard.json) (multi-turn and ambiguous requests).

@@ -1,0 +1,28 @@
+# Selected commands from the recorded run. Reproduce by typing the requests
+# in README.md; the displacement attribute (pellaeon_disp) only exists after
+# Pellaeon's compare step has run. Additional lost- and gained-contact
+# "distance" commands from the recorded run are omitted below; one
+# representative example of each is kept.
+open 1ake
+open 4ake
+matchmaker #2/A to #1/A
+color byattribute r:pellaeon_disp #2/A palette 0,#bdbdbd:1,gold:3,orange:6,#b2182b range 0,6 target ac noValueColor #d9c6f0
+color #1/A #b8c4d6 target ac
+transparency #1/A 60 target c
+hide #1/A models
+key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.70,0.05 size 0.27,0.035 fontSize 16
+2dlabels text "Cα shift after fit (Å); lavender = not compared" xpos 0.70 ypos 0.10 size 15 color black
+matchmaker #2/A to #1/A
+show #1 models
+show #2 models
+transparency #1 55 target c
+transparency #2 55 target c
+distance delete
+show #1/A:10,11,15,18,33,36,53,54,55,56,116,119,130,131,132,138,156,158,163,164,166,167,198,199 atoms
+color #1/A:10,11,15,18,33,36,53,54,55,56,116,119,130,131,132,138,156,158,163,164,166,167,198,199 #b2182b target a
+distance #1/A:119@NH1 #1/A:10@O color #b2182b dashes 6 radius 0.08
+show #2/A:113,114,117,118,165 atoms
+color #2/A:113,114,117,118,165 #1a9850 target a
+distance #2/A:165@NH2 #2/A:114@OE1 color #1a9850 dashes 6 radius 0.08
+key #b2182b:lost #1a9850:gained colorTreatment distinct pos 0.68,0.05 size 0.28,0.035 fontSize 15
+2dlabels text "Contacts lost (red, on #1) and gained (green, on #2); showing 16 of 16 lost and 4 of 4 gained" xpos 0.68 ypos 0.10 size 14 color black
