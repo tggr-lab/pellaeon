@@ -13,7 +13,7 @@ dynamic = ["classifiers", "requires-python", "version"]
 [project.readme]
 content-type = "text"
 text = """Pellaeon adds a chat panel to ChimeraX. Describe what you want in plain
-English ("open the AlphaFold model of F2RL1 and color residue 159 blue") and
+English ("open the AlphaFold model of ADRB2 and color residue 113 blue") and
 Pellaeon runs the ChimeraX commands for you, shows exactly what it ran, and
 fixes its own mistakes. Works with Ollama (local, free), Anthropic Claude,
 Google Gemini, OpenAI and any OpenAI-compatible server."""
