@@ -10,7 +10,7 @@ the command knowledge (Chimera's Midas-style syntax, models numbered from #0, `:
 ## Install and run
 
 1. Python 3.9 or newer (python.org; on Windows tick "Add Python to PATH"). Nothing else to install.
-2. Download `pellaeon-classic.zip` from the releases page and unzip it anywhere.
+2. Download `pellaeon-classic.zip` from the [releases page](https://github.com/tggr-lab/pellaeon/releases) and unzip it anywhere.
 3. Windows: double-click **Start Pellaeon Classic.cmd**. macOS: double-click **Start Pellaeon Classic.command**. Linux: `./start.sh`.
    A small launcher window opens (panel address, Chimera status, **Launch Chimera**, **Test**, activity log) and your
    browser opens the Pellaeon panel at `http://127.0.0.1:8765`.
@@ -31,7 +31,16 @@ the command knowledge (Chimera's Midas-style syntax, models numbered from #0, `:
 - No Python execution, no per-residue displacement coloring in *compare* (RMSD from matchmaker only).
 - Chat exports are `.cmd` Chimera command files; `copy file` (images), `save`, `close`, `delete`, `system` ask first.
 - Syntax lookups use the bundled Chimera documentation (Chimera has no `usage` command).
-- Everything else is the same: local or cloud models, confirmation cards, and it knows what is open and selected (via `list models` and `list selection`).
+- Both editions share the chat interface and model providers. It also knows what is open and selected (via `list models` and `list selection`),
+  and by default closing models, deleting atoms, saving files and running scripts require confirmation.
+
+These are ChimeraX-edition only:
+
+- table overlays (painting a per-residue CSV onto a structure)
+- contact comparison (which contacts and salt bridges are lost and gained between two conformations)
+- figure bundles (image, session, command script, color table and draft legend in one folder)
+- label tidying (moving overlapping labels apart)
+- screenshot review (the model looks at the view and fixes framing, clutter and colors)
 
 Tested with Chimera 1.20.
 

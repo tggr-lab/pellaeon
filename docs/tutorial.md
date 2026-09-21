@@ -38,16 +38,18 @@ Or type `ui tool show Pellaeon` in the command line. Nothing else to install: no
 
 The panel opens on its settings page. You have two easy choices:
 
-- **Nothing to install (recommended to start):** pick **Mistral**, click "get a key", sign up at console.mistral.ai, press *Create new key*, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses `ministral-8b-latest`, which the free tier serves at about 190 requests a minute, so you will not sit waiting on a quota. Google Gemini is an equally good choice at a slower 15 requests a minute; its key comes from AI Studio the same way.
-- **The AI runs on your computer:** pick **Ollama**. (Structures and annotations are still fetched from the PDB, UniProt and ClinVar when you ask for them.) Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
+- **Nothing to install (recommended to start):** pick **Mistral**, click "get a key", sign up at console.mistral.ai, press *Create new key*, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses `ministral-8b-latest`, which the free tier serves at about 190 requests a minute. Google Gemini is an equally good choice at 15 requests a minute; its key comes from AI Studio the same way.
+- **The AI runs on your computer:** pick **Ollama**. Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `qwen3:8b` once (5 GB, needs a gaming-class GPU; on a laptop pull `qwen3:4b` instead and expect slower answers).
 
-One thing to know before you paste a cloud key: the free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models. What gets sent is your request, the list of open models and the current selection. For unpublished structures, use Ollama, where nothing leaves your computer, or a paid tier.
+One thing to know before you paste a cloud key. With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings. The free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models: for unpublished work use Ollama, or check the provider's data-handling terms first ([Mistral](https://mistral.ai/terms), [Google](https://ai.google.dev/gemini-api/terms)).
 
 Press **Test connection**, then **Save & use**, or **Run a first request**, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.
 
 ![Settings page](img/01_settings.png)
 
 ## Part 2: Step by step
+
+Start from an empty session: if the first request opened ubiquitin for you, say "close everything" (it asks for confirmation) before Step 1. The model numbers in the text below assume you did, so hemoglobin is model #1.
 
 Type each request into the box at the bottom and press Enter. Typos and casual phrasing are fine. The pictures on this page were rendered on a white background with silhouettes (`set bgColor white; lighting soft; graphics silhouettes true`); yours will be on black until step 4, which is fine.
 
@@ -79,7 +81,7 @@ The **Ran 1 command** line is the exact ChimeraX command it used. Click it to ex
 
 ![Hemoglobin spinning](img/tut/spin_4hhb.gif)
 
-"stop it" stops. "slower", "spin the other way", "rock it back and forth" all work. Continuous motion is also the easiest way to check a figure from every side before you save it.
+"stop it" stops. "slower", "spin the other way", "rock it back and forth" all work.
 
 ### Step 3 · Click on something and ask about it
 
@@ -188,31 +190,19 @@ Pellaeon fetches the transmembrane segments from UniProt and colors exactly thos
 
 The same works for domains, binding sites, active sites, glycosylation, disulfides.
 
-### Step 8 · Disease variants from ClinVar
+### Step 8 · ClinVar variants
 
 > close everything and open the AlphaFold model of the gene HBB
 
-> show the ClinVar disease variants of HBB on it
+> show the ClinVar variants of HBB on it
 
-Hemoglobin beta again, this time the AlphaFold model, with the ClinVar missense positions that mapped onto the model colored by clinical significance: red pathogenic, orange likely pathogenic, magenta conflicting, yellow uncertain, cyan and blue (likely) benign. When several variants sit on one position the most severe class wins. The pathogenic ones are labeled; E7V is the sickle-cell mutation (ClinVar counts the initiator methionine, so it is Glu6→Val in mature-chain numbering). This is the AlphaFold model of one β chain, not the tetramer from step 1.
+Hemoglobin beta again, this time the AlphaFold model, with the ClinVar missense positions that mapped onto the model colored by clinical significance: red pathogenic, orange likely pathogenic, magenta conflicting, yellow uncertain, cyan and blue (likely) benign. When several variants share a position, the color shows the highest-priority classification: pathogenic, then likely pathogenic, then uncertain, then likely benign, then benign; the card lists all of them. The pathogenic ones are labeled; E7V is the sickle-cell mutation (ClinVar counts the initiator methionine, so it is Glu6→Val in mature-chain numbering). This is the AlphaFold model of one β chain, not the tetramer from step 1.
 
 ![ClinVar variants on hemoglobin beta](img/tut/08_clinvar.png)
 
 ![Result card](img/tut/08_clinvar_panel.png)
 
 Pellaeon maps UniProt numbering onto the model's chains (PDB entries often start counting differently) and checks that the residue in the model really is the reference amino acid; mismatches are skipped and counted in the card.
-
-### Step 7b · Re-use a look
-
-Once you have saved a figure bundle (step 5b), its styling can be applied to something else:
-
-> open 1omp and make it look like my hemoglobin figure
-
-Pellaeon replays the bundle's styling commands, colors, cartoon and surface style, lighting and background, on the new structure and leaves out the bundle's own open, save and close steps. That is how a lab keeps one look across a paper.
-
-![1omp styled like the hemoglobin figure](img/tut/07b_reuse.png)
-
-![What Pellaeon replayed](img/tut/07b_reuse_panel.png)
 
 ### Step 8b · When labels pile up
 
@@ -225,6 +215,18 @@ Pellaeon works out where every label sits on screen, moves the colliding ones to
 ![Labels after tidying](img/tut/08b_tidy.png)
 
 ![What was moved and removed](img/tut/08b_tidy_panel.png)
+
+### Step 8c · Re-use a look
+
+Once you have saved a figure bundle (step 5b), its styling can be applied to something else:
+
+> open 1omp and make it look like my hemoglobin figure
+
+Pellaeon replays the bundle's styling commands, colors, cartoon and surface style, lighting and background, on the new structure and leaves out the bundle's own open, save and close steps.
+
+![1omp styled like the hemoglobin figure](img/tut/07b_reuse.png)
+
+![What Pellaeon replayed](img/tut/07b_reuse_panel.png)
 
 ### Step 9 · Compare two conformations
 
@@ -244,7 +246,7 @@ The card leads with the change: how many residues moved more than 2 Å, the mean
 
 > which contacts are lost when it opens, and which salt bridges break?
 
-Where step 9 asks how far residues moved, this asks what they stopped touching. Pellaeon collects every residue-residue contact in both conformations, matches them through the same alignment, and draws the lost ones as red dashes on the closed form and the gained ones green on the open form, with a key. The reply leads with one sentence a biologist would write: how many contacts were lost and gained, which salt bridges broke, and where the change clusters. Add "for the ligand" to see only what the ligand touches in one form but not the other.
+Where step 9 asks how far residues moved, this asks what they stopped touching. Pellaeon collects every residue-residue contact in both conformations, matches them through the same alignment, and draws the lost ones as red dashes on the closed form and the gained ones green on the open form, with a key. The result lists lost and gained contacts and the residues involved, which salt bridges broke, and where the change clusters. Add "for the ligand" to see only what the ligand touches in one form but not the other.
 
 ![Contacts lost (red) and gained (green)](img/tut/09b_contacts.png)
 
@@ -256,7 +258,7 @@ Where step 9 asks how far residues moved, this asks what they stopped touching. 
 
 ![Confirmation card](img/tut/10_close_panel.png)
 
-Closing, deleting, saving files and running scripts always show this card with the exact commands, editable. **Run** or **Skip**. The dropdown at the top switches between *ask before every command*, *auto-run but ask for risky ones* (default) and *never ask*.
+By default, closing models, deleting atoms, saving files, and running scripts require confirmation. The card shows the exact commands and they are editable: **Run** or **Skip**. The dropdown at the top switches to the other two modes: *ask before every command* stops for every command, and *never ask* runs everything without a card.
 
 ### Step 11 · Your own data on the structure
 
@@ -280,11 +282,11 @@ Every value is stored as a residue attribute named `pellaeon_<table>_<column>`, 
 
 ## Part 3: Good to know
 
-- **Review the view:** with a model that can see images (Gemini, Claude, OpenAI) and *Let the model look at screenshots* ticked in Settings ▸ Advanced, the **Review the view** chip makes Pellaeon take a screenshot, judge framing, clutter, labels and colors, fix what it can and look again. Local Ollama models cannot see the screen.
-- **Green means it happened:** a command that ran but matched nothing shows an amber *changed nothing* mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.
+- **Review the view:** the **Review the view** chip makes Pellaeon take a screenshot, judge framing, clutter, labels and colors, fix what it can and look again. Reviewing screenshots requires a vision-capable model and the review-the-view option enabled in Settings. Which models were tested for it is on the [Tested models](models.html) page.
+- **Commands that match nothing are flagged:** a command that ran but matched nothing shows an amber *changed nothing* mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.
 - **Labels** are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.
 - **Undo:** "undo the last change" runs ChimeraX's undo, which reverses supported actions only; one request can be several actions, and labels or closing a model cannot be undone. Save a session (`.cxs`) before experimenting on something you care about.
-- **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Say "you did not" or "that didn't work" and it will not repeat the same thing.
+- **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Explain what went wrong so Pellaeon can revise the request.
 - **Export a session as a script:** the ⇩ button saves every command that actually ran as a `.cxc` file; replay it with `open myscript.cxc`.
 - **Your own data:** ⊞ imports a per-residue CSV/TSV (Step 11).
 - **Past chats:** ☰ lists them; + starts a new one.

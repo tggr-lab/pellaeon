@@ -15,7 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
 REPO = "https://github.com/tggr-lab/pellaeon"
 VERSION = re.search(r'__version__ = "([^"]+)"', open(os.path.join(ROOT, "src", "__init__.py")).read()).group(1)
-NAV = [("index.html", "Home"), ("install.html", "Install"), ("tutorial.html", "Tutorial"), ("classic.html", "Classic edition")]
+NAV = [("index.html", "Home"), ("install.html", "Install"), ("tutorial.html", "Tutorial"), ("models.html", "Tested models"), ("classic.html", "Classic edition")]
 
 
 DESC = "Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."
@@ -43,7 +43,7 @@ def md_page(src, out, active, title=None):
     text = open(src, encoding="utf-8").read()
     # links between markdown docs -> generated pages; relative image paths stay (docs/img)
     text = (text.replace("../docs/img/", "img/").replace("classic/README.md", "classic.html").replace("docs/tutorial.md", "tutorial.html"))
-    text = re.sub(r"\((tutorial|install|classic)\.md(#[^)]*)?\)", lambda m: "(%s.html%s)" % (m.group(1), m.group(2) or ""), text)
+    text = re.sub(r"\((tutorial|install|classic|models)\.md(#[^)]*)?\)", lambda m: "(%s.html%s)" % (m.group(1), m.group(2) or ""), text)
     # developer sections stay in the repository README, not on the public page
     text = re.split(r"^## (?:Developing|Development|Building)\b.*$", text, maxsplit=1, flags=re.M)[0].rstrip() + "\n"
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc", "sane_lists"], extension_configs={"toc": {"toc_depth": "2-3"}})
@@ -72,69 +72,68 @@ INDEX = """
   <div>
     <div class="term"><span class="path">~/molecules</span>$ pellaeon <span class="blink">&#9646;</span></div>
     <h1>Talk to ChimeraX in plain English.</h1>
-    <p class="lead">A chat panel inside UCSF ChimeraX. Say what you want; Pellaeon runs the commands, shows each one, fixes failures from ChimeraX's own errors and documentation, and asks before anything risky.</p>
+    <p class="lead">Open structures, inspect residues, compare models, and make figures from a chat panel inside ChimeraX. See the commands Pellaeon runs and copy or reuse them.</p>
     <div class="cmdbox"><pre id="install-cmd">open %(installer)s</pre><button onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').textContent).then(()=>this.textContent='Copied')">Copy</button></div>
-    <p class="small">Paste into ChimeraX's command line. <a href="install.html">Offline install and the classic Chimera edition</a>.</p>
-    <div class="btns"><a class="btn primary" href="install.html">Install</a><a class="btn" href="tutorial.html">Tutorial</a><a class="btn" href="%(repo)s/releases">Downloads</a></div>
+    <p class="small">Paste into ChimeraX's command line.</p>
+    <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="tutorial.html">See examples</a></div>
+    <p class="small"><a href="%(repo)s/releases">Downloads</a></p>
   </div>
   <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
 </section>
 
 <h2>Three steps</h2>
 <ol class="steps">
-  <li><b>Install the panel.</b> The one line above. <a href="install.html#chimerax-edition">Details</a></li>
-  <li><b>Connect a model.</b> Paste a free Mistral key, or point Pellaeon at Ollama on your own machine. <a href="tutorial.html#2-connect-an-ai-once">Get a free key</a> · <a href="install.html#choosing-an-ai">Local or cloud?</a></li>
-  <li><b>Run a first request.</b> A button on the settings page opens ubiquitin and colors it by chain, so you know the whole route works before you type your own.</li>
+  <li><b>Install the panel.</b> Paste the line above into ChimeraX's command line. <a href="install.html#chimerax-edition">Details</a></li>
+  <li><b>Connect a model.</b> Point Pellaeon at Ollama on your computer, or paste a key for a cloud provider. <a href="install.html#choosing-an-ai">Local or cloud</a></li>
+  <li><b>Run the built-in test request.</b> A button on the settings page opens ubiquitin and colors it by chain.</li>
 </ol>
 
-<h2>Say it like you would to a colleague</h2>
-<div class="example">open the AlphaFold model of ADRB2 and color residue 159 blue</div>
-<div class="example">select amino acids 227 156 159 and 326 and show their atoms</div>
-<div class="example">mesure the distance between 100 and 150</div>
+<h2>Example requests</h2>
+<div class="example">open the AlphaFold model of ADRB2 and color residue 113 blue</div>
+<div class="example">measure the distance between residues 100 and 150</div>
 <div class="example">compare these two models and tell me what changed</div>
-<div class="example">show the disease variants on this model</div>
 
 <h2>How it works</h2>
-<p class="small">A plain chat model guesses commands from memory and never sees what happened. Pellaeon gives the model your ChimeraX's documentation and the live session, restricts it to logged tools, stops risky actions for your OK, and feeds every error back so it can correct itself.</p>
+<p>Your request goes to the model you chose together with what is open in ChimeraX and the documentation for your ChimeraX version. The model does not type into ChimeraX; it calls a fixed set of logged tools, and a command that fails is sent back with the ChimeraX error for another attempt.</p>
+<details class="howdet">
+<summary>How requests are handled</summary>
 <div class="howwrap">
 %(svg)s
 </div>
 <div class="howwrap-v">
 %(vsvg)s
 </div>
+</details>
 
-<h2>What you get</h2>
-<div class="grid">
-  <div class="card"><h3>Every command, visible</h3><p>Each reply lists the exact ChimeraX commands it ran, with copy, re-run and a link to ChimeraX's documentation for that command. Export a chat as a replayable .cxc script.</p></div>
-  <div class="card"><h3>Risky things ask first</h3><p>Closing models, deleting atoms, saving files and running scripts show an editable confirmation card. Everything else runs without asking.</p></div>
-  <div class="card"><h3>Local or cloud AI</h3><p>A free Mistral or Gemini key, Ollama on your own machine (free, private, nothing leaves it), Claude, OpenAI, or any OpenAI-compatible server. <a href="install.html#choosing-a-model">Which one?</a> <a href="install.html#models-we-tried">Models we tried</a></p></div>
-  <div class="card"><h3>Figures you can reproduce</h3><p>Save figure writes a folder, not a file: the image, a ChimeraX session, the replayable script, a per-residue color table, where every model came from, and a draft legend built only from what actually ran.</p></div>
-  <div class="card"><h3>Ask why</h3><p>Select a residue and ask "why is this red?". Pellaeon answers from its own record: the command, table column, annotation or comparison that colored it, with the value and where it came from. A command that matched nothing is marked as such instead of getting a green tick.</p></div>
-  <div class="card"><h3>Labels you can read</h3><p>Labels come out at a fixed size, on top of everything, black on white. Say "the labels overlap" and Pellaeon measures where each one lands on screen, nudges the ones that collide and removes the ones that cannot fit.</p></div>
-  <div class="card"><h3>Click to ask</h3><p>Select a residue in the 3D view and ask what it is or what is nearby, or Alt-click it.</p></div>
-  <div class="card"><h3>Your own data on the structure</h3><p>Import a CSV of per-residue values. Pellaeon checks the numbering against the structure, reports what did not map, and colors by value or category. Each table stays available as a layer.</p></div>
-  <div class="card"><h3>Pathogenicity and conservation, one request</h3><p>"Color it by AlphaMissense" fetches DeepMind's predicted pathogenicity for every position of a human protein; "color by conservation" pulls ConSurf's grades for a PDB chain. Placed through the right numbering, with a key, and reported honestly when a database has nothing for that protein.</p></div>
-  <div class="card"><h3>Numbering you can trust</h3><p>Positions from a paper or UniProt rarely match a crystal structure's residue numbers. Ask where UniProt residue 159 is and Pellaeon maps it through the chain's own alignment, reports the offset, and colors the right residue.</p></div>
-  <div class="card"><h3>Bookmarks, movies, one look</h3><p>Bookmark a view and go back to it by name. Ask for a spin, a rock or a tour of your bookmarks as a movie. Apply the styling of a saved figure to the next structure so a paper keeps one look.</p></div>
-  <div class="card"><h3>Compare and annotate</h3><p>Superpose two models and color by displacement using MatchMaker's own alignment, or ask which contacts and salt bridges are lost and gained between two conformations. Pull UniProt features or ClinVar variants onto the right chain with the right numbering.</p></div>
+<h2>What you can do</h2>
+<div class="group">
+  <div><h3>Explore a structure</h3><p>Select a residue, inspect its neighbours, measure distances, or add annotations.</p></div>
+  <a class="shot" href="img/tut/03_nearby_b.png" title="Click to enlarge"><img src="img/tut/03_nearby_b.png" alt="Residues around a heme group, labelled, with contacts drawn"></a>
 </div>
+<div class="group">
+  <div><h3>Compare conformations</h3><p>Superpose structures and inspect residue displacements and contact differences.</p></div>
+  <a class="shot" href="img/tut/09_compare_b.png" title="Click to enlarge"><img src="img/tut/09_compare_b.png" alt="A structure colored by C-alpha shift after fitting, with a color legend"></a>
+</div>
+<div class="group">
+  <div><h3>Map your data</h3><p>Import a residue-score table, check its numbering, and color the structure by value or category.</p></div>
+  <a class="shot" href="img/tut/11_table.png" title="Click to enlarge"><img src="img/tut/11_table.png" alt="Ubiquitin colored by a hydropathy column from an imported table, with a color legend"></a>
+</div>
+<div class="group">
+  <div><h3>Save figures and views</h3><p>Export images with their recorded commands and sources. Save views and reuse figure styles.</p></div>
+  <a class="shot" href="img/tut/04_pub.png" title="Click to enlarge"><img src="img/tut/04_pub.png" alt="A publication-style close-up of a histidine side chain next to a heme"></a>
+</div>
+
+<h2>Get started</h2>
+<p>Install the panel, choose a local model or cloud provider, and run the built-in test request.</p>
+<p class="small">Local or cloud: Use Ollama on your computer or connect a supported cloud provider. Structure and annotation downloads still use external services. <a href="models.html#choosing-a-model">Which model</a></p>
+<p class="small">With the default confirmation setting, file writes and destructive actions wait for your approval.</p>
 
 <h2>Two editions</h2>
-<div class="grid">
-  <div class="card"><h3>ChimeraX</h3><p>A native bundle: one line to install, docked panel, full session awareness. Windows, macOS, Linux.</p></div>
-  <div class="card"><h3>Classic Chimera 1.x</h3><p>A small program with a launcher window and the same panel in your browser, driving Chimera through its REST server. <a href="classic.html">How it works</a>.</p></div>
-</div>
-
-<h2>Screens</h2>
-<div class="shot"><img src="img/docked_4hhb.png" alt="ChimeraX with the Pellaeon panel docked on the right"><p class="small">The panel docks on the right; the 3D view stays where it always was.</p></div>
-<div class="grid">
-  <div class="shot"><img src="img/screen_compare.png" alt="Comparison result card"><p class="small">Comparing two conformations: fit RMSD, per-residue displacement, moving regions you can click.</p></div>
-  <div class="shot"><img src="img/screen_confirm.png" alt="Confirmation card"><p class="small">A risky command waits for your OK; the commands are editable.</p></div>
-  <div class="shot"><img src="img/01_settings.png" alt="Provider settings"><p class="small">Settings: pick a provider, test it, run a first request.</p></div>
-</div>
+<p>The ChimeraX edition is a native bundle with a docked panel (<a href="install.html">install it</a>); the classic edition drives UCSF Chimera 1.x through its REST server and shows the panel in your browser (<a href="classic.html">classic edition</a>). Both editions share the chat interface and model providers. Table overlays and some analysis tools are ChimeraX-only: <a href="classic.html#differences-from-the-chimerax-edition">see the feature differences</a>.</p>
 
 <h2>Privacy</h2>
-<p>With Ollama the model runs on your computer. Requests, the list of open models and the current selection go only to the provider you chose. Gene and variant lookups go to UniProt and ClinVar when you ask for them. API keys are stored on your machine, never in ChimeraX sessions.</p>
+<p>With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings.</p>
+<p class="small">Keys are stored on your computer, never in ChimeraX sessions. <a href="install.html#privacy">Privacy detail, including the free tiers</a> · <a href="install.html#where-things-are-stored">Where things are stored</a></p>
 """
 
 
@@ -167,5 +166,6 @@ if __name__ == "__main__":
     index_page()
     md_page(os.path.join(DOCS, "install.md"), "install.html", "install.html")
     md_page(os.path.join(DOCS, "tutorial.md"), "tutorial.html", "tutorial.html")
+    md_page(os.path.join(DOCS, "models.md"), "models.html", "models.html", "Tested models")
     md_page(os.path.join(ROOT, "classic", "README.md"), "classic.html", "classic.html", "Classic edition")
     check_links()

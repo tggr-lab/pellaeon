@@ -3,7 +3,7 @@
 <title>Installation - Pellaeon</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
 <meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first.">
 <meta property="og:title" content="Installation - Pellaeon"><meta property="og:description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/hero_poster.png"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/install.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
-<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link active" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link active" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="models.html">Tested models</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
 <script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
 <script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
@@ -11,11 +11,7 @@
 <li><a href="#chimerax-edition">ChimeraX edition</a></li>
 <li><a href="#classic-edition-chimera-1x">Classic edition (Chimera 1.x)</a></li>
 <li><a href="#choosing-an-ai">Choosing an AI</a></li>
-<li><a href="#choosing-a-model">Choosing a model</a><ul>
-<li><a href="#what-the-free-tiers-allow">What the free tiers allow</a></li>
-<li><a href="#models-we-tried">Models we tried</a></li>
-</ul>
-</li>
+<li><a href="#privacy">Privacy</a></li>
 <li><a href="#updating">Updating</a></li>
 <li><a href="#where-things-are-stored">Where things are stored</a></li>
 </ul>
@@ -67,8 +63,9 @@
 </ol>
 <p>No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.</p>
 <p><strong>Offline install:</strong> get the <code>.whl</code> file from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and type (quotes needed when the path has spaces):</p>
-<pre><code>toolshed install &quot;C:\Users\you\Downloads\chimerax_pellaeon-0.1.0-py3-none-any.whl&quot;
+<pre><code>toolshed install &quot;C:\Users\you\Downloads\chimerax_pellaeon-&lt;version&gt;-py3-none-any.whl&quot;
 </code></pre>
+<p><code>&lt;version&gt;</code> is a placeholder: type the name of the file you actually downloaded.</p>
 <p><strong>Uninstall:</strong> <code>toolshed uninstall ChimeraX-Pellaeon</code> in ChimeraX.</p>
 <h2 id="classic-edition-chimera-1x">Classic edition (Chimera 1.x)</h2>
 <ol>
@@ -80,290 +77,65 @@
 <li>Optional: <code>python install.py</code> puts a <strong>Pellaeon Classic</strong> shortcut on your desktop and Start menu.</li>
 </ol>
 <h2 id="choosing-an-ai">Choosing an AI</h2>
-<p>The first time the panel opens it shows provider cards. There is one decision to make: <strong>local or cloud</strong>.</p>
-<ul>
-<li><strong>Local</strong> (Ollama): nothing leaves your computer, no account, free. Needs a machine with a reasonable GPU or patience on CPU, and a one-time model download of a few GB. Small local models make more mistakes than the cloud ones; keep requests to one thing at a time.</li>
-<li><strong>Cloud</strong> (Mistral or Gemini free tiers, Claude, OpenAI): nothing to install, stronger models, needs a key. Your requests and the list of open models are sent to that provider; see <strong>Privacy</strong> below before using a free tier on unpublished structures.</li>
-</ul>
-<p><strong>Mistral is the one to start with:</strong> a free key from <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, no credit card, and about 190 requests a minute against 15 a minute on Gemini. The free tier serves the <strong>Ministral</strong> models and Pellaeon picks <code>ministral-8b-latest</code>; <code>mistral-small</code> and <code>mistral-medium</code> sit on the same key but need billing and refuse a free request straight away. The <a href="tutorial.html#2-connect-an-ai-once">tutorial</a> walks through it.</p>
-<p>OpenRouter, Groq, LM Studio and custom endpoints are there too.</p>
-<p>All options:</p>
+<p>The first time the panel opens it shows provider cards. There is one decision to make: <strong>local or cloud</strong>. Local (Ollama) needs no account and no key, but needs a machine with a reasonable GPU and a one-time model download of a few GB. Cloud needs a key and nothing else.</p>
+<p>Start with Mistral: the free key takes two minutes at <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, needs no credit card, and Pellaeon uses <code>ministral-8b-latest</code> on it. If you would rather not send anything to a provider, install Ollama and pull <code>qwen3:8b</code> instead.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
 <th>Option</th>
-<th>Cost</th>
-<th>What to do</th>
+<th>How to get a key</th>
+<th>Free allowance</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Ollama</strong> (local, private)</td>
-<td>free</td>
-<td>Install <a href="https://ollama.com/download">Ollama</a>, then press <strong>Pull</strong> next to <code>qwen3:8b</code> in Pellaeon's settings (needs about 6 GB of GPU memory). On a laptop without a GPU pull <code>qwen3:4b</code> instead and expect 10–30 s per request. Nothing leaves your computer except UniProt/ClinVar lookups when you ask for them.</td>
+<td><strong>Ollama</strong> (local)</td>
+<td>no key: install <a href="https://ollama.com/download">Ollama</a>, then press <strong>Pull</strong> next to <code>qwen3:8b</code> in Pellaeon's settings (about 6 GB of GPU memory; <code>qwen3:4b</code> on a machine without a GPU)</td>
+<td>free, no limit</td>
 </tr>
 <tr>
-<td><strong>Mistral</strong> (recommended free option)</td>
+<td><strong>Mistral</strong> (recommended)</td>
+<td><a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, no credit card</td>
 <td>free tier, about 190 requests a minute</td>
-<td>Create a key at <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a> (no credit card), paste it in. Pellaeon uses <code>ministral-8b-latest</code>.</td>
 </tr>
 <tr>
 <td><strong>Google Gemini</strong></td>
-<td>free tier, 15 requests a minute on Flash-Lite</td>
-<td>Create a key at <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a> (no credit card), paste it in.</td>
+<td><a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>, no credit card</td>
+<td>free tier, 15 requests a minute on Flash-Lite plus a daily cap</td>
 </tr>
 <tr>
 <td><strong>Anthropic Claude</strong></td>
-<td>pay per use</td>
-<td>Key from <a href="https://console.anthropic.com/settings/keys">console.anthropic.com</a>. Best at long multi-step work. Claude Pro/Max subscriptions cannot be used by third-party tools.</td>
+<td><a href="https://console.anthropic.com/settings/keys">console.anthropic.com</a>; Claude Pro/Max subscriptions cannot be used by third-party tools</td>
+<td>none, pay per use</td>
 </tr>
 <tr>
 <td><strong>OpenAI</strong></td>
-<td>pay per use</td>
-<td>Key from <a href="https://platform.openai.com/api-keys">platform.openai.com</a>.</td>
+<td><a href="https://platform.openai.com/api-keys">platform.openai.com</a></td>
+<td>none, pay per use</td>
 </tr>
 <tr>
-<td><strong>OpenRouter / Groq</strong></td>
-<td>free tiers, but tight</td>
-<td>One key, many models. OpenRouter allows 50 requests a day in total; Groq allows plenty of requests but few tokens a minute, so expect about one request a minute.</td>
+<td><strong>OpenRouter</strong></td>
+<td>one key, many models</td>
+<td>50 requests a day in total</td>
+</tr>
+<tr>
+<td><strong>Groq</strong></td>
+<td>one key, many models</td>
+<td>7000 to 8000 input tokens a minute, about one request a minute</td>
 </tr>
 <tr>
 <td><strong>LM Studio, llama.cpp, vLLM</strong></td>
-<td>free</td>
-<td>Any local server that speaks the OpenAI protocol: enter its address.</td>
+<td>no key: enter the address of any local server that speaks the OpenAI protocol</td>
+<td>free, no limit</td>
 </tr>
 </tbody>
 </table></div>
 <p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong> or <strong>Run a first request</strong> (it saves the settings and has the AI open ubiquitin and color it by chain). Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>MISTRAL_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
-<h2 id="choosing-a-model">Choosing a model</h2>
-<p>Picks below come from running Pellaeon's own request set on each model; full numbers are under Models we tried below.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Want</th>
-<th>Pick</th>
-<th>Why</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Nothing to install</td>
-<td><strong>Mistral <code>ministral-8b-latest</code></strong> (free)</td>
-<td>Handles the whole request set, answers in about two seconds, and allows roughly 190 requests a minute, so you never wait. Free key, no credit card. It can also see the screen.</td>
-</tr>
-<tr>
-<td>Nothing to install, alternative</td>
-<td><strong>Gemini <code>gemini-flash-lite-latest</code></strong> (free)</td>
-<td>Equally reliable and can see the screen; 15 requests a minute is plenty for one person working normally.</td>
-</tr>
-<tr>
-<td>Private, on a gaming GPU</td>
-<td><strong>qwen3:8b</strong></td>
-<td>The reference local model: reliable and quick on a 12 GB card.</td>
-</tr>
-<tr>
-<td>Private, and able to see the screen</td>
-<td><strong>gemma4:e4b</strong></td>
-<td>Vision plus tools; the only local model here that can review the view.</td>
-</tr>
-<tr>
-<td>Private, small GPU or CPU</td>
-<td><strong>qwen3:4b</strong></td>
-<td>Accurate but slower: expect 10 to 20 seconds a request. Below about 4B parameters models miss too much to be useful.</td>
-</tr>
-<tr>
-<td>Best quality, paid</td>
-<td>Claude, OpenAI, Gemini Pro, or Mistral Medium</td>
-<td>Worth it for long multi-step sessions.</td>
-</tr>
-</tbody>
-</table></div>
-<h3 id="what-the-free-tiers-allow">What the free tiers allow</h3>
-<p>The limit matters more than the model. A single request carries your structure's state and the tool definitions, so it is a few thousand tokens, and one question usually takes two to four requests.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Free tier</th>
-<th>Room</th>
-<th>Good for</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Mistral</td>
-<td>~190 requests a minute</td>
-<td>Normal work, all day</td>
-</tr>
-<tr>
-<td>Gemini Flash-Lite</td>
-<td>15 requests a minute</td>
-<td>Normal work</td>
-</tr>
-<tr>
-<td>Gemini Flash / Pro</td>
-<td>5 a minute / none</td>
-<td>Not usable free: Pellaeon spends the session waiting</td>
-</tr>
-<tr>
-<td>Groq</td>
-<td>1000 a day, but ~7000 tokens a minute</td>
-<td>About one request a minute: it works, slowly</td>
-</tr>
-<tr>
-<td>OpenRouter</td>
-<td>50 requests a day, whole key</td>
-<td>Trying it out; that is roughly a dozen questions</td>
-</tr>
-</tbody>
-</table></div>
+<p>Which model to run on the provider you picked, and how each one did on Pellaeon's own request sets, is on <a href="models.html">Tested models</a>.</p>
 <p>When a limit is hit Pellaeon waits and retries rather than failing, and on the tightest tiers it automatically shortens its prompt to fit. A quota that resets tomorrow is reported plainly instead of being retried.</p>
-<p><strong>Privacy:</strong> the free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished structures use a local model through Ollama, where nothing leaves your machine, or a paid tier.</p>
-<p>What did not work: models without tool calling (Gemma 3, Falcon 3, EXAONE, most vision-only models) cannot drive ChimeraX at all; 20B-class models spill out of a 12 GB card and take ten times longer for no gain; below 4B the small models get most requests wrong, including several sold as tool-calling specialists. Ollama keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.</p>
-<h3 id="models-we-tried">Models we tried</h3>
-<p>The same request set, run through the real panel on this machine (RTX 4070 Super, 12 GB), plus a harder set of follow-ups, corrections and ambiguous requests. "Handled" means the request came out right in ChimeraX, checked by the program rather than by eye.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Model</th>
-<th>Runs where</th>
-<th>Handled</th>
-<th>Speed</th>
-<th>Free allowance</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Mistral <code>ministral-8b-latest</code></td>
-<td>cloud, free key</td>
-<td>all of the basic set, nearly all of the hard set</td>
-<td>2 to 3 s a request</td>
-<td>~190 requests a minute</td>
-<td>The default. Can see the screen.</td>
-</tr>
-<tr>
-<td>Mistral <code>ministral-14b-latest</code></td>
-<td>cloud, free key</td>
-<td>all of the basic set</td>
-<td>4 to 5 s</td>
-<td>30 a minute</td>
-<td>No better than 8b here.</td>
-</tr>
-<tr>
-<td>Mistral <code>ministral-3b-latest</code></td>
-<td>cloud, free key</td>
-<td>most</td>
-<td>2 s</td>
-<td>750 a minute</td>
-<td>Misses the subtler requests.</td>
-</tr>
-<tr>
-<td>Gemini Flash-Lite</td>
-<td>cloud, free key</td>
-<td>all but one of the basic set</td>
-<td>7 s</td>
-<td>15 a minute, and a daily cap</td>
-<td>As capable; slower, and a day of heavy use hits the daily cap.</td>
-</tr>
-<tr>
-<td>Gemini Flash</td>
-<td>cloud, free key</td>
-<td>unusable free</td>
-<td></td>
-<td>5 a minute</td>
-<td>Every miss was a rate limit, not a mistake.</td>
-</tr>
-<tr>
-<td>Groq gpt-oss-20b / 120b / qwen3.8-27b</td>
-<td>cloud, free key</td>
-<td>unusable free</td>
-<td>~90 s once metered</td>
-<td>7000 to 8000 tokens a minute</td>
-<td>Good models; the token meter allows about one request a minute.</td>
-</tr>
-<tr>
-<td>OpenRouter <code>openrouter/free</code></td>
-<td>cloud, free key</td>
-<td>nearly all of a short set</td>
-<td>15 s</td>
-<td>50 requests a day in total</td>
-<td>A dozen questions a day.</td>
-</tr>
-<tr>
-<td>qwen3:8b</td>
-<td>Ollama, local</td>
-<td>all of the basic set</td>
-<td>3 s</td>
-<td></td>
-<td>The local reference.</td>
-</tr>
-<tr>
-<td>qwen3:4b</td>
-<td>Ollama, local</td>
-<td>all but one</td>
-<td>20 s</td>
-<td></td>
-<td>2.5 GB; the smallest that works.</td>
-</tr>
-<tr>
-<td>granite4.1:8b</td>
-<td>Ollama, local</td>
-<td>all but one</td>
-<td>5 s</td>
-<td></td>
-<td>A close second locally.</td>
-</tr>
-<tr>
-<td>gemma4:e4b</td>
-<td>Ollama, local</td>
-<td>all but one</td>
-<td>5 s</td>
-<td></td>
-<td>Sees the screen.</td>
-</tr>
-<tr>
-<td>qwen3:14b, gpt-oss:20b</td>
-<td>Ollama, local</td>
-<td>all but two</td>
-<td>8 s, 15 s</td>
-<td></td>
-<td>Bigger, not better; 20b spills out of 12 GB.</td>
-</tr>
-<tr>
-<td>ministral-3:3b (local)</td>
-<td>Ollama, local</td>
-<td>most</td>
-<td>2 s</td>
-<td></td>
-<td>3 GB with vision; the best under 4B.</td>
-</tr>
-<tr>
-<td>command-r7b, cogito:8b, mistral-nemo:12b, granite4:micro, qwen2.5:3b</td>
-<td>Ollama, local</td>
-<td>about two thirds</td>
-<td></td>
-<td></td>
-<td>Not enough.</td>
-</tr>
-<tr>
-<td>lfm2.5:8b, llama3.2:3b, llama3-groq-tool-use:8b, granite3.3:2b, smollm2:1.7b, nemotron-mini:4b</td>
-<td>Ollama, local</td>
-<td>half or less</td>
-<td></td>
-<td></td>
-<td>Models sold as tool-calling specialists did worst.</td>
-</tr>
-<tr>
-<td>gemma3, falcon3, exaone3.5</td>
-<td>Ollama, local</td>
-<td>cannot</td>
-<td></td>
-<td></td>
-<td>No tool calling at all.</td>
-</tr>
-</tbody>
-</table></div>
-<p>Two patterns held across every model: published function-calling benchmarks predicted almost nothing about driving real software, and on the free cloud tiers the allowance mattered more than the model. Every failure on Groq and Gemini Flash was a rate limit, not a mistake.</p>
+<h2 id="privacy">Privacy</h2>
+<p>With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings.</p>
+<p>The free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished work, use a local model through Ollama, or check the provider's data-handling terms before you paste a key: <a href="https://mistral.ai/terms">Mistral</a>, <a href="https://ai.google.dev/gemini-api/terms">Google</a>.</p>
 <h2 id="updating">Updating</h2>
 <p>ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
 <h2 id="where-things-are-stored">Where things are stored</h2>

@@ -68,6 +68,14 @@ main { max-width: var(--max); margin: 0 auto; padding: 28px 20px 80px; }
 .card p { margin: 0; color: var(--muted); font-size: 0.95em; }
 .shot { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
 .shot img { border: none; }
+a.shot { display: block; text-decoration: none; }
+.group { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 24px; align-items: center; margin: 14px 0; }
+.group h3 { margin: 0 0 6px; }
+.group p { margin: 0; color: var(--muted); font-size: 0.95em; }
+.group .shot { padding: 6px; }
+.group .shot img { display: block; width: 100%; max-height: 250px; object-fit: contain; border: none; }
+.howdet { margin: 10px 0 4px; }
+.howdet > summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 6px 0; }
 .example { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--code); border-left: 3px solid var(--accent); border-radius: 8px; padding: 8px 12px; margin: 6px 0; }
 .small { color: var(--muted); font-size: 0.9em; }
 figure { margin: 18px 0; }
@@ -140,6 +148,7 @@ figure img { max-height: 78vh; width: auto; max-width: 100%; margin: 0 auto; }
   .example { white-space: normal; font-size: 0.9em; }
   .steps { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
+  .group { grid-template-columns: 1fr; gap: 12px; }
   .toc { position: static; font-size: 0.95em; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 4px; }
   .toc summary { display: list-item; cursor: pointer; font-weight: 600; color: var(--ink); padding: 6px 0; }
   .toc details[open] summary { margin-bottom: 6px; }

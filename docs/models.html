@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tested models - Pellaeon</title><link rel="icon" href="logo.svg" type="image/svg+xml"><link rel="stylesheet" href="site.css">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first.">
+<meta property="og:title" content="Tested models - Pellaeon"><meta property="og:description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/hero_poster.png"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/models.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.svg" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link active" href="models.html">Tested models</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#how-these-numbers-were-produced">How these numbers were produced</a></li>
+<li><a href="#choosing-a-model">Choosing a model</a></li>
+<li><a href="#cloud-models">Cloud models</a></li>
+<li><a href="#local-models-ollama">Local models (Ollama)</a></li>
+</ul>
+</div>
+</details></nav><article><h1 id="tested-models">Tested models</h1>
+<p>Which model to run, and what each one did when Pellaeon's own request sets were run through the real panel.</p>
+<h2 id="how-these-numbers-were-produced">How these numbers were produced</h2>
+<ul>
+<li>Tested on 2026-09-20 and 2026-09-21, with Pellaeon 0.2.0.</li>
+<li>Three request sets: a basic set of <strong>38 requests</strong>; a set of <strong>62 follow-ups and edge cases</strong>; a harder set of <strong>24 multi-turn and ambiguous requests</strong>.</li>
+<li>Each request was scored automatically: the checks look at the resulting ChimeraX state, the commands that were executed, and the confirmation or question cards that appeared. Checked by the program, not by eye.</li>
+<li>Local models ran on one machine: RTX 4070 Super (12 GB) with a Ryzen 5950X. Times below are from that machine and will differ on yours.</li>
+<li>Blank cells mean that set was not run on that model.</li>
+</ul>
+<p>Reviewing screenshots requires a vision-capable model and the review-the-view option enabled in Settings. Of the models below, <code>ministral-8b-latest</code>, <code>gemini-flash-lite-latest</code>, <code>gemma4:e4b</code> and the local <code>ministral-3:3b</code> can do it.</p>
+<h2 id="choosing-a-model">Choosing a model</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Want</th>
+<th>Pick</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nothing to install</td>
+<td>Mistral <code>ministral-8b-latest</code> (free)</td>
+<td>38/38 on the basic set, about two seconds a request, and roughly 190 requests a minute on the free key. Vision-capable.</td>
+</tr>
+<tr>
+<td>Nothing to install, alternative</td>
+<td>Gemini <code>gemini-flash-lite-latest</code> (free)</td>
+<td>37/38 on the basic set and vision-capable; 15 requests a minute is enough for one person working normally.</td>
+</tr>
+<tr>
+<td>Private, on a gaming GPU</td>
+<td><code>qwen3:8b</code></td>
+<td>The local reference: 38/38 on the basic set, about three seconds a request on a 12 GB card.</td>
+</tr>
+<tr>
+<td>Private, and able to review screenshots</td>
+<td><code>gemma4:e4b</code></td>
+<td>37/38, and vision plus tool calling in one local model.</td>
+</tr>
+<tr>
+<td>Private, small GPU or CPU</td>
+<td><code>qwen3:4b</code></td>
+<td>37/38 but slower: 10 to 20 seconds a request. Below about 4B parameters the models miss too much to be useful.</td>
+</tr>
+<tr>
+<td>Long multi-step sessions, paid</td>
+<td>Claude, OpenAI, Gemini Pro or Mistral Medium</td>
+<td>No free-tier limit to work around.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="cloud-models">Cloud models</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Basic (38)</th>
+<th>Follow-ups (62)</th>
+<th>Hard (24)</th>
+<th>Speed</th>
+<th>Free allowance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mistral <code>ministral-8b-latest</code></td>
+<td>38/38</td>
+<td>55/62</td>
+<td>23/24</td>
+<td>2 to 3 s</td>
+<td>about 190 requests a minute</td>
+</tr>
+<tr>
+<td>Mistral <code>ministral-14b-latest</code></td>
+<td>38/38</td>
+<td>56/62</td>
+<td></td>
+<td>4 to 5 s</td>
+<td>30 a minute</td>
+</tr>
+<tr>
+<td>Mistral <code>ministral-3b-latest</code></td>
+<td>34/38</td>
+<td></td>
+<td></td>
+<td>2 s</td>
+<td>750 a minute</td>
+</tr>
+<tr>
+<td>Google <code>gemini-flash-lite-latest</code></td>
+<td>37/38</td>
+<td>57/62</td>
+<td>daily free quota reached during the run, so no score</td>
+<td>7 s</td>
+<td>15 a minute plus a per-day cap</td>
+</tr>
+<tr>
+<td>Google <code>gemini-flash-latest</code></td>
+<td>not usable on the free tier</td>
+<td></td>
+<td></td>
+<td></td>
+<td>5 a minute; every miss was a rate limit, not a mistake</td>
+</tr>
+<tr>
+<td>Groq <code>gpt-oss-20b</code>, <code>gpt-oss-120b</code>, <code>qwen3.8-27b</code></td>
+<td>not usable on the free tier</td>
+<td></td>
+<td></td>
+<td>about 90 s once metered</td>
+<td>7000 to 8000 input tokens a minute, about one request a minute; every miss was a rate limit</td>
+</tr>
+<tr>
+<td>OpenRouter <code>openrouter/free</code></td>
+<td>short set only</td>
+<td></td>
+<td></td>
+<td>15 s</td>
+<td>50 requests a day in total, roughly a dozen questions</td>
+</tr>
+</tbody>
+</table></div>
+<p>A single request carries the state of your structures and the tool definitions, so it is a few thousand tokens, and one question usually takes two to four requests. On the free tiers the allowance decided the outcome more often than the model did: every failure on Groq and on Gemini Flash was a rate limit rather than a wrong answer.</p>
+<h2 id="local-models-ollama">Local models (Ollama)</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Basic (38)</th>
+<th>Hard (24)</th>
+<th>Speed</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qwen3:8b</code></td>
+<td>38/38</td>
+<td>17/24</td>
+<td>3 s</td>
+<td>the local reference</td>
+</tr>
+<tr>
+<td><code>qwen3:4b</code></td>
+<td>37/38</td>
+<td></td>
+<td>20 s</td>
+<td>2.5 GB; the smallest that works</td>
+</tr>
+<tr>
+<td><code>granite4.1:8b</code></td>
+<td>37/38</td>
+<td></td>
+<td>5 s</td>
+<td></td>
+</tr>
+<tr>
+<td><code>gemma4:e4b</code></td>
+<td>37/38</td>
+<td></td>
+<td>5 s</td>
+<td>vision-capable</td>
+</tr>
+<tr>
+<td><code>qwen3:14b</code></td>
+<td>36/38</td>
+<td></td>
+<td>8 s</td>
+<td></td>
+</tr>
+<tr>
+<td><code>gpt-oss:20b</code></td>
+<td>36/38</td>
+<td></td>
+<td>15 s</td>
+<td>spills out of 12 GB</td>
+</tr>
+<tr>
+<td><code>ministral-3:3b</code></td>
+<td>34/38</td>
+<td></td>
+<td>2 s</td>
+<td>3 GB, vision-capable</td>
+</tr>
+<tr>
+<td><code>llama3.1:8b</code></td>
+<td>33/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>command-r7b</code></td>
+<td>30/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>cogito:8b</code></td>
+<td>27/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>granite4:1b</code></td>
+<td>27/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>qwen2.5:3b</code></td>
+<td>26/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>granite4:micro</code></td>
+<td>25/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>mistral-nemo:12b</code></td>
+<td>25/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>lfm2.5:8b</code></td>
+<td>24/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>llama3.2:3b</code></td>
+<td>19/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>llama3-groq-tool-use:8b</code></td>
+<td>17/38</td>
+<td></td>
+<td></td>
+<td>sold as a tool-calling model</td>
+</tr>
+<tr>
+<td><code>granite3.3:2b</code></td>
+<td>13/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>smollm2:1.7b</code></td>
+<td>9/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>nemotron-mini:4b</code></td>
+<td>6/38</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>gemma3:12b</code>, <code>falcon3:3b</code>, <code>exaone3.5:2.4b</code></td>
+<td>no tool calling</td>
+<td></td>
+<td></td>
+<td>cannot drive ChimeraX at all</td>
+</tr>
+<tr>
+<td><code>cogito:3b</code>, <code>hermes3:3b</code>, <code>granite3.1-moe:3b</code></td>
+<td>hung</td>
+<td></td>
+<td></td>
+<td>the run did not finish</td>
+</tr>
+</tbody>
+</table></div>
+<p>Two things to keep in mind when reading the local numbers. The 20B-class models spilled out of the 12 GB card and took roughly ten times longer without scoring higher, and several models sold as tool-calling specialists scored near the bottom of this table. Ollama also keeps the previous model loaded for a few minutes, so switching models on a full card can make the new one run on the CPU until the old one unloads.</p></article></div></main>
+<script>if(window.innerWidth<820){document.querySelectorAll(".toc details[open]").forEach(function(d){d.removeAttribute("open");});}</script>
+<footer><div class="in">Pellaeon v0.2.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
+</body></html>
