@@ -85,17 +85,16 @@ STEPS = [
                       "label #1/A:HEM residues text \"heme\" height fixed size 34 color black bgColor white",
                       "view #1/A:87 | (#1/A:87 :<5)", "zoom 0.7"]),
     ("03c_why",      "Why is residue 87 (HIS) of chain A in 4hhb this color?", ["select #1/A:87"], False, True, []),
-    ("04_pub",       "make it look publication ready and focus on the heme of chain A", [], True, True,
-                     # The whole heme of chain A, face on, as sticks with a small iron sphere, His 87 in front
-                     # of it, both labeled and nothing else in the frame: the other three chains and their
-                     # hemes are put away so no stray red blob wanders into the corner.
-                     ["hide #1/B,C,D target acs", "hide #1/B,C,D cartoon", "hide #1 target a",
-                      "show #1/A:HEM target a", "style #1/A:HEM stick", "size #1/A:HEM stickRadius 0.22",
-                      "style #1/A:HEM@FE sphere", "size #1/A:HEM@FE atomRadius 1.0",
-                      "show #1/A:87 target a", "style #1/A:87 stick", "size #1/A:87 stickRadius 0.22",
+    # The request now asks for the sticks and the iron sphere, so the turn produces them and nothing here
+    # restyles the heme: what is left is framing. The other three chains and their hemes are put away, the
+    # camera is turned onto the ring (edge on, a heme drawn as sticks is an unreadable streak) and tilted a
+    # little off its normal so His 87 is not hidden behind the porphyrin and the two labels separate.
+    ("04_pub",       "make it look publication ready and focus on the heme of chain A, shown as sticks with its iron as a small sphere", [], True, True,
+                     ["hide #1/B,C,D target acs", "hide #1/B,C,D cartoon", "transparency #1/A 70 target c",
+                      "show #1/A:87 target a", "style #1/A:87 stick",
                       "~label", "label #1/A:87 residues text \"His 87\" height fixed size 34 color black bgColor white",
                       "label #1/A:HEM residues text \"heme\" height fixed size 34 color black bgColor white",
-                      "@face_heme", "turn x 58", "turn y 12", "view #1/A:HEM #1/A:87", "zoom 0.95"]),   # a little off the ring normal so His 87 is not hidden behind the porphyrin and the two labels separate
+                      "@face_heme", "turn x 58", "turn y 12", "view #1/A:HEM #1/A:87", "zoom 0.95"]),
     ("05_distance",  "measure the distance between the iron of the heme in chain A and the CA of residue 87 in chain A", [], True, True,
                      # Same subject as step 4, enlarged so the measured pair is the picture. The monitor line
                      # and its number are left to the build, which now picks a colour that contrasts with the
@@ -236,8 +235,36 @@ CLEAN_TURN = {
     "03_nearby_b": ["@newchat"] + COLD["03"] + ["select #1/A:87"],
 }
 
+def journal_has(pattern):
+    import re as _re
+    return any(j.get("ok") and _re.search(pattern, str(j.get("command", "")), _re.I)
+               for j in (inst.agent.journal if inst.agent else []))
+
+# Some steps can end with every card green and still not have done what the request asked: step 4's
+# model often cannot find the iron (it guesses ':FE' as a residue) and signs off by telling the user
+# which command to run instead. A green tick is not the test; the commands that ran are.
+def _styled(spec, mode):
+    """Is anything matching `spec` displayed in `mode` right now?
+
+    Asking the scene, not the journal: a `style #1/A:FE sphere` that matched no atom still comes back
+    ok, so a step can look delivered while the reply is explaining that it could not find the iron.
+    """
+    from chimerax.core.commands import atomspec
+    from chimerax.atomic import Atom
+    try:
+        atoms = atomspec.AtomSpecArg.parse(spec, session)[0].evaluate(session).atoms
+    except Exception:  # noqa: BLE001
+        return False
+    want = {"sphere": Atom.SPHERE_STYLE, "stick": Atom.STICK_STYLE}[mode]
+    return any(bool(a.display) and a.draw_mode == want for a in atoms)
+
+STEP_DELIVERED = {
+    "04_pub": lambda: _styled("#1/A:HEM@FE", "sphere") and _styled("#1/A:HEM@N*,C*", "stick"),
+}
+
 def turn_clean():
-    """Every tool card in the turn green, and every command inside a run_commands card ok."""
+    """Every tool card in the turn green, every command inside a run_commands card ok, and - where the
+    step says so - the commands that actually deliver what the request asked for."""
     for _name, ok, payload in TOOL_RESULTS:
         if not ok:
             return False
@@ -319,11 +346,13 @@ def go(i):
             del TOOL_RESULTS[:]
             inst.submit(req)
             def judge():
-                if turn_clean() or tries[0] >= int(os.environ.get("PELLAEON_CLEAN_TRIES", "5")):
-                    log("TUT %s clean=%s after %d retries" % (tag, turn_clean(), tries[0]))
+                ok = turn_clean() and STEP_DELIVERED.get(tag, lambda: True)()
+                if ok or tries[0] >= int(os.environ.get("PELLAEON_CLEAN_TRIES", "5")):
+                    log("TUT %s clean=%s delivered=%s after %d retries"
+                        % (tag, turn_clean(), STEP_DELIVERED.get(tag, lambda: True)(), tries[0]))
                     after(); return
                 tries[0] += 1
-                log("TUT %s attempt %d had a failed command, retrying" % (tag, tries[0]))
+                log("TUT %s attempt %d did not come out clean, retrying" % (tag, tries[0]))
                 run_pre(CLEAN_TURN[tag])
                 later(1.0, attempt2)
             wait_idle(judge)
