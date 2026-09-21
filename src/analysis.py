@@ -139,8 +139,9 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
     color_cmds = ["color byattribute r:pellaeon_disp %s palette 0,#bdbdbd:1,gold:3,orange:6,#b2182b range 0,6 target ac novalue #d9c6f0" % prep["other_spec"],
                   "color %s #b8c4d6 target ac" % prep["ref_spec"], "transparency %s 60 target c" % prep["ref_spec"],
                   "hide %s models" % prep["ref_spec"],
-                  "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.70,0.05 size 0.27,0.035 fontSize 16",
-                  '2dlabels text "C\u03b1 shift after fit (\u00c5); lavender = not compared" xpos 0.70 ypos 0.10 size 15 color black']
+                  "key #bdbdbd:0 gold:1 orange:3 #b2182b:6+ pos 0.36,0.04 size 0.28,0.035 fontSize 16",
+                  '2dlabels text "C\u03b1 shift after fit (\u00c5); lavender = not compared" xpos 0.36 ypos 0.09 size 15 color black']
+                  'zoom 0.85',   # leave the legend its own band
     return {
         "pairing": basis, "paired_residues": len(rows), "coverage": "%d of %d residues of %s paired" % (len(rows), total_other, prep["other_spec"]),
         "mean_displacement": round(float(arr.mean()), 2), "max_displacement": round(float(arr.max()), 2),
@@ -523,6 +524,16 @@ class AskMouseMode:
 _SOLVENT_NAMES = {"HOH", "WAT", "DOD", "H2O"}
 
 
+def _res_spec(r) -> str:
+    """'/A:45', or '/A:45B' when the residue carries an insertion code.
+
+    The pairing, the collected contacts and the drawing commands all name residues with this
+    one function: an insertion code dropped on one side and kept on the other turns a paired
+    residue into an unpaired one, and two insertion variants into a single overwritten entry.
+    """
+    return "/%s:%d%s" % (r.chain_id, int(r.number), (r.insertion_code or "").strip())
+
+
 def residue_pairing(session, prep: Dict[str, Any], matchmaker_returns=None) -> Dict[str, Any]:
     """Reference residue spec -> compared model's residue spec, from matchmaker's own residue
     correspondence (the same pairs ``compute_displacement`` uses), falling back to chain+number.
@@ -544,46 +555,65 @@ def residue_pairing(session, prep: Dict[str, Any], matchmaker_returns=None) -> D
             continue
         for x, y in zip(ra, ma):
             if x.structure is a and y.structure is b:
-                pairing["/%s:%d" % (x.residue.chain_id, int(x.residue.number))] = \
-                    "/%s:%d" % (y.residue.chain_id, int(y.residue.number))
+                pairing[_res_spec(x.residue)] = _res_spec(y.residue)
     if not pairing:
         basis = "chain id + residue number (no alignment available)"
         chain = prep.get("chain")
-        have = {(r.chain_id, int(r.number)) for r in b.residues}
+        have = {_res_spec(r) for r in b.residues}
         for r in a.residues:
             if chain and r.chain_id != chain:
                 continue
-            if (r.chain_id, int(r.number)) in have:
-                pairing["/%s:%d" % (r.chain_id, int(r.number))] = "/%s:%d" % (r.chain_id, int(r.number))
+            spec = _res_spec(r)
+            if spec in have:
+                pairing[spec] = spec
     if not pairing:
         return {"error": "No residues could be paired between %s and %s." % (prep["ref_spec"], prep["other_spec"])}
     return {"pairing": pairing, "basis": basis, "paired_residues": len(pairing)}
+
+
+def _empty_selection(model, model_spec: str, cutoff: float, restrict: str) -> Dict[str, Any]:
+    """A valid restriction that matches nothing here is an *answer* (an apo form has no ligand),
+    not a failure: it gets its own status so the caller never mistakes it for a collector error
+    and never compares real contacts against a silently empty list."""
+    return {"model": "#" + model.id_string, "cutoff": float(cutoff), "contacts": [],
+            "restrict": restrict or "", "restrict_residues": [], "count": 0,
+            "empty_selection": True,
+            "reason": "The restrict spec '%s' matches nothing in %s." % (restrict, model_spec)}
 
 
 def residue_contacts(session, model_spec: str, cutoff: float = 4.0,
                      restrict: Optional[str] = None) -> Dict[str, Any]:
     """Read-only: every residue-residue contact inside one model, as plain dicts.
 
-    A contact is a pair of residues with at least one pair of heavy atoms within `cutoff` A;
-    the reported ``min_dist`` and atom names are that closest pair, which is what a picture of
-    the interaction should be drawn between. Hydrogens are ignored (most crystal structures have
-    none, so including them would make two otherwise identical structures differ), solvent is
-    ignored, and intra-residue and sequential-backbone pairs are dropped because they are present
-    in every structure and say nothing about a conformational change.
+    A contact is a pair of residues with at least one pair of heavy atoms within `cutoff` A.
+    The reported ``min_dist`` and atom names are that closest pair, which is what a picture of
+    the interaction should be drawn between, while ``kind`` is the strongest interaction any
+    atom pair of the two residues supports - the closest pair is usually carbon, so classifying
+    it alone would miss the salt bridge two atoms further along. Hydrogens are ignored (most
+    crystal structures have none, so including them would make two otherwise identical
+    structures differ), solvent is ignored, and intra-residue and sequential-backbone pairs are
+    dropped because they are present in every structure and say nothing about a conformational
+    change.
 
     A chain in `model_spec` ('#1/A') limits the collection to that chain, which is what the
     comparison wants: matchmaker superposes one chain pair, so contacts of the other chains
     could never be paired anyway. Atoms matched by `restrict` are kept whatever their chain,
     because a ligand usually sits in a chain of its own.
 
-    `restrict` is an atom spec (e.g. a ligand, '#1:AP5'): only contacts with at least one atom on
-    that side are returned, and that side is always reported as ``a``.
+    `restrict` is an atom spec (e.g. a ligand, '#1:AP5'): only contacts with at least one
+    *selected atom* within the cutoff are returned - measured from the selected atoms, so
+    '#1/A:87@CA' really means CA, not "anything in residue 87". A pair whose two residues are
+    both selected is reported once; the restricted side is reported as ``a`` whenever only one
+    side is selected.
 
-    Returns {'model': '#1', 'contacts': [{a, a_name, a_atom, b, b_name, b_atom, min_dist, kind}, ...]}.
+    Returns {'model': '#1', 'contacts': [{a, a_name, a_atom, b, b_name, b_atom, min_dist, kind}, ...],
+    'restrict_residues': ['/A:215', ...]} - the residues the restriction selected, which is what
+    the caller translates through the alignment to address the same site in the other model.
+    A valid restriction matching nothing returns 'empty_selection': True instead of 'error'.
     """
     import numpy as np
     from chimerax.geometry import find_close_points
-    from .core.contacts import classify_contact, strongest_kind
+    from .core.contacts import CONTACT, HBOND_ELEMENTS, classify_contact, strongest_kind
 
     m = _find_structure(session, model_spec)
     if m is None:
@@ -598,6 +628,8 @@ def residue_contacts(session, model_spec: str, cutoff: float = 4.0,
         except Exception as e:  # noqa: BLE001
             return {"error": "Could not read restrict spec '%s': %s" % (restrict, e)}
         wanted = set(int(p) for p in sel.pointers)   # C++ pointers identify atoms across collections
+        if not wanted:
+            return _empty_selection(m, model_spec, cutoff, restrict)
 
     chain_m = re.search(r"/([A-Za-z0-9]+)", model_spec or "")
     chain = chain_m.group(1) if chain_m else None
@@ -612,71 +644,108 @@ def residue_contacts(session, model_spec: str, cutoff: float = 4.0,
     residues = [a.residue for a in atoms]
     names = [a.name for a in atoms]
     elements = [a.element.name for a in atoms]
+    # Only N/O/S can carry a hydrogen bond or a formal charge, so a pair of carbons is a plain
+    # contact whatever its distance; skipping those keeps the all-atom-pairs pass cheap.
+    polar = [e.upper() in HBOND_ELEMENTS for e in elements]
 
     restrict_set = None
     if restrict:
         restrict_set = {i for i, p in enumerate(atoms.pointers) if int(p) in wanted}
         if not restrict_set:
-            return {"error": "The restrict spec '%s' matches nothing in %s." % (restrict, model_spec)}
+            return _empty_selection(m, model_spec, cutoff, restrict)
 
     by_res: Dict[Any, List[int]] = {}
     for i, r in enumerate(residues):
         by_res.setdefault(r, []).append(i)
+    restricted_res = set()
+    if restrict_set is not None:
+        for i in restrict_set:
+            restricted_res.add(residues[i])
+    seq_index = _sequence_index(by_res.keys())
 
-    def spec_of(r) -> str:
-        return "/%s:%d%s" % (r.chain_id, int(r.number), r.insertion_code or "")
-
-    # (residue_a, residue_b) -> (min_dist, atom_a, atom_b, [kinds])
-    best: Dict[Any, Any] = {}
+    # Which residue pairs are candidates. With a restriction only selected atoms seed the
+    # search, so "at least one selected atom within the cutoff" is measured where it is claimed.
+    pairs = []
+    seen = set()
     for r, idxs in by_res.items():
-        if restrict_set is not None and not any(i in restrict_set for i in idxs):
-            continue        # with a restrict spec only that side seeds the search
-        rc = coords[idxs]
-        near = find_close_points(rc, coords, float(cutoff))[1]
+        seeds = idxs if restrict_set is None else [i for i in idxs if i in restrict_set]
+        if not seeds:
+            continue
+        near = find_close_points(coords[np.array(seeds, dtype=np.int32)], coords, float(cutoff))[1]
         for j in near:
-            other = residues[j]
-            if other is r or (restrict_set is not None and j in restrict_set):
-                continue    # ligand-internal contacts are not what "what does it touch" means
-            if _sequential(r, other):
+            other = residues[int(j)]
+            if other is r or _sequential(r, other, seq_index):
                 continue
-            key = (r, other) if restrict_set is not None else _ordered(r, other)
-            d = np.linalg.norm(rc - coords[j], axis=1)
-            k = int(d.argmin())
-            dist = float(d[k])
-            if dist > cutoff:
+            if restrict_set is not None and other not in restricted_res:
+                key = (r, other)            # only one side is selected: it is reported as `a`
+            else:
+                key = _ordered(r, other)    # both selected (or no restriction): score it once
+            if key in seen:
                 continue
-            ai = idxs[k]
-            if key[0] is r:
-                pair_atoms = (names[ai], names[j], elements[ai], elements[j])
-            else:
-                pair_atoms = (names[j], names[ai], elements[j], elements[ai])
-            kind = classify_contact(key[0].name, pair_atoms[0], key[1].name, pair_atoms[1], dist,
-                                    a_element=pair_atoms[2], b_element=pair_atoms[3],
-                                    a_standard=key[0].polymer_type != 0, b_standard=key[1].polymer_type != 0)
-            prev = best.get(key)
-            if prev is None:
-                best[key] = [dist, pair_atoms[0], pair_atoms[1], {kind}]
-            else:
-                prev[3].add(kind)
-                if dist < prev[0]:
-                    prev[0], prev[1], prev[2] = dist, pair_atoms[0], pair_atoms[1]
+            seen.add(key)
+            pairs.append(key)
 
     out: List[Dict[str, Any]] = []
-    for (ra, rb), (dist, an, bn, kinds) in best.items():
-        out.append({"a": spec_of(ra), "a_name": ra.name, "a_atom": an,
-                    "b": spec_of(rb), "b_name": rb.name, "b_atom": bn,
-                    "min_dist": round(dist, 2), "kind": strongest_kind(sorted(kinds))})
+    for ra, rb in pairs:
+        ia, ib = by_res[ra], by_res[rb]
+        ca = coords[np.array(ia, dtype=np.int32)]
+        cb = coords[np.array(ib, dtype=np.int32)]
+        d = np.linalg.norm(ca[:, None, :] - cb[None, :, :], axis=2)
+        close = d <= float(cutoff)
+        if restrict_set is not None:
+            sel_a = np.array([i in restrict_set for i in ia], dtype=bool)
+            sel_b = np.array([i in restrict_set for i in ib], dtype=bool)
+            close = close & (sel_a[:, None] | sel_b[None, :])
+        if not close.any():
+            continue
+        kinds = {CONTACT}
+        for p, q in zip(*np.nonzero(close)):
+            ai, bi = ia[int(p)], ib[int(q)]
+            if not (polar[ai] and polar[bi]):
+                continue
+            kinds.add(classify_contact(ra.name, names[ai], rb.name, names[bi], float(d[p, q]),
+                                       a_element=elements[ai], b_element=elements[bi],
+                                       a_standard=ra.polymer_type != 0, b_standard=rb.polymer_type != 0))
+        # the closest qualifying atom pair is what a picture is drawn between
+        p, q = np.unravel_index(int(np.where(close, d, np.inf).argmin()), d.shape)
+        ai, bi = ia[int(p)], ib[int(q)]
+        out.append({"a": _res_spec(ra), "a_name": ra.name, "a_atom": names[ai],
+                    "b": _res_spec(rb), "b_name": rb.name, "b_atom": names[bi],
+                    "min_dist": round(float(d[p, q]), 2), "kind": strongest_kind(sorted(kinds))})
     out.sort(key=lambda c: (c["a"].split(":")[0], int(re.sub(r"\D", "", c["a"].split(":")[1]) or 0),
                             c["b"].split(":")[0], int(re.sub(r"\D", "", c["b"].split(":")[1]) or 0)))
     return {"model": "#" + m.id_string, "cutoff": float(cutoff), "contacts": out,
-            "restrict": restrict or "", "count": len(out)}
+            "restrict": restrict or "", "count": len(out),
+            "restrict_residues": sorted({_res_spec(r) for r in restricted_res})}
 
 
-def _sequential(r1, r2) -> bool:
-    """True for two polymer residues adjacent in sequence: their backbone touches in every
-    structure, so the pair carries no information about a conformational change."""
-    return (r1.chain_id == r2.chain_id and r1.polymer_type != 0 and r2.polymer_type != 0
-            and abs(int(r1.number) - int(r2.number)) <= 1)
+def _sequence_index(residues) -> Dict[Any, Any]:
+    """Residue -> (chain id, position in that chain's sequence), for the polymer residues.
+
+    Adjacency has to come from the polymer itself, not from residue numbers: two entries of the
+    same protein are routinely numbered differently, and then "45 and 46 are neighbours" is true
+    in one structure and false in the other, so the same backbone pair is collected on one side
+    only and reported as a lost contact.
+    """
+    index: Dict[Any, Any] = {}
+    seen = set()
+    for r in residues:
+        ch = getattr(r, "chain", None)
+        if ch is None or ch.chain_id in seen:
+            continue
+        seen.add(ch.chain_id)
+        for pos, res in enumerate(ch.residues):
+            if res is not None:
+                index[res] = (ch.chain_id, pos)
+    return index
+
+
+def _sequential(r1, r2, seq_index: Dict[Any, Any]) -> bool:
+    """True for two polymer residues adjacent in their chain's sequence: their backbone touches
+    in every structure, so the pair carries no information about a conformational change."""
+    a = seq_index.get(r1)
+    b = seq_index.get(r2)
+    return a is not None and b is not None and a[0] == b[0] and abs(a[1] - b[1]) == 1
 
 
 def _ordered(r1, r2):

@@ -1154,3 +1154,14 @@ def test_no_annotate_nudge_when_features_were_fetched_and_colored_by_hand():
     agent.run_turn("color the transmembrane helices orange and the rest white")
     assert not any("annotate" in (m.text() or "") for m in agent.conversation if m.role == "user")
     assert [c.name for m in agent.conversation if m.role == "assistant" for c in m.tool_calls()] == ["protein_features", "run_commands"]
+
+
+def test_distances_are_restyled_to_contrast_with_a_light_background():
+    ex = FakeExecutor()
+    ex.get_state = lambda: {"models": [], "background": "rgb(255,255,255)"}
+    agent = Agent(ScriptedProvider([]), ex)
+    agent.execute_commands(["distance #1:87@NE2 #1:142@FE", "view"])
+    assert ex.ran == ["distance #1:87@NE2 #1:142@FE", "distance style color #1f3a5f", "view"]
+    ex.ran.clear(); ex.get_state = lambda: {"models": [], "background": "rgb(0,0,0)"}
+    agent.execute_commands(["distance delete", "distance #1:1@CA #1:2@CA"])
+    assert ex.ran == ["distance delete", "distance #1:1@CA #1:2@CA", "distance style color gold"]

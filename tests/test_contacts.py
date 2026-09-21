@@ -7,7 +7,8 @@ import pytest
 
 from core.contacts import (
     CONTACT, GAINED_COLOR, HBOND_CAPABLE, LOST_COLOR, SALT_BRIDGE,
-    classify_contact, compare_contacts, contact_commands, normalize_spec, strongest_kind,
+    atom_part, classify_contact, compare_contacts, contact_commands, model_restriction,
+    normalize_spec, strongest_kind, translate_restriction,
 )
 
 
@@ -198,3 +199,200 @@ def test_commands_without_atom_names_still_show_residues():
     cmds = contact_commands(r, "#1", "#2")
     assert not any(cmd.startswith("distance #") for cmd in cmds)
     assert "show #1/A:10,20 atoms" in cmds
+
+
+# ------------------------------------------------------------------ interaction type changes
+
+
+def test_a_pair_that_changes_type_is_a_change_not_unchanged():
+    """The residues still touch, but the salt bridge is gone: that is the answer to the question."""
+    ref = [c("/A:10", "/A:20", SALT_BRIDGE, a_name="ARG", b_name="ASP", a_atom="NH1", b_atom="OD1")]
+    other = [c("/A:10", "/A:20", CONTACT, a_name="ARG", b_name="ASP")]
+    r = compare_contacts(ref, other, IDENTITY)
+    assert r["counts"]["kept"] == 1 and r["counts"]["lost"] == 0
+    assert r["counts"]["kind_changed"] == 1
+    assert r["kept"][0]["kind_changed"] is True
+    assert "No contact changes" not in r["summary"]
+    assert "change interaction type" in r["summary"]
+    assert "ARG 10-ASP 20 salt bridge -> contact" in r["summary"]
+
+
+def test_a_pair_that_keeps_its_type_is_not_counted_as_changed():
+    r = compare_contacts([c("/A:10", "/A:20", HBOND_CAPABLE)], [c("/A:10", "/A:20", HBOND_CAPABLE)], IDENTITY)
+    assert r["counts"]["kind_changed"] == 0
+    assert "No contact changes" in r["summary"]
+
+
+# ------------------------------------------------------------------ what could not be judged
+
+
+def test_summary_says_how_much_could_not_be_judged():
+    ref = [c("/A:10", "/A:20"), c("/A:10", "/L:1", b_name="ATP")]
+    other = [c("/A:10", "/A:20")]
+    s = compare_contacts(ref, other, IDENTITY)["summary"]
+    assert "1 reference contact could not be judged" in s
+
+
+def test_summary_when_nothing_could_be_compared():
+    """The reviewer's case: one reference contact, its ligand endpoint unpaired, nothing else.
+    Saying 'all 0 contacts are present in both conformations' would read as 'they agree'."""
+    r = compare_contacts([c("/A:10", "/L:1", b_name="ATP")], [], IDENTITY)
+    assert r["counts"]["lost"] == 0 and r["counts"]["unmapped_reference"] == 1
+    assert r["summary"].startswith("No contacts could be compared")
+    assert "not in the alignment" in r["summary"]
+
+
+def test_summary_when_neither_side_has_anything():
+    assert compare_contacts([], [], IDENTITY)["summary"].startswith("No contacts could be compared")
+
+
+# ------------------------------------------------------------------ endpoint metadata
+
+
+def test_mapped_endpoints_follow_the_contacts_own_order():
+    """a=A:20, b=A:10 with a pairing that reverses them: mapped_a must still describe a."""
+    ref = [c("/A:20", "/A:10", a_name="ARG", b_name="ASP")]
+    pairing = {"/A:20": "/B:10", "/A:10": "/B:20"}
+    r = compare_contacts(ref, [], pairing)
+    assert (r["lost"][0]["mapped_a"], r["lost"][0]["mapped_b"]) == ("B:10", "B:20")
+
+
+def test_gained_endpoint_metadata_follows_the_contacts_own_order():
+    other = [c("/B:20", "/B:10")]
+    pairing = {"/A:10": "/B:20", "/A:20": "/B:10"}
+    r = compare_contacts([], other, pairing)
+    assert (r["gained"][0]["mapped_a"], r["gained"][0]["mapped_b"]) == ("A:10", "A:20")
+
+
+# ------------------------------------------------------------------ restriction translation
+
+
+def test_model_restriction_qualifies_residue_specs():
+    assert model_restriction(":AP5", "1") == "#1:AP5"
+    assert model_restriction("/A:87", "1") == "#1/A:87"
+    assert model_restriction("#1/A:87", "2") == "#2/A:87"
+    assert model_restriction("A:87", "1") == "#1/A:87"
+    assert model_restriction("/A:87@CA", "2") == "#2/A:87@CA"
+
+
+def test_model_restriction_intersects_selector_words():
+    """'#2/ligand' would ask for a chain literally named 'ligand' and select nothing."""
+    for word in ("ligand", "protein", "solvent"):
+        assert model_restriction(word, "2") == "#2 & %s" % word
+    assert model_restriction("AP5", "1") == "#1:AP5"      # short token: a residue name
+    assert model_restriction("ligand | ions", "1") == "#1 & (ligand | ions)"
+
+
+def test_model_restriction_does_not_add_the_compared_chain():
+    """chain='A' with restrict='/B:87' means 'what does B87 touch in chain A': the restriction
+    keeps its own chain, and the chain limit applies to the partner side (see the docstring)."""
+    assert model_restriction("/B:87", "1") == "#1/B:87"
+
+
+def test_translated_restriction_goes_through_the_pairing():
+    """The reviewer's failing input: A:87 -> A:187. Reusing '87' would search the wrong residue."""
+    pairing = {"/A:87": "/A:187", "/A:99": "/A:199"}
+    assert translate_restriction(["/A:87"], pairing, "2") == "#2/A:187"
+    assert translate_restriction(["/A:87", "/A:99"], pairing, "2") == "#2/A:187,199"
+    assert translate_restriction(["/A:87"], pairing, "2", atom_part("/A:87@CA")) == "#2/A:187@CA"
+
+
+def test_translated_restriction_is_empty_when_nothing_is_paired():
+    """An apo form has no ligand: the caller must say 'nothing there', not 'everything lost'."""
+    assert translate_restriction(["/A:215"], {"/A:87": "/A:187"}, "2") == ""
+
+
+def test_translated_restriction_spans_chains():
+    pairing = {"/A:10": "/C:10", "/B:20": "/D:20"}
+    assert translate_restriction(["/A:10", "/B:20"], pairing, "2") == "#2/C:10 | #2/D:20"
+
+
+# ------------------------------------------------------------------ collector failures (agent level)
+
+
+class StubExecutor:
+    """The smallest executor `_compare_contacts` needs: two models, one alignment, and a
+    collector whose answer for the compared model the test chooses."""
+
+    def __init__(self, other_result):
+        self.other_result = other_result
+        self.asked = []
+
+    def run_commands(self, commands):
+        return [{"command": c, "ok": True, "info": ["ok"]} for c in commands]
+
+    def get_state(self):
+        return {"models": [], "selection": {}}
+
+    def prepare_compare(self, reference, other, chain=None):
+        return {"ref_id": reference.lstrip("#"), "other_id": other.lstrip("#"), "chain": chain or "A",
+                "ref_spec": reference + "/A", "other_spec": other + "/A"}
+
+    def residue_pairing(self, prep):
+        return {"pairing": {"/A:10": "/A:110", "/A:20": "/A:120"}, "basis": "matchmaker alignment",
+                "paired_residues": 2}
+
+    def residue_contacts(self, model_spec, cutoff=4.0, restrict=None):
+        self.asked.append((model_spec, restrict))
+        if model_spec.startswith("#1"):
+            return {"model": "#1", "contacts": [c("/A:10", "/A:20")], "count": 1,
+                    "restrict_residues": ["/A:10"], "restrict": restrict or ""}
+        return dict(self.other_result)
+
+
+def _agent(executor):
+    from core.agent import Agent, AgentConfig
+    from core.safety import AUTONOMY_AUTO
+
+    class Provider:
+        name = "stub"
+        supports_vision = False
+
+        def stream(self, system, messages, tools, on_delta=None, cancel=None):
+            raise AssertionError("the provider is not used by this test")
+
+    return Agent(Provider(), executor, config=AgentConfig(autonomy=AUTONOMY_AUTO))
+
+
+def test_collector_error_on_the_other_model_is_an_error_not_an_empty_comparison():
+    """The reviewer's failing input: the other collector fails, so nothing was measured there.
+    Comparing against [] would report the one mapped reference contact as lost."""
+    ex = StubExecutor({"error": "Models changed during the comparison."})
+    out = _agent(ex)._compare_contacts("#1", "#2", "A", None, 4.0)
+    assert "error" in out and "Models changed" in out["error"]
+    assert "lost" not in out
+
+
+def test_empty_other_selection_is_reported_as_nothing_there():
+    ex = StubExecutor({"model": "#2", "contacts": [], "count": 0, "empty_selection": True,
+                       "restrict_residues": [], "reason": "The restrict spec '#2/A:110' matches nothing in #2/A."})
+    out = _agent(ex)._compare_contacts("#1", "#2", "A", "/A:10", 4.0)
+    assert "error" not in out
+    assert "matches nothing" in out["compared_side"]
+    assert "counts as lost" not in out["compared_side"]
+
+
+def test_the_other_models_restriction_is_translated_through_the_pairing():
+    ex = StubExecutor({"model": "#2", "contacts": [], "count": 0, "restrict_residues": []})
+    out = _agent(ex)._compare_contacts("#1", "#2", "A", "/A:10", 4.0)
+    assert ex.asked[0] == ("#1/A", "#1/A:10")
+    assert ex.asked[1] == ("#2/A", "#2/A:110")     # NOT '#2/A:10'
+    assert out["restrict"] == "#1/A:10" and out["compared_restrict"] == "#2/A:110"
+
+
+def test_a_restriction_no_residue_of_which_is_paired_never_calls_the_other_collector():
+    ex = StubExecutor({"model": "#2", "contacts": [], "count": 0, "restrict_residues": []})
+    ex.residue_contacts_ref = None
+
+    def only_reference(model_spec, cutoff=4.0, restrict=None):
+        ex.asked.append((model_spec, restrict))
+        assert model_spec.startswith("#1"), "the ligand has no counterpart: nothing to ask for"
+        return {"model": "#1", "contacts": [c("/A:215", "/A:10", a_name="AP5")], "count": 1,
+                "restrict_residues": ["/A:215"], "restrict": restrict or ""}
+
+    ex.residue_contacts = only_reference
+    out = _agent(ex)._compare_contacts("#1", "#2", "A", ":AP5", 4.0)
+    assert out["restrict"] == "#1:AP5"
+    assert "outside the alignment" in out["compared_side"]
+    assert out["counts"]["lost"] == 0 and out["counts"]["unmapped_reference"] == 1
+    assert out["summary"].startswith("No contacts could be compared")

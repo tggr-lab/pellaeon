@@ -60,9 +60,11 @@ def _overlap(a, b, pad=2.0):
     return not (a[0] + a[2] + pad <= b[0] or b[0] + b[2] + pad <= a[0] or a[1] + a[3] + pad <= b[1] or b[1] + b[3] + pad <= a[1])
 
 
-def pack_labels(boxes, max_shift=2.2):
+def pack_labels(boxes, max_shift=1.4):
     """boxes: [(id, x, y, w, h)] in pixels (x,y = lower-left). Keeps every box that fits, nudges colliding ones to a free
-    spot nearby (up/down/sideways, up to max_shift box heights), and drops the rest.
+    spot nearby (up/down/sideways, up to max_shift box heights), and drops the rest. The cap is small on
+    purpose: a label two box heights from its residue has no leader line and reads as belonging to whatever
+    it happens to sit on, which is worse than no label.
     Returns {"kept": [id...], "moved": {id: (dx, dy)}, "dropped": [id...]}."""
     placed = []
     kept, moved, dropped = [], {}, []

@@ -127,6 +127,8 @@ _REMOTE_SCRIPT_RE = re.compile(r"\bhttps?://\S+\.(?:cxc|py|pyc|cxs)(?:\.(?:gz|bz
 # 21 entries of our recipe library need it, and the safety gate still asks before it runs.
 _RBVI_RECIPE_RE = re.compile(r"https?://raw\.githubusercontent\.com/rbvi/chimerax-recipes/", re.I)
 
+_DISTANCE_RE = re.compile(r"^distance\s+(?!style\b|delete\b|save\b|format\b)\S", re.I)
+
 _TIDY_RE = re.compile(r"\blabels?\b.*\b(overlap|unreadable|readable|too (small|many|big)|tidy|clean|declutter|mess)|\b(tidy|clean up|declutter)\b.*\blabels?\b", re.I)
 NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, readability, clutter). Do not re-run label commands "
               "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
@@ -825,6 +827,22 @@ class Agent:
                 out["error"] = err["error"]
             return out
 
+        if self.config.readable_labels and self.config.edition == "chimerax" and any(_DISTANCE_RE.match(c) for c in commands):
+            # ChimeraX draws distances and their labels yellow, unreadable on the white background of
+            # every publication view; restyle them to contrast with the current background
+            try:
+                bg = str((self.executor.get_state() or {}).get("background") or "")
+            except Exception:  # noqa: BLE001
+                bg = ""
+            nums = [int(x) for x in re.findall(r"\d+", bg)][:3]
+            light = bool(nums) and sum(nums) / len(nums) > 140
+            styled = []
+            for c in commands:
+                styled.append(c)
+                if _DISTANCE_RE.match(c):
+                    styled.append("distance style color %s" % ("#1f3a5f" if light else "gold"))
+            commands = styled
+
         label_notes = []
         if self.config.readable_labels and self.config.edition == "chimerax":
             from .labels import style_label_command, label_spec
@@ -994,8 +1012,16 @@ class Agent:
     def _compare_contacts(self, reference: str, other: str, chain: Optional[str],
                           restrict: Optional[str], cutoff: float) -> Dict[str, Any]:
         """Superpose, collect contacts on both models, compare them THROUGH the alignment and draw
-        the change. Everything that changes the scene goes through execute_commands."""
-        from .contacts import compare_contacts, contact_commands
+        the change. Everything that changes the scene goes through execute_commands.
+
+        `restrict` (a ligand, a pocket, an interface residue) is written for the reference and is
+        translated to the other model through the pairing, not by swapping the model id. It is
+        independent of `chain`: `chain` limits the partner side of every contact, while the
+        restricted atoms are kept whatever their chain, so `chain='A', restrict='/B:87'` asks
+        what B87 touches in chain A.
+        """
+        from .contacts import (atom_part, compare_contacts, contact_commands, model_restriction,
+                               translate_restriction)
         if not hasattr(self.executor, "residue_contacts"):
             return {"error": "Contact comparison needs the ChimeraX edition."}
         prep = self.executor.prepare_compare(reference, other, chain)
@@ -1009,36 +1035,60 @@ class Agent:
         pairing = self.executor.residue_pairing(prep)
         if pairing.get("error"):
             return pairing
-        # a restrict spec is written for the reference; the same residues or ligand in the other model
-        # are addressed by swapping the model id, and may legitimately be absent (an apo form)
+        # A restrict spec is written for the reference. The other model's restriction is NOT the
+        # same string with the model id swapped: it is built from the residues the reference
+        # restriction actually selected, carried across by the alignment, because the same pocket
+        # is routinely numbered differently and residue 87 of one entry is not residue 87 of the
+        # other. A selector word ('ligand') becomes an intersection, never '#2/ligand'.
         ref_restrict = oth_restrict = None
         if restrict:
-            tail = restrict[restrict.find("/"):] if "/" in restrict else (restrict if restrict.startswith(":") else "/" + restrict)
-            ref_restrict = "#%s%s" % (prep["ref_id"], tail)
-            oth_restrict = "#%s%s" % (prep["other_id"], tail)
+            ref_restrict = model_restriction(restrict, prep["ref_id"])
         ref = self.executor.residue_contacts(prep["ref_spec"], cutoff, ref_restrict)
         if ref.get("error"):
             return ref
-        oth = self.executor.residue_contacts(prep["other_spec"], cutoff, oth_restrict)
-        missing = oth.get("error", "")
+        if ref.get("empty_selection"):
+            return {"error": "%s Nothing to compare." % ref.get("reason", "The restriction matched nothing.")}
+        unpaired_restrict = ""
+        if restrict:
+            oth_restrict = translate_restriction(ref.get("restrict_residues") or [], pairing["pairing"],
+                                                 prep["other_id"], atom_part(restrict))
+            if not oth_restrict:
+                unpaired_restrict = ("None of the residues '%s' selects in %s has a counterpart in %s: "
+                                     "they are outside the alignment (a ligand, a tag, an unmodelled region)."
+                                     % (restrict, prep["ref_spec"], prep["other_spec"]))
+        if unpaired_restrict:
+            oth = {"contacts": [], "empty_selection": True, "reason": unpaired_restrict}
+        else:
+            oth = self.executor.residue_contacts(prep["other_spec"], cutoff, oth_restrict)
+        if oth.get("error"):
+            # never compare against an empty list because the other side failed: that would report
+            # every reference contact as lost when in truth nothing was measured
+            return {"error": "Contacts could not be collected in %s: %s" % (prep["other_spec"], oth["error"]),
+                    "reference_contacts": ref.get("count", 0)}
+        missing = oth.get("reason", "") if oth.get("empty_selection") else ""
         res = compare_contacts(ref["contacts"], oth.get("contacts") or [], pairing["pairing"])
         out: Dict[str, Any] = {"reference": prep["ref_spec"], "compared": prep["other_spec"],
                                "chain": prep.get("chain") or "all", "cutoff": cutoff,
                                "restrict": ref_restrict or "", "pairing": pairing.get("basis"),
                                "summary": res["summary"], "counts": res["counts"], "by_kind": res["by_kind"],
                                "lost": res["lost"][:25], "gained": res["gained"][:25],
+                               "kind_changed": res["kind_changed"][:25],
                                "commands": mm["results"]}
+        if oth_restrict:
+            out["compared_restrict"] = oth_restrict
         if res.get("note"):
             out["note"] = res["note"]
         if missing:
-            out["compared_side"] = ("Nothing matched the restrict spec in %s (%s), so every restricted contact counts as lost."
-                                    % (prep["other_spec"], missing))
+            out["compared_side"] = ("%s Contacts whose residues are both in the alignment are judged as usual; "
+                                    "the rest could not be judged and are counted as unmapped, not as lost." % missing)
         if str(pairing.get("basis", "")).startswith("chain id"):
             out["pairing_fallback"] = True
             out["pairing_note"] = ("Residues were paired by chain ID and residue number because no alignment was "
                                    "available; the lost/gained lists are only meaningful if both structures use the same numbering.")
         out["report_verbatim"] = ("Report the 'summary' sentence as it is, then name the specific contacts that broke "
-                                  "or formed. Contacts in 'lost'/'gained' are residue pairs, not distances the user measured.")
+                                  "or formed. Contacts in 'lost'/'gained' are residue pairs, not distances the user measured; "
+                                  "'kind_changed' pairs still touch but interact differently, and contacts counted as "
+                                  "unmapped were not judged at all - never describe those as lost.")
         cmds = contact_commands(res, prep["ref_spec"], prep["other_spec"])
         if cmds:
             col = self.execute_commands(cmds, origin="compare")

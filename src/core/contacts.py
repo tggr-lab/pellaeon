@@ -11,6 +11,7 @@ tags, missing loops and different chain ids are the normal case, and comparing
 """
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 SALT_BRIDGE = "salt bridge"
@@ -162,7 +163,12 @@ def compare_contacts(ref_contacts: List[Dict[str, Any]], other_contacts: List[Di
     A contact whose residues are not both in the pairing cannot be judged: the partner may
     simply be absent from the alignment (a ligand, a tag, an unmodelled loop). Those are
     counted as `unmapped`, never as lost or gained, because reporting an unaligned residue
-    as "lost contact" is the single most misleading thing this comparison could do.
+    as "lost contact" is the single most misleading thing this comparison could do. They are
+    counted and named in the summary instead, so the reader knows what was not judged.
+
+    A residue pair that survives but interacts differently (a salt bridge that decays into a
+    van der Waals contact) is in `kept` *and* in `kind_changed`: the pair is retained, the
+    interaction is not, and only the second is a biological change worth reporting.
     """
     pair = {normalize_spec(k): normalize_spec(v) for k, v in (pairing or {}).items()}
     reverse = {v: k for k, v in pair.items()}
@@ -177,11 +183,14 @@ def compare_contacts(ref_contacts: List[Dict[str, Any]], other_contacts: List[Di
     lost: List[Dict[str, Any]] = []
     kept: List[Dict[str, Any]] = []
     gained: List[Dict[str, Any]] = []
+    changed: List[Dict[str, Any]] = []
     unmapped_ref = 0
     unmapped_other = 0
 
     for key, c in ref_index.items():
-        ma, mb = pair.get(key[0]), pair.get(key[1])
+        # The mapped endpoints follow the contact's own a/b, never the sorted lookup key: the
+        # pairing may reverse their order, and then mapped_a would describe b.
+        ma, mb = pair.get(normalize_spec(c.get("a", ""))), pair.get(normalize_spec(c.get("b", "")))
         if ma is None or mb is None:
             unmapped_ref += 1
             continue
@@ -198,9 +207,15 @@ def compare_contacts(ref_contacts: List[Dict[str, Any]], other_contacts: List[Di
             except (TypeError, ValueError):
                 entry["delta"] = None
             kept.append(entry)
+            # The residues still touch, but not in the same way: a salt bridge that decays into a
+            # van der Waals contact is a change, and calling it "unchanged" hides the answer.
+            if entry["other_kind"] and entry["other_kind"] != entry.get("kind"):
+                entry["kind_changed"] = True
+                changed.append(entry)
 
     for key, c in other_index.items():
-        ra, rb = reverse.get(key[0]), reverse.get(key[1])
+        ra = reverse.get(normalize_spec(c.get("a", "")))
+        rb = reverse.get(normalize_spec(c.get("b", "")))
         if ra is None or rb is None:
             unmapped_other += 1
             continue
@@ -215,6 +230,7 @@ def compare_contacts(ref_contacts: List[Dict[str, Any]], other_contacts: List[Di
     lost.sort(key=sort_key)
     gained.sort(key=sort_key)
     kept.sort(key=sort_key)
+    changed.sort(key=sort_key)
 
     by_kind: Dict[str, Dict[str, int]] = {}
     for bucket_name, bucket in (("lost", lost), ("gained", gained), ("kept", kept)):
@@ -223,8 +239,9 @@ def compare_contacts(ref_contacts: List[Dict[str, Any]], other_contacts: List[Di
             row[bucket_name] += 1
 
     result: Dict[str, Any] = {
-        "lost": lost, "gained": gained, "kept": kept, "by_kind": by_kind,
+        "lost": lost, "gained": gained, "kept": kept, "kind_changed": changed, "by_kind": by_kind,
         "counts": {"lost": len(lost), "gained": len(gained), "kept": len(kept),
+                   "kind_changed": len(changed),
                    "reference_contacts": len(ref_index), "other_contacts": len(other_index),
                    "unmapped_reference": unmapped_ref, "unmapped_other": unmapped_other,
                    "paired_residues": len(pair)},
@@ -238,17 +255,32 @@ def compare_contacts(ref_contacts: List[Dict[str, Any]], other_contacts: List[Di
 
 def summarize(result: Dict[str, Any], max_named: int = 3) -> str:
     """One sentence a biologist would write: the counts, the broken/formed polar contacts by
-    name, and the residues that gained or lost the most."""
+    name, the interactions that changed type, how much could not be judged, and the residues
+    that gained or lost the most."""
     lost = result.get("lost") or []
     gained = result.get("gained") or []
     kept = result.get("kept") or []
+    changed = result.get("kind_changed") or []
+    counts = result.get("counts") or {}
+    unmapped = int(counts.get("unmapped_reference") or 0)
     chains = set()
     for e in lost + gained + kept:
         chains.add(_chain(e.get("a", "")))
         chains.add(_chain(e.get("b", "")))
     show_chain = len({c for c in chains if c}) > 1
 
-    parts = ["%d contact%s lost and %d gained (%d unchanged)" % (
+    unjudged = ""
+    if unmapped:
+        unjudged = ("%d reference contact%s could not be judged because one residue is not in the "
+                    "alignment (a ligand, a tag or an unmodelled region)"
+                    % (unmapped, "" if unmapped == 1 else "s"))
+    if not lost and not gained and not kept:
+        # Nothing was comparable: saying "no changes" here would read as "the structures agree".
+        if unjudged:
+            return "No contacts could be compared: " + unjudged + "."
+        return "No contacts could be compared: neither selection has a contact to compare."
+
+    parts = ["%d contact%s lost and %d gained (%d retained)" % (
         len(lost), "" if len(lost) == 1 else "s", len(gained), len(kept))]
 
     broken = [e for e in lost if e.get("kind") == SALT_BRIDGE]
@@ -259,6 +291,11 @@ def summarize(result: Dict[str, Any], max_named: int = 3) -> str:
     if formed:
         parts.append("%d salt bridge%s form (%s)" % (len(formed), "" if len(formed) == 1 else "s",
                                                      ", ".join(_pair_label(e, show_chain) for e in formed[:max_named])))
+    if changed:
+        parts.append("%d retained pair%s change interaction type (%s)" % (
+            len(changed), "" if len(changed) == 1 else "s",
+            ", ".join("%s %s -> %s" % (_pair_label(e, show_chain), e.get("kind"), e.get("other_kind"))
+                      for e in changed[:max_named])))
     hot_lost = _busiest_residues(lost, max_named, show_chain)
     if hot_lost and not broken:
         parts.append("the residues losing most contacts are " + ", ".join(hot_lost))
@@ -267,8 +304,11 @@ def summarize(result: Dict[str, Any], max_named: int = 3) -> str:
     hot_gained = _busiest_residues(gained, max_named, show_chain)
     if hot_gained:
         parts.append("the new contacts cluster on " + ", ".join(hot_gained))
-    if not lost and not gained:
-        return "No contact changes: all %d contacts are present in both conformations." % len(kept)
+    if unjudged:
+        parts.append(unjudged)
+    if not lost and not gained and not changed:
+        return ("No contact changes: all %d contacts are present in both conformations%s."
+                % (len(kept), "; " + unjudged if unjudged else ""))
     return "; ".join(parts) + "."
 
 
@@ -365,9 +405,89 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
 
     # `key` labels must be single words - it rejects even a quoted "lost in #2" - so the models
     # are named in the 2D label underneath instead.
-    cmds.append("key %s:lost %s:gained colorTreatment distinct pos 0.68,0.05 size 0.28,0.035 fontSize 15"
+    cmds.append("key %s:lost %s:gained colorTreatment distinct pos 0.36,0.04 size 0.28,0.035 fontSize 15"
                 % (LOST_COLOR, GAINED_COLOR))
     shown = "showing %d of %d lost and %d of %d gained" % (len(lost), n_lost, len(gained), n_gained)
-    cmds.append('2dlabels text "Contacts lost (red, on %s) and gained (green, on %s); %s" xpos 0.68 ypos 0.10 size 14 color black'
+    cmds.append('2dlabels text "Contacts lost (red, on %s) and gained (green, on %s); %s" xpos 0.36 ypos 0.09 size 14 color black'
                 % (ref_model, other_model, shown))
+    cmds.append('zoom 0.85')
     return cmds
+
+
+# ------------------------------------------------------------------ restriction translation
+
+# Words ChimeraX understands as *selectors*, not as chain ids. '#1/ligand' would ask for a chain
+# literally named "ligand" and quietly select nothing, so these are intersected with the model.
+SELECTOR_WORDS = frozenset({
+    "ligand", "ligands", "protein", "peptide", "nucleic", "nucleic-acid", "polymer",
+    "solvent", "water", "ions", "ion", "metal", "metals", "backbone", "mainchain",
+    "sidechain", "sideonly", "helix", "strand", "coil", "sel", "disulfide", "pbonds",
+})
+
+_SPEC_OPERATORS = "&|~ ()"
+
+
+def model_restriction(restrict: str, model_id: str) -> str:
+    """Rewrite a user's restriction so that it addresses exactly one model.
+
+    ``':AP5'``/``'/A:87'``/``'#1/A:87'`` keep their residue part and get the wanted model id;
+    a selector word becomes an intersection (``'#2 & ligand'``), never ``'#2/ligand'``, which
+    would mean *a chain called "ligand"*; a bare short token is read as a residue name
+    (``'AP5'`` -> ``'#1:AP5'``); anything with spec operators in it is parenthesised.
+
+    The restriction is deliberately *not* combined with the chain being compared: the chain
+    limits the partner side of every contact, while the restricted atoms are kept whatever
+    their chain, because a ligand (or the second chain of a dimer interface) usually sits in a
+    chain of its own. So ``chain='A', restrict='/B:87'`` means "what does B87 touch in chain A",
+    which is the only reading that makes an interface question answerable.
+    """
+    s = (restrict or "").strip()
+    if not s:
+        return ""
+    if s.startswith("#"):
+        # whatever model the user wrote, the residues are addressed in ours
+        rest = s[1:]
+        i = 0
+        while i < len(rest) and (rest[i].isdigit() or rest[i] == "."):
+            i += 1
+        s = rest[i:].strip()
+        if not s:
+            return "#%s" % model_id
+    if any(ch in s for ch in _SPEC_OPERATORS):
+        return "#%s & (%s)" % (model_id, s)
+    if s.startswith(("/", ":", "@")):
+        return "#%s%s" % (model_id, s)
+    if re.fullmatch(r"[A-Za-z0-9]{1,3}", s) and s.lower() not in SELECTOR_WORDS:
+        return "#%s:%s" % (model_id, s)          # a residue name: AP5, ATP, HEM
+    if ":" in s or "@" in s:
+        return "#%s/%s" % (model_id, s)          # 'A:87' written without its leading slash
+    return "#%s & %s" % (model_id, s)            # ligand, protein, solvent, ...
+
+
+def atom_part(restrict: str) -> str:
+    """The '@CA' tail of a restriction, if it has one: the translated spec must keep it."""
+    s = (restrict or "").strip()
+    return s[s.find("@"):] if "@" in s else ""
+
+
+def translate_restriction(residues: Sequence[str], pairing: Dict[str, str], model_id: str,
+                          atoms: str = "") -> str:
+    """The other model's spec for *the residues the reference restriction actually selected*.
+
+    The restriction is evaluated on the reference; its residues are then carried across by the
+    alignment, which is the whole point of the module: the same ligand pocket may be numbered
+    differently, so reusing the reference's residue numbers against the other model would
+    compare unrelated residues (or nothing at all).
+
+    Returns '' when no selected residue has a counterpart - an apo form with no ligand, a tag
+    the alignment does not cover. The caller must report that as "nothing there", not as loss.
+    """
+    pair = {normalize_spec(k): v for k, v in (pairing or {}).items()}
+    mapped: List[str] = []
+    for spec in residues or []:
+        t = pair.get(normalize_spec(spec))
+        if t and t not in mapped:
+            mapped.append(t)
+    if not mapped:
+        return ""
+    return " | ".join(g + atoms for g in _residue_spec_list("#" + str(model_id).lstrip("#"), mapped))

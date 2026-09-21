@@ -168,8 +168,9 @@ def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str
             stops = pal.split(":")
             if len(stops) >= 2 and hi > lo:
                 labels = ["%g" % (lo + (hi - lo) * i / (len(stops) - 1)) for i in range(len(stops))]
-                cmds.append("key %s pos 0.70,0.05 size 0.27,0.035 fontSize 16" % " ".join("%s:%s" % (c, l) for c, l in zip(stops, labels)))
-                cmds.append('2dlabels text "%s (gray = no value)" xpos 0.70 ypos 0.10 size 15 color black' % attr.replace("pellaeon_", "", 1).replace("_", " "))
+                cmds.append("key %s pos 0.36,0.04 size 0.28,0.035 fontSize 16" % " ".join("%s:%s" % (c, l) for c, l in zip(stops, labels)))
+                cmds.append('2dlabels text "%s (gray = no value)" xpos 0.36 ypos 0.09 size 15 color black' % attr.replace("pellaeon_", "", 1).replace("_", " "))
+                cmds.append('zoom 0.85')   # leave the legend its own band instead of drawing it over the structure
         legend = "%s from %g (low) to %g (high), palette %s; residues without a value gray" % (attr, lo, hi, palette)
     else:
         cats = sorted({str(v) for v in assign.values()})
