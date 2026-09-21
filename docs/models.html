@@ -313,16 +313,20 @@
 <footer><div class="in">Pellaeon v0.2.0 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a></footer>
 <script>
 (function(){
-  document.querySelectorAll(".demo-play").forEach(function(btn){
-    var img = btn.querySelector("img"), badge = btn.querySelector(".badge");
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl"),
+        img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
     btn.dataset.playing = "0";
-    btn.addEventListener("click", function(){
+    function toggle(){
       var playing = btn.dataset.playing !== "1";
       btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
       img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
-      badge.textContent = playing ? "Stop" : "Play";
+      lbl.textContent = playing ? "Stop" : "Play recording";
       btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
-    });
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
   });
   var tabs = document.querySelectorAll(".demo-tab");
   function selectDemo(tab){

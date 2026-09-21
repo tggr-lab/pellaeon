@@ -38,16 +38,20 @@ def layout(title, body, active, toc_html=""):
 <footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a></footer>
 <script>
 (function(){
-  document.querySelectorAll(".demo-play").forEach(function(btn){
-    var img = btn.querySelector("img"), badge = btn.querySelector(".badge");
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl"),
+        img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
     btn.dataset.playing = "0";
-    btn.addEventListener("click", function(){
+    function toggle(){
       var playing = btn.dataset.playing !== "1";
       btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
       img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
-      badge.textContent = playing ? "Stop" : "Play";
+      lbl.textContent = playing ? "Stop" : "Play recording";
       btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
-    });
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
   });
   var tabs = document.querySelectorAll(".demo-tab");
   function selectDemo(tab){
@@ -124,7 +128,7 @@ INDEX = """
     <p class="small">Paste into ChimeraX's command line.</p>
     <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="#see-it-work">See examples</a></div>
   </div>
-  <div class="shot hero-gif"><picture><source srcset="img/hero_mobile_poster.png" media="(prefers-reduced-motion: reduce) and (max-width: 700px)"><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
+  <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
 </section>
 
 <h2>Three steps</h2>
@@ -242,8 +246,9 @@ def demos_html():
             '<figure class="demo-panel" id="demo-%s"%s>'
             '<button class="demo-play" type="button" aria-label="Play the recording">'
             '<img src="img/demo_%s_poster.png" data-poster="img/demo_%s_poster.png" data-gif="img/demo_%s.gif" alt="%s" loading="lazy">'
-            '<span class="badge"><span class="tri" aria-hidden="true"></span>Play</span></button>'
-            '<figcaption><span class="req">%s</span><span class="res">%s</span></figcaption>'
+            '</button>'
+            '<div class="demo-bar"><button class="demo-ctl" type="button"><span class="tri" aria-hidden="true"></span><span class="lbl">Play recording</span></button>'
+            '<figcaption><span class="req">%s</span><span class="res">%s</span></figcaption></div>'
             '<p class="small"><a href="%s">Follow this guide</a> &middot; '
             '<a href="%s/tree/main/docs/examples/%s">Get the example files</a> &middot; '
             '<a href="img/demo_%s.gif">Open full size</a></p>'

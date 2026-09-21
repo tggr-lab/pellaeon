@@ -170,7 +170,6 @@ figure img { max-height: 78vh; width: auto; max-width: 100%; margin: 0 auto; }
 .demo-panel .res { color: var(--muted); font-size: 0.92em; }
 .demo-play { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 8px; overflow: hidden; }
 .demo-play img { display: block; width: 100%; height: auto; }
-.demo-play .badge { position: absolute; right: 10px; bottom: 10px; background: var(--accent); color: #fff; font-size: 0.85em; padding: 4px 12px; border-radius: 999px; }
 .demo-play:focus-visible { outline: 2px solid var(--accent2); }
 .demo-panel pre { font-size: 0.78em; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 /* command explainer */
@@ -178,11 +177,15 @@ figure img { max-height: 78vh; width: auto; max-width: 100%; margin: 0 auto; }
 .cmd span { border-bottom: 2px solid var(--accent2); padding: 0 1px; cursor: help; }
 .cmd span:hover, .cmd span:focus { background: var(--accent); color: #fff; outline: none; border-radius: 3px; }
 
-/* a modest play badge in the corner of the poster */
-.demo-play img { filter: none; }
-.demo-play .badge { position: absolute; left: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: #fff; font-weight: 600; font-size: 0.95em; padding: 8px 14px; border-radius: 999px; box-shadow: 0 3px 12px rgba(0,0,0,.3); }
-.demo-play .tri { width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 11px; border-color: transparent transparent transparent #fff; }
-.demo-play[data-playing="1"] .tri { border: 0; width: 10px; height: 10px; background: #fff; border-radius: 2px; }
-.demo-play:hover .badge { filter: brightness(1.1); }
+/* recordings: the control sits under the picture, never on it */
 .demo-tab { font-size: 1.02em; }
 .howwrap, .howwrap-v { margin-top: 6px; }
+.demo-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 12px; }
+.demo-bar figcaption { margin: 0; }
+.demo-ctl { display: inline-flex; align-items: center; gap: 9px; font: inherit; font-weight: 600; font-size: 1.02em; padding: 9px 18px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+.demo-ctl:hover { filter: brightness(1.1); }
+.demo-ctl:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+.demo-ctl .tri { width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 11px; border-color: transparent transparent transparent #fff; }
+.demo-ctl[data-playing="1"] .tri { border: 0; width: 10px; height: 10px; background: #fff; border-radius: 2px; }
+.demo-ctl[data-playing="1"] { background: var(--panel); color: var(--ink); border-color: var(--line); }
+.demo-ctl[data-playing="1"] .tri { background: var(--ink); }
