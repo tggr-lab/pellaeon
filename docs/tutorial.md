@@ -303,5 +303,3 @@ Every value is stored as a residue attribute named `pellaeon_<table>_<column>`, 
 | "rejected the API key (401)" | Re-paste the key; check it belongs to the provider you selected. |
 | Panel is blank | `Tools ▸ General ▸ Pellaeon` again, or restart ChimeraX. |
 | Something changed that you did not want | "undo", or reopen the structure. |
-
-Yes, sir.

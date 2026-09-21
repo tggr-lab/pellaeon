@@ -68,4 +68,4 @@ chimerax --nogui --exit --script tests_chimerax/smoke.py    # in-ChimeraX checks
 Website (GitHub Pages, served from `docs/`): install guide, illustrated tutorial and the classic edition. Rebuild it with `python tools/build_site.py` after editing the Markdown sources. See `RELEASING.md` for building the wheel. Licensed under MIT.
 
 ---
-<sub>Made by [Yam Amir](https://github.com/YAMIR-1138) at the [TGGR Lab](https://github.com/tggr-lab), with [Claude Code](https://claude.com/claude-code).</sub>
+<sub>Made by [Yam Amir](https://github.com/YAMIR-1138) at the [TGGR Lab](https://github.com/tggr-lab).</sub>
