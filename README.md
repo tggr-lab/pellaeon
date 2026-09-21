@@ -1,71 +1,67 @@
-<img src="docs/logo.svg" width="72" align="left" alt="Pellaeon logo">
+<img src="docs/logo.svg" width="72" align="left" alt="">
 
-# Pellaeon: talk to ChimeraX in plain English
+# Pellaeon
 
-Pellaeon adds a chat panel to [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/). You type what you want:
+**Talk to UCSF ChimeraX in plain English.** A chat panel inside ChimeraX that turns what you type into ChimeraX commands, shows you every command it ran, and asks before anything destructive.
 
-> open the AlphaFold model of ADRB2 and color residue 113 blue
-> measure the distance between residues 100 and 150
-> make it look publication ready
+<br clear="left">
 
-Pellaeon runs the ChimeraX commands, lists each one so you can copy or re-run it, sends failures back to the model with the ChimeraX error, and stops for your approval before file writes and destructive actions.
+![Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it](docs/img/hero.gif)
 
-It works with **local models** (Ollama on your own computer) and **cloud models** (Anthropic Claude, Google Gemini, OpenAI, and anything OpenAI-compatible such as OpenRouter, Groq or LM Studio). Gemini and OpenRouter have free tiers.
+## Install
 
-Named after Gilad Pellaeon, captain of the *Chimaera*.
+In ChimeraX's command line (bottom of the window), paste:
 
-![ChimeraX with the Pellaeon panel docked on the right](docs/img/docked_4hhb.png)
+```
+open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
+```
 
-## Install (3 steps)
+The panel opens. Pick a model provider, paste a key if it needs one, press **Test connection**, then **Save & use**. Later it is under **Tools > General > Pellaeon**. Needs ChimeraX 1.9 or newer.
 
-1. Install ChimeraX 1.9 or newer.
-2. In ChimeraX's command line (bottom of the window) type:
+Offline: download the `.whl` from [Releases](https://github.com/tggr-lab/pellaeon/releases) and run `toolshed install /path/to/the/file.whl`.
 
-   ```
-   open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
-   ```
+## Models
 
-   This downloads the Pellaeon bundle and installs it with ChimeraX's own tool installer. No terminal, no Python setup.
-3. The Pellaeon panel opens (later: **Tools > General > Pellaeon**). Pick a provider, paste a key if it needs one, press **Test connection**, then **Save & use**.
+- **Free, no card:** Mistral's free tier (recommended, fast) or Google Gemini.
+- **Local, private:** Ollama on your own computer (`qwen3:8b` on a GPU).
+- **Paid:** Anthropic Claude, OpenAI, Mistral Medium, or any OpenAI-compatible server (OpenRouter, Groq, LM Studio).
 
-Offline install: download the `.whl` from the [releases page](https://github.com/tggr-lab/pellaeon/releases) and run `toolshed install /path/to/the/file.whl` in ChimeraX.
-
-## Choosing an AI
-
-Local: Ollama (`qwen3:8b` on a GPU, `qwen3:4b` on a CPU-only machine). Cloud: Google Gemini (free tier, no credit card), Anthropic Claude, OpenAI, or any OpenAI-compatible server (OpenRouter, Groq, LM Studio). Keys are stored on your computer, not in ChimeraX sessions or files you share. Details, per provider: [installation guide](https://tggr-lab.github.io/pellaeon/install.html#choosing-an-ai).
+Keys stay on your computer. How to get a key, and how each model did on our test set: [tested models](https://tggr-lab.github.io/pellaeon/models.html).
 
 ## What you can do
 
-- **Explore a structure.** Select a residue, inspect its neighbours, measure distances, or add annotations. Click a residue in the 3D view, or Alt-click it, and ask what it is or what is nearby. "it", "this" and "the selected" resolve against what is open and selected.
-- **Compare conformations.** Superpose structures and inspect residue displacements and contact differences. Displacement is reported over the fitted subset, not all pairs; contacts and salt bridges are listed as lost and gained.
-- **Map your data.** Import a residue-score table, check its numbering, and color the structure by value or category. UniProt positions are mapped onto the structure's own numbering, with the offset reported. Fetch UniProt features, ClinVar variants, ConSurf conservation, or AlphaMissense: AlphaMissense is scored per substitution, and Pellaeon colors by the mean over the 19 substitutions at each position, with the maximum as a second column. Mapped to the structure, with a color legend. Reports when scores are unavailable.
-- **Save figures and views.** Export images with their recorded commands and sources: the image, a ChimeraX session, a replayable `.cxc` script, a per-residue color table, where each model came from, and a draft legend built from what ran. Save views and reuse figure styles. Record spin, rock or view-tour movies.
+> open the AlphaFold model of ADRB2 and color residue 113 blue
+> what is near the selected residue?
+> compare this with 4ake and show me which contacts are lost
+> color it by ClinVar variants, then by conservation
+> tidy the labels and save a figure with its commands
 
-Each assistant reply carries a collapsible **Ran N commands** block with copy, re-run and a link to the ChimeraX documentation for that command. Commands that match nothing are flagged. Select a residue and ask "why is this red?" and Pellaeon answers from its own record: the command, table column, annotation or comparison that set the color, with the value and its source. A `.cxc` script is not a session; both are written when you save a figure.
+- **Explore a structure:** select, inspect neighbours, measure, label. "it" and "the selected" refer to what is open.
+- **Compare conformations:** superpose, residue displacements, lost and gained contacts drawn on the structure.
+- **Map your data:** a residue table, UniProt features, ClinVar variants, ConSurf conservation or AlphaMissense scores, placed in the structure's own numbering with a color key.
+- **Make figures:** publication look, tidy overlapping labels, save the image with a replayable `.cxc` script and the sources of everything shown.
 
-The dropdown at the top of the panel switches between *ask before every command*, *auto-run but ask for risky ones* (default) and *never ask*. Press **Stop** (or Esc) to interrupt; **+** starts a new chat; **☰** lists past conversations. The `pellaeon` command also works from ChimeraX's own command line and in scripts: `pellaeon color everything by chain`.
+Every reply lists the commands it ran with copy, re-run and a link to the ChimeraX docs. Closing, deleting, saving and scripts wait for your OK.
 
-Try it with a fresh session: `open 4hhb`, then "color by chain", "show the ligand as spheres and hide water", "make it spin", "stop", "label residues 10 and 20", "close everything" (asks first).
+## Learn more
 
-## How it works
-
-Pellaeon is a normal ChimeraX bundle (pure Python, no extra packages). It runs inside ChimeraX, so it can execute commands, read the log output and errors, and inspect the open models and selection. The documentation for the ChimeraX version you run is indexed on first launch from the docs that ship with ChimeraX. Requests are answered by the model you choose through a tool-calling loop: the model can run commands, check the session state, look up command syntax, search the docs, resolve proteins via UniProt, fetch annotations, or ask you a question.
-
-## Old Chimera (1.x)
-
-There is a classic edition that drives UCSF Chimera 1.x through its REST server from your browser: see [classic/README.md](classic/README.md). Both editions share the chat interface and model providers; table overlays and some analysis tools are ChimeraX-only. One zip plus Python 3, Chimera command syntax.
+- [Website](https://tggr-lab.github.io/pellaeon/) and [illustrated tutorial](https://tggr-lab.github.io/pellaeon/tutorial.html)
+- [Install guide](https://tggr-lab.github.io/pellaeon/install.html) (providers, privacy, where things are stored)
+- [Classic edition](classic/README.md) for UCSF Chimera 1.x
 
 ## Development
 
 ```
 git clone https://github.com/tggr-lab/pellaeon
 cd pellaeon
-python -m pytest                        # unit tests, no ChimeraX needed
-chimerax --nogui --exit --cmd "devel install \"$(pwd)\""   # install into your ChimeraX
-chimerax --nogui --exit --script tests_chimerax/smoke.py    # in-ChimeraX checks
+python -m pytest                                              # unit tests, no ChimeraX needed
+chimerax --nogui --exit --cmd "devel install \"$(pwd)\""      # install into your ChimeraX
+chimerax --nogui --exit --script tests_chimerax/smoke.py      # in-ChimeraX checks
 ```
 
-Website (GitHub Pages, served from `docs/`): install guide, illustrated tutorial and the classic edition. Rebuild it with `python tools/build_site.py` after editing the Markdown sources. See `RELEASING.md` for building the wheel. Licensed under MIT.
+Pure Python, no extra packages. The website is built from `docs/*.md` with `python tools/build_site.py`; `RELEASING.md` covers the wheel. MIT license.
 
 ---
-<sub>Made by [Yam Amir](https://github.com/YAMIR-1138) at the [TGGR Lab](https://github.com/tggr-lab).</sub>
+<a href="https://github.com/tggr-lab"><img src="docs/img/tggr.png" width="96" align="left" alt="TGGR Lab"></a>
+
+Made by [Yam Amir](https://github.com/YAMIR-1138) at the [TGGR Lab](https://github.com/tggr-lab). Named after Gilad Pellaeon, captain of the *Chimaera*. Not affiliated with UCSF.
