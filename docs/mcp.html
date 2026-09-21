@@ -9,97 +9,34 @@
 <main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
 <ul>
 <li><a href="#side-by-side">Side by side</a></li>
-<li><a href="#what-each-one-is-for">What each one is for</a></li>
-<li><a href="#using-them-together">Using them together</a></li>
-<li><a href="#what-is-not-shared">What is not shared</a></li>
-<li><a href="#requirements">Requirements</a></li>
+<li><a href="#which-one">Which one</a></li>
+<li><a href="#use-both-pellaeons-tools-as-commands">Use both: Pellaeon's tools as commands</a></li>
 </ul>
 </div>
-</details></nav><article><h1 id="pellaeon-and-chimeraxs-mcp-command">Pellaeon and ChimeraX's mcp command</h1>
-<p>In December 2025 ChimeraX gained an <code>mcp</code> command that lets an assistant running outside ChimeraX, such as Claude Desktop, Cursor or VS Code Copilot, send it commands over the Model Context Protocol. Pellaeon is a chat panel inside ChimeraX with its own model connection. They solve different problems, and since 0.2.1 they can be used together.</p>
+</details></nav><article><h1 id="pellaeon-and-the-mcp-command">Pellaeon and the mcp command</h1>
+<p><strong>In short.</strong> ChimeraX's built-in <code>mcp</code> command lets an assistant you already use, such as Claude Desktop or Cursor, send commands into ChimeraX. Pellaeon puts the assistant inside ChimeraX, with any model including free and local ones, guard rails, and analysis tools. They are not rivals: Pellaeon's tools are ChimeraX commands, so an assistant on <code>mcp</code> can call them too.</p>
 <h2 id="side-by-side">Side by side</h2>
 <div class="howwrap"><svg class="how how-mcp" viewBox="0 0 900 842" role="img" aria-label="ChimeraX's mcp command and Pellaeon, step by step, and the commands they share" xmlns="http://www.w3.org/2000/svg" style="--mk:url(#ahmd);--mk2:url(#ah2md)"><defs><marker id="ahmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><marker id="ah2md" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent2)"/></marker></defs><g class="wires"><path d="M220,148 L220,174"/><path d="M220,278 L220,304"/><path d="M220,408 L220,434"/><path d="M220,538 L220,564"/><path d="M680,148 L680,174"/><path d="M680,278 L680,304"/><path d="M680,408 L680,434"/><path d="M680,538 L680,564"/><path class="loop" d="M220,668 L220,704"/><path class="loop" d="M680,668 L680,704"/></g><text class="lanet" x="220" y="28">ChimeraX&#x27;s mcp command</text><g class="node n1" transform="translate(20,44)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>An assistant outside ChimeraX</b><span>Claude Desktop, Cursor or VS Code Copilot. Its own model, its own subscription.</span></div></foreignObject></g><g class="node n2" transform="translate(20,174)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>MCP bridge process</b><span>A Python program the assistant starts. Speaks MCP to the assistant, HTTP to ChimeraX.</span></div></foreignObject></g><g class="node n3" transform="translate(20,304)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>ChimeraX REST server</b><span>`mcp start` opens a port. Commands arrive as text, the log comes back as text.</span></div></foreignObject></g><g class="node n4" transform="translate(20,434)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Tools</b><span>run_command, list_models, get_shown, get_model_info, get_chain_info, command docs, atom-spec guide.</span></div></foreignObject></g><g class="node n5" transform="translate(20,564)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Runs and reports</b><span>Whatever the assistant sends runs. Retries and safety are the assistant&#x27;s job.</span></div></foreignObject></g><text class="lanet" x="680" y="28">Pellaeon</text><g class="node n1" transform="translate(480,44)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>A panel inside ChimeraX</b><span>Docked next to the 3D view. Ollama on your PC, or Mistral, Gemini, Claude, OpenAI keys.</span></div></foreignObject></g><g class="node n2" transform="translate(480,174)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>In-process</b><span>No bridge, no port. Reads what is open and selected, the log, errors, and your loaded tables.</span></div></foreignObject></g><g class="node n3" transform="translate(480,304)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Context</b><span>Your ChimeraX version&#x27;s docs indexed locally, 131 workflows, 58 recipes, known model mistakes.</span></div></foreignObject></g><g class="node n4" transform="translate(480,434)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Tools</b><span>run commands, state, docs, UniProt, ClinVar, AlphaMissense, ConSurf, tables, contacts, tidy labels, figures with provenance.</span></div></foreignObject></g><g class="node n5" transform="translate(480,564)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Checks and gates</b><span>Errors go back with the real syntax for a bounded retry. Close, delete, save and scripts stop for an OK card.</span></div></foreignObject></g><g class="node shared" transform="translate(20,704)"><rect width="860" height="118" rx="12"/><rect class="acc" x="14" y="0" width="832" height="4" rx="2"/><foreignObject x="0" y="0" width="860" height="118"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>pellaeon tool ... commands</b><span>Pellaeon&#x27;s analysis tools are ChimeraX commands too, so an assistant on the mcp bridge, a .cxc script or the command line can call them without any chat: pellaeon tool contacts #1 #2, pellaeon tool annotate #1 P07550 variant, pellaeon tool fetch alphamissense P07550.</span></div></foreignObject></g></svg></div><div class="howwrap-v"><svg class="how how-v how-mcp" viewBox="0 0 440 1562" role="img" aria-label="ChimeraX's mcp command and Pellaeon, step by step, and the commands they share" xmlns="http://www.w3.org/2000/svg" style="--mk:url(#ahmv);--mk2:url(#ah2mv)"><defs><marker id="ahmv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><marker id="ah2mv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent2)"/></marker></defs><g class="wires"><path d="M220,138 L220,164"/><path d="M220,268 L220,294"/><path d="M220,398 L220,424"/><path d="M220,528 L220,554"/><path d="M220,834 L220,860"/><path d="M220,964 L220,990"/><path d="M220,1094 L220,1120"/><path d="M220,1224 L220,1250"/><path class="loop" d="M220,1354 L220,1392"/></g><text class="lanet" x="220" y="26">ChimeraX&#x27;s mcp command</text><g class="node n1" transform="translate(20,34)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>An assistant outside ChimeraX</b><span>Claude Desktop, Cursor or VS Code Copilot. Its own model, its own subscription.</span></div></foreignObject></g><g class="node n2" transform="translate(20,164)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>MCP bridge process</b><span>A Python program the assistant starts. Speaks MCP to the assistant, HTTP to ChimeraX.</span></div></foreignObject></g><g class="node n3" transform="translate(20,294)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>ChimeraX REST server</b><span>`mcp start` opens a port. Commands arrive as text, the log comes back as text.</span></div></foreignObject></g><g class="node n4" transform="translate(20,424)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Tools</b><span>run_command, list_models, get_shown, get_model_info, get_chain_info, command docs, atom-spec guide.</span></div></foreignObject></g><g class="node n5" transform="translate(20,554)"><rect width="400" height="104" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Runs and reports</b><span>Whatever the assistant sends runs. Retries and safety are the assistant&#x27;s job.</span></div></foreignObject></g><text class="lanet" x="220" y="722">Pellaeon</text><g class="node n1" transform="translate(20,730)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>A panel inside ChimeraX</b><span>Docked next to the 3D view. Ollama on your PC, or Mistral, Gemini, Claude, OpenAI keys.</span></div></foreignObject></g><g class="node n2" transform="translate(20,860)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>In-process</b><span>No bridge, no port. Reads what is open and selected, the log, errors, and your loaded tables.</span></div></foreignObject></g><g class="node n3" transform="translate(20,990)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Context</b><span>Your ChimeraX version&#x27;s docs indexed locally, 131 workflows, 58 recipes, known model mistakes.</span></div></foreignObject></g><g class="node n4" transform="translate(20,1120)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Tools</b><span>run commands, state, docs, UniProt, ClinVar, AlphaMissense, ConSurf, tables, contacts, tidy labels, figures with provenance.</span></div></foreignObject></g><g class="node n5" transform="translate(20,1250)"><rect width="400" height="104" rx="12"/><foreignObject x="0" y="0" width="400" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>Checks and gates</b><span>Errors go back with the real syntax for a bounded retry. Close, delete, save and scripts stop for an OK card.</span></div></foreignObject></g><g class="node shared" transform="translate(20,1392)"><rect width="400" height="150" rx="12"/><rect class="acc" x="14" y="0" width="372" height="4" rx="2"/><foreignObject x="0" y="0" width="400" height="150"><div xmlns="http://www.w3.org/1999/xhtml" class="nb"><b>pellaeon tool ... commands</b><span>Pellaeon&#x27;s analysis tools are ChimeraX commands too, so an assistant on the mcp bridge, a .cxc script or the command line can call them without any chat: pellaeon tool contacts #1 #2, pellaeon tool annotate #1 P07550 variant, pellaeon tool fetch alphamissense P07550.</span></div></foreignObject></g></svg></div>
 
-<h2 id="what-each-one-is-for">What each one is for</h2>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th></th>
-<th>ChimeraX <code>mcp</code></th>
-<th>Pellaeon</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Where the assistant lives</td>
-<td>A desktop app or editor outside ChimeraX</td>
-<td>A panel docked inside ChimeraX</td>
-</tr>
-<tr>
-<td>How it reaches ChimeraX</td>
-<td>A bridge process and the REST server on a port</td>
-<td>In the same process, nothing to start</td>
-</tr>
-<tr>
-<td>Models</td>
-<td>Whatever the host app runs (Claude Desktop needs a Claude subscription; Cursor and Copilot theirs)</td>
-<td>Ollama on your computer (free, private), Mistral and Gemini free tiers, or paid Claude, OpenAI, Mistral keys</td>
-</tr>
-<tr>
-<td>Platforms</td>
-<td>Claude Desktop is Mac and Windows; Cursor and VS Code on Linux too</td>
-<td>Wherever ChimeraX runs</td>
-</tr>
-<tr>
-<td>What the assistant sees</td>
-<td>Model list, shown items, chain info, command docs, and the log text of each command</td>
-<td>The same, plus the selection, your loaded tables, the residue-level journal (why is this red?), and the indexed docs of your ChimeraX version</td>
-</tr>
-<tr>
-<td>When a command fails</td>
-<td>The host assistant decides what to do</td>
-<td>The error goes back with the real usage and a suggestion, for a bounded number of retries</td>
-</tr>
-<tr>
-<td>Before something destructive</td>
-<td>Nothing in the bridge stops it</td>
-<td>Close, delete, save and scripts wait for an editable OK card; a review-every-command mode exists</td>
-</tr>
-<tr>
-<td>Analysis beyond commands</td>
-<td>Not included; the assistant writes commands</td>
-<td>UniProt features, ClinVar, AlphaMissense, ConSurf, table overlays, contact comparison, label tidying, figures with provenance</td>
-</tr>
-<tr>
-<td>Where the record goes</td>
-<td>The host app's chat</td>
-<td>Command cards in the panel with copy, re-run and docs links; the chat exports as a <code>.cxc</code> script</td>
-</tr>
-</tbody>
-</table></div>
-<p>If you already work in Cursor or Claude Desktop all day and want to steer ChimeraX from there, <code>mcp</code> is the right tool and it is built in. If you want the conversation next to the 3D view, a free or local model, and the safety and analysis pieces above, use Pellaeon. Both can be active in the same session.</p>
-<h2 id="using-them-together">Using them together</h2>
-<p>Pellaeon's analysis tools are registered as ordinary ChimeraX commands, so anything that can run a ChimeraX command can run them: the <code>mcp</code> bridge's <code>run_command</code> tool, a <code>.cxc</code> script, a <code>runscript</code>, or the command line. No chat, no model, no key.</p>
-<pre><code>pellaeon tool list
-pellaeon tool contacts #1 #2 chain A            # lost and gained contacts, drawn red and green with a key
-pellaeon tool contacts #1 #2 restrict :HEM      # what the heme touches in one form but not the other
-pellaeon tool compare #1 #2 chain A             # superpose and color by residue displacement
-pellaeon tool annotate #1 P07550 variant        # ClinVar missense variants on the structure
-pellaeon tool annotate #1 P07550 transmembrane  # UniProt features
-pellaeon tool fetch alphamissense P07550        # AlphaMissense pathogenicity per position
-pellaeon tool fetch conservation 1UBQ chain A   # ConSurf conservation grades
-pellaeon tool table ~/scores.csv column hydropathy palette viridis
-pellaeon tool tidy                              # rearrange overlapping labels
-pellaeon tool explain #1/A:87                   # why this residue has its color
-</code></pre>
-<p>Each command writes a one-line summary and the full result to the Log, which is what the <code>mcp</code> bridge returns to the assistant. So an assistant on the bridge can ask ChimeraX to "run <code>pellaeon tool contacts #1 #2</code>" and reason about the answer, the same result the Pellaeon panel's model would get. <code>usage pellaeon tool contacts</code> shows the arguments. When the Pellaeon panel is open, the two share state: a table loaded in the panel is available to <code>pellaeon tool table</code>, and colors set by either are explained by <code>pellaeon tool explain</code>.</p>
-<h2 id="what-is-not-shared">What is not shared</h2>
-<p>Pellaeon's model does not go through MCP and the <code>mcp</code> bridge does not use Pellaeon's model. Keys, autonomy settings and conversation history belong to the panel. Pellaeon does not read the bridge's traffic and the bridge does not see the panel's chat.</p>
-<h2 id="requirements">Requirements</h2>
+<h2 id="which-one">Which one</h2>
 <ul>
-<li>The <code>mcp</code> command: a ChimeraX from December 2025 or later (type <code>usage mcp</code> to check), and a supported host app configured with <code>mcp setup</code>. See the <a href="https://www.cgl.ucsf.edu/chimerax/docs/user/commands/mcp.html">ChimeraX documentation</a>.</li>
-<li><code>pellaeon tool</code> commands: Pellaeon 0.2.1 or newer, installed as described on the <a href="install.html">install page</a>. They work in <code>chimerax --nogui</code> as well.</li>
-</ul></article></div></main>
+<li><strong>You live in Claude Desktop, Cursor or VS Code and want to steer ChimeraX from there:</strong> use <code>mcp</code>. It is built in, needs a Claude, Cursor or Copilot subscription, and Claude Desktop runs on Mac and Windows only.</li>
+<li><strong>You want the conversation next to the 3D view, a free or local model, confirmation before anything destructive, and the analysis below:</strong> use Pellaeon.</li>
+<li><strong>Both at once</strong> works; they do not share keys, chats or settings.</li>
+</ul>
+<h2 id="use-both-pellaeons-tools-as-commands">Use both: Pellaeon's tools as commands</h2>
+<p>Anything that can run a ChimeraX command can run these, including the <code>mcp</code> bridge's <code>run_command</code>, a <code>.cxc</code> script and <code>chimerax --nogui</code>. No chat, no model, no key. The summary and full result go to the Log, which is what <code>mcp</code> returns to the assistant.</p>
+<ul>
+<li><code>pellaeon tool contacts #1 #2 chain A</code>: lost and gained contacts, drawn red and green</li>
+<li><code>pellaeon tool compare #1 #2</code>: superpose and color by residue displacement</li>
+<li><code>pellaeon tool annotate #1 P07550 variant</code>: ClinVar variants; or a UniProt feature such as <code>transmembrane</code>, <code>domain</code>, <code>binding</code></li>
+<li><code>pellaeon tool fetch alphamissense P07550</code>: AlphaMissense per position; <code>fetch conservation 1UBQ chain A</code> for ConSurf</li>
+<li><code>pellaeon tool table ~/scores.csv column hydropathy</code>: your residue table, colored with a key</li>
+<li><code>pellaeon tool tidy</code>: rearrange overlapping labels</li>
+<li><code>pellaeon tool explain #1/A:87</code>: why this residue has its color</li>
+<li><code>pellaeon tool list</code>: all of the above; <code>usage pellaeon tool contacts</code> shows the arguments</li>
+</ul>
+<p>Needs Pellaeon 0.2.1 or newer (<a href="install.html">install</a>). The <code>mcp</code> command is in ChimeraX releases from December 2025 on; <code>usage mcp</code> tells you if yours has it, and <a href="https://www.cgl.ucsf.edu/chimerax/docs/user/commands/mcp.html">its documentation</a> covers the setup.</p></article></div></main>
 <script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
 <footer><div class="in">Pellaeon v0.2.1 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
 <script>
