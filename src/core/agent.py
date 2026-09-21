@@ -366,8 +366,13 @@ class Agent:
                         nudge = NUDGE_LOOK
                     elif _WHY_RE.search(user_text) and not self._tool_called_since(start_len, "explain_residue") and self.config.edition == "chimerax":
                         nudge = NUDGE_WHY
-                    elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate"):
-                        nudge = NUDGE_ANNOTATE  # variants/domains asked for, annotate tool never called
+                    elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate") \
+                            and not (self._tool_called_since(start_len, "protein_features") and ran):
+                        # variants/domains asked for and neither route taken. Fetching the features and
+                        # coloring them by hand is the other correct route: asked to color the transmembrane
+                        # helices, a model that had done exactly that was nudged here and went on to annotate
+                        # "disease" and "variant" nobody asked for, scattering nine labels over the figure.
+                        nudge = NUDGE_ANNOTATE
                     elif _NAMED_GROUP_RE.search(user_text) and ran and any(_NUMERIC_SPEC_RE.search(c) for c in ran) \
                             and not any(_NAMED_SPEC_RE.search(c) for c in ran) and not re.search(r"\b\d{2,}\b", user_text):
                         nudge = NUDGE_NAMED     # heme/ATP/water addressed by invented residue numbers

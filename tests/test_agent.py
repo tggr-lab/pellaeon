@@ -1140,3 +1140,17 @@ def test_a_purely_impossible_request_runs_no_command_at_all():
                   ex, callbacks=Callbacks(on_confirm=lambda c, r: c))
     agent.run_turn("color it red and email it to my boss")
     assert ex.ran == ["color #1 red"]
+
+
+def test_no_annotate_nudge_when_features_were_fetched_and_colored_by_hand():
+    """Asked to color the transmembrane helices, the model fetched the features and colored them;
+    the nudge then sent it off to annotate variants nobody wanted."""
+    ex = FakeExecutor()
+    ex.protein_features = lambda acc, kinds=None: {"gene": "ADRB2", "features": [{"type": "Transmembrane", "start": 30, "end": 56}]}
+    prov = ScriptedProvider([{"text": "", "calls": [("protein_features", {"accession": "P07550", "kinds": ["Transmembrane"]})]},
+                             {"text": "", "calls": [("run_commands", {"commands": ["color #1 white", "color #1:30-56 orange"]})]},
+                             "The transmembrane helices are orange."])
+    agent = Agent(prov, ex, callbacks=Callbacks(on_confirm=lambda c, r: c))
+    agent.run_turn("color the transmembrane helices orange and the rest white")
+    assert not any("annotate" in (m.text() or "") for m in agent.conversation if m.role == "user")
+    assert [c.name for m in agent.conversation if m.role == "assistant" for c in m.tool_calls()] == ["protein_features", "run_commands"]
