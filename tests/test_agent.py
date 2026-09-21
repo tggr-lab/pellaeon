@@ -1165,3 +1165,17 @@ def test_distances_are_restyled_to_contrast_with_a_light_background():
     ex.ran.clear(); ex.get_state = lambda: {"models": [], "background": "rgb(0,0,0)"}
     agent.execute_commands(["distance delete", "distance #1:1@CA #1:2@CA"])
     assert ex.ran == ["distance delete", "distance #1:1@CA #1:2@CA", "distance style color gold"]
+
+
+def test_keys_and_titles_replace_the_previous_ones_instead_of_stacking():
+    ex = FakeExecutor()
+    agent = Agent(ScriptedProvider([]), ex)
+    agent.execute_commands(["color #1 red", "key blue:0 red:1 pos 0.36,0.04", '2dlabels create pellaeon_title text "first" xpos 0.36 ypos 0.09'])
+    assert ex.ran[1] == "key delete" and ex.ran[-1].startswith("2dlabels create pellaeon_title")
+    ex.ran.clear()
+    agent.execute_commands(["key gold:0 red:1 pos 0.36,0.04", '2dlabels create pellaeon_title text "second" xpos 0.36 ypos 0.09'])
+    assert ex.ran[0] == "key delete" and ex.ran[-1].startswith('2dlabels change pellaeon_title text "second"')
+    ex.ran.clear()
+    agent.execute_commands(["close"])            # everything gone, including the title
+    agent.execute_commands(['2dlabels create pellaeon_title text "third" xpos 0.36 ypos 0.09'])
+    assert ex.ran[-1].startswith("2dlabels create pellaeon_title")

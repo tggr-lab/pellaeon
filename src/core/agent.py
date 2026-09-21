@@ -827,6 +827,8 @@ class Agent:
                 out["error"] = err["error"]
             return out
 
+        if self.config.edition == "chimerax":
+            commands = self._one_legend(commands)
         if self.config.readable_labels and self.config.edition == "chimerax" and any(_DISTANCE_RE.match(c) for c in commands):
             # ChimeraX draws distances and their labels yellow, unreadable on the white background of
             # every publication view; restyle them to contrast with the current background
@@ -878,6 +880,13 @@ class Agent:
             if not commands:
                 return {"ok": False, "results": [], "error": "The user removed all commands.", "skipped": True}
         results = self.executor.run_commands(commands)
+        bad = next((r for r in results if not r.get("ok") and str(r.get("command", "")).startswith("2dlabels change pellaeon_title ")), None)
+        if bad is not None:      # the title Pellaeon remembered was deleted by hand: make it afresh
+            commands = [("2dlabels create pellaeon_title " + c[len("2dlabels change pellaeon_title "):]) if c == bad["command"] else c
+                        for c in commands]
+            results = self.executor.run_commands(commands)
+        self._legend_title = any(str(r.get("command", "")).startswith("2dlabels ") and "pellaeon_title" in str(r.get("command", "")) and r.get("ok")
+                                 for r in results) or getattr(self, "_legend_title", False)
         now = time.time()
         for r in results:
             self.journal.append({"ts": now, "origin": origin, "command": r.get("command", ""), "ok": bool(r.get("ok")), "noop": bool(r.get("noop")),
@@ -1140,6 +1149,31 @@ class Agent:
         if "error" not in payload:
             self.figure_notes.append("%s: %s." % (ds["source"], payload.get("summary") or column))
         return payload
+
+
+    # ------------------------------------------------------------ one legend at a time
+    def _one_legend(self, commands: List[str]) -> List[str]:
+        """Keys and titles replace the previous ones instead of piling up.
+
+        A second `key` already replaces the first, but every overlay also wrote a plain 2D label
+        as its title, and those accumulated at the same spot: after a comparison followed by a
+        contact comparison the two titles sat on top of each other. Pellaeon's title is a named
+        label now, changed in place once it exists, and a stale key is deleted before a new one.
+        """
+        out: List[str] = []
+        for c in commands:
+            low = c.strip().lower()
+            if low in ("close", "close #all", "close all", "close session") or low.startswith("close session"):
+                self._legend_title = False
+            if low.startswith("key ") and not low.startswith("key delete"):
+                if not any(o.strip().lower().startswith("key delete") for o in out):
+                    out.append("key delete")
+            if low.startswith("2dlabels create pellaeon_title "):
+                if getattr(self, "_legend_title", False):
+                    c = "2dlabels change pellaeon_title " + c.strip()[len("2dlabels create pellaeon_title "):]
+                self._legend_title = True
+            out.append(c)
+        return out
 
     # ------------------------------------------------------------ numbering
     def _accession_for(self, protein: str) -> Tuple[str, str]:

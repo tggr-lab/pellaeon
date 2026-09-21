@@ -408,7 +408,7 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
     cmds.append("key %s:lost %s:gained colorTreatment distinct pos 0.36,0.04 size 0.28,0.035 fontSize 15"
                 % (LOST_COLOR, GAINED_COLOR))
     shown = "showing %d of %d lost and %d of %d gained" % (len(lost), n_lost, len(gained), n_gained)
-    cmds.append('2dlabels text "Contacts lost (red, on %s) and gained (green, on %s); %s" xpos 0.36 ypos 0.09 size 14 color black'
+    cmds.append('2dlabels create pellaeon_title text "Contacts lost (red, on %s) and gained (green, on %s); %s" xpos 0.36 ypos 0.09 size 14 color black'
                 % (ref_model, other_model, shown))
     cmds.append('zoom 0.85')
     return cmds
