@@ -177,3 +177,15 @@ figure img { max-height: 78vh; width: auto; max-width: 100%; margin: 0 auto; }
 .cmd { font-family: ui-monospace, "UbuntuMono Nerd Font Mono", Menlo, monospace; font-size: 1.35em; background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; display: inline-block; }
 .cmd span { border-bottom: 2px solid var(--accent2); padding: 0 1px; cursor: help; }
 .cmd span:hover, .cmd span:focus { background: var(--accent); color: #fff; outline: none; border-radius: 3px; }
+
+/* a play control nobody can miss */
+.demo-play img { filter: brightness(0.94); transition: filter .2s; }
+.demo-play[data-playing="1"] img { filter: none; }
+.play-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; pointer-events: none; }
+.play-icon { width: 76px; height: 76px; border-radius: 50%; background: var(--accent); box-shadow: 0 6px 24px rgba(0,0,0,.35); position: relative; }
+.play-icon::after { content: ""; position: absolute; left: 30px; top: 22px; border-style: solid; border-width: 16px 0 16px 26px; border-color: transparent transparent transparent #fff; }
+.demo-play .badge { position: static; font-size: 0.95em; padding: 6px 14px; }
+.demo-play:hover .play-icon { transform: scale(1.06); }
+.demo-play[data-playing="1"] .play-icon { display: none; }
+.demo-play[data-playing="1"] .play-overlay { inset: auto 10px 10px auto; }
+.demo-tab { font-size: 1.02em; }

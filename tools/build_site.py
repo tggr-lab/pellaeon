@@ -35,7 +35,7 @@ def layout(title, body, active, toc_html=""):
 <script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <main>%s</main>
 <script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
-<footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div></footer>
+<footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF.<br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>, with <a href="https://claude.com/claude-code">Claude Code</a>.</span></span></div> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a></footer>
 <script>
 (function(){
   document.querySelectorAll(".demo-play").forEach(function(btn){
@@ -123,7 +123,6 @@ INDEX = """
     <div class="cmdbox"><pre id="install-cmd">open %(installer)s</pre><button onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').textContent).then(()=>this.textContent='Copied')">Copy</button></div>
     <p class="small">Paste into ChimeraX's command line.</p>
     <div class="btns"><a class="btn primary" href="install.html">Install for ChimeraX</a><a class="btn" href="#see-it-work">See examples</a></div>
-    <p class="small"><a href="%(repo)s/releases">Downloads</a></p>
   </div>
   <div class="shot hero-gif"><picture><source srcset="img/hero_mobile_poster.png" media="(prefers-reduced-motion: reduce) and (max-width: 700px)"><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><source srcset="img/hero_mobile.gif" media="(max-width: 700px)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
 </section>
@@ -246,7 +245,7 @@ def demos_html():
             '<figure class="demo-panel" id="demo-%s"%s>'
             '<button class="demo-play" type="button" aria-label="Play the recording">'
             '<img src="img/demo_%s_poster.png" data-poster="img/demo_%s_poster.png" data-gif="img/demo_%s.gif" alt="%s" loading="lazy">'
-            '<span class="badge">Play</span></button>'
+            '<span class="play-overlay" aria-hidden="true"><span class="play-icon"></span><span class="badge">Play recording</span></span></button>'
             '<figcaption><span class="req">%s</span><span class="res">%s</span></figcaption>'
             '<p class="small"><a href="%s">Follow this guide</a> &middot; '
             '<a href="%s/tree/main/docs/examples/%s">Get the example files</a> &middot; '
