@@ -166,7 +166,7 @@ The AlphaFold model uses UniProt numbering, so here it is residue 159 exactly. T
 
 ### Step 6c · Bookmark a view
 
-> zoom in on residue 159 and bookmark this view as pocket
+> highlight residue 113, pull back so the whole receptor is visible, and bookmark this view as pocket
 
 > now show the whole thing, then go back to the pocket view
 

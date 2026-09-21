@@ -70,7 +70,7 @@ STEPS = [
     ("12_figure",    None, [], False, "figure", []),     # the Save figure form + result card
     ("06_af",        "close everything, then open the AlphaFold model of the gene ADRB2", [], True, True, [LOOK, "view"]),
     ("06b_map",      "where is UniProt residue 159 in this structure?", [], True, True, []),
-    ("06c_zoom",     "zoom in on residue 159 and bookmark this view as pocket", [], False, False, []),
+    ("06c_zoom",     "highlight residue 113, pull back so the whole receptor is visible, and bookmark this view as pocket", [], False, False, []),
     ("06c",          "now show the whole thing, then go back to the pocket view", [], True, True, []),
     ("07_tm",        "color the transmembrane helices orange and the rest white", [], True, True, ["view"]),
     ("08_open_hbb",  None, ["close", "open alphafold:P68871", LOOK, "view"], False, False, []),   # HBB, deterministic setup for the ClinVar step
