@@ -35,7 +35,7 @@
 </tr>
 <tr>
 <td>Install</td>
-<td>one line typed into ChimeraX</td>
+<td>from ChimeraX's own Toolshed, or one line typed into ChimeraX</td>
 <td>unzip, double-click</td>
 </tr>
 <tr>
@@ -52,16 +52,23 @@
 </table></div>
 <p>Both use the same AI providers, the same panel and the same safety rules.</p>
 <h2 id="chimerax-edition">ChimeraX edition</h2>
+<p>Pellaeon is on the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a>, the bundle
+catalogue built into ChimeraX, so ChimeraX installs and updates it for you.</p>
 <ol>
 <li>Install <a href="https://www.cgl.ucsf.edu/chimerax/download.html">UCSF ChimeraX</a> 1.9 or newer.</li>
-<li>Start ChimeraX. In the <strong>Command:</strong> line at the bottom of the window, paste and press Enter:</li>
+<li>Start ChimeraX and install Pellaeon, from the menu or from the command line. <strong>From the menu:</strong> <strong>Tools ▸ More Tools…</strong> opens the Toolshed; find <strong>Pellaeon</strong> (category <em>General</em>) and press <strong>Install</strong>. <strong>From the command line:</strong> paste this into the <strong>Command:</strong> line at the bottom of the window and press Enter:</li>
 </ol>
-<pre><code>open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
+<pre><code>toolshed install ChimeraX-Pellaeon
 </code></pre>
 <ol start="3">
-<li>The Pellaeon panel opens on the right and asks you to choose an AI. Later you find it under <strong>Tools ▸ General ▸ Pellaeon</strong>, and the <code>pellaeon</code> command works on the ChimeraX command line.</li>
+<li>Open <strong>Tools ▸ General ▸ Pellaeon</strong>. The panel opens on the right and asks you to choose an AI. The <code>pellaeon</code> command works on the ChimeraX command line too.</li>
 </ol>
 <p>No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.</p>
+<p><strong>Straight from GitHub instead:</strong> this one line fetches the newest release from the
+<a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a>, installs it and opens the panel. Use it to pick up a
+release before it reaches the Toolshed.</p>
+<pre><code>open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
+</code></pre>
 <p><strong>Offline install:</strong> get the <code>.whl</code> file from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and type (quotes needed when the path has spaces):</p>
 <pre><code>toolshed install &quot;C:\Users\you\Downloads\chimerax_pellaeon-&lt;version&gt;-py3-none-any.whl&quot;
 </code></pre>
@@ -137,7 +144,7 @@
 <p>With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings.</p>
 <p>The free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished work, use a local model through Ollama, or check the provider's data-handling terms before you paste a key: <a href="https://mistral.ai/terms">Mistral</a>, <a href="https://ai.google.dev/gemini-api/terms">Google</a>.</p>
 <h2 id="updating">Updating</h2>
-<p>ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
+<p>ChimeraX edition: ChimeraX notes available bundle updates in <strong>Tools ▸ More Tools…</strong>; <code>toolshed update ChimeraX-Pellaeon</code> on the command line does the same thing. If you installed from GitHub, run that install line again and it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
 <h2 id="where-things-are-stored">Where things are stored</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -165,7 +172,7 @@
 </table></div>
 <p>Chats are saved there as JSON; delete the folder to start clean.</p></article></div></main>
 <script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
-<footer><div class="in">Pellaeon v0.2.1 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<footer><div class="in">Pellaeon v0.2.1 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
 <script>
 (function(){
   document.querySelectorAll(".demo-panel").forEach(function(panel){

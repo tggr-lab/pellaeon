@@ -7,7 +7,7 @@ Pellaeon comes in two editions. Pick the one for the program you use.
 | | ChimeraX edition | Classic edition (old Chimera 1.x) |
 |---|---|---|
 | Runs | inside UCSF ChimeraX 1.9+ as a docked panel | as a small program next to UCSF Chimera 1.x, panel in your browser |
-| Install | one line typed into ChimeraX | unzip, double-click |
+| Install | from ChimeraX's own Toolshed, or one line typed into ChimeraX | unzip, double-click |
 | Needs | ChimeraX | Chimera 1.x and Python 3.9+ |
 | Extras | click-to-ask, displacement-colored comparisons, in-place annotations | superposition (RMSD), annotations |
 
@@ -15,16 +15,27 @@ Both use the same AI providers, the same panel and the same safety rules.
 
 ## ChimeraX edition
 
+Pellaeon is on the [ChimeraX Toolshed](https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon), the bundle
+catalogue built into ChimeraX, so ChimeraX installs and updates it for you.
+
 1. Install [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/download.html) 1.9 or newer.
-2. Start ChimeraX. In the **Command:** line at the bottom of the window, paste and press Enter:
+2. Start ChimeraX and install Pellaeon, from the menu or from the command line. **From the menu:** **Tools ▸ More Tools…** opens the Toolshed; find **Pellaeon** (category *General*) and press **Install**. **From the command line:** paste this into the **Command:** line at the bottom of the window and press Enter:
+
+```
+toolshed install ChimeraX-Pellaeon
+```
+
+3. Open **Tools ▸ General ▸ Pellaeon**. The panel opens on the right and asks you to choose an AI. The `pellaeon` command works on the ChimeraX command line too.
+
+No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.
+
+**Straight from GitHub instead:** this one line fetches the newest release from the
+[releases page](https://github.com/tggr-lab/pellaeon/releases), installs it and opens the panel. Use it to pick up a
+release before it reaches the Toolshed.
 
 ```
 open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
 ```
-
-3. The Pellaeon panel opens on the right and asks you to choose an AI. Later you find it under **Tools ▸ General ▸ Pellaeon**, and the `pellaeon` command works on the ChimeraX command line.
-
-No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.
 
 **Offline install:** get the `.whl` file from the [releases page](https://github.com/tggr-lab/pellaeon/releases) and type (quotes needed when the path has spaces):
 
@@ -76,7 +87,7 @@ The free tiers of Mistral and Gemini are evaluation tiers, and both may use your
 
 ## Updating
 
-ChimeraX edition: run the install line again; it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.
+ChimeraX edition: ChimeraX notes available bundle updates in **Tools ▸ More Tools…**; `toolshed update ChimeraX-Pellaeon` on the command line does the same thing. If you installed from GitHub, run that install line again and it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.
 
 ## Where things are stored
 

@@ -10,13 +10,15 @@
 
 ## Install
 
-In ChimeraX's command line (bottom of the window), paste:
+Pellaeon is on the [ChimeraX Toolshed](https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon). In ChimeraX, open **Tools > More Tools...** and press **Install** next to Pellaeon, or paste this into the command line (bottom of the window):
 
 ```
-open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
+toolshed install ChimeraX-Pellaeon
 ```
 
-The panel opens. Pick a model provider, paste a key if it needs one, press **Test connection**, then **Save & use**. Later it is under **Tools > General > Pellaeon**. Needs ChimeraX 1.9 or newer.
+Open it from **Tools > General > Pellaeon**. Pick a model provider, paste a key if it needs one, press **Test connection**, then **Save & use**. Needs ChimeraX 1.9 or newer. `toolshed update ChimeraX-Pellaeon` gets later versions.
+
+Newest release before it reaches the Toolshed: paste `open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py` into the same command line; it installs that release and opens the panel.
 
 Offline: download the `.whl` from [Releases](https://github.com/tggr-lab/pellaeon/releases) and run `toolshed install /path/to/the/file.whl`.
 

@@ -44,7 +44,7 @@
 <p>The full walkthrough takes about twenty minutes: hemoglobin, a residue and its neighbours, a figure, a distance, an AlphaFold model by gene name, variants, two conformations of an enzyme, and your own data. Each step shows what to type, what Pellaeon ran, and what ChimeraX shows afterwards.</p>
 <h2 id="five-minute-version">Five-minute version</h2>
 <ol>
-<li>In ChimeraX's <strong>Command:</strong> line, paste <code>open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py</code> and press Enter.</li>
+<li>In ChimeraX's <strong>Command:</strong> line, paste <code>toolshed install ChimeraX-Pellaeon</code> and press Enter, then open <strong>Tools ▸ General ▸ Pellaeon</strong>.</li>
 <li>The panel opens on its settings page. Pick <strong>Mistral</strong> (free key, nothing to install) or <strong>Ollama</strong> (runs on your computer), press <strong>Test connection</strong>, then <strong>Save &amp; use</strong>.</li>
 <li>Press <strong>Run a first request</strong>. Pellaeon opens ubiquitin and colors it by chain.</li>
 <li>
@@ -63,9 +63,10 @@
 <li>Install <a href="https://www.cgl.ucsf.edu/chimerax/download.html">UCSF ChimeraX</a> 1.9 or newer (Windows: run the installer with the defaults).</li>
 <li>Start ChimeraX. Click into the <strong>Command:</strong> line at the bottom of the window, paste this and press Enter:</li>
 </ol>
-<pre><code>open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
+<pre><code>toolshed install ChimeraX-Pellaeon
 </code></pre>
-<p>The Pellaeon panel appears on the right. If you close it, or the next time you start ChimeraX, open it from the menu: <strong>Tools ▸ General ▸ Pellaeon</strong>.</p>
+<p>That installs Pellaeon from the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a>. The menu route does the same thing without typing: <strong>Tools ▸ More Tools…</strong>, find <strong>Pellaeon</strong>, press <strong>Install</strong>.</p>
+<p>Open the panel from the menu: <strong>Tools ▸ General ▸ Pellaeon</strong>. It appears on the right, and that is where you find it again the next time you start ChimeraX.</p>
 <figure><img alt="Tools menu, General submenu, Pellaeon entry" src="img/tut/00_menu.png" /><figcaption>Tools menu, General submenu, Pellaeon entry</figcaption></figure>
 <p>Or type <code>ui tool show Pellaeon</code> in the command line. Nothing else to install: no Python, no terminal, no admin rights. (For an offline install, see <a href="install.html">Installation</a>.)</p>
 <figure><img alt="Pellaeon docked in ChimeraX" src="img/docked_4hhb.png" /><figcaption>Pellaeon docked in ChimeraX</figcaption></figure>
@@ -312,7 +313,7 @@
 </tbody>
 </table></div></article></div></main>
 <script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
-<footer><div class="in">Pellaeon v0.2.1 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<footer><div class="in">Pellaeon v0.2.1 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
 <script>
 (function(){
   document.querySelectorAll(".demo-panel").forEach(function(panel){

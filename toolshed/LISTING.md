@@ -1,8 +1,12 @@
-# ChimeraX Toolshed submission kit
+# ChimeraX Toolshed listing
 
-Everything to paste into the Toolshed form at https://cxtoolshed.rbvi.ucsf.edu (sign in with Google, then
-"Submit a Bundle"). Upload `dist/chimerax_pellaeon-<version>-py3-none-any.whl`. The first submission is held for
-review by the ChimeraX team; later versions post immediately.
+**Live at https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon** — users install it with
+`toolshed install ChimeraX-Pellaeon` or from **Tools > More Tools...** inside ChimeraX.
+
+This file is the source of the listing text below; keep the two in step. To post a new version, sign in at
+https://cxtoolshed.rbvi.ucsf.edu (with Google) and upload `dist/chimerax_pellaeon-<version>-py3-none-any.whl`
+against the existing bundle. The first submission was held for review by the ChimeraX team; later versions post
+immediately.
 
 ## Name
 

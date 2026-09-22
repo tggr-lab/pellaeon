@@ -14,9 +14,11 @@ Building it needs a real ChimeraX (the bundle builder lives inside ChimeraX), so
    open Tools > General > Pellaeon, run the checklist in README ("Try it").
 4. Tag and create a GitHub release, attaching **both** `dist/*.whl` and `install_pellaeon.py`.
    The one-line installer always fetches the newest release's wheel.
-5. Submit the wheel to the ChimeraX Toolshed at https://cxtoolshed.rbvi.ucsf.edu so users find it under
-   Tools > More Tools. Text, screenshots and reviewer notes are in `toolshed/LISTING.md`. The first submission is
-   held for review by the ChimeraX team; later versions post immediately.
+5. Upload the wheel to the Toolshed listing at https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon (sign in,
+   then submit a new version) so users get it under Tools > More Tools and from `toolshed update ChimeraX-Pellaeon`.
+   Listing text, screenshots and reviewer notes are in `toolshed/LISTING.md`. The first submission was held for
+   review by the ChimeraX team; later versions post immediately. Keep the listing's description in step with
+   `toolshed/LISTING.md` when the feature list changes.
 
 Developer loop: `devel install .` (installs into your ChimeraX), `devel clean .` to tidy.
 Unit tests (no ChimeraX needed): `python -m pytest`. In-ChimeraX smoke test:

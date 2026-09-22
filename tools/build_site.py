@@ -14,6 +14,7 @@ import markdown  # python-markdown (pip install markdown) - only needed to build
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
 REPO = "https://github.com/tggr-lab/pellaeon"
+TOOLSHED = "https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon"
 VERSION = re.search(r'__version__ = "([^"]+)"', open(os.path.join(ROOT, "src", "__init__.py")).read()).group(1)
 NAV = [("index.html", "Home"), ("install.html", "Install"), ("tutorial.html", "Tutorial"), ("models.html", "Tested models"), ("mcp.html", "Pellaeon and MCP"), ("classic.html", "Classic edition")]
 
@@ -35,7 +36,7 @@ def layout(title, body, active, toc_html=""):
 <script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <main>%s</main>
 <script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
-<footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<footer><div class="in">Pellaeon v%s · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
 <script>
 (function(){
   document.querySelectorAll(".demo-panel").forEach(function(panel){
@@ -123,10 +124,11 @@ INDEX = """
 <section class="hero">
   <div>
     <div class="term"><span class="path">~/molecules</span>$ pellaeon <span class="blink">&#9646;</span></div>
+    <p class="pill"><b>New</b> Pellaeon is in the <a href="%(toolshed)s">ChimeraX Toolshed</a></p>
     <h1>Talk to ChimeraX in plain English.</h1>
     <p class="lead">Open structures, inspect residues, compare models, and make figures from a chat panel inside ChimeraX. See the commands Pellaeon runs and copy or reuse them.</p>
-    <div class="cmdbox"><pre id="install-cmd">open %(installer)s</pre><button onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').textContent).then(()=>this.textContent='Copied')">Copy</button></div>
-    <p class="small">Paste into ChimeraX's command line.</p>
+    <div class="cmdbox"><pre id="install-cmd">toolshed install ChimeraX-Pellaeon</pre><button onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').textContent).then(()=>this.textContent='Copied')">Copy</button></div>
+    <p class="small">Paste into ChimeraX's command line, or install it from <b>Tools &#9656; More Tools&#8230;</b> without typing anything. <a href="install.html#chimerax-edition">Other ways to install</a></p>
     <div class="btns"><a class="btn primary" href="#see-it-work">See it work</a><a class="btn" href="install.html">Install guide</a></div>
   </div>
   <div class="shot hero-gif"><picture><source srcset="img/hero_poster.png" media="(prefers-reduced-motion: reduce)"><img src="img/hero.gif" alt="Typing a request into the Pellaeon panel; ChimeraX opens hemoglobin, colors it, shows the hemes as red spheres and spins it"></picture></div>
@@ -134,7 +136,7 @@ INDEX = """
 
 <h2>Three steps</h2>
 <ol class="steps">
-  <li><b>Install the panel.</b> Paste the line above into ChimeraX's command line. <a href="install.html#chimerax-edition">Details</a></li>
+  <li><b>Install the panel.</b> Paste the line above into ChimeraX's command line, or open <b>Tools &#9656; More Tools&#8230;</b> and press <b>Install</b> next to Pellaeon. <a href="install.html#chimerax-edition">Details</a></li>
   <li><b>Connect a model.</b> Point Pellaeon at Ollama on your computer, or paste a key for a cloud provider. <a href="install.html#choosing-an-ai">Local or cloud</a></li>
   <li><b>Run the built-in test request.</b> A button on the settings page opens ubiquitin and colors it by chain.</li>
 </ol>
@@ -351,7 +353,7 @@ def demos_html():
 
 
 def index_page():
-    body = INDEX % {"installer": REPO + "/releases/latest/download/install_pellaeon.py", "repo": REPO, "svg": HOW_SVG, "vsvg": HOW_VSVG, "demos": demos_html()}
+    body = INDEX % {"installer": REPO + "/releases/latest/download/install_pellaeon.py", "repo": REPO, "toolshed": TOOLSHED, "svg": HOW_SVG, "vsvg": HOW_VSVG, "demos": demos_html()}
     open(os.path.join(DOCS, "index.html"), "w", encoding="utf-8").write(layout("Pellaeon: talk to ChimeraX in plain English", body, "index.html"))
     print("wrote index.html")
 
