@@ -67,6 +67,11 @@ Yam Amir, Translational Genetics and Genomics Research (TGGR) Lab
 
 None yet. Cite the GitHub repository: https://github.com/tggr-lab/pellaeon
 
+## Icon
+
+`docs/img/logo_lockup.png` is the full artwork (mark and wordmark). `docs/logo.png` is the mark on its own, cropped
+from it, and is what the website uses for its nav brand and favicon.
+
 ## Screenshots (this folder)
 
 1. `1_panel_docked.png`: the panel docked beside hemoglobin, commands listed.
