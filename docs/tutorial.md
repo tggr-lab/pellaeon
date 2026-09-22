@@ -4,7 +4,7 @@ The full walkthrough takes about twenty minutes: hemoglobin, a residue and its n
 
 ## Five-minute version
 
-1. In ChimeraX's **Command:** line, paste `open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py` and press Enter.
+1. In ChimeraX's **Command:** line, paste `toolshed install ChimeraX-Pellaeon` and press Enter, then open **Tools ▸ General ▸ Pellaeon**.
 2. The panel opens on its settings page. Pick **Mistral** (free key, nothing to install) or **Ollama** (runs on your computer), press **Test connection**, then **Save & use**.
 3. Press **Run a first request**. Pellaeon opens ubiquitin and colors it by chain.
 4. Type these into Pellaeon's message box, one at a time:
@@ -23,10 +23,12 @@ The rest of this page is the full walkthrough.
 2. Start ChimeraX. Click into the **Command:** line at the bottom of the window, paste this and press Enter:
 
 ```
-open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
+toolshed install ChimeraX-Pellaeon
 ```
 
-The Pellaeon panel appears on the right. If you close it, or the next time you start ChimeraX, open it from the menu: **Tools ▸ General ▸ Pellaeon**.
+That installs Pellaeon from the [ChimeraX Toolshed](https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon). The menu route does the same thing without typing: **Tools ▸ More Tools…**, find **Pellaeon**, press **Install**.
+
+Open the panel from the menu: **Tools ▸ General ▸ Pellaeon**. It appears on the right, and that is where you find it again the next time you start ChimeraX.
 
 ![Tools menu, General submenu, Pellaeon entry](img/tut/00_menu.png)
 

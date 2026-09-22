@@ -88,6 +88,9 @@ footer .in { max-width: var(--max); margin: 0 auto; padding: 16px 20px; }
 .term .path { color: #4fb3bf; }
 .term { color: #f0a040; }
 .blink { animation: blink 1.1s steps(2, start) infinite; }
+.pill { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 5px 14px; border: 1px solid var(--accent2); border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 0.9em; }
+.pill b { color: var(--accent2); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.85em; }
+.pill a { color: var(--ink); }
 @keyframes blink { to { visibility: hidden; } }
 
 footer .credits { color: var(--muted); font-size: 0.95em; display: inline-flex; align-items: center; gap: 16px; margin-top: 14px; }
