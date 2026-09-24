@@ -179,13 +179,19 @@ def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str
             # ConSurf grades are nine bins with fixed colors, not a gradient: one color per grade, and a
             # key with distinct blocks labelled 1 (variable) to 9 (conserved), as ConSurf itself draws it
             stops = pal.split(":")
-            cmds.append("color %s gray target ac" % model)
+            cmds.append("color %s & protein gray target ac" % model)      # ligands, ions and waters keep their colors
             for grade, colour in enumerate(stops, start=1):
                 cmds.append("color %s::%s=%d %s target ac" % (model, attr, grade, colour))
-            cmds.append("color %s::%s=0 #FFFF96 target ac" % (model, attr))   # ConSurf's yellow: too few sequences at that position
-            cmds.append("key %s #FFFF96:? colorTreatment distinct pos 0.30,0.075 size 0.40,0.04 fontSize 20"
-                        % " ".join("%s:%d" % (c, g) for g, c in enumerate(stops, start=1)))
-            cmds.append('2dlabels create pellaeon_title text "ConSurf conservation: 1 variable ... 9 conserved; ? = too few sequences; gray = no data" xpos 0.30 ypos 0.165 size 20 color black')
+            # ConSurf's yellow marks positions with too few sequences; the bin appears only when the model has one
+            starred = any(v == 0 for v in assign.values())
+            if starred:
+                cmds.append("color %s::%s=0 #FFFF96 target ac" % (model, attr))
+            labels = {1: "variable", len(stops): "conserved"}
+            bins = " ".join("%s:%s" % (c, labels.get(g, g)) for g, c in enumerate(stops, start=1))
+            cmds.append("key %s%s colorTreatment distinct pos 0.30,0.075 size 0.40,0.04 fontSize 20"
+                        % (bins, " #FFFF96:?" if starred else ""))
+            cmds.append('2dlabels create pellaeon_title text "ConSurf conservation: variable (1) to conserved (9)%s; gray = no data" xpos 0.30 ypos 0.165 size 20 color black'
+                        % ("; ? = too few sequences" if starred else ""))
             cmds.append('view %s' % model)
             cmds.append('zoom 0.85')
         elif edition == "chimerax":
