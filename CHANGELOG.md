@@ -2,6 +2,10 @@
 
 Notes for earlier versions are on the [releases page](https://github.com/tggr-lab/pellaeon/releases).
 
+## Unreleased
+
+- ConSurf key: the ends are labelled "variable" and "conserved"; the yellow "too few sequences" bin appears only when a residue has that grade; ligands, ions and waters keep their colors.
+
 ## 0.2.2 (2026-09-24)
 
 Changed:
