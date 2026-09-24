@@ -47,9 +47,9 @@
   "id": "hard-two-genes-open-and-compare",
   "category": "gene-pipeline",
   "request": "open the alphafold models for ADRB1 and ADRB2 and tell me how similar they are",
-  "expected": "Resolves both gene symbols via resolve_protein, opens two distinct AlphaFold models, then superposes them (compare_structures, or matchmaker/rmsd directly) and reports how similar they are; never invents accessions.",
+  "expected": "Resolves both gene symbols via resolve_protein, opens two distinct AlphaFold models, then superposes them (compare_structures, or matchmaker/rmsd directly) and reports how similar they are; never invents accessions. Sequence identity (sequence_identity) is also a valid answer to 'how similar'.",
   "check_type": "state_expr",
-  "check": "sum(1 for c in ran if re.search(r'alphafold:', c, re.I)) >= 2 and (any(c[0]=='compare_structures' for c in record['calls']) or any(re.match(r'(matchmaker|rmsd|align)\\b', c) for c in ran))",
+  "check": "sum(1 for c in ran if re.search(r'alphafold:', c, re.I)) >= 2 and (any(c[0] in ('compare_structures','sequence_identity') for c in record['calls']) or any(re.match(r'(matchmaker|rmsd|align)\\b', c) for c in ran))",
   "setup_commands": [],
   "followups": []
  },
@@ -114,7 +114,7 @@
   ],
   "expected": "Corrects course and colours chain B purple. (Chain A's colour is not checked; the point of the correction is that A was the wrong target, and either leaving or reverting it is defensible.)",
   "check_type": "state_expr",
-  "check": "(lambda cas: len(cas)>0 and all(a.color[0]>60 and a.color[2]>90 and a.color[1]<a.color[0]-15 and a.color[1]<a.color[2]-15 for a in cas))([a for a in atoms if a.name=='CA' and a.residue.chain_id=='B'])"
+  "check": "(lambda cs: len(cs)>0 and all(c[0]>60 and c[2]>90 and c[1]<c[0]-15 and c[1]<c[2]-15 for c in cs))([ (a.residue.ribbon_color if a.residue.ribbon_display else a.color) for a in atoms if a.name=='CA' and a.residue.chain_id=='B'])"
  },
  {
   "id": "hard-conflicting-instructions-one-sentence",

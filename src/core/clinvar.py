@@ -53,7 +53,7 @@ class ClinVarClient:
             os.makedirs(cache_dir, exist_ok=True)
 
     def _cache(self, gene: str) -> Optional[str]:
-        return os.path.join(self.cache_dir, "clinvar2_%s.json" % re.sub(r"[^A-Za-z0-9_-]", "_", gene)) if self.cache_dir else None
+        return os.path.join(self.cache_dir, "clinvar3_%s.json" % re.sub(r"[^A-Za-z0-9_-]", "_", gene)) if self.cache_dir else None
 
     def missense_variants(self, gene: str, max_results: int = 2000) -> Dict[str, Any]:
         gene = (gene or "").strip().upper()
@@ -85,7 +85,9 @@ class ClinVarClient:
                            or "Unknown")
                     pc = v.get("protein_change") or ""
                     hg = None
-                    for cand in (pc if isinstance(pc, list) else [pc]) + [v.get("title", "")]:
+                    # the title names the change on the MANE/RefSeq Select transcript; protein_change lists every
+                    # isoform ("L210P, L273P, L303P, L573P" for one PIK3R1 record), so the title goes first
+                    for cand in [v.get("title", "")] + (pc if isinstance(pc, list) else pc.split(", ")):
                         parsed = parse_hgvs_p(str(cand))
                         if parsed:
                             hg = parsed
@@ -95,7 +97,9 @@ class ClinVarClient:
                     pos, ref, alt = hg
                     if alt in ("*", "="):
                         continue
-                    entry = {"position": pos, "ref": ref, "alt": alt, "significance": sig, "id": uid}
+                    traits = ((v.get("germline_classification") or v.get("clinical_significance") or {}).get("trait_set")) or []
+                    conditions = [t.get("trait_name") for t in traits if t.get("trait_name") and t.get("trait_name") != "not provided"]
+                    entry = {"position": pos, "ref": ref, "alt": alt, "significance": sig, "id": uid, "conditions": conditions[:4]}
                     cur = per_pos.get(pos)
                     if cur is None or _rank(sig) < _rank(cur["significance"]):
                         per_pos[pos] = entry

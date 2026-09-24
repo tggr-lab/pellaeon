@@ -20,6 +20,9 @@ from chimerax.pellaeon.core.agent import Agent, AgentConfig, Callbacks
 from chimerax.pellaeon.core.knowledge import load_json
 from chimerax.pellaeon.core.providers.ollama import OllamaProvider
 
+# the GUI's per-request undo checkpoint (a .cxs saved at the start of every request) is not part of what is measured
+os.environ.setdefault("PELLAEON_CHECKPOINTS", "off")
+
 args = [a for a in sys.argv[1:] if not a.endswith("scenarios.py")]
 model = args[0] if args else "qwen3:8b"
 think = (args[1].lower() in ("1", "true", "think")) if len(args) > 1 else False
@@ -35,19 +38,28 @@ def _approve(cmds):
     """The harness approves everything except commands that would end the ChimeraX process running it."""
     return [c for c in cmds if c.split()[0].lower() not in ("exit", "quit") and not c.lower().startswith("close session")] or None
 
+# PELLAEON_OLLAMA_URL: a second Ollama server (e.g. one with OLLAMA_FLASH_ATTENTION=1 and
+# OLLAMA_KV_CACHE_TYPE=q8_0, so a 14B model fits a 12 GB GPU); PELLAEON_NUM_CTX: its context window.
+OLLAMA_URL = os.environ.get("PELLAEON_OLLAMA_URL", "http://localhost:11434").rstrip("/")
+
+
 def _unload_other_models(keep: str):
     """Ollama keeps the last model in VRAM for minutes; a leftover 10 GB model pushes the next one onto the CPU."""
     import urllib.request
-    try:
-        ps = json.load(urllib.request.urlopen("http://localhost:11434/api/ps", timeout=5))
-        for m in ps.get("models", []):
-            name = m.get("name", "")
-            if name and name != keep:
-                req = urllib.request.Request("http://localhost:11434/api/generate", data=json.dumps({"model": name, "keep_alive": 0}).encode(),
-                                             headers={"Content-Type": "application/json"})
-                urllib.request.urlopen(req, timeout=30).read()
-    except Exception:  # noqa: BLE001
-        pass
+    # every server that may hold a model on the same GPU (PELLAEON_OLLAMA_OTHERS: comma-separated URLs); a model
+    # left loaded on another server pushed qwen3:8b 97% onto the CPU and made a bake-off meaningless
+    others = [u.strip().rstrip("/") for u in os.environ.get("PELLAEON_OLLAMA_OTHERS", "").split(",") if u.strip()]
+    for url in {"http://localhost:11434", OLLAMA_URL, *others}:
+        try:
+            ps = json.load(urllib.request.urlopen(url + "/api/ps", timeout=5))
+            for m in ps.get("models", []):
+                name = m.get("name", "")
+                if name and (name != keep or url != OLLAMA_URL):
+                    req = urllib.request.Request(url + "/api/generate", data=json.dumps({"model": name, "keep_alive": 0}).encode(),
+                                                 headers={"Content-Type": "application/json"})
+                    urllib.request.urlopen(req, timeout=30).read()
+        except Exception:  # noqa: BLE001
+            pass
 
 CLOUD = ":" in model and model.split(":", 1)[0] in ("gemini", "anthropic", "openai", "openrouter", "groq", "mistral")
 if not CLOUD:   # a cloud run must not evict the local model a parallel run is using
@@ -70,11 +82,31 @@ def make_agent(record):
         prov = make_provider(preset.get("provider", pid), mname or preset.get("model", ""), api_key=SecretStore(pellaeon_dir("config")).get(pid),
                              base_url=preset.get("base_url", ""))
     else:
-        prov = OllamaProvider(model, options={"think": think})
-    cb = Callbacks(on_tool_start=lambda c: record["calls"].append((c.name, dict(c.args))),
+        opts = {"think": think}
+        if os.environ.get("PELLAEON_NUM_CTX"):
+            opts["num_ctx"] = int(os.environ["PELLAEON_NUM_CTX"])
+        prov = OllamaProvider(model, base_url=OLLAMA_URL, options=opts)
+    def on_result(call, result, payload):
+        # which deterministic guards fired: the keys the agent puts on a refused/altered run_commands result
+        if isinstance(payload, dict):
+            for k in GUARD_KEYS:
+                if payload.get(k):
+                    record["guards"].append(k)
+            if payload.get("note"):
+                record["guards"].append("note:" + str(payload["note"])[:60])
+            for tag in payload.get("fixups") or []:     # deterministic rewrites (telemetry: which fired, how often)
+                record["guards"].append("fixup:" + str(tag))
+    cb = Callbacks(on_tool_start=lambda c: record["calls"].append((c.name, dict(c.args))), on_tool_result=on_result,
                    on_confirm=lambda cmds, reasons: (record["confirms"].append(list(cmds)) or _approve(cmds)),
                    on_ask_user=lambda q, o: record["asks"].append(q))
-    return Agent(prov, ex, config=AgentConfig(), callbacks=cb, directory=directory, gotchas=gotchas, recipes=recipes)
+    try:
+        cfg = AgentConfig(initiative=os.environ.get("PELLAEON_INITIATIVE", "minimal"),
+                          guards=os.environ.get("PELLAEON_GUARDS", "on").lower() not in ("off", "0", "false"))
+    except TypeError:   # a bundle from before the initiative setting (baseline runs)
+        cfg = AgentConfig()
+    if not CLOUD:   # as the panel does: keep the conversation inside the local context window
+        cfg.compact_after_tokens = max(8000, int(int(os.environ.get("PELLAEON_NUM_CTX", "32768")) * 0.55))
+    return Agent(prov, ex, config=cfg, callbacks=cb, directory=directory, gotchas=gotchas, recipes=recipes)
 
 
 def ran_commands(record):
@@ -101,6 +133,18 @@ def evaluate(s, record, reply):
         bad = [c for c in ran if re.search(forbid, c, re.I)]
         if bad:
             return False, "ran a forbidden command: %s" % bad
+    # scope checks: things a request must not have done on top of what it asked for
+    if s.get("forbid_tools"):
+        used = [n for n, a in record["calls"] if n in s["forbid_tools"]]
+        if used:
+            return False, "called a forbidden tool: %s" % used
+    if s.get("no_new_windows") and record.get("windows"):
+        return False, "opened tool windows: %s" % record["windows"]
+    if s.get("max_models") is not None:
+        n = len([m for m in session.models.list() if m.parent is session.models.scene_root_model  # noqa: F821
+                 and m.__class__.__name__ in ("AtomicStructure", "Structure", "Volume")])
+        if n > int(s["max_models"]):
+            return False, "%d structures/maps open, at most %d expected" % (n, int(s["max_models"]))
     if ct == "no_commands":
         return len(ran) == 0, "ran %d commands" % len(ran)
     if ct == "confirm_requested":
@@ -128,21 +172,34 @@ def evaluate(s, record, reply):
     return False, "unknown check"
 
 
+GUARD_KEYS = ("terminus", "window", "chains_unchecked", "scope", "ambiguous", "repeated", "impossible", "tool_misuse",
+              "unverified_accession", "remote_script", "prose", "skipped", "question", "dont_run", "substitute", "recipe")
+REPEATS = max(1, int(os.environ.get("PELLAEON_REPEATS", "1") or 1))   # run each scenario N times: pass counts show flakiness
 PACE = float(os.environ.get("PELLAEON_PACE", "0") or 0)    # seconds between scenarios (free cloud tiers are per-minute limited)
-report = {"model": model, "think": think, "results": []}
+import hashlib
+report = {"model": model, "think": think, "repeats": REPEATS, "initiative": os.environ.get("PELLAEON_INITIATIVE", "minimal"),
+          "guards": os.environ.get("PELLAEON_GUARDS", "on"),
+          "scenario_file": os.path.basename(scen_file), "results": []}
 passed = 0
 t_all = time.time()
-for s in SCENARIOS:
+for s in [sc for sc in SCENARIOS for _ in range(REPEATS)]:
     if PACE:
         time.sleep(PACE)
     run(session, "close", log=False)
     run(session, "set bgColor black", log=False)
+    for reset in ("camera mono", "clip off", "graphics silhouettes false", "lighting simple", "view initial"):
+        try:   # `close` leaves camera mode, clip planes, silhouettes and lighting as the last scenario set them
+            run(session, reset, log=False)
+        except Exception:  # noqa: BLE001
+            pass
     for cmd in s.get("setup_commands", []) or []:
         try:
             run(session, cmd, log=False)
         except Exception as e:
             print("SETUP FAIL %s: %s (%s)" % (s["id"], cmd, e))
-    record = {"calls": [], "confirms": [], "asks": []}
+    record = {"calls": [], "confirms": [], "asks": [], "windows": [], "guards": []}
+    tools_before = set(id(t) for t in session.tools.list())  # noqa: F821
+    alns_before = set(id(a) for a in session.alignments.alignments)  # noqa: F821
     agent = make_agent(record)
     t0 = time.time()
     reply = ""
@@ -159,16 +216,50 @@ for s in SCENARIOS:
         err = str(e)
     dt = time.time() - t0
     record["executed"] = [j.get("command", "") for j in getattr(agent, "journal", []) if not j.get("noop")]
+    record["windows"] = [t.tool_name for t in session.tools.list() if id(t) not in tools_before]  # noqa: F821
+    record["windows"] += ["alignment" for a in session.alignments.alignments if id(a) not in alns_before]  # noqa: F821
+    for a in list(session.alignments.alignments):  # noqa: F821
+        session.alignments.destroy_alignment(a)  # noqa: F821
+    for t in list(session.tools.list()):  # noqa: F821  (don't let one scenario's windows leak into the next)
+        if id(t) not in tools_before:
+            try:
+                t.delete()
+            except Exception:  # noqa: BLE001
+                pass
     ok, detail = evaluate(s, record, reply)
     passed += ok
     line = "%s %-28s %5.1fs  %s" % ("PASS" if ok else "FAIL", s["id"], dt, "" if ok else ("| " + detail[:300] + " | reply: " + (reply or "")[:160].replace("\n", " ")))
     print(line)
     report["results"].append({"id": s["id"], "category": s.get("category"), "request": s["request"], "ok": ok, "seconds": round(dt, 1),
+                              "usage": {"input": agent.total_usage.input_tokens, "output": agent.total_usage.output_tokens,
+                                        "cache_read": agent.total_usage.cache_read_tokens},
+                              "guards": record["guards"], "check_hash": hashlib.sha1((s["check_type"] + "|" + s["check"] + "|" + json.dumps(
+                                  {k: s.get(k) for k in ("forbid_commands_regex", "forbid_tools", "no_new_windows", "max_models")}, sort_keys=True)).encode()).hexdigest()[:10],
                               "ran": ran_commands(record), "calls": [c[0] for c in record["calls"]], "confirms": record["confirms"],
-                              "asks": record["asks"], "reply": reply, "error": err, "detail": detail,
+                              "asks": record["asks"], "windows": record["windows"], "reply": reply, "error": err, "detail": detail,
                               "expected": s.get("expected"), "check_type": s["check_type"], "check": s["check"]})
-print("SUMMARY %s think=%s: %d/%d passed in %.0fs" % (model, think, passed, len(SCENARIOS), time.time() - t_all))
-out = "/tmp/pellaeon_scenarios_%s%s.json" % (model.replace(":", "_").replace("/", "_"), "_think" if think else "")
+n_runs = len(SCENARIOS) * REPEATS
+print("SUMMARY %s think=%s: %d/%d passed in %.0fs%s" % (model, think, passed, n_runs, time.time() - t_all,
+                                                        (" (%d scenarios x %d repeats)" % (len(SCENARIOS), REPEATS)) if REPEATS > 1 else ""))
+by_cat = {}
+by_id = {}
+for r in report["results"]:
+    by_cat.setdefault(r["category"] or "?", [0, 0]); by_cat[r["category"] or "?"][0] += r["ok"]; by_cat[r["category"] or "?"][1] += 1
+    by_id.setdefault(r["id"], []).append(r["ok"])
+print("BY CATEGORY " + ", ".join("%s %d/%d" % (c, v[0], v[1]) for c, v in sorted(by_cat.items())))
+if REPEATS > 1:
+    flaky = sorted(i for i, oks in by_id.items() if 0 < sum(oks) < len(oks))
+    print("FLAKY (%d): %s" % (len(flaky), ", ".join(flaky)))
+    report["flaky"] = flaky
+guard_counts = {}
+for r in report["results"]:
+    for g in r["guards"]:
+        key = g.split(":", 1)[0]
+        guard_counts[key] = guard_counts.get(key, 0) + 1
+print("GUARDS FIRED " + (", ".join("%s %d" % kv for kv in sorted(guard_counts.items())) or "none"))
+report["by_category"] = by_cat
+report["guards_fired"] = guard_counts
+out = os.environ.get("PELLAEON_REPORT") or "/tmp/pellaeon_scenarios_%s%s.json" % (model.replace(":", "_").replace("/", "_"), "_think" if think else "")
 with open(out, "w") as f:
     json.dump(report, f, indent=1)
 print("report:", out)

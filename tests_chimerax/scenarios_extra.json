@@ -2,7 +2,7 @@
  {
   "id": "novice-open_gene_af_adrb2",
   "category": "opening",
-  "request": "open the af model for the gene adrb2",
+  "request": "get the alphafold structure for adrb2",
   "expected": "Pellaeon resolves ADRB2 through UniProt to P07550 (never guessing) and opens the AlphaFold model, a 413-residue structure named 'AlphaFold ...'.",
   "check_type": "state_expr",
   "check": "any('ALPHAFOLD' in m.name.upper() for m in models) and any(getattr(m, 'num_residues', 0) == 413 for m in models)",
@@ -22,7 +22,7 @@
  {
   "id": "novice-color_white_then_helices_blue",
   "category": "coloring",
-  "request": "make it white",
+  "request": "white please",
   "followups": [
    "color all helixes in blue"
   ],
@@ -36,7 +36,7 @@
  {
   "id": "novice-color_by_chain",
   "category": "coloring",
-  "request": "color by chain",
+  "request": "give each chain its own color",
   "expected": "Starting from an all-white 4hhb, each of the four chains gets its own distinct ribbon color.",
   "check_type": "state_expr",
   "check": "len({tuple(atoms.filter(atoms.chain_ids == c).residues.ribbon_colors[0][:3]) for c in 'ABCD'}) == 4",
@@ -61,7 +61,7 @@
   "category": "selecting",
   "request": "select aas 159 and 300",
   "followups": [
-   "reverse selection"
+   "invert the selection"
   ],
   "expected": "Residues 159 and 300 are selected first; after 'reverse selection' everything except those two residues is selected.",
   "check_type": "state_expr",
@@ -73,7 +73,7 @@
  {
   "id": "novice-select_color_green_rest_white",
   "category": "selecting",
-  "request": "select postions 159 and 300 and color them green. the rest of the protein should be white",
+  "request": "make residues 159 and 300 green and everything else white",
   "expected": "Residues 159 and 300 end up selected and green (atoms and/or cartoon) while the rest of the protein cartoon is white; the whole thing is done in one turn without asking.",
   "check_type": "state_expr",
   "check": "set(sel_res) == {159, 300} and (((atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).colors[:, 1] > 100).all() and (atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).colors[:, 0] < 100).all()) or ((atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, 1] > 100).all() and (atoms.filter((atoms.residues.numbers == 159) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, 0] < 100).all())) and (atoms.filter((atoms.residues.numbers == 50) & (atoms.structure_categories == 'main')).residues.ribbon_colors[:, :3] > 225).all()",
@@ -122,7 +122,7 @@
  {
   "id": "novice-distance_select_typos",
   "category": "distances",
-  "request": "select amono acids 100 and 150 and mesure the distance between them",
+  "request": "pick residues 100 and 150 and tell me how far apart they are",
   "expected": "A distance monitor (pseudobond in the 'distances' group) is created between an atom of residue 100 and an atom of residue 150, typically the CA atoms.",
   "check_type": "state_expr",
   "check": "session.pb_manager.get_group('distances', create=False) is not None and any({a.residue.number for a in pb.atoms} == {100, 150} for pb in session.pb_manager.get_group('distances', create=False).pseudobonds)",
@@ -144,7 +144,7 @@
  {
   "id": "novice-spin_pronoun",
   "category": "motion",
-  "request": "make it spin",
+  "request": "spin it around",
   "expected": "A continuous rotation (roll) is started and is still in progress when the turn ends.",
   "check_type": "state_expr",
   "check": "bool(getattr(session, 'motion_in_progress', None))",
@@ -157,7 +157,7 @@
   "category": "motion",
   "request": "spin the view slowly",
   "followups": [
-   "slower",
+   "a bit slower",
    "stop the spinning"
   ],
   "expected": "The view rolls slowly, 'slower' restarts it with a smaller step, and after 'stop the spinning' no motion remains in progress: the Chimaera holds position.",
@@ -226,7 +226,7 @@
  {
   "id": "novice-transparency_selected_typo",
   "category": "transparency",
-  "request": "make the selected half transperent",
+  "request": "selected part 50% transparent pls",
   "expected": "The selected residues 1-100 become about 50% transparent on their cartoon, atoms and/or surface (transparency sel 50 with a target).",
   "check_type": "state_expr",
   "check": "(atoms.filter(atoms.residues.numbers <= 100).residues.ribbon_colors[:, 3] < 200).any() or (atoms.filter(atoms.residues.numbers <= 100).colors[:, 3] < 200).any() or any('Surface' in m.__class__.__name__ and ((getattr(m, 'vertex_colors', None) is not None and (m.vertex_colors[:, 3] < 200).any()) or m.color[3] < 200) for m in models)",
@@ -603,7 +603,7 @@
   "setup_commands": [
    "open 4hhb"
   ],
-  "request": "asdfgh jkl qwerty 🚀🚀",
+  "request": "asdfgh jkl qwerty \ud83d\ude80\ud83d\ude80",
   "followups": [
    "these aren't the droids you're looking for"
   ],
@@ -629,7 +629,7 @@
    "open 4hhb",
    "open 1zik"
   ],
-  "request": "what is open?",
+  "request": "what do I have open right now",
   "expected": "Answers from the state block or get_state (two models, their chains) in words and runs no ChimeraX command.",
   "check_type": "no_commands",
   "check": ""
@@ -734,5 +734,48 @@
   "expected": "Understands Spanish: chain A polymer becomes blue (using the ChimeraX color name blue, not azul) and the heme ligands are shown as spheres.",
   "check_type": "state_expr",
   "check": "(lambda r, lig: len(r) > 0 and (r.ribbon_colors[:,2] > 180).all() and (r.ribbon_colors[:,0] < 100).all() and (r.ribbon_colors[:,1] < 160).all() and len(lig) > 0 and (lig.draw_modes == atoms.SPHERE_STYLE).mean() > 0.5)((lambda rr: rr.filter(rr.polymer_types != 0))(atoms.filter(atoms.chain_ids == 'A').unique_residues), atoms.filter(atoms.structure_categories == 'ligand'))"
+ },
+ {
+  "id": "mem-par1-open",
+  "category": "membrane",
+  "setup_commands": [
+   "open 3vw7"
+  ],
+  "request": "orient it in the membrane with the extracellular side on top",
+  "expected": "membrane_view",
+  "check_type": "state_expr",
+  "check": "any(n=='membrane_view' for n,a in record['calls']) and any(m.name=='pellaeon_membrane_out' for m in models)",
+  "no_new_windows": true
+ },
+ {
+  "id": "mem-par1-af",
+  "category": "membrane",
+  "setup_commands": [
+   "open alphafold:P25116"
+  ],
+  "request": "put this receptor in the membrane, extracellular up, use 3vw7 for the orientation",
+  "expected": "membrane_view with pdb",
+  "check_type": "state_expr",
+  "check": "any(n=='membrane_view' and str(a.get('pdb','')).lower()=='3vw7' for n,a in record['calls'])"
+ },
+ {
+  "id": "gpcr-states",
+  "category": "gpcr",
+  "setup_commands": [],
+  "request": "get the inactive and active models of PAR1 from gpcrdb and morph between them",
+  "expected": "gpcr_states then morph",
+  "check_type": "state_expr",
+  "check": "any(n=='gpcr_states' for n,a in record['calls']) and any(re.match(r'^morph\\b', c) for c in ran)",
+  "no_new_windows": true
+ },
+ {
+  "id": "gpcr-list",
+  "category": "gpcr",
+  "setup_commands": [],
+  "request": "which structures exist for the thrombin receptor PAR1 and in what state?",
+  "expected": "gpcr_states, no opens",
+  "check_type": "state_expr",
+  "check": "any(n=='gpcr_states' for n,a in record['calls']) and '3VW7' in reply and '8XOR' in reply",
+  "max_models": 0
  }
 ]

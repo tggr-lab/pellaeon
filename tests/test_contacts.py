@@ -158,8 +158,8 @@ def commands_for_simple_case() -> List[str]:
 
 def test_commands_draw_lost_on_reference_and_gained_on_other():
     cmds = commands_for_simple_case()
-    assert "distance #1/A:10@NH1 #1/A:20@OD1 color %s dashes 6 radius 0.08" % LOST_COLOR in cmds
-    assert "distance #2/A:30@CB #2/A:40@CG color %s dashes 6 radius 0.08" % GAINED_COLOR in cmds
+    assert "distance #1/A:10@NH1 #1/A:20@OD1 color %s dashes 5 radius 0.2" % LOST_COLOR in cmds
+    assert "distance #2/A:30@CB #2/A:40@CG color %s dashes 5 radius 0.2" % GAINED_COLOR in cmds
 
 
 def test_commands_keep_both_models_visible_and_add_a_key():
@@ -191,7 +191,7 @@ def test_commands_cap_how_much_is_drawn():
     assert sum(1 for cmd in cmds if cmd.startswith("distance #")) == 5
     assert "label delete pseudobonds" in cmds                       # dashes carry no distance numbers
     assert not any("showing" in cmd for cmd in cmds)               # the counts live in the result card, not the title
-    assert any(cmd.startswith('2dlabels create pellaeon_title text "Contacts lost (red, #1) and gained (green, #2)"') for cmd in cmds)
+    assert any(cmd.startswith('2dlabels create pellaeon_title text "Lost from #1 (light gray): red.  Gained in #2 (dark gray): green"') for cmd in cmds)
 
 
 def test_commands_without_atom_names_still_show_residues():

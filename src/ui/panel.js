@@ -376,6 +376,9 @@
     $("s-key").dataset.unchanged = state.keyMasked ? "1" : "";
     $("key-note").textContent = state.keyMasked ? "Saved key: " + state.keyMasked + " (" + state.keySource + "). Leave empty to keep it." : "";
     $("s-autonomy").value = s.autonomy || "auto";
+    $("s-initiative").value = s.initiative || "minimal";
+    $("f-docking").style.display = s.allow_docking == null ? "none" : "";
+    $("s-docking").checked = !!s.allow_docking;
     $("s-python").checked = !!s.allow_python;
     $("s-labels").checked = s.readable_labels !== false;
     $("s-vision").checked = !!s.vision;
@@ -391,6 +394,8 @@
       base_url: $("s-url").value.trim(),
       api_key: key,
       autonomy: $("s-autonomy").value,
+      initiative: $("s-initiative").value,
+      allow_docking: $("f-docking").style.display === "none" ? null : $("s-docking").checked,
       allow_python: $("s-python").checked,
       readable_labels: $("s-labels").checked,
       vision: $("s-vision").checked,

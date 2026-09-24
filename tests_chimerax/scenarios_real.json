@@ -1,0 +1,2345 @@
+[
+ {
+  "id": "reg-seqid-four-1",
+  "category": "sequence",
+  "source": "regression: ChimeraX developer report (sequence identity opened one viewer per pair)",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake",
+   "open alphafold:P69441",
+   "open alphafold:P00568"
+  ],
+  "request": "tell me the sequence identity between every pair of these",
+  "expected": "sequence_identity tool reports every pair; no sequence viewer windows, nothing new opened, nothing moved",
+  "check_type": "state_expr",
+  "check": "any(n=='sequence_identity' for n,a in record['calls'])",
+  "forbid_commands_regex": "^(open|close|sequence|seq|matchmaker|mm|align|color|rainbow)\\b",
+  "no_new_windows": true,
+  "max_models": 4
+ },
+ {
+  "id": "reg-seqid-four-2",
+  "category": "sequence",
+  "source": "regression: ChimeraX developer report (sequence identity opened one viewer per pair)",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake",
+   "open alphafold:P69441",
+   "open alphafold:P00568"
+  ],
+  "request": "whats the percent identity between all four of these structures, pairwise?",
+  "expected": "sequence_identity tool reports every pair; no sequence viewer windows, nothing new opened, nothing moved",
+  "check_type": "state_expr",
+  "check": "any(n=='sequence_identity' for n,a in record['calls'])",
+  "forbid_commands_regex": "^(open|close|sequence|seq|matchmaker|mm|align|color|rainbow)\\b",
+  "no_new_windows": true,
+  "max_models": 4
+ },
+ {
+  "id": "reg-seqid-four-3",
+  "category": "sequence",
+  "source": "regression: ChimeraX developer report (sequence identity opened one viewer per pair)",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake",
+   "open alphafold:P69441",
+   "open alphafold:P00568"
+  ],
+  "request": "how similar are the sequences of these 4 models to each other? give me a table",
+  "expected": "sequence_identity tool reports every pair; no sequence viewer windows, nothing new opened, nothing moved",
+  "check_type": "state_expr",
+  "check": "any(n=='sequence_identity' for n,a in record['calls'])",
+  "forbid_commands_regex": "^(open|close|sequence|seq|matchmaker|mm|align|color|rainbow)\\b",
+  "no_new_windows": true,
+  "max_models": 4
+ },
+ {
+  "id": "reg-close-seq-windows-align",
+  "category": "sequence",
+  "source": "regression: ChimeraX developer report (could not close sequence windows)",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake"
+  ],
+  "request": "open the alignment for #1 and #2",
+  "followups": [
+   "now close those sequence windows"
+  ],
+  "expected": "an alignment viewer opens, then close_windows closes it; the structures stay open",
+  "check_type": "state_expr",
+  "check": "not record['windows'] and len([m for m in models if m.__class__.__name__=='AtomicStructure'])==2 and (any(n=='close_windows' for n,a in record['calls']) or any(re.search('^(sequence|seq)\\\\s+(align|chain)|^(mm|matchmaker)\\\\b.*show', c, re.I) for c in ran))",
+  "forbid_commands_regex": "^close\\b",
+  "max_models": 2
+ },
+ {
+  "id": "reg-close-seq-viewer",
+  "category": "sequence",
+  "source": "regression: ChimeraX developer report (could not close sequence windows)",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake"
+  ],
+  "request": "show me the sequence of chain A",
+  "followups": [
+   "ok close the sequence viewer"
+  ],
+  "expected": "sequence viewer opens for /A, then close_windows closes it; the structure stays open",
+  "check_type": "state_expr",
+  "check": "not record['windows'] and len([m for m in models if m.__class__.__name__=='AtomicStructure'])==1 and (any(n=='close_windows' for n,a in record['calls']) or any(re.search('^(sequence|seq)\\\\s+(chain|align)', c, re.I) for c in ran))",
+  "forbid_commands_regex": "^close\\b",
+  "max_models": 1
+ },
+ {
+  "id": "reg-clinvar-show",
+  "category": "annotation",
+  "source": "regression: ClinVar request routed to AlphaMissense",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open alphafold:P07550"
+  ],
+  "request": "show me the clinvar variants",
+  "expected": "annotate(kind=clinvar) on #1 with P07550/ADRB2; no AlphaMissense",
+  "check_type": "state_expr",
+  "check": "any(n=='annotate' and 'clinvar' in str(a.get('kind','')).lower() for n,a in record['calls'])",
+  "forbid_tools": [
+   "fetch_annotation"
+  ],
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "reg-clinvar-varieties",
+  "category": "annotation",
+  "source": "regression: ClinVar request routed to AlphaMissense",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open alphafold:P07550"
+  ],
+  "request": "look up clinvar varieties for this protein",
+  "expected": "annotate(kind=clinvar) on #1 with P07550/ADRB2; no AlphaMissense",
+  "check_type": "state_expr",
+  "check": "any(n=='annotate' and 'clinvar' in str(a.get('kind','')).lower() for n,a in record['calls'])",
+  "forbid_tools": [
+   "fetch_annotation"
+  ],
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "reg-alphamissense-only",
+  "category": "annotation",
+  "source": "regression: AlphaMissense request routed to ClinVar",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open alphafold:P07550"
+  ],
+  "request": "color it by alphamissense",
+  "expected": "fetch_annotation(source=alphamissense, protein=P07550); no annotate",
+  "check_type": "state_expr",
+  "check": "any(n=='fetch_annotation' and 'alphamissense' in str(a.get('source','')).lower() for n,a in record['calls'])",
+  "forbid_tools": [
+   "annotate"
+  ],
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "reg-legend-follows-structure",
+  "category": "labels",
+  "source": "regression: color key outlived the structure it described",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake"
+  ],
+  "request": "color by b-factor and add a color key",
+  "followups": [
+   "close it",
+   "open 1ubq"
+  ],
+  "expected": "after closing 1ake and opening 1ubq no stale color key remains",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and m.name.lower().startswith('1ubq') for m in models) and not any(m.__class__.__name__=='AtomicStructure' and '1ake' in m.name.lower() for m in models) and not any(m.__class__.__name__=='ColorKeyModel' for m in models)",
+  "max_models": 1
+ },
+ {
+  "id": "reg-overreach-chain-red",
+  "category": "color",
+  "source": "regression: over-reach probe (developer feedback)",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "color chain A red",
+  "expected": "chain A red, nothing else changed",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and all(((lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.color)) or (lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.residue.ribbon_color))) for a in s))([a for a in atoms if a.name=='CA' and (a.residue.chain_id=='A')]) and not (lambda s: len(s)>0 and all(((lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.color)) or (lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.residue.ribbon_color))) for a in s))([a for a in atoms if a.name=='CA' and (a.residue.chain_id=='B')])",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|key|2dlab|2dlabels|graphics|set|transparency|size|mlp|coulombic|style|show|hide|cartoon|view)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "reg-overreach-show-ligand",
+  "category": "ligand/binding",
+  "source": "regression: over-reach probe (developer feedback)",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy",
+   "hide ligand"
+  ],
+  "request": "show the ligand",
+  "expected": "imatinib (STI) atoms displayed; no restyling, hbonds, surfaces or colors",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and s.displays.all())(atoms.filter(atoms.residues.names=='STI'))",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|key|2dlab|2dlabels|graphics|set|color|hbonds|contacts|style|cartoon|transparency|size|close|delete|open)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "reg-overreach-bg-white",
+  "category": "color",
+  "source": "regression: over-reach probe (developer feedback)",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "make the background white",
+  "expected": "white background only; no preset, lighting, silhouettes or recoloring",
+  "check_type": "state_expr",
+  "check": "sum(bg)>=2.7",
+  "forbid_commands_regex": "^(preset|lighting|light|graphics\\s+silhouettes?|color|label|surface|cartoon|style|show|hide|save|key|2dlab|2dlabels|view|transparency)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "reg-ambiguous-color-it-blue",
+  "category": "color",
+  "source": "regression: pronoun with two structures open",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake"
+  ],
+  "request": "color it blue",
+  "expected": "asks which structure, or colors both blue",
+  "check_type": "state_expr",
+  "check": "bool(record['asks']) or (lambda s: len({a.structure.id for a in s})==2 and all((lambda c: c[2]>=180 and c[0]<=100 and c[1]<=150)(tuple(int(x) for x in a.color)) or (lambda c: c[2]>=180 and c[0]<=100 and c[1]<=150)(tuple(int(x) for x in a.residue.ribbon_color)) for a in s))([a for a in atoms if a.name=='CA'])",
+  "no_new_windows": true,
+  "max_models": 2
+ },
+ {
+  "id": "reg-ambiguous-adrenergic",
+  "category": "alphafold",
+  "source": "regression: gene family name (ADRA1A..ADRB3)",
+  "difficulty": "ambiguous",
+  "setup_commands": [],
+  "request": "open the adrenergic receptor",
+  "expected": "asks which adrenergic receptor (9 genes) before opening anything",
+  "check_type": "ask_user",
+  "check": "",
+  "max_models": 0
+ },
+ {
+  "id": "rb-2bbv-open-bychain",
+  "category": "color",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "Open PDB 2bbv and color each chain a different color so I can tell them apart.",
+  "expected": "open 2bbv; chains A, B, C distinctly colored; nothing else",
+  "check_type": "state_expr",
+  "check": "len({tuple(int(x) for x in a.color) for a in atoms if a.name=='CA' and a.residue.chain_id in ('A','B','C')})==3",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|graphics|set|style|show|hide|cartoon|sym|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-chain-b-sticks",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "Show chain B as sticks instead of whatever it's currently drawn as.",
+  "expected": "chain B protein atoms shown as sticks; chain A untouched",
+  "check_type": "state_expr",
+  "check": "(lambda b: len(b)>0 and b.displays.sum()>=0.9*len(b) and (b.draw_modes==2).all())(atoms.filter((atoms.chain_ids=='B') & (atoms.structure_categories=='main'))) and (atoms.filter((atoms.chain_ids=='A') & (atoms.structure_categories=='main')).draw_modes==0).all()",
+  "forbid_commands_regex": "^(color|surface|label|lighting|light|preset|graphics|set|key|2dlab|transparency)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-chain-n-teal",
+  "category": "color",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "make chain N teal colored",
+  "expected": "RNA chain N teal",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and all((lambda c: c[0]<=70 and 90<=c[1]<=170 and 90<=c[2]<=170)(tuple(int(x) for x in a.color)) or (lambda c: c[0]<=70 and 90<=c[1]<=170 and 90<=c[2]<=170)(tuple(int(x) for x in a.residue.ribbon_color)) for a in s))([a for a in atoms if a.residue.chain_id=='N' and a.element.name=='C'])",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|key|2dlab|2dlabels|graphics|set|transparency|size|mlp|coulombic|style|show|hide|cartoon|view)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-hide-chain-c",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "Hide chain C, I don't need to see it right now.",
+  "expected": "chain C atoms and cartoon hidden (not closed or deleted); chain A still shown",
+  "check_type": "state_expr",
+  "check": "(lambda c: len(c)>0 and not c.displays.any() and not c.residues.ribbon_displays.any())(atoms.filter(atoms.chain_ids=='C')) and atoms.filter(atoms.chain_ids=='A').displays.any()",
+  "forbid_commands_regex": "^(close|delete|color|surface|label|lighting|light|preset|graphics|set)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-chain-c-ribbon",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "show chain C as a ribbon",
+  "expected": "chain C cartoon on; other chains' cartoons stay off",
+  "check_type": "state_expr",
+  "check": "atoms.filter(atoms.chain_ids=='C').residues.ribbon_displays.any() and not atoms.filter(atoms.chain_ids=='A').residues.ribbon_displays.any()",
+  "forbid_commands_regex": "^(color|surface|label|lighting|light|preset|graphics|set|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-atom-grow-gold",
+  "category": "select",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "select the C5' atom of residue 4 in chain N, then grow the selection up to the whole residue and color it gold",
+  "expected": "all atoms of /N:4 gold",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and all((lambda c: c[0]>=200 and 150<=c[1]<=235 and c[2]<=90)(tuple(int(x) for x in a.color)) for a in s))([a for a in atoms if (a.residue.chain_id=='N' and a.residue.number==4)])",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-waters-red-spheres",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "blow up the water molecules into spheres and color them red so they're easier to spot",
+  "expected": "waters displayed as red spheres",
+  "check_type": "state_expr",
+  "check": "(lambda w: len(w)>0 and w.displays.all() and (w.draw_modes==0).all() and all((lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in x)) for x in w.colors))(atoms.filter(atoms.structure_categories=='solvent'))",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|graphics|set|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-full-assembly",
+  "category": "analysis",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "this is a virus capsid, can you show me the full icosahedral assembly from the mmCIF metadata, without making a whole new model?",
+  "expected": "sym #1 assembly 1 newModel false: many copies drawn as positions of #1, no new model",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and len(m.positions)>=60 for m in models)",
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-buried-sasa",
+  "category": "measure",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "How much surface area is buried between chain A and chain B, and what's the total solvent accessible area excluding waters?",
+  "expected": "measure buriedarea /A with /B and measure sasa ~solvent; numbers reported",
+  "check_type": "state_expr",
+  "check": "any(re.search('buriedarea', c, re.I) for c in ran) and any(re.search('sasa', c, re.I) for c in ran) and bool(re.search(r'\\d', reply))",
+  "forbid_commands_regex": "^(color|label|preset|lighting|light|graphics|set|style|hide|show|cartoon|delete|close)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2bbv-interfaces-plot",
+  "category": "analysis",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2bbv"
+  ],
+  "request": "give me a plot of how much buried surface area there is between every pair of chains in the protein",
+  "expected": "interfaces command (opens the chain-contact plot)",
+  "check_type": "state_expr",
+  "check": "any(re.search('^interfaces?\\\\b', c, re.I) for c in ran)",
+  "max_models": 1
+ },
+ {
+  "id": "rb-groel-map-enclose-tan",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "grab the groel cryo-EM map from EMDB (emd 1080), light it properly, and bump the threshold up so it looks like it encloses about a million cubic angstroms, tan colored",
+  "expected": "open 1080 from emdb; volume enclose 1e6 (level changes) color tan; lighting",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='Volume' and '1080' in m.name and any((lambda c: 185<=c[0]<=235 and 155<=c[1]<=205 and 115<=c[2]<=165)(tuple(int(x) for x in s.color)) and abs(s.level-0.852)>0.01 for s in m.surfaces) for m in models)",
+  "max_models": 1
+ },
+ {
+  "id": "rb-groel-fit-transparent",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1080 from emdb"
+  ],
+  "request": "open the GroEL crystal structure 1grl and fit it into the density map I already have open, then make the map half-transparent so I can see the model inside",
+  "expected": "open 1grl; fitmap #2 inMap #1 (model moves); map surface ~50% transparent",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and not m.position.is_identity() for m in models) and any(m.__class__.__name__=='Volume' and any(s.color[3]<230 for s in m.surfaces) for m in models)",
+  "max_models": 2
+ },
+ {
+  "id": "rb-1grl-molmap-mesh",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1grl"
+  ],
+  "request": "simulate what a 10 angstrom resolution map of this structure would look like and show it as a mesh",
+  "expected": "molmap #1 10; the new map shown as mesh",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='Volume' and any(s.style=='mesh' for s in m.surfaces) for m in models) and any(re.search('molmap\\\\b.*\\\\b10\\\\b', c, re.I) for c in ran)",
+  "max_models": 2
+ },
+ {
+  "id": "rb-1a0m-with-eds",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "pull up 1a0m along with its crystallographic electron density map from the electron density server",
+  "expected": "open 1a0m and open 1a0m from eds: a structure and a map",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' for m in models) and any(m.__class__.__name__=='Volume' for m in models)",
+  "max_models": 3
+ },
+ {
+  "id": "rb-1a0m-eds-mesh-level",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1a0m",
+   "open 1a0m from eds"
+  ],
+  "request": "hide the ribbon, show the atoms, and display the density as a mesh at contour level 1.0",
+  "expected": "ribbons hidden, atoms shown, map mesh at level 1.0",
+  "check_type": "state_expr",
+  "check": "not atoms.residues.ribbon_displays.any() and atoms.filter(atoms.structure_categories=='main').displays.all() and any(m.__class__.__name__=='Volume' and any(s.style=='mesh' and abs(s.level-1.0)<0.02 for s in m.surfaces) for m in models)",
+  "max_models": 2
+ },
+ {
+  "id": "rb-1a0m-eds-zone",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/index.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1a0m",
+   "open 1a0m from eds"
+  ],
+  "request": "only show me the density within about 2 angstroms of the atoms, and make it a bit see-through at a lower threshold",
+  "expected": "volume zone near the atoms range 2; lower level; some transparency",
+  "check_type": "state_expr",
+  "check": "any(re.search('zone', c, re.I) for c in ran) and any(re.search('level', c, re.I) for c in ran) and any(m.__class__.__name__=='Volume' and any(s.color[3]<250 for s in m.surfaces) for m in models)",
+  "max_models": 2
+ },
+ {
+  "id": "rb-2hyy-sti-spheres-rest-sticks",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "Show imatinib as spheres and everything else as sticks.",
+  "expected": "STI spheres, protein atoms stick style",
+  "check_type": "state_expr",
+  "check": "(lambda s, p: len(s)>0 and (s.draw_modes==0).all() and s.displays.all() and len(p)>0 and (p.draw_modes==2).all())(atoms.filter(atoms.residues.names=='STI'), atoms.filter(atoms.structure_categories=='main'))",
+  "forbid_commands_regex": "^(color|surface|label|lighting|light|preset|graphics|set|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2hyy-drug-carbons-salmon",
+  "category": "color",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "Color the carbons of the drug salmon so it stands out from the protein.",
+  "expected": "STI carbons salmon; STI heteroatoms and protein carbons unchanged",
+  "check_type": "state_expr",
+  "check": "(lambda c, n, p: len(c)>0 and all((lambda c: c[0]>=225 and 100<=c[1]<=165 and 85<=c[2]<=145)(tuple(int(x) for x in x)) for x in c.colors) and not any((lambda c: c[0]>=225 and 100<=c[1]<=165 and 85<=c[2]<=145)(tuple(int(x) for x in x)) for x in n.colors) and not any((lambda c: c[0]>=225 and 100<=c[1]<=165 and 85<=c[2]<=145)(tuple(int(x) for x in x)) for x in p.colors))(atoms.filter((atoms.residues.names=='STI') & (atoms.element_names=='C')), atoms.filter((atoms.residues.names=='STI') & (atoms.element_names=='N')), atoms.filter((atoms.structure_categories=='main') & (atoms.element_names=='C')))",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|key|2dlab|2dlabels|graphics|set|transparency|size|mlp|coulombic|style|show|hide|cartoon|view)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2hyy-zoom-drug-hide-rest",
+  "category": "view",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "Zoom in on the drug and hide everything else in the structure.",
+  "expected": "view on STI; all other atoms and cartoons hidden (not deleted)",
+  "check_type": "state_expr",
+  "check": "(lambda s, o: s.displays.any() and not o.displays.any())(atoms.filter(atoms.residues.names=='STI'), atoms.filter(atoms.residues.names!='STI')) and not atoms.residues.ribbon_displays.any() and any(re.search('^view\\\\b', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(close|delete|color|surface|label|lighting|light|preset|graphics|set)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2hyy-hbonds-ligand",
+  "category": "ligand/binding",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "find the hydrogen bonds between the ligand and the protein and show them",
+  "expected": "hbonds :STI; every drawn H-bond involves STI",
+  "check_type": "state_expr",
+  "check": "(lambda pbs: len(pbs)>=1 and all('STI' in (b.atoms[0].residue.name, b.atoms[1].residue.name) for b in pbs))([b for m in models if m.__class__.__name__=='PseudobondGroup' and 'hydrogen' in m.name.lower() and m.display for b in m.pseudobonds if b.display])",
+  "forbid_commands_regex": "^(surface|lighting|light|preset|graphics|set|key|2dlab|close|delete)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2hyy-show-backbone",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy",
+   "select :STI :<5",
+   "hide #1 target acs",
+   "show sel atoms",
+   "~cartoon #1",
+   "select clear"
+  ],
+  "request": "show the backbone atoms too, not just sidechains, so I can see how the drug contacts the backbone",
+  "expected": "cartoon suppressBackbone false (or cartoon off): backbone N atoms of displayed residues become visible",
+  "check_type": "state_expr",
+  "check": "(lambda r: len(r)>0 and len(r)<400 and all((not x.ribbon_hide_backbone) or (not x.ribbon_display) for x in r))(atoms.filter(atoms.displays & (atoms.structure_categories=='main')).unique_residues)",
+  "forbid_commands_regex": "^(color|surface|label|lighting|light|preset|graphics|set|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2hyy-label-shown-hide-water",
+  "category": "labels",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2hyy",
+   "select :STI"
+  ],
+  "request": "label all the residues that are currently shown, remove the waters, and clear my selection",
+  "expected": "residue labels on displayed residues; waters hidden or deleted; selection empty",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='ObjectLabels' and len(m.labels())>=5 for m in models) and not atoms.filter(atoms.structure_categories=='solvent').displays.any() and len(sel_res)==0",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2hyy-resistance-gold-balls",
+  "category": "labels",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "I know residues 250, 253, 256, 301, 315, 317, 320, 351, 373 and 381 are imatinib-resistance mutation sites in this kinase - highlight them gold as balls with bigger labels",
+  "expected": "those residues shown ball style, carbons gold, labeled",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and all(a.display and a.draw_mode==1 for a in s) and all((lambda c: c[0]>=200 and 150<=c[1]<=235 and c[2]<=90)(tuple(int(x) for x in a.color)) for a in s if a.element.name=='C'))([a for a in atoms if a.residue.chain_id=='A' and a.residue.number in (250,253,256,301,315,317,320,351,373,381) and a.structure_category=='main']) and any(m.__class__.__name__=='ObjectLabels' and len(m.labels())>=8 for m in models)",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-2hyy-sequence-chain-a",
+  "category": "sequence",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "show me the sequence of chain A alongside the structure",
+  "expected": "sequence chain /A (opens the Sequence Viewer)",
+  "check_type": "state_expr",
+  "check": "bool(record['windows']) or any(re.search('^(sequence|seq)\\\\s+chain', c, re.I) for c in ran)",
+  "max_models": 1
+ },
+ {
+  "id": "rb-4xt3-hydrophobicity",
+  "category": "electrostatics/hydrophobicity",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "open 4xt3, a membrane protein, and color its surface by hydrophobicity to check the transmembrane belt shows up greasy",
+  "expected": "open 4xt3; mlp (creates and colors the surface)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display and m.vertex_colors is not None and len({tuple(int(x) for x in c) for c in m.vertex_colors[::7]})>=5 for m in models) and any(re.search('^mlp\\\\b', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(coulombic|color\\s+electrostatic|preset|label)\\b",
+  "max_models": 1
+ },
+ {
+  "id": "rb-1g74-surface-clip",
+  "category": "surface",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "Open 1g74, show its surface, and slice it open with a clipping plane so I can see the oleic acid pocket buried inside.",
+  "expected": "open 1g74; surface; clip (a clip plane is active)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display for m in models) and len(session.main_view.clip_planes.planes())>0",
+  "max_models": 1
+ },
+ {
+  "id": "rb-7kkj-coulombic-then-mlp",
+  "category": "electrostatics/hydrophobicity",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 7kkj"
+  ],
+  "request": "show the surface for each chain and color it by electrostatics, then also show me what it looks like colored by hydrophobicity instead",
+  "expected": "surface; coulombic; then mlp (final surface colored by lipophilicity)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display and m.vertex_colors is not None and len({tuple(int(x) for x in c) for c in m.vertex_colors[::7]})>=5 for m in models) and any(re.search('^coulombic\\\\b', c, re.I) for c in ran) and any(re.search('^mlp\\\\b', c, re.I) for c in ran)",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-coulombic-add-key",
+  "category": "electrostatics/hydrophobicity",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq",
+   "coulombic"
+  ],
+  "request": "add a color key for that electrostatics coloring",
+  "expected": "color key for the coulombic palette (coulombic ... key true or key command); nothing else",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='ColorKeyModel' for m in models)",
+  "forbid_commands_regex": "^(color|mlp|label|2dlab|2dlabels|lighting|light|preset|graphics|set|cartoon|style|show|hide)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-3d6y-dna-tan-thin",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 3d6y from rcsb_bio maxAssemblies 1"
+  ],
+  "request": "make the DNA tan colored with thinner, rounder cartoon strands so it doesn't distract from the protein",
+  "expected": "nucleic ribbons tan; cartoon style nucleic xsection round, smaller width/thickness",
+  "check_type": "state_expr",
+  "check": "(lambda r: len(r)>0 and all((lambda c: 185<=c[0]<=235 and 155<=c[1]<=205 and 115<=c[2]<=165)(tuple(int(x) for x in x)) for x in r.ribbon_colors))(atoms.filter(atoms.residues.polymer_types==2).unique_residues) and any(re.search('^(cartoon|car)\\\\s+style|^nucleotides?\\\\b|^nuc\\\\b', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(surface|coulombic|mlp|label|preset|lighting|light|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-3d6y-berberine-key",
+  "category": "labels",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 3d6y from rcsb_bio maxAssemblies 1",
+   "coulombic protein"
+  ],
+  "request": "make the berberine ligand thicker sticks in bright green so it pops in the figure, and add a color key for the electrostatics",
+  "expected": "BER carbons green, stick radius increased, color key for the coulombic coloring",
+  "check_type": "state_expr",
+  "check": "(lambda b: len(b)>0 and b.displays.all() and all((lambda c: c[1]>=100 and c[0]<=120 and c[2]<=120)(tuple(int(x) for x in x)) for x in b.filter(b.element_names=='C').colors) and (b.intra_bonds.radii>0.25).all())(atoms.filter(atoms.residues.names=='BER')) and any(m.__class__.__name__=='ColorKeyModel' for m in models)",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-121p-water-ligand-balls",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "Open H-Ras 121p, hide the waters, and show the ligand as balls.",
+  "expected": "open 121p; waters hidden; GCP ball style",
+  "check_type": "state_expr",
+  "check": "not atoms.filter(atoms.structure_categories=='solvent').displays.any() and (lambda g: len(g)>0 and g.displays.all() and (g.draw_modes==1).all())(atoms.filter(atoms.residues.names=='GCP'))",
+  "forbid_commands_regex": "^(color|surface|label|lighting|light|preset|graphics|set|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-121p-consurf-palette",
+  "category": "sequence",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 121p"
+  ],
+  "request": "load the ConSurf conservation alignment from https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/121p-consurf.aln and color the structure by conservation with a cyan-to-maroon scale from -1.4 to 1.4, and any residue missing a score in yellow",
+  "expected": "open the .aln; color byattribute seq_conservation palette cyanmaroon range -1.4,1.4 novalue yellow",
+  "check_type": "state_expr",
+  "check": "len({tuple(int(x) for x in c) for c in atoms.filter(atoms.structure_categories=='main').unique_residues.ribbon_colors})>=5 and any(re.search('seq_conservation|conservation', c, re.I) for c in ran)",
+  "max_models": 1
+ },
+ {
+  "id": "rb-3sn6-tubes-yellow-receptor",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "Open 3sn6, the GPCR complex, show it with tube-style helices, brighten the receptor chain R to yellow, and hide the nanobody's cartoon.",
+  "expected": "open 3sn6; cylinder helices; /R cartoon yellow; /N cartoon hidden",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and m.ribbon_mode_helix != m.RIBBON_MODE_DEFAULT for m in models) and (lambda r: len(r)>0 and r.ribbon_displays.any() and all((lambda c: c[0]>=200 and c[1]>=200 and c[2]<=110)(tuple(int(x) for x in x)) for x in r.ribbon_colors))(atoms.filter(atoms.chain_ids=='R').unique_residues) and not atoms.filter(atoms.chain_ids=='N').residues.ribbon_displays.any()",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-3nos-af-align-plddt",
+  "category": "alphafold",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/alphafold.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 3nos"
+  ],
+  "request": "Fetch the AlphaFold model for UniProt P29474 and superimpose it onto the structure I already have open, colored by confidence.",
+  "expected": "alphafold fetch P29474 alignTo #1 (pLDDT coloring)",
+  "check_type": "state_expr",
+  "check": "(lambda af: len(af)>0 and all(len({tuple(int(x) for x in c) for c in m.residues.ribbon_colors})>=3 for m in af))([m for m in models if m.__class__.__name__=='AtomicStructure' and ('alphafold' in m.name.lower() or 'p29474' in m.name.lower())]) and any(re.search('align|matchmaker|\\\\bmm\\\\b', c, re.I) for c in ran)",
+  "max_models": 3
+ },
+ {
+  "id": "rb-4ake-alphafold-match",
+  "category": "alphafold",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/alphafold.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 4ake"
+  ],
+  "request": "find AlphaFold models for each chain in my open structure and load them in",
+  "expected": "alphafold match #1",
+  "check_type": "state_expr",
+  "check": "len([m for m in models if m.__class__.__name__=='AtomicStructure'])>=2 and any(re.search('alphafold', c, re.I) for c in ran)",
+  "max_models": 3
+ },
+ {
+  "id": "rb-af-pae-plot",
+  "category": "alphafold",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/alphafold.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open alphafold:P07550"
+  ],
+  "request": "show me the predicted aligned error plot for this AlphaFold model",
+  "expected": "alphafold pae #1 (plot)",
+  "check_type": "state_expr",
+  "check": "any(re.search('alphafold\\\\s+pae', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(open|close)\\b",
+  "max_models": 1
+ },
+ {
+  "id": "rb-af-pae-domains",
+  "category": "alphafold",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/alphafold.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open alphafold:P00568"
+  ],
+  "request": "split this AlphaFold model into rigid domains based on the PAE data, ignoring any domain smaller than 10 residues",
+  "expected": "alphafold pae #1 colorDomains true minSize 10",
+  "check_type": "state_expr",
+  "check": "any(re.search(r'alphafold\\s+pae.*color\\s*domains', c, re.I) and re.search(r'min\\s*size\\s+10', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(open|close)\\b",
+  "max_models": 1
+ },
+ {
+  "id": "rb-4n6h-delete-fusion",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 4n6h",
+   "surface"
+  ],
+  "request": "Delete the crystallization fusion domain, residues 1002 to 1106, and turn off the surface.",
+  "expected": "delete :1002-1106 (confirmed); surface hidden",
+  "check_type": "state_expr",
+  "check": "bool(record['confirms']) and not any(1002<=a.residue.number<=1106 for a in atoms) and not any(m.__class__.__name__=='MolecularSurface' and m.display and len(m.show_atoms)>0 and (m.triangle_mask is None or m.triangle_mask.any()) for m in models)",
+  "max_models": 1
+ },
+ {
+  "id": "rb-4n6h-addh-hbonds",
+  "category": "ligand/binding",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 4n6h"
+  ],
+  "request": "add hydrogens and show me the hydrogen bonds the antagonist EJ4 makes with the receptor",
+  "expected": "addh; hbonds :EJ4",
+  "check_type": "state_expr",
+  "check": "(atoms.element_names=='H').sum()>500 and (lambda pbs: len(pbs)>=1 and all('EJ4' in (b.atoms[0].residue.name, b.atoms[1].residue.name) for b in pbs))([b for m in models if m.__class__.__name__=='PseudobondGroup' and 'hydrogen' in m.name.lower() and m.display for b in m.pseudobonds if b.display])",
+  "forbid_commands_regex": "^(surface|preset|lighting|light|graphics|set|close|delete)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-4n6h-pocket-4A",
+  "category": "ligand/binding",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 4n6h"
+  ],
+  "request": "hide the cartoon and atoms, then just show the residues within 4 angstroms of the ligand EJ4",
+  "expected": "cartoon and atoms hidden; only EJ4 and residues within 4 A shown",
+  "check_type": "state_expr",
+  "check": "not atoms.residues.ribbon_displays.any() and (lambda d: 3<=len(d)<=40)(atoms.filter(atoms.displays & (atoms.structure_categories=='main')).unique_residues)",
+  "forbid_commands_regex": "^(close|delete|color|surface|label|preset)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-3gbp-eds-mesh-zone",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/movies-may2019/moviemaking.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 3gbp"
+  ],
+  "request": "pull in the crystallographic density map for this structure too and show it as a mesh zone within 8 angstroms of the ligand",
+  "expected": "open 3gbp from eds; mesh style; volume zone near ligand range 8",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='Volume' and any(s.style=='mesh' for s in m.surfaces) for m in models) and any(re.search('zone', c, re.I) for c in ran)",
+  "max_models": 3
+ },
+ {
+  "id": "rb-6pt2-mutate-d128n",
+  "category": "analysis",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/delta-opioid-jan2020/binding.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 6pt2"
+  ],
+  "request": "mutate residue 128 on the receptor to asparagine and show me how that would break the salt bridge to the peptide ligand",
+  "expected": "swapaa /A:128 ASN (receptor chain), then H-bonds/contacts shown",
+  "check_type": "state_expr",
+  "check": "any(a.residue.number==128 and a.residue.chain_id=='A' and a.residue.name=='ASN' for a in atoms if a.name=='CA')",
+  "max_models": 1
+ },
+ {
+  "id": "rb-1t2p-bfactor",
+  "category": "color",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/loop-modeling/loop-modeling.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1t2p"
+  ],
+  "request": "color the structure by B-factor to see if the missing loop region is also the floppiest part",
+  "expected": "color bfactor; no key, labels or surfaces",
+  "check_type": "state_expr",
+  "check": "len({tuple(int(x) for x in c) for c in atoms.filter(atoms.structure_categories=='main').unique_residues.ribbon_colors})>=5",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|graphics|set|key|2dlab|show|style)\\b|\\bkey\\s+t",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-7sth-surface-chain-d-yellow",
+  "category": "surface",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 7sth"
+  ],
+  "request": "color the chains, show the surface, and color chain D yellow",
+  "expected": "color bychain; surface; /D yellow Coloring chain D yellow on the surface only is also accepted.",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display for m in models) and ((lambda d: len(d)>0 and all((lambda c: c[0]>=200 and c[1]>=200 and c[2]<=110)(tuple(int(x) for x in x)) for x in d.ribbon_colors))(atoms.filter(atoms.chain_ids=='D').unique_residues) or any(re.search(r'^colou?r\\s+\\S*/D\\S*\\s+yellow\\b', c, re.I) for c in ran)) and len({tuple(int(x) for x in c) for c in atoms.filter(atoms.chain_ids!='D').unique_residues.ribbon_colors})>=2",
+  "max_models": 1
+ },
+ {
+  "id": "rb-mouse-insr-af-domains",
+  "category": "alphafold",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "grab the AlphaFold model for the mouse insulin receptor and show me its predicted domains and confidence",
+  "expected": "resolve mouse INSR (P15208); open alphafold:P15208; alphafold pae (domains)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and 'P15208' in m.name.upper() for m in models) and any(re.search('alphafold\\\\s+pae', c, re.I) for c in ran)",
+  "max_models": 1
+ },
+ {
+  "id": "rb-ortho-save-transparent",
+  "category": "image",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "orthographic view, please, and save the image at 1000 pixels wide with a transparent background",
+  "expected": "camera ortho; save png width 1000 transparentBackground true (asks for confirmation)",
+  "check_type": "state_expr",
+  "check": "bool(record['confirms']) and any(re.search('^camera\\\\s+ortho', c, re.I) for c in ran)",
+  "max_models": 1
+ },
+ {
+  "id": "rb-7kkj-resolution-citation",
+  "category": "analysis",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "Open 7kkj and tell me its resolution and where it was published.",
+  "expected": "open 7kkj; log metadata; reply 2.05 A, Science (2020)",
+  "check_type": "state_expr",
+  "check": "bool(re.search(r'2\\.05', reply)) and bool(re.search(r'science', reply, re.I))",
+  "forbid_commands_regex": "^(color|style|hide|show|surface|cartoon|label|lighting|light|preset|graphics|set)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-7kkl-figure-save",
+  "category": "image",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "Open the spike protein with bound nanobodies, 7kkl, color the three nanobody chains gold, white background with silhouettes, and save a nice image.",
+  "expected": "open 7kkl; /B,E,F gold; white bg; silhouettes; save (confirmed)",
+  "check_type": "state_expr",
+  "check": "bool(record['confirms']) and sum(bg)>=2.7 and session.main_view.silhouette.enabled and (lambda s: len(s)>0 and all(((lambda c: c[0]>=200 and 150<=c[1]<=235 and c[2]<=90)(tuple(int(x) for x in a.color)) or (lambda c: c[0]>=200 and 150<=c[1]<=235 and c[2]<=90)(tuple(int(x) for x in a.residue.ribbon_color))) for a in s))([a for a in atoms if a.name=='CA' and (a.residue.chain_id in ('B','E','F'))]) and not (lambda s: len(s)>0 and all(((lambda c: c[0]>=200 and 150<=c[1]<=235 and c[2]<=90)(tuple(int(x) for x in a.color)) or (lambda c: c[0]>=200 and 150<=c[1]<=235 and c[2]<=90)(tuple(int(x) for x in a.residue.ribbon_color))) for a in s))([a for a in atoms if a.name=='CA' and (a.residue.chain_id=='A')])",
+  "max_models": 1
+ },
+ {
+  "id": "rb-7kkl-hbonds-nanobody-f",
+  "category": "ligand/binding",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 7kkl"
+  ],
+  "request": "show me only the hydrogen bonds between one of the nanobodies, chain F, and the spike protein",
+  "expected": "hbonds /F restrict cross (or /A,C,D); every drawn H-bond crosses F <-> spike",
+  "check_type": "state_expr",
+  "check": "(lambda pbs: len(pbs)>0 and all((b.atoms[0].residue.chain_id=='F') != (b.atoms[1].residue.chain_id=='F') and ({b.atoms[0].residue.chain_id, b.atoms[1].residue.chain_id} - {'F'}) <= {'A','C','D'} for b in pbs))([b for m in models if m.__class__.__name__=='PseudobondGroup' and 'hydrogen' in m.name.lower() and m.display for b in m.pseudobonds if b.display])",
+  "forbid_commands_regex": "^(surface|preset|lighting|light|graphics|set|close|delete)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-nanobody-free-vs-bound",
+  "category": "compare/align",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "Compare the free nanobody structure 7kkj to the one bound to spike in 7kkl - align them and color the free one red, the bound one gold, so I can see if it changes shape upon binding.",
+  "expected": "open both; matchmaker 7kkj/A onto 7kkl/F (or similar); 7kkj red; bound nanobody gold",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and not m.position.is_identity() for m in models) and (lambda f, b: len(f)>0 and all((lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.color)) or (lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.residue.ribbon_color)) for a in f) and any(any(x.residue.chain_id==ch for x in b) and all((lambda c: c[0]>=200 and 150<=c[1]<=235 and c[2]<=90)(tuple(int(x) for x in x.color)) or (lambda c: c[0]>=200 and 150<=c[1]<=235 and c[2]<=90)(tuple(int(x) for x in x.residue.ribbon_color)) for x in b if x.residue.chain_id==ch) for ch in 'BEF'))([a for a in atoms if a.name=='CA' and a.structure.name.lower().startswith('7kkj')], [a for a in atoms if a.name=='CA' and a.structure.name.lower().startswith('7kkl')])",
+  "max_models": 2
+ },
+ {
+  "id": "rb-groel-transparent-shadows",
+  "category": "image",
+  "source": "https://rbvi.github.io/chimerax-recipes/shadows/shadows.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1080 from emdb",
+   "open 1grl",
+   "fitmap #2 inMap #1"
+  ],
+  "request": "Make the cryo-EM map mostly see-through but still have it cast proper shadows on the fitted model inside, with soft lighting.",
+  "expected": "map transparency ~80%; material transparentCastShadows true; lighting soft",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='Volume' and all(s.color[3]<=150 for s in m.surfaces) for m in models) and session.main_view.material.transparent_cast_shadows and session.main_view.lighting.multishadow>0",
+  "max_models": 2
+ },
+ {
+  "id": "rb-distance-heatmap-impossible",
+  "category": "impossible",
+  "source": "https://rbvi.github.io/chimerax-recipes/rrdist/rrdist.html",
+  "difficulty": "impossible",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "Give me a distance heatmap between all the residue pairs in this structure, like a PAE-style plot but from actual 3D distances.",
+  "expected": "says there is no built-in residue-distance heatmap (it needs a third-party recipe script); runs nothing that changes the scene",
+  "check_type": "state_expr",
+  "check": "bool(reply) and (all(re.match(r'(info|log|help|usage|measure|version)\\b', c, re.I) for c in ran) or any('rrdist' in c.lower() for c in ran))",
+  "forbid_commands_regex": "^(alphafold|toolshed|close|delete)\\b|^open\\b(?!\\s+https?://raw\\.githubusercontent\\.com/rbvi/chimerax-recipes/)",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-4hhb-closest-contact",
+  "category": "measure",
+  "source": "https://rbvi.github.io/chimerax-recipes/closest/closest.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "What's the closest atom-atom contact between chain A and chain B, and can you show me where it is?",
+  "expected": "contacts/distance between /A and /B; reports the shortest distance",
+  "check_type": "state_expr",
+  "check": "any(re.search('^(contacts|clashes|distance|dist|closest)\\\\b', c, re.I) for c in ran) and bool(re.search(r'\\d\\.\\d', reply))",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-7w91-size-by-bfactor",
+  "category": "display",
+  "source": "https://rbvi.github.io/chimerax-recipes/atomsize/atomsize.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 7w91"
+  ],
+  "request": "Make the atoms bigger where the B-factor is high, so flexible/disordered regions are visually obvious.",
+  "expected": "size byattribute bfactor (atom radii vary); no recoloring",
+  "check_type": "state_expr",
+  "check": "len({round(float(r), 2) for r in atoms.radii})>10",
+  "forbid_commands_regex": "^(color|surface|label|lighting|light|preset|graphics|set|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "rb-match-bring-model3",
+  "category": "compare/align",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/matchmaker.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake",
+   "open 4ake"
+  ],
+  "request": "Superimpose model 2 onto model 1, and drag model 3 along with it since it's rigidly attached to model 2.",
+  "expected": "matchmaker #2 to #1 bring #3: #2 and #3 get the same transform, #1 stays",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)==3 and s[0].position.is_identity() and not s[1].position.is_identity() and abs(s[1].position.matrix - s[2].position.matrix).max()<1e-3)(sorted([m for m in models if m.__class__.__name__=='AtomicStructure'], key=lambda m: m.id))",
+  "max_models": 3
+ },
+ {
+  "id": "rb-mm-sw-pam150",
+  "category": "compare/align",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/matchmaker.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake",
+   "open 1zin"
+  ],
+  "request": "Align the best-matching chain of model 2 onto chain A of model 1, but use Smith-Waterman with the PAM-150 matrix, skip secondary structure scoring, and use a looser 5 angstrom cutoff since these are from different species.",
+  "expected": "mm #2 to #1/A pairing bs alg sw matrix PAM-150 ss false cutoff 5",
+  "check_type": "state_expr",
+  "check": "any(re.search(r'pam-?150', c, re.I) and re.search(r'\\b(sw|smith)', c, re.I) for c in ran) and any(m.id==(2,) and not m.position.is_identity() for m in models)",
+  "max_models": 2
+ },
+ {
+  "id": "rb-insulin-chain-pairs",
+  "category": "compare/align",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/matchmaker.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 3i40",
+   "open 4ins"
+  ],
+  "request": "Superimpose chains A and B of the first insulin structure onto chains C and D of the second one, matched pairwise.",
+  "expected": "mm #1/A,B to #2/C,D pairing ss",
+  "check_type": "state_expr",
+  "check": "any(m.id==(1,) and not m.position.is_identity() for m in models) and any(re.search('#2\\\\s*/\\\\s*C', c, re.I) for c in ran)",
+  "max_models": 2
+ },
+ {
+  "id": "rb-trna-nucleic-matrix",
+  "category": "compare/align",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/matchmaker.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ehz",
+   "open 1evv"
+  ],
+  "request": "align these two tRNA structures - I know it's RNA so use the nucleic acid matrix, not the protein one",
+  "expected": "matchmaker ... matrix Nucleic",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and not m.position.is_identity() for m in models) and any(re.search('nucleic', c, re.I) for c in ran)",
+  "max_models": 2
+ },
+ {
+  "id": "rb-lysozyme-rmsd-identity",
+  "category": "compare/align",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/matchmaker.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "Open 1aki and 6lyz, superimpose them, and tell me the RMSD and percent sequence identity between the two lysozyme structures.",
+  "expected": "open both; matchmaker; RMSD and % identity reported without opening sequence windows",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and not m.position.is_identity() for m in models) and bool(re.search(r'rmsd', reply, re.I)) and (any(n=='sequence_identity' for n,a in record['calls']) or bool(re.search(r'\\d+(\\.\\d+)?\\s*%', reply)))",
+  "no_new_windows": true,
+  "max_models": 2
+ },
+ {
+  "id": "rb-abl-four-superpose-colors",
+  "category": "compare/align",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/matchmaker.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2hyy",
+   "open 1iep",
+   "open 1opj",
+   "open 2g1t"
+  ],
+  "request": "I have four kinase structures open, 1-4. Superimpose them all on the first one and color each one differently so I can see how the loops shift.",
+  "expected": "mm #2-4 to #1; four distinct model colors",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)==4 and all(not m.position.is_identity() for m in s[1:]) and len({tuple(int(x) for x in m.residues.ribbon_colors[0]) for m in s})==4)(sorted([m for m in models if m.__class__.__name__=='AtomicStructure'], key=lambda m: m.id))",
+  "max_models": 4
+ },
+ {
+  "id": "rb-two-chains-seq-similarity",
+  "category": "sequence",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/sequence.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ake",
+   "open 1zin"
+  ],
+  "request": "how similar are these two chains, sequence-wise? just give me a number.",
+  "expected": "percent identity (sequence_identity tool or matchmaker log); no windows, no recoloring",
+  "check_type": "state_expr",
+  "check": "any(n=='sequence_identity' for n,a in record['calls']) or bool(re.search(r'\\d+(\\.\\d+)?\\s*%', reply))",
+  "forbid_commands_regex": "^(color|label|surface|hide|show|style|cartoon|sequence\\s+align|seq\\s+align)\\b",
+  "no_new_windows": true,
+  "max_models": 2
+ },
+ {
+  "id": "ml-map-zone-three-residues",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2020-March/000911.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1a0m",
+   "open 1a0m from eds"
+  ],
+  "request": "can I show the density near three different residues at once, say residues 5, 10 and 15 of chain A? zone only lets me pick one residue at a time",
+  "expected": "volume zone #2 nearAtoms /A:5,10,15 range ~3",
+  "check_type": "state_expr",
+  "check": "any(re.search('(volume|vol)\\\\s+zone|surface\\\\s+zone', c, re.I) for c in ran)",
+  "max_models": 2
+ },
+ {
+  "id": "ml-flatten-map-impossible",
+  "category": "impossible",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2020-March/000956.html",
+  "difficulty": "impossible",
+  "setup_commands": [
+   "open 1080 from emdb"
+  ],
+  "request": "how do I flatten out a cryoEM map like the picture I attached, my map has a few subunits and C1 symmetry",
+  "expected": "explains ChimeraX has no map-flattening (unrolling) tool for general maps; runs nothing",
+  "check_type": "state_expr",
+  "check": "bool(reply) and len(ran)==0",
+  "max_models": 1
+ },
+ {
+  "id": "ml-gaussian-surface-residue-color",
+  "category": "surface",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2020-March/000988.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ubq",
+   "surface #1 resolution 6",
+   "color #1 skyblue target s"
+  ],
+  "request": "I made a surface with surface #1 resolution 6 and colored it blue, but when I try to color just residues 50-76 a different color it says it worked but nothing changes on the surface, am I missing something?",
+  "expected": "recreate the surface with sharpBoundaries true (or a normal SES) so residue 50-76 coloring shows",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display and m.vertex_colors is not None and len({tuple(int(x) for x in c) for c in m.vertex_colors})>=2 for m in models)",
+  "max_models": 1
+ },
+ {
+  "id": "ml-distance-one-to-many",
+  "category": "measure",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2021-June/002333.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "how can I get the distance from residue 55 to a whole set of other residues, like 10, 20, 30 and 40?",
+  "expected": "four distances (distance commands or contacts restrict) reported",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='PseudobondGroup' and m.num_pseudobonds>=4 for m in models) or any(re.search('^contacts\\\\b', c, re.I) for c in ran) or len(re.findall(r'\\d+\\.\\d+', reply))>=4",
+  "max_models": 1
+ },
+ {
+  "id": "ml-map-scale-voxelsize",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2021-June/002382.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1080 from emdb",
+   "open 1grl"
+  ],
+  "request": "I colored my map and now want to fit a crystal structure I downloaded from the PDB into it, but they're totally different sizes, I tried voxelSize but it says 'no volumes specified'",
+  "expected": "explains atoms are already in Angstroms (voxelSize only rescales maps; check the map's pixel size); may fitmap; never rescales the map blindly",
+  "check_type": "state_expr",
+  "check": "bool(reply) and not any(re.search('voxel\\\\s*size', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^volume\\b.*\\bvoxelSize\\b",
+  "max_models": 2
+ },
+ {
+  "id": "ml-ca-trace",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2018-September/000311.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "is there a way to just show the CA trace, like a simple backbone line through the alpha carbons?",
+  "expected": "CA atoms shown (cartoon off or thin tube cartoon), approximating a CA trace",
+  "check_type": "state_expr",
+  "check": "(atoms.filter(atoms.names=='CA').visibles.sum()>=60) or any(re.search('^(cartoon|car)\\\\s+style', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(color|surface|label|preset|lighting|light)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-sasa-polar-sum",
+  "category": "measure",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2019-October/000685.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "I'm trying to calculate the polar and non-polar surface area of my protein but when I sum them they add up to more than the total SASA, what am I doing wrong?",
+  "expected": "explains subsets get their own surface; measure sasa protein sum N|O|S (and sum C) gives each part's share of the whole",
+  "check_type": "state_expr",
+  "check": "any(re.search('sasa.*\\\\bsum\\\\b', c, re.I) for c in ran) or (bool(re.search(r'\\bsum\\b', reply)) and bool(re.search(r'measure sasa', reply, re.I)))",
+  "max_models": 1
+ },
+ {
+  "id": "ml-copy-chain-colors",
+  "category": "color",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-January/003089.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 4hhb",
+   "open 1hho"
+  ],
+  "request": "I have two models and want the second one's chains colored to match the first one's chain colors, is there a command for that?",
+  "expected": "#2 chains A and B get the same colors as #1 chains A and B",
+  "check_type": "state_expr",
+  "check": "(lambda col: all(col(1, ch) and col(1, ch)==col(2, ch) for ch in 'AB'))(lambda mid, ch: {tuple(int(x) for x in a.residue.ribbon_color) for a in atoms if a.name=='CA' and a.structure.id==(mid,) and a.residue.chain_id==ch})",
+  "max_models": 2
+ },
+ {
+  "id": "ml-better-quality-images",
+  "category": "image",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-January/003127.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "how do I get higher resolution / better quality images when I save a picture?",
+  "expected": "explains save ... width/supersample (may offer to save, which asks for confirmation)",
+  "check_type": "state_expr",
+  "check": "bool(record['confirms']) or bool(re.search(r'width|supersample|pixel', reply, re.I))",
+  "max_models": 1
+ },
+ {
+  "id": "ml-color-by-displacement",
+  "category": "compare/align",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-January/003150.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2gbp",
+   "open 2fw0"
+  ],
+  "request": "I want to color my structure by how much it moved compared to the other structure, how do I do that?",
+  "expected": "superpose (compare_structures or matchmaker) and color by per-residue displacement",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and not m.position.is_identity() for m in models) and any(len({tuple(int(x) for x in c) for c in m.residues.ribbon_colors})>=3 for m in [m for m in models if m.__class__.__name__=='AtomicStructure'])",
+  "max_models": 2
+ },
+ {
+  "id": "ml-hide-loops",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-January/003163.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "how do I hide all the loops in my model and keep just the helices and strands, and also just hide the long loops that are more than 10 residues?",
+  "expected": "hides coil cartoon (or asks which of the two); explains no built-in length filter",
+  "check_type": "state_expr",
+  "check": "bool(record['asks']) or (lambda r: len(r)>0 and not r.filter(~(r.is_helix | r.is_strand)).ribbon_displays.any() and r.filter(r.is_helix | r.is_strand).ribbon_displays.any())(atoms.filter(atoms.structure_categories=='main').unique_residues)",
+  "forbid_commands_regex": "^(delete|close|color|surface)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-af-download-stuck",
+  "category": "impossible",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-September/004221.html",
+  "difficulty": "impossible",
+  "setup_commands": [],
+  "request": "my AlphaFold run through ChimeraX gets stuck forever on the last step, downloading the results, is this a known problem?",
+  "expected": "support answer (network/sleep/permissions); runs nothing",
+  "check_type": "state_expr",
+  "check": "bool(reply) and len(ran)==0",
+  "max_models": 0
+ },
+ {
+  "id": "ml-buried-area-ligand",
+  "category": "ligand/binding",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-September/004226.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "I'm trying to get the buried surface area between my protein and the imatinib ligand, but when I measure the ligand's surface area I just get the whole protein's area, not the interface",
+  "expected": "measure buriedarea protein withAtoms2 :STI",
+  "check_type": "commands_regex",
+  "check": "buriedarea",
+  "forbid_commands_regex": "^(color|label|preset|lighting|light|graphics|set|style|delete|close)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-morph-slider-back",
+  "category": "analysis",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-September/004263.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake",
+   "morph #1,2"
+  ],
+  "request": "I made a morph earlier but the player slider is gone, how do I get it back?",
+  "expected": "coordset slider #3",
+  "check_type": "commands_regex",
+  "check": "coordset\\s+slider|mseries\\s+slider"
+ },
+ {
+  "id": "ml-orient-to-reference",
+  "category": "view",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-September/004361.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake",
+   "matchmaker #2 to #1"
+  ],
+  "request": "I aligned all my models to one reference model, now how do I orient all of them based on the reference's xyz axes?",
+  "expected": "view orient (camera only); the superposition is kept",
+  "check_type": "state_expr",
+  "check": "any(re.search('^view\\\\s+(\\\\S+\\\\s+)?orient\\\\b', c, re.I) for c in ran) and any(m.id==(2,) and not m.position.is_identity() for m in models)",
+  "forbid_commands_regex": "^(mm|matchmaker|align|view\\s+initial|reset)\\b",
+  "no_new_windows": true,
+  "max_models": 2
+ },
+ {
+  "id": "ml-swapaa-several",
+  "category": "analysis",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/NAIA6TPKC345B64FRKRZTNTUKF7CI6QT/",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "can I use swapaa to change several residues at once, like making residues 1 to 4 all leucine?",
+  "expected": "swapaa :1-4 LEU",
+  "check_type": "state_expr",
+  "check": "(lambda r: len(r)==4 and all(x.name=='LEU' for x in r))([x for x in atoms.unique_residues if 1<=x.number<=4 and x.chain_id=='A'])",
+  "max_models": 1
+ },
+ {
+  "id": "ml-draw-arrows",
+  "category": "labels",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2019-February/000425.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "can ChimeraX draw arrows on the structure, like showing force directions with straight and curved arrows?",
+  "expected": "explains 2D arrows (2dlabels arrow) or BILD/shape for 3D straight arrows, no curved arrows; may draw a 2D arrow",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='ArrowModel' for m in models) or (bool(reply) and len(ran)==0)",
+  "forbid_commands_regex": "^(color|surface|delete|close|preset)\\b",
+  "max_models": 1
+ },
+ {
+  "id": "ml-label-z-offset",
+  "category": "labels",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2021-July/002449.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ubq",
+   "label :10"
+  ],
+  "request": "how do I move my 3D label toward the camera (in z)? this used to work with ctrl+right-drag but doesn't anymore",
+  "expected": "label :10 offset x,y,z with a z component",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='ObjectLabels' and any(l.offset is not None and abs(float(l.offset[2]))>0.01 for l in m.labels()) for m in models)",
+  "forbid_commands_regex": "^(color|surface|delete|close)\\b",
+  "max_models": 1
+ },
+ {
+  "id": "ml-sse-numbering-labels",
+  "category": "labels",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2021-November/002876.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "is there an automated way to number and label the secondary structure elements (like alpha1/beta1) based on DSSP, instead of me manually labeling them in PowerPoint afterward?",
+  "expected": "says there is no built-in command (a recipe script exists); may label the elements itself",
+  "check_type": "state_expr",
+  "check": "bool(reply) and (len(ran)==0 or any(m.__class__.__name__=='ObjectLabels' and len(m.labels())>=3 for m in models))",
+  "forbid_commands_regex": "^(delete|close|color|surface)\\b",
+  "max_models": 1
+ },
+ {
+  "id": "ml-crystal-packing",
+  "category": "analysis",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2020-May/001128.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "how do I show crystal packing / symmetry mates for my PDB, like PyMOL's 'generate symmetry mates within 10 angstroms'? the sym command only seems to do biological assembly",
+  "expected": "crystalcontacts #1 distance 10 copies true",
+  "check_type": "state_expr",
+  "check": "any(re.search('^crystalcontacts\\\\b', c, re.I) for c in ran) or len([m for m in models if m.__class__.__name__=='AtomicStructure'])>=2 or any(m.__class__.__name__=='AtomicStructure' and len(m.positions)>1 for m in models)"
+ },
+ {
+  "id": "ml-domain-angle",
+  "category": "measure",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/message/DAGWK3B2LE2IBYTRXQABFLPNBCMXSRPJ/",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 4ake"
+  ],
+  "request": "how can I measure the angle between two domains, like the LID domain (residues 122-159) and the NMP domain (residues 30-59) of this adenylate kinase?",
+  "expected": "define axis (or plane) for each domain, then angle between them",
+  "check_type": "state_expr",
+  "check": "(any(re.search('^(define\\\\s+(axis|plane)|measure\\\\s+inertia)', c, re.I) for c in ran) or sum(1 for c in ran if re.search('^define\\\\s+centroid', c, re.I))>=2) and any(re.search('^angle\\\\b', c, re.I) for c in ran)",
+  "max_models": 1
+ },
+ {
+  "id": "ml-centroid-distance",
+  "category": "measure",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2021-September/002609.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "I'm trying to get the distance between the centers of mass of residues 10 and 20, I tried define centroid then distance but got an 'invalid objects specifier' error",
+  "expected": "define centroid for each residue, then distance between the two centroid markers",
+  "check_type": "state_expr",
+  "check": "(any(re.search('^define\\\\s+centroid', c, re.I) for c in ran) and any(m.__class__.__name__=='PseudobondGroup' and m.num_pseudobonds>0 for m in models)) or (any(re.search('^measure\\\\s+center', c, re.I) for c in ran) and bool(re.search(r'\\d+\\.\\d+', reply)))"
+ },
+ {
+  "id": "ml-conservation-coloring",
+  "category": "annotation",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2019-January/000353.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "can I color amino acids by conservation?",
+  "expected": "fetch_annotation(conservation, 1UBQ chain A) colors by ConSurf grade, or asks for an alignment",
+  "check_type": "state_expr",
+  "check": "any(n=='fetch_annotation' and 'conserv' in str(a.get('source','')).lower() for n,a in record['calls']) or any(re.search('seq_conservation', c, re.I) for c in ran) or bool(record['asks'])",
+  "forbid_tools": [
+   "annotate"
+  ],
+  "max_models": 1
+ },
+ {
+  "id": "ml-select-first-last-residue",
+  "category": "select",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/message/WQNZQLSAQUVLI2622YGS6OOMITI3EOFN/",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "how do I select the first and last residue of a chain without knowing their numbers?",
+  "expected": "residues 1 and 76 selected",
+  "check_type": "state_expr",
+  "check": "set(sel_res)=={1, 76}",
+  "forbid_commands_regex": "^(color|delete|close|hide|surface|label)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-save-transparent-syntax",
+  "category": "image",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/SSV4BW7EA2DKMO3D6X5N2KTFFNVQ6A4A/",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "I tried 'save image filename format png transparentBackground true' and got an error saying transparentBackground expected keyword, can you save it properly as ~/Desktop/ubq.png?",
+  "expected": "save ~/Desktop/ubq.png transparentBackground true (asks for confirmation)",
+  "check_type": "confirm_requested",
+  "check": "",
+  "max_models": 1
+ },
+ {
+  "id": "ml-transparent-bg-preference",
+  "category": "impossible",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2018-August/000283.html",
+  "difficulty": "impossible",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "how do I make the background transparent, like a preference, the way we could set it as default in old Chimera?",
+  "expected": "explains transparency is a save option (save ... transparentBackground true), not a persistent background setting; does not change the background",
+  "check_type": "state_expr",
+  "check": "bool(reply) and not any(re.search('bg\\\\s*color|background', c, re.I) for c in ran)",
+  "forbid_commands_regex": "bg\\s*color|background",
+  "max_models": 1
+ },
+ {
+  "id": "ml-buried-patch-surface",
+  "category": "surface",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2019-September/000669.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "I measured the buried surface area between chain A and chain B, now I want to highlight just the buried patch on chain A's surface, not the whole chain",
+  "expected": "surface /A with the interface atoms colored differently (measure buriedarea select, color sel target s)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display and m.vertex_colors is not None and len({tuple(int(x) for x in c) for c in m.vertex_colors})>=2 for m in models)",
+  "max_models": 1
+ },
+ {
+  "id": "ml-show-target-trap",
+  "category": "display",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/message/52U4WTJTLBEJ36T5VLGGXJ5TWPSOCWNL/",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq",
+   "select :10,20,30",
+   "show target a"
+  ],
+  "request": "I selected a few residues and ran 'show target a' hoping to see only their atoms while the rest of the protein stays in cartoon, but it showed atoms for the whole structure instead. fix it please",
+  "expected": "only residues 10, 20, 30 show atoms; cartoon stays",
+  "check_type": "state_expr",
+  "check": "{a.residue.number for a in atoms if a.display and a.residue.polymer_type==1}=={10, 20, 30} and atoms.residues.ribbon_displays.any()",
+  "forbid_commands_regex": "^(color|surface|label|delete|close)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-interface-yellow-sticks",
+  "category": "select",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/LH4R4GFN4Q7SJQQAJJY3M6JO5DN3RCBC/",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "how do I select the residues in chain A that are within 4A of chain B, and the residues in chain B within 4A of chain A, then show those interacting residues as sticks colored yellow? I did this in PyMOL before",
+  "expected": "select /A & (/B :<4) plus /B & (/A :<4); show as sticks; color yellow",
+  "check_type": "state_expr",
+  "check": "(lambda y: {a.residue.chain_id for a in y} >= {'A','B'} and len({a.residue for a in y})<=120 and all(a.display and a.draw_mode==2 for a in y))([a for a in atoms if a.element.name=='C' and a.residue.chain_id in ('A','B') and a.structure_category=='main' and (lambda c: c[0]>=200 and c[1]>=200 and c[2]<=110)(tuple(int(x) for x in a.color))])",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-ccd-ligand-open",
+  "category": "open",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/message/4AFXWZ6ZHDAIJBDIAHF5G3PK3C555JAA/",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "how do I open a cif file for just a ligand? I downloaded citrulline from the PDB database but ChimeraX won't open it",
+  "expected": "open ccd:CIR",
+  "check_type": "state_expr",
+  "check": "any(a.residue.name=='CIR' for a in atoms)",
+  "max_models": 1
+ },
+ {
+  "id": "ml-view-matrix",
+  "category": "view",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2020-February/000893.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "how do I get the exact camera position as numbers so I can put it in a script file that anyone can open and get the same view? PyMOL has 'get_view' for this",
+  "expected": "view matrix (reports camera and model positions)",
+  "check_type": "commands_regex",
+  "check": "^view\\s+matrix",
+  "forbid_commands_regex": "^(turn|move|roll|zoom|color|style|hide|show)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-ramachandran-impossible",
+  "category": "impossible",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-January/003080.html",
+  "difficulty": "impossible",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "where's the Ramachandran plot in ChimeraX? I can't find it in the guide or help, was it dropped?",
+  "expected": "says ChimeraX has no built-in Ramachandran plot; runs nothing that changes the scene",
+  "check_type": "state_expr",
+  "check": "bool(reply) and all(re.match(r'(info|log|help|usage|measure|version)\\b', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(toolshed|open|close|delete)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-align-subset-atoms",
+  "category": "compare/align",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/message/F5VJECBE6L6N6GDDLFO6D5T22C3E4WMK/",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1ake",
+   "open 4ake"
+  ],
+  "request": "I tried matchmaker #2/A:10-20@CA to #1/A:10-20@CA to align on just residues 10-20 and got an error about the BLOSUM-62 similarity matrix. How do I align on just those atoms?",
+  "expected": "align #2/A:10-20@CA toAtoms #1/A:10-20@CA (moves #2)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and not m.position.is_identity() for m in models) and any(re.search(r'10-20', c) and re.match(r'(align|mm|matchmaker)\\b', c, re.I) for c in ran)",
+  "max_models": 2
+ },
+ {
+  "id": "ml-rainbow-subrange",
+  "category": "color",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/message/BTUFFXPKUCA5YLHMHVDVYF2HPYNEMYWI/",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 4hhb",
+   "color #1 white"
+  ],
+  "request": "I want to rainbow-color just residues 1-10 of chain B, but color sequential #1/B:1-10 colors the whole chain",
+  "expected": "rainbow #1/B:1-10; the rest of chain B stays white",
+  "check_type": "state_expr",
+  "check": "(lambda r1, r2: len(r1)>0 and len({tuple(int(x) for x in c) for c in r1.ribbon_colors})>=5 and all((lambda c: c[0]>=235 and c[1]>=235 and c[2]>=235)(tuple(int(x) for x in x)) for x in r2.ribbon_colors))(atoms.filter((atoms.chain_ids=='B') & (atoms.residues.numbers<=10)).unique_residues, atoms.filter((atoms.chain_ids=='B') & (atoms.residues.numbers>10) & (atoms.structure_categories=='main')).unique_residues)",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|key|2dlab|2dlabels|graphics|set|transparency|size|mlp|coulombic)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "ml-smooth-jagged-ribbons",
+  "category": "image",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2022-November/004523.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "is there a way to smooth out the jagged edges I see around ribbons and sheets? in old Chimera I set subdivision to 20 and turned on multisampling but I can't find those in ChimeraX",
+  "expected": "graphics quality (ribbon divisions) and supersampling on save",
+  "check_type": "state_expr",
+  "check": "any(re.search('graphics\\\\s+(quality|rate)|divisions|subdivision', c, re.I) for c in ran) or bool(record['confirms'])",
+  "forbid_commands_regex": "^(color|surface|delete|close)\\b",
+  "max_models": 1
+ },
+ {
+  "id": "ml-nmr-ensemble-rmsd",
+  "category": "compare/align",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/VXKRK33WRJY5KM7AM2JX4QWGFXOKON6A/",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1d3z"
+  ],
+  "request": "how do I superpose all the models of this NMR ensemble and get their RMSDs? I don't see 'Structure Comparison' in my toolbar",
+  "expected": "matchmaker #1.2-10 to #1.1 (or align/rmsd); RMSDs reported",
+  "check_type": "state_expr",
+  "check": "any(re.search('^(mm|matchmaker|align|rmsd)\\\\b', c, re.I) for c in ran)"
+ },
+ {
+  "id": "ml-two-contour-levels",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2020-December/001761.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1080 from emdb"
+  ],
+  "request": "can I show two different contour levels of the same map at once, like a low semi-transparent surface plus a higher solid one?",
+  "expected": "volume #1 with two levels; the low one transparent, the high one opaque",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='Volume' and len(m.surfaces)>=2 and any(s.color[3]<250 for s in m.surfaces) and any(s.color[3]==255 for s in m.surfaces) for m in models)",
+  "max_models": 1
+ },
+ {
+  "id": "ml-chimera-session-impossible",
+  "category": "impossible",
+  "source": "https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2021-November/002956.html",
+  "difficulty": "impossible",
+  "setup_commands": [],
+  "request": "can I open a saved Chimera session file (.py) in ChimeraX?",
+  "expected": "no: session formats are incompatible; runs nothing",
+  "check_type": "state_expr",
+  "check": "bool(reply) and len(ran)==0",
+  "max_models": 0
+ },
+ {
+  "id": "ml-color-by-protein-name",
+  "category": "annotation",
+  "source": "https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/ZD6OAC3P576G6Y6Y5PBSBGX3Q2H5GL6J/",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 4hhb"
+  ],
+  "request": "can I just say something like color HBB_HUMAN red instead of having to look up which chain letter that protein is? try it",
+  "expected": "maps HBB_HUMAN to the beta chains (B and D) and colors them red; alpha chains untouched",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and all(((lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.color)) or (lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.residue.ribbon_color))) for a in s))([a for a in atoms if a.name=='CA' and (a.residue.chain_id in ('B','D'))]) and not any((lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.color)) for a in atoms if a.name=='CA' and a.residue.chain_id in ('A','C'))",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|key|2dlab|2dlabels|graphics|set|transparency|size|mlp|coulombic|style|show|hide|cartoon|view)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-open-hemoglobin-by-id",
+  "category": "open",
+  "source": "https://www.ebi.ac.uk/training/online/courses/structure-visualization-and-analysis-using-chimera-x/",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "pull up hemoglobin, its pdb id is 6fqf",
+  "expected": "opens PDB 6fqf (no gene lookup, no AlphaFold)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and '6fqf' in m.name.lower() for m in models)",
+  "forbid_commands_regex": "alphafold",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-open-1mbo-typo",
+  "category": "open",
+  "source": "https://www.cgl.ucsf.edu/Outreach/Tutorials/chimerax/Chimera_X_overview_document.pdf",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "open 1mbo, thats oxymyoglobin",
+  "expected": "opens PDB 1mbo (no gene lookup, no AlphaFold)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and '1mbo' in m.name.lower() for m in models)",
+  "forbid_commands_regex": "alphafold",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-open-carbonic-anhydrase-id",
+  "category": "open",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "open the carbonic anhydrase one, 3hku",
+  "expected": "opens PDB 3hku (no gene lookup, no AlphaFold)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and '3hku' in m.name.lower() for m in models)",
+  "forbid_commands_regex": "alphafold",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1stp-ribbon-only",
+  "category": "display",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1stp"
+  ],
+  "request": "just show me the ribbon, hide all the little molecule stuff",
+  "expected": "all atoms hidden (ligand, waters, side chains); cartoon stays; nothing deleted",
+  "check_type": "state_expr",
+  "check": "not atoms.displays.any() and atoms.residues.ribbon_displays.any()",
+  "forbid_commands_regex": "^(delete|close|color|surface|label|lighting|light|preset|graphics|set)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1stp-remove-waters",
+  "category": "display",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1stp"
+  ],
+  "request": "remove the waters, theyre cluttering the view",
+  "expected": "waters hidden (or deleted after confirmation)",
+  "check_type": "state_expr",
+  "check": "not atoms.filter(atoms.structure_categories=='solvent').displays.any()",
+  "forbid_commands_regex": "^(color|surface|label|style|cartoon|lighting|light|preset|graphics|set)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-2hyy-everything-sticks",
+  "category": "display",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy",
+   "style sphere"
+  ],
+  "request": "switch everything to sticks",
+  "expected": "style stick for all atoms",
+  "check_type": "state_expr",
+  "check": "(atoms.draw_modes==2).all()",
+  "forbid_commands_regex": "^(color|surface|label|lighting|light|preset|graphics|set|key|2dlab)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-3hku-zinc-dashes-off",
+  "category": "display",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 3hku"
+  ],
+  "request": "turn the purple dashed lines to the zinc off, they're distracting",
+  "expected": "metal-coordination pseudobonds hidden; zinc stays shown",
+  "check_type": "state_expr",
+  "check": "not any(m.__class__.__name__=='PseudobondGroup' and 'metal' in m.name.lower() and m.display and m.pseudobonds.displays.any() for m in models) and atoms.filter(atoms.residues.names=='ZN').displays.all()",
+  "forbid_commands_regex": "^(delete|close|color|surface)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1hw9-keep-one-copy",
+  "category": "display",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1hw9"
+  ],
+  "request": "this thing has 4 copies of the same chain, can you just keep one",
+  "expected": "three chains deleted (confirmed) or hidden; exactly one chain left visible",
+  "check_type": "state_expr",
+  "check": "len({r.chain_id for r in atoms.filter(atoms.structure_categories=='main').unique_residues if r.ribbon_display})==1 and len({a.residue.chain_id for a in atoms if a.display and a.structure_category=='main'})<=1",
+  "max_models": 1
+ },
+ {
+  "id": "co-groel-hide-map",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1080 from emdb",
+   "open 1grl"
+  ],
+  "request": "hide the map, just show the atomic model for now",
+  "expected": "map hidden (not closed), model shown",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='Volume' for m in models) and all(not m.display or not any(s.display for s in m.surfaces) for m in models if m.__class__.__name__=='Volume') and any(m.__class__.__name__=='AtomicStructure' and m.display for m in models)",
+  "forbid_commands_regex": "^(close|delete)\\b",
+  "no_new_windows": true,
+  "max_models": 2
+ },
+ {
+  "id": "co-bg-white-for-figure",
+  "category": "image",
+  "source": "https://www.cgl.ucsf.edu/Outreach/Tutorials/chimerax/Chimera_X_overview_document.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1stp"
+  ],
+  "request": "make the background white for the figure",
+  "expected": "white background only (no preset, silhouettes, lighting, save)",
+  "check_type": "state_expr",
+  "check": "sum(bg)>=2.7",
+  "forbid_commands_regex": "^(preset|lighting|light|graphics\\s+silhouettes?|color|label|surface|cartoon|style|show|hide|save|key|2dlab|2dlabels|transparency)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1stp-trp-silver",
+  "category": "color",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1stp",
+   "select :108",
+   "view sel"
+  ],
+  "request": "turn this tryptophan silver, its sitting right below the sulfur",
+  "expected": "residue 108 (selected Trp) carbons silver; nothing else recolored",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and all((lambda c: 165<=c[0]<=215 and 165<=c[1]<=215 and 165<=c[2]<=215)(tuple(int(x) for x in a.color)) for a in s))([a for a in atoms if (a.residue.number==108 and a.element.name=='C')]) and not (lambda s: len(s)>0 and all((lambda c: 165<=c[0]<=215 and 165<=c[1]<=215 and 165<=c[2]<=215)(tuple(int(x) for x in a.color)) for a in s))([a for a in atoms if (a.residue.number==50 and a.element.name=='C')])",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|key|2dlab|2dlabels|graphics|set|transparency|size|mlp|coulombic)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1hw9-sim-green-adp-red",
+  "category": "color",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1hw9"
+  ],
+  "request": "color the sim ligand green and the adp red so I can tell them apart",
+  "expected": "SIM green, ADP red",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and all((lambda c: c[1]>=100 and c[0]<=120 and c[2]<=120)(tuple(int(x) for x in a.color)) for a in s))([a for a in atoms if (a.residue.name=='SIM' and a.element.name=='C')]) and (lambda s: len(s)>0 and all((lambda c: c[0]>=180 and c[1]<=90 and c[2]<=90)(tuple(int(x) for x in a.color)) for a in s))([a for a in atoms if (a.residue.name=='ADP' and a.element.name=='C')])",
+  "forbid_commands_regex": "^(surface|label|lighting|light|preset|key|2dlab|2dlabels|graphics|set|transparency|size|mlp|coulombic)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1stp-select-108",
+  "category": "select",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1stp"
+  ],
+  "request": "select residue 108, its the tryptophan near the ligand",
+  "expected": "only residue 108 selected; nothing else done",
+  "check_type": "state_expr",
+  "check": "sel_res==[108]",
+  "forbid_commands_regex": "^(?!(select|sel)\\b)",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-clear-selection",
+  "category": "select",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq",
+   "select :1-10"
+  ],
+  "request": "clear my selection",
+  "expected": "select clear; nothing else",
+  "check_type": "state_expr",
+  "check": "len(sel_res)==0",
+  "forbid_commands_regex": "^(?!(select|sel|~select|~sel)\\b)",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1stp-hbonds-conversation",
+  "category": "ligand/binding",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1stp",
+   "delete solvent"
+  ],
+  "request": "find the hydrogen bonds in this structure",
+  "followups": [
+   "ok just show me the ones between the ligand and the protein, not all of them",
+   "add the distances in angstroms to that"
+  ],
+  "expected": "ends with only biotin H-bonds shown, labeled with distances",
+  "check_type": "state_expr",
+  "check": "(lambda pbs: len(pbs)>=1 and all('BTN' in (b.atoms[0].residue.name, b.atoms[1].residue.name) for b in pbs))([b for m in models if m.__class__.__name__=='PseudobondGroup' and 'hydrogen' in m.name.lower() and m.display for b in m.pseudobonds if b.display]) and (any(m.__class__.__name__=='ObjectLabels' and len(m.labels())>0 and m.parent.__class__.__name__=='PseudobondGroup' for m in models) or any(re.search('show\\\\s*dist', c, re.I) for c in ran))",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1stp-vdw-biotin",
+  "category": "ligand/binding",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1stp"
+  ],
+  "request": "whats making van der waals contact with the biotin, use like 3.8 angstroms",
+  "expected": "contacts restricted to BTN with a 3.8 A distance cutoff",
+  "check_type": "state_expr",
+  "check": "any(re.match(r'contacts\\b', c, re.I) and re.search(r'3\\.8', c) for c in ran)",
+  "forbid_commands_regex": "^(delete|close|surface|preset)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-2hyy-contacts-no-pbonds",
+  "category": "ligand/binding",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "show contacts between the drug and the protein but don't make a bunch of pseudobonds",
+  "expected": "contacts :STI makePseudobonds false reveal true log true",
+  "check_type": "state_expr",
+  "check": "any(re.search('^contacts\\\\b', c, re.I) for c in ran) and not any(m.__class__.__name__=='PseudobondGroup' and 'contact' in m.name.lower() and m.num_pseudobonds>0 for m in models)",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-3hku-no-near-zinc",
+  "category": "measure",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 3hku",
+   "hide pbonds"
+  ],
+  "request": "which nitrogens or oxygens are within 3.5 of the zinc",
+  "expected": "contacts/zone from ZN restricted to N and O within 3.5 A; names His94, His96, His119 (and the ligand)",
+  "check_type": "state_expr",
+  "check": "len(set(re.findall(r'(?<!\\d)(94|96|119)(?!\\d)', reply)))>=3 or any(m.__class__.__name__=='PseudobondGroup' and 'metal' not in m.name.lower() and 'missing' not in m.name.lower() and m.num_pseudobonds>0 and all('ZN' in (b.atoms[0].residue.name, b.atoms[1].residue.name) for b in m.pseudobonds) for m in models)",
+  "forbid_commands_regex": "^(delete|close|surface)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-2fwz-adp-bound-ask",
+  "category": "compare/align",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 2fwz"
+  ],
+  "request": "align the adp-bound one onto this and then close the original",
+  "expected": "asks which ADP-bound structure (no PDB id given, none open) before opening or closing anything",
+  "check_type": "ask_user",
+  "check": "",
+  "max_models": 1
+ },
+ {
+  "id": "co-1dud-build-trimer",
+  "category": "analysis",
+  "source": "https://www.cgl.ucsf.edu/Outreach/Tutorials/chimerax/Chimera_X_overview_document.pdf",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1dud"
+  ],
+  "request": "this pdb is only one chain but I think the real biological unit is a trimer, can you build that",
+  "expected": "sym #1 assembly 1 (three copies)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and len(m.positions)>=3 for m in models) or len({(a.structure.id_string, a.residue.chain_id) for a in atoms if a.name=='CA'})>=3"
+ },
+ {
+  "id": "co-1stp-surface-then-transparent",
+  "category": "surface",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1stp",
+   "hide atoms"
+  ],
+  "request": "show the molecular surface instead of ribbons",
+  "followups": [
+   "make that surface half see through so I can still see the ribbon underneath"
+  ],
+  "expected": "surface shown, then ~50% transparent with the cartoon visible underneath",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display and ((m.vertex_colors is not None and 60<=int(m.vertex_colors[:,3].mean())<=200) or 60<=int(m.color[3])<=200) for m in models) and atoms.residues.ribbon_displays.any()",
+  "forbid_commands_regex": "^(mlp|coulombic|preset|lighting|light)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1stp-surface-mesh",
+  "category": "surface",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1stp",
+   "surface"
+  ],
+  "request": "try the surface as a mesh instead of solid",
+  "expected": "surface style mesh; nothing else",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display and m.display_style=='mesh' for m in models)",
+  "forbid_commands_regex": "^(color|mlp|coulombic|transparency|preset|lighting|light|label)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1fpp-surface-zone",
+  "category": "surface",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1fpp",
+   "surface"
+  ],
+  "request": "only show the surface within 8 angstroms of the fpp ligand, its too much otherwise",
+  "expected": "surface zone near :FPP distance 8 (or surface patches of that zone only)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='MolecularSurface' and m.display and m.triangle_mask is not None and 0 < int(m.triangle_mask.sum()) < len(m.triangle_mask) for m in models)",
+  "forbid_commands_regex": "^(color|mlp|coulombic|delete|close)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-groel-gaussian",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1080 from emdb"
+  ],
+  "request": "smooth it out a bit with a gaussian filter, sdev 2",
+  "expected": "volume gaussian #1 sDev 2 (new filtered map)",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='Volume' and 'gaussian' in m.name.lower() for m in models)",
+  "max_models": 2
+ },
+ {
+  "id": "co-af-o51e2-entry-name",
+  "category": "alphafold",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "fetch me the alphafold model for O51E2_HUMAN",
+  "expected": "UniProt entry name resolved to Q8TCB6; AlphaFold model opened",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and ('Q9H255' in m.name.upper() or 'O51E2' in m.name.upper()) for m in models)",
+  "max_models": 1
+ },
+ {
+  "id": "co-save-progress",
+  "category": "session",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "save my progress so I dont lose this",
+  "expected": "saves a .cxs session (asks for confirmation)",
+  "check_type": "confirm_requested",
+  "check": "",
+  "max_models": 1
+ },
+ {
+  "id": "co-121p-consurf-conversation",
+  "category": "sequence",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 121p"
+  ],
+  "request": "load this consurf alignment and color the structure by conservation: https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/121p-consurf.aln",
+  "followups": [
+   "only show me the residues that are highly conserved, over 1.8"
+  ],
+  "expected": "conservation coloring, then only residues with seq_conservation > 1.8 shown",
+  "check_type": "state_expr",
+  "check": "(lambda d: 0 < len(d) < 100)(atoms.filter(atoms.displays & (atoms.structure_categories=='main')).unique_residues) and any(re.search('1\\\\.8', c, re.I) for c in ran) and len({tuple(int(x) for x in c) for c in atoms.filter(atoms.structure_categories=='main').unique_residues.ribbon_colors})>=5",
+  "max_models": 1
+ },
+ {
+  "id": "co-uniprot-annotations-question",
+  "category": "annotation",
+  "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/tools/sequenceviewer.html",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open alphafold:P69905"
+  ],
+  "request": "does this protein have any uniprot annotations, like domains or known variants",
+  "expected": "protein_features (or annotate) for P69905; answer lists what UniProt has",
+  "check_type": "state_expr",
+  "check": "any(n in ('protein_features','annotate') for n,a in record['calls'])",
+  "forbid_tools": [
+   "fetch_annotation"
+  ],
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-1stp-labels-conversation",
+  "category": "labels",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "multi-step",
+  "setup_commands": [
+   "open 1stp",
+   "delete solvent",
+   "show :BTN :<5"
+  ],
+  "request": "label everything thats currently shown",
+  "followups": [
+   "make the labels bigger and red",
+   "get rid of that BTN 300 label, its not useful"
+  ],
+  "expected": "residue labels on shown residues, red and bigger, BTN label removed",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='ObjectLabels' and len(m.labels())>=3 and all(l.color[0]>=200 and l.color[1]<=80 and l.color[2]<=80 for l in m.labels()) and not any(getattr(l.object, 'name', '')=='BTN' or getattr(getattr(l.object, 'residue', None), 'name', '')=='BTN' for l in m.labels()) for m in models)",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-2dlabel-text",
+  "category": "labels",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq",
+   "coulombic"
+  ],
+  "request": "put a text label on the image that says electrostatic potential",
+  "expected": "2dlabels text 'electrostatic potential'; no 3D labels, no key, no recoloring",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='LabelModel' and 'electrostatic potential' in m.label.text.lower() for m in models)",
+  "forbid_commands_regex": "^(key|color|coulombic|mlp|surface|label|lighting|light|preset|graphics|set)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-help-style",
+  "category": "other",
+  "source": "https://www.cgl.ucsf.edu/Outreach/Tutorials/chimerax/Chimera_X_overview_document.pdf",
+  "difficulty": "simple",
+  "setup_commands": [],
+  "request": "whats the help command do, like help style",
+  "expected": "explains help opens the documentation page for a command (style); does not run style",
+  "check_type": "state_expr",
+  "check": "bool(reply) and bool(re.search(r'style', reply, re.I))",
+  "forbid_commands_regex": "^(style|color|open)\\b",
+  "max_models": 0
+ },
+ {
+  "id": "co-reload-clean-slate",
+  "category": "session",
+  "source": "https://www.cgl.ucsf.edu/Outreach/Tutorials/chimerax/Chimera_X_overview_document.pdf",
+  "difficulty": "ambiguous",
+  "setup_commands": [
+   "open 1ubq"
+  ],
+  "request": "reload chimerax, I want a clean slate",
+  "expected": "cannot restart the app; offers close session (asks for confirmation) or asks",
+  "check_type": "state_expr",
+  "check": "bool(record['confirms']) or bool(record['asks'])"
+ },
+ {
+  "id": "co-zoom-out-whole",
+  "category": "view",
+  "source": "https://www.cgl.ucsf.edu/Outreach/Tutorials/chimerax/Chimera_X_overview_document.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 1ubq",
+   "view :10"
+  ],
+  "request": "zoom out so I can see the whole molecule",
+  "expected": "view (fit all)",
+  "check_type": "state_expr",
+  "check": "any(re.match(r'view(\\s+(all|#1|/A|protein|cartoon))?\\s*$', c, re.I) for c in ran) or any(re.search('^zoom\\\\s+0?\\\\.\\\\d', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(color|style|hide|show|surface|label|cartoon|preset|lighting|light)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-2hyy-select-ligand-zoom",
+  "category": "select",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "simple",
+  "setup_commands": [
+   "open 2hyy"
+  ],
+  "request": "select the ligand and zoom in on it",
+  "expected": "select :STI (ligand); view sel",
+  "check_type": "state_expr",
+  "check": "(lambda s: len(s)>0 and set(s.residues.names)=={'STI'})(atoms.filter(atoms.selecteds)) and any(re.search('^view\\\\b', c, re.I) for c in ran)",
+  "forbid_commands_regex": "^(color|style|hide|surface|label|cartoon|preset|lighting|light|delete|close)\\b",
+  "no_new_windows": true,
+  "max_models": 1
+ },
+ {
+  "id": "co-conv-a-streptavidin",
+  "category": "ligand/binding",
+  "source": "https://www.biochem.wustl.edu/bio5357/software/chimerax/tutorial.pdf",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "open 1stp",
+  "followups": [
+   "hide the waters, theyre in the way",
+   "select the ligand and color it green with proper heteroatom colors",
+   "now find the h-bonds between it and the protein and label the distances"
+  ],
+  "expected": "1stp open, waters hidden, biotin green carbons with heteroatom colors, its H-bonds shown with distances",
+  "check_type": "state_expr",
+  "check": "not atoms.filter(atoms.structure_categories=='solvent').displays.any() and (lambda s: len(s)>0 and all((lambda c: c[1]>=100 and c[0]<=120 and c[2]<=120)(tuple(int(x) for x in a.color)) for a in s))([a for a in atoms if (a.residue.name=='BTN' and a.element.name=='C')]) and not any((lambda c: c[1]>=100 and c[0]<=120 and c[2]<=120)(tuple(int(x) for x in a.color)) for a in atoms if a.residue.name=='BTN' and a.element.name in ('N','O')) and (lambda pbs: len(pbs)>=1 and all('BTN' in (b.atoms[0].residue.name, b.atoms[1].residue.name) for b in pbs))([b for m in models if m.__class__.__name__=='PseudobondGroup' and 'hydrogen' in m.name.lower() and m.display for b in m.pseudobonds if b.display]) and (any(m.__class__.__name__=='ObjectLabels' and len(m.labels())>0 and m.parent.__class__.__name__=='PseudobondGroup' for m in models) or any(re.search('show\\\\s*dist', c, re.I) for c in ran))",
+  "max_models": 1
+ },
+ {
+  "id": "co-conv-b-hemoglobin-myoglobin",
+  "category": "compare/align",
+  "source": "https://www.ebi.ac.uk/training/online/courses/structure-visualization-and-analysis-using-chimera-x/",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "open 6fqf, thats hemoglobin",
+  "followups": [
+   "just show chain A, hide the rest",
+   "load 3rgk too and overlay it onto that chain",
+   "save an image of the superimposed structures"
+  ],
+  "expected": "6fqf only chain A shown, 3rgk superposed on it, image save confirmed",
+  "check_type": "state_expr",
+  "check": "bool(record['confirms']) and any(m.__class__.__name__=='AtomicStructure' and m.name.lower().startswith('3rgk') and not m.position.is_identity() for m in models) and (lambda m: m is not None and m.residues.filter(m.residues.chain_ids=='A').ribbon_displays.any() and not m.residues.filter(m.residues.chain_ids!='A').ribbon_displays.any())(next((m for m in models if m.__class__.__name__=='AtomicStructure' and m.name.lower().startswith('6fqf')), None))",
+  "max_models": 2
+ },
+ {
+  "id": "co-conv-c-3d6y-electrostatics",
+  "category": "electrostatics/hydrophobicity",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/tutorials/binding-sites.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "open 3d6y, get the full assembly",
+  "followups": [
+   "hide the water and glycerol, dont need those",
+   "color the protein surface by electrostatic potential",
+   "add a color key and label it electrostatic potential"
+  ],
+  "expected": "biological assembly, waters/GOL hidden, coulombic surface, color key plus 'electrostatic potential' label",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='AtomicStructure' and m.num_chains>=4 for m in models) and not atoms.filter(atoms.structure_categories=='solvent').displays.any() and not atoms.filter(atoms.residues.names=='GOL').displays.any() and any(m.__class__.__name__=='MolecularSurface' and m.display and m.vertex_colors is not None and len({tuple(int(x) for x in c) for c in m.vertex_colors[::7]})>=5 for m in models) and any(m.__class__.__name__=='ColorKeyModel' for m in models) and any(m.__class__.__name__=='LabelModel' and 'electrostatic' in m.label.text.lower() for m in models)",
+  "max_models": 2
+ },
+ {
+  "id": "co-conv-d-groel-map-fit",
+  "category": "maps",
+  "source": "https://www.rbvi.ucsf.edu/chimerax/data/macromethods-jan2025/chimerax_intro.html",
+  "difficulty": "multi-step",
+  "setup_commands": [],
+  "request": "open the crystal structure of GroEL, 1grl",
+  "followups": [
+   "add its cryo-em map too, from emdb, its 1080",
+   "bump the contour up a bit and clean up the noisy bits",
+   "now fit the structure into that map"
+  ],
+  "expected": "1grl + EMD-1080, contour raised, surface dust, fitmap moves 1grl into the map",
+  "check_type": "state_expr",
+  "check": "any(m.__class__.__name__=='Volume' and any(s.level>0.86 for s in m.surfaces) for m in models) and any(re.search('dust', c, re.I) for c in ran) and any(m.__class__.__name__=='AtomicStructure' and not m.position.is_identity() for m in models)",
+  "max_models": 2
+ }
+]

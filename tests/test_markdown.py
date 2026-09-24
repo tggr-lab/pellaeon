@@ -25,3 +25,10 @@ def test_link():
 def test_link_href_is_quote_escaped():
     html = render('[x](https://a.b/c"onclick="alert(1))')
     assert "<a " not in html  # a URL containing a quote is not turned into a link at all
+
+
+def test_pipe_table():
+    from core.markdown import render
+    html = render("| | #1/A | #2/A |\n|---|---|---|\n| **#1/A** | 100.0 | 35.1 |\n| **#2/A** | 35.1 | 100.0 |\n\nafter")
+    assert "<table>" in html and "<th>#1/A</th>" in html and "<td>35.1</td>" in html and "<p>after</p>" in html
+    assert "|" not in html.split("</table>")[0].replace("|", "", 0) or "<td>|</td>" not in html

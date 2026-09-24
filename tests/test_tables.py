@@ -55,3 +55,13 @@ def test_uniprot_numbering_map_is_used_when_given():
 def test_nothing_placed_is_an_error():
     plan = plan_overlay([{"position": 1, "value": 1.0, "chain": None, "ref": None}], {("A", 9): "GLY"}, "#1", "a")
     assert "error" in plan and plan["missing"] == [1]
+
+
+def test_dataset_chain_absent_from_a_single_chain_model_falls_back():
+    from core.tables import plan_overlay
+    rows = [{"position": 42, "value": 9.0, "chain": "R", "ref": None}, {"position": 43, "value": 1.0, "chain": "R", "ref": None}]
+    residues = {("A", 42): "SER", ("A", 43): "PHE"}
+    out = plan_overlay(rows, residues, "#1", "consurf_grade")
+    assert "error" not in out and out["chains"] == ["A"]
+    out = plan_overlay(rows, residues, "#1", "consurf_grade", chains=["R"])   # the chain the user named, absent here
+    assert "error" not in out and out["chains"] == ["A"]

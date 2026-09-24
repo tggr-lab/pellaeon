@@ -16,11 +16,12 @@ from dataclasses import dataclass, field
 from typing import Tuple, Any, Callable, Dict, List, Optional
 
 from . import prompt as prompt_mod
-from .fixups import suggest
-from .safety import AUTONOMY_AUTO, first_word, needs_confirmation, split_commands
+from .fixups import suggest, rewrite as rewrite_command
+from .safety import AUTONOMY_AUTO, AUTONOMY_ALL, Classification, first_word, needs_confirmation, split_commands
 from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens, new_id)
 from .recovery import split_joined, _looks_like_prose
 from .tools import tool_specs
+from .annotate import CLINVAR_KINDS
 from .http import Cancelled
 from .providers.base import Provider, ProviderError
 
@@ -50,6 +51,8 @@ class AgentConfig:
     edition: str = "chimerax"          # "chimerax" or "chimera" (classic)
     readable_labels: bool = True       # add fixed size / white background / on-top to plain label commands
     compact_prompt: bool = False       # short prompt for providers that meter input tokens per minute
+    initiative: str = "minimal"        # "minimal": exactly what was asked; "initiative": small extras allowed
+    guards: bool = True                # the 2026-09-23 deterministic guards (ablation: harness PELLAEON_GUARDS=off)
 
 
 NUDGE = ("(system) You did not call any tool, so NOTHING changed in ChimeraX. If the user asked you to change "
@@ -74,10 +77,36 @@ _HIDE_RE = re.compile(r"^\s*(hide|~|cartoon hide|surface hide|close|delete|undis
 NUDGE_AA = ("(system) The user asked to color by amino-acid/residue TYPE. ChimeraX has no built-in scheme for that "
             "(byelement/bychain are wrong). Run: color #1:ala,val,ile,leu,met,phe,trp,pro,gly white ; "
             "color #1:ser,thr,asn,gln,cys,tyr green ; color #1:lys,arg,his blue ; color #1:asp,glu red")
-_AA_TYPE_RE = re.compile(r"\b(by|per)\s+(the\s+)?(type\s+of\s+)?(aa|amino\s*acids?|residues?)(\s+type)?\b|\bresidue[- ]type\b|hydrophobic", re.I)
+# "hydrophobic" alone used to count: "color its surface by hydrophobicity" then got the residue-class
+# recolor on top of a correct `mlp`, which wiped the lipophilicity gradient. Only a class contrast counts now.
+_AA_TYPE_RE = re.compile(r"\b(by|per)\s+(the\s+)?(type\s+of\s+)?(aa|amino\s*acids?|residues?)(\s+type)?\b|\bresidue[- ]type\b|"
+                         r"\bhydrophobic\s+(residues?\s+)?(and|,|vs\.?|versus|or|from)\s+(the\s+)?(polar|hydrophilic|charged)", re.I)
+_MLP_RAN_RE = re.compile(r"^\s*(mlp|color\s+byattr\w*\s+(r:)?mlp|coulombic)\b", re.I)
 _AA_CLASS_RE = re.compile(r":(ala|asp|lys|ser|glu|arg|leu|val)\b|byattr", re.I)
 _ANNOUNCE_RE = re.compile(r"\b(i'?ll|i will|let me|i am going to|i'm going to|going to)\b", re.I)
 
+NUDGE_SAVE_CLAIM = ("(system) Your reply says the file was saved, but no save command ran, so NOTHING was saved. If the user "
+                    "asked for a file, run the save now (e.g. save ~/Desktop/image.png supersample 3; the interface asks them "
+                    "to confirm). Otherwise correct your reply.")
+_SAVE_DENIED_RE = re.compile(r"\b(not|nothing|never|no file|wasn't|isn't|hasn't|cannot|can't|couldn't)\b(\s+\w+){0,2}\s+(saved|exported)", re.I)
+_SAVE_CLAIM_RE = re.compile(r"\b(saved|exported|written to|wrote (it|the))\b", re.I)
+NUDGE_SEQID = ("(system) The user asked about sequence identity/similarity. Do NOT type `sequence identity` or `sequence "
+               "align` as commands: CALL THE TOOL named sequence_identity (models: e.g. '#1-4'). It returns the table.")
+NUDGE_CLOSEWIN = ("(system) The user wants the sequence/alignment windows closed. ChimeraX has no command for it: CALL THE "
+                  "TOOL named close_windows (which='opened' for the windows your commands opened; 'sequence' for all of them).")
+_CLOSE_WIN_RE = re.compile(r"\b(close|get rid of|remove|dismiss)\b.*\b(sequence|alignment|seq)\w*\s*(windows?|viewers?|panels?|tabs?)\b", re.I)
+_PAE_ASK_RE = re.compile(r"\bpae\b|predicted (aligned error|domains?)|rigid(-| )?(body )?domains?", re.I)
+NUDGE_UNDO = ("(system) The user wants the WHOLE last request undone (not just one command). CALL THE TOOL named "
+             "undo_last_request (no arguments); do not try to reconstruct the earlier state by hand with commands.")
+# Deliberately narrow: plain "undo that"/"undo it" after a single reversible change (e.g. a color) is still the
+# ChimeraX `undo` command, which handles it. This tool and nudge are for undoing the REQUEST as a whole: several
+# commands, an open, a close, or anything plain `undo` cannot reach.
+_UNDO_RE = re.compile(r"\bundo (the |my )?(last|previous|whole|entire) request\b|\bundo (all|everything)\b|"
+                      r"\brevert (the |my )?(last|previous|whole|entire) request\b|"
+                      r"\b(go|put (it|that|everything|things|this)) back to (how it was |the way it was )?before\b|"
+                      r"\bput (it|that|everything|things) back\b(?!\s+(to|in|on|into)\b)|"
+                      r"\bundo everything (you|i) (just )?(did|asked|changed)\b|"
+                      r"\bwhole (thing|request) was wrong\b", re.I)
 NUDGE_ANNOTATE = ("(system) The user asked for variants/annotations. Do NOT type 'annotate' as a command: CALL THE TOOL named "
                   "annotate with arguments model (e.g. \"#1\"), accession (the UniProt accession, or a gene symbol for kind "
                   "\"clinvar\") and kind (\"clinvar\" for ClinVar disease variants, \"disease\"/\"variant\" for UniProt variants, "
@@ -110,7 +139,8 @@ NUDGE_LOOK = ("(system) The user wants you to LOOK at the view. Call the tool lo
 _IMPOSSIBLE_RE = re.compile(r"\b(e-?mail|fax|whatsapp|text (me|it|this|them|him|her|us)|message me|call me|"
                             r"print (it|this|them)( out)?|printer|send (it|this|them|me|the \w+)\s+(to|over|the)|"
                             r"upload (it|this)|post (it|this) (to|on)|share (it|this) (with|on)|tweet|"
-                            r"order (a|an|the|some|more|new)?\s*\w*\s*(reagent|kit|plasmid|antibod\w*|primer\w*|from)|"
+                            r"order (a|an|the|some|more|new)?\s*\w*\s*(reagent|kit|plasmid|antibod\w*|primer\w*|from)|order (me|us)\b|"
+                            r"from an? (vendor|supplier|company)|"
                             r"buy|purchase|ship (it|this|them))\b", re.I)
 # does the request also ask for something ChimeraX can do? "color it red and email it" keeps its color
 _ACTION_RE = re.compile(r"\b(colou?r|show|hide|display|open|load|fetch|select|label|rotate|spin|turn|roll|rock|zoom|"
@@ -129,18 +159,221 @@ _RBVI_RECIPE_RE = re.compile(r"https?://raw\.githubusercontent\.com/rbvi/chimera
 
 _DISTANCE_RE = re.compile(r"^distance\s+(?!style\b|delete\b|save\b|format\b)\S", re.I)
 
+# Commands that open a tool window. Asked for the sequence identity of four structures, a model opened one
+# alignment viewer per pair until ChimeraX was taller than the screen, and had no command to close them.
+_WINDOW_CMD_RE = re.compile(r"^\s*(sequence\s+(align|chain|viewer)|seq\s+(align|chain)|ui\s+tool\s+show|tool\s+show|"
+                            r"toolshed\s+show|blastprotein|alphafold\s+pae|interfaces\b)", re.I)
+_SEQ_WINDOW_RE = re.compile(r"^\s*(sequence|seq)\s+(align|chain|viewer|identity)\b", re.I)
+_IDENTITY_ASK_RE = re.compile(r"\bidentit|\b(sequence|seq)s?\s+(similarity|similar)|\bhow similar\b.*\bsequences?\b", re.I)
+WINDOW_CAP = 3
+_WANTS_VIEWER_RE = re.compile(r"\balign(ment|ed)?\b|\bviewer\b|\b(see|show|display|open)\b.{0,20}\bsequences?\b", re.I)
+_HARMLESS_TOOLS = {"Distances", "Log", "Help Viewer", "Command Line Interface", "Pellaeon"}
+
+# Opening what is already open. Asked to "open 4xt3 and color its surface by hydrophobicity" with 4xt3
+# loaded, or to split "this AlphaFold model" into PAE domains, models opened a second copy and then
+# worked on the wrong one (5 of 152 real-world requests).
+_OPEN_TARGET_RE = re.compile(r"^\s*(?:open\s+(?:pdb:)?([0-9][a-z0-9]{3})\s*$|open\s+alphafold:([a-z0-9_-]+)\b|"
+                             r"alphafold\s+fetch\s+([a-z0-9_-]+)\b)", re.I)
+_OPEN_AGAIN_RE = re.compile(r"\b(again|another|second|copy|copies|twice|re-?open|re-?load|duplicate|fresh)\b", re.I)
+
+# Presets restyle everything at once. "make the background white for the figure" became the publication
+# preset and "switch everything to sticks" became `preset sticks` (real-world set, ministral-8b).
+_PRESET_ASK_RE = re.compile(r"\bpresets?\b|publication|paper[- ]?ready|journal|pretty|fancy|beautiful|professional|"
+                            r"look (nice|good|better|great|clean)|make (it|this|them) look|nice (figure|image|picture)|"
+                            r"figure[- ]ready|cartoon look|initial look", re.I)
+
+# A narrow command followed by a whole-model one with the same verb is undone by it: "imatinib as
+# spheres and everything else as sticks" ran `style ligand sphere` then `style #1 stick` (7 real requests).
+_ORDER_VERBS = ("style", "color", "colour", "show", "transparency", "size")
+_NARROW_SPEC_RE = re.compile(r"[:/@~]|\b(ligands?|protein|nucleic|solvent|ions|sel|helix|strand|coil|backbone|sidechain|"
+                             r"main|water|het\w*|by(het\w*|element))\b|\bzone\b|&", re.I)
+# ChimeraX has no :end/:first/:last; `select #1/A:end` succeeds and selects nothing, so no error hint fires.
+_TERMINUS_RE = re.compile(r"(?<=[:,])(end|last|first|c-?term\w*|n-?term\w*)\b(?!\s*-)", re.I)   # bare :end or :1,end; :70-end is valid
+_CHAIN_SPEC_RE = re.compile(r"(?:^|[\s#\d.,])/[A-Za-z0-9]{1,4}(?=[:@\s,&]|$)")   # a chain spec, not a file path
+_NO_CHAIN_CHECK = ("save", "open", "movie", "2dlabels", "cd", "log", "close")
+_USER_CHAINS_RE = re.compile(r"\bchains?\b|/[A-Za-z]", re.I)
+_PRONOUN_RE = re.compile(r"\b(it|this|that|this one|that one)\b", re.I)
+_WHICH_NAMED_RE = re.compile(r"#\d|\bmodels?\s*#?\d|\b(all|both|them|those|these|every\w*|each|first|second|third|"
+                             r"last|other|older|newer|reference|apo|holo|bound|unbound)\b", re.I)
+_ACTION_VERBS = ("color", "colour", "style", "show", "hide", "cartoon", "surface", "transparency", "label", "rainbow")
+
+# After annotate / fetch_annotation / table_overlay the coloring, key and title are already drawn. Asked to
+# "color ADRB2 by AlphaMissense", ministral then recolored by hand with another palette, deleted the key,
+# ran `key pellaeon_alphamissense_...` (read by ChimeraX as a palette name: a web lookup that fails) and
+# told the user the key could not be added. 4 of 4 runs.
+_REDO_OVERLAY_RE = re.compile(r"^\s*(colou?r\s+byattr\w*|cartoon\s+byattr\w*|key\s+(?!delete\b)|2dlabels\s+(create|change)|"
+                              r"mutationscores\b|open\b.*\b(alpha_?missense|amiss)\b)", re.I)   # incl. ChimeraX's own AlphaMissense route
+
+# Per-residue data sources a request can name. A small model asked for ClinVar reached for AlphaMissense
+# as well (or instead) in 3 of 8 phrasings, and once described the AlphaMissense coloring as ClinVar.
+_SOURCE_NAMED_RE = {
+    "clinvar": re.compile(r"\bclin\s?var\b|\b(known|reported|clinical|disease)\s+(missense\s+)?(variants?|mutations?)\b", re.I),
+    "alphamissense": re.compile(r"alpha\s?missense|\bpredicted\s+(to be\s+)?pathogenic\w*|\bpathogenicity\s+(score|prediction)|\bcolou?r\w*\s+(it\s+|this\s+)?by\s+pathogenicity", re.I),
+    "conservation": re.compile(r"\bconserv|\bconsurf\b", re.I),
+    "uniprot variants": re.compile(r"\buniprot\b.*\bvariant|\bnatural variants?\b", re.I),
+}
+_SOURCE_HOW = {"clinvar": "annotate with kind 'clinvar'", "alphamissense": "fetch_annotation with source 'alphamissense'",
+               "conservation": "fetch_annotation with source 'conservation'", "uniprot variants": "annotate with kind 'variant'"}
+_SOURCE_LABEL = {"clinvar": "ClinVar variants", "alphamissense": "AlphaMissense pathogenicity",
+                 "conservation": "ConSurf conservation", "uniprot variants": "UniProt variants"}
+
+
 _TIDY_RE = re.compile(r"\blabels?\b.*\b(overlap|unreadable|readable|too (small|many|big)|tidy|clean|declutter|mess)|\b(tidy|clean up|declutter)\b.*\blabels?\b", re.I)
 NUDGE_TIDY = ("(system) The user is complaining about the LABELS (overlap, readability, clutter). Do not re-run label commands "
               "with guesses: CALL THE TOOL named tidy_labels (optionally with keep=<spec>). It measures the overlaps on screen and fixes them.")
 _ANNOT_RE = re.compile(r"\b(clinvar|variants?|mutations?|domains?|transmembrane|binding sites?|active sites?|glycosylation|disulfides?)\b", re.I)
 
 _TOOL_NAMES = {"annotate", "compare_structures", "table_overlay", "tidy_labels", "explain_residue", "save_figure", "resolve_protein", "protein_features", "search_docs", "get_state",
-               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands", "map_numbering", "apply_figure_style", "compare_contacts", "fetch_annotation"}
+               "command_usage", "run_python", "look_at_view", "ask_user", "run_commands", "map_numbering", "apply_figure_style", "compare_contacts", "fetch_annotation",
+               "sequence_identity", "close_windows", "membrane_view", "gpcr_states", "view_axis", "undo_last_request"}
 
 _COMPLAINT_RE = re.compile(
     r"\b(did ?n[o']?t|does ?n[o']?t|not work(ing)?|nothing (happened|changed)|no(t)? (you|it) (did|does)|you did not|"
     r"that'?s (wrong|not it)|wrong|not what i|still the same|no change|nope|it'?s not|isn'?t|aren'?t|are they though|"
     r"are they thou|try (again|something else|a different)|didn'?t work)\b")
+
+
+# Information questions (which residues form a strand, whether a prediction can be trusted, whether an edit is acceptable): the answer
+# is words, and small models answered them by recoloring, restyling or hiding dust. Reading and measuring commands
+# stay allowed; "how do I ...", "can I ...", "is there a way ..." are requests to do it and are not covered.
+_INFO_Q_RE = re.compile(r"^(what|what's|whats|which|where|wheres|why|who|whose|when|is|are|was|were|does|did|am|"
+                        r"how\s+(many|much|big|large|far|close|long|good|well|confident|reliable|accurate|similar|"
+                        r"different|old|deep|wide|thick|flexible|stable|buried|exposed)|tell me|explain|describe)\b", re.I)
+_REQUEST_Q_RE = re.compile(r"^(how (do|can|could|would|should|to) (i|we|you)|how to|can|could|would|will|please|"
+                           r"is there|are there|is it possible|do you|what (command|commands)|what'?s the command)\b", re.I)
+_ASKS_ACTION_RE = re.compile(r"\b(can|could|would|will) you\b|\bshow me\b|\bplease\b|\b(and|then|also)\s+"
+                             r"(colou?r|show|hide|label|make|display|zoom|highlight|select|open|mark)\b", re.I)
+_SCENE_CMD_RE = re.compile(r"^\s*~?(color|colour|rainbow|surface|hide|show|display|style|cartoon|ribbon|delete|close|save|"
+                           r"set|lighting|light|preset|label|2dlab\w*|transparency|swapaa|addh|coulombic|mlp|matchmaker|mm|"
+                           r"align|morph|turn|move|roll|rock|volume|key|combine|sym|graphics|camera|clip|size|build|material|"
+                           r"nucleotides|bumps|movie|split|rename|changechains|renumber)\b", re.I)
+
+
+def question_only(text: str) -> bool:
+    """True when every sentence of the request asks for information and none asks for a change."""
+    t = (text or "").strip()
+    if not t or _ASKS_ACTION_RE.search(t):
+        return False
+    parts = [p.strip() for p in re.split(r"[?.!;\n]+", t) if p and p.strip()]
+    return bool(parts) and all(_INFO_Q_RE.match(p) and not _REQUEST_Q_RE.match(p) for p in parts)
+
+
+# The user wants the command in words and says not to execute it: a small model ran the nearest thing anyway.
+_DONT_RUN_RE = re.compile(r"\b(don'?t|do not|dont|without)\s+(actually\s+)?(run|running|execute|executing|apply|applying)\b|"
+                          r"\bjust (tell|give|show) me the (command|syntax)\b|\btell me the command\b", re.I)
+
+# Commands that open a tool window. The window cap above stops a pile of them; these are refused outright
+# unless the user asked to see a window: `coordset slider` after a morph, `sequence chain` to read a
+# sequence the model could have looked up, each counted against a user who asked for neither.
+_UNASKED_WINDOW_RE = re.compile(r"^\s*(coordset\s+slider|mseries\s+slider|sequence\s+(chain|align|viewer)|seq\s+(chain|align)|"
+                                r"ui\s+tool\s+show|tool\s+show)\b", re.I)
+_ASKS_WINDOW_RE = re.compile(r"\balign(ment|ed)?\b|\bviewer\b|\bwindow\b|\bpanel\b|\bslider\b|\bplot\b|\bdialog\b|"
+                             r"\b(see|show|display|open|read)\b.{0,20}\bsequences?\b", re.I)
+
+# After `open 9zzz` fails, one model opened an unrelated entry (6n2y) and described it as the result.
+_OPEN_ID_RE = re.compile(r"^\s*open\s+(?:pdb:|alphafold:|emdb:)?([0-9][a-z0-9]{3}|[a-z][0-9][a-z0-9]{3,8}|emd[-_]?\d+|\d{4,5})\b", re.I)
+_OPEN_FAILED_RE = re.compile(r"404|not found|no such|failed|could not|couldn't|does not exist|unknown|invalid", re.I)
+
+# Community recipes are retrieved by word overlap; a model ran the z-mirroring `flip` recipe when a rotation was meant
+# and the same recipe for a GROMACS topology request. A recipe must share a content word with the request.
+_RECIPE_DIR_RE = re.compile(r"chimerax-recipes/(?:master|main)/([^/\s]+)/", re.I)
+_RECIPE_STOP = set("""this that with from have what when your into them they their there where which while about
+show make color colour chimerax model models structure structures protein proteins residue residues chain chains open
+using used user want would could should like just please into onto also then than more most some each every other
+command commands script recipe file files view image""".split())
+
+# A model writes our tool names as ChimeraX commands: `membrane_view #1`, `gpcr_states protein=P25116`.
+# These are dispatched as the tool they name (a `#1` goes to the tool's model argument).
+_MODEL_ARGS = ("model", "models", "reference", "other", "residue", "keep")
+_NOT_DISPATCHED = {"run_commands", "ask_user", "run_python"}
+
+
+def _coerce(value: str, schema: Dict[str, Any]):
+    v = value.strip()
+    if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+        v = v[1:-1]
+    typ = (schema or {}).get("type")
+    if v.startswith("[") and v.endswith("]"):
+        items = [x.strip().strip("\"'") for x in v[1:-1].split(",") if x.strip().strip("\"'")]
+        return items if typ in ("array", None) else (items[0] if items else "")
+    if typ == "boolean":
+        return v.lower() in ("true", "t", "1", "yes", "on")
+    if typ == "integer":
+        try:
+            return int(float(v))
+        except ValueError:
+            return v
+    if typ == "number":
+        try:
+            return float(v)
+        except ValueError:
+            return v
+    if typ == "array":
+        return [x.strip() for x in v.split(",") if x.strip()]
+    return v
+
+
+def parse_tool_line(line: str) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """`gpcr_states protein=P25116 open_states=[inactive,active]` -> ('gpcr_states', {...}). None when the line does
+    not start with one of our tools, or the arguments the tool requires cannot be read from it."""
+    from . import tools as tools_mod
+    from .schema import ToolSpec
+    m = re.match(r"^\s*([a-z_]+)\b(.*)$", line or "", re.S)
+    if not m:
+        return None
+    name, rest = m.group(1).lower(), m.group(2)
+    # every ToolSpec the tools module defines, listed in ALL_TOOLS or not (a new tool must not need two edits)
+    spec = next((t for t in vars(tools_mod).values() if isinstance(t, ToolSpec) and t.name == name), None)
+    if spec is None or name in _NOT_DISPATCHED:
+        return None
+    props = (spec.parameters or {}).get("properties") or {}
+    required = list((spec.parameters or {}).get("required") or [])
+    args: Dict[str, Any] = {}
+    # key=value anywhere; key: value only for a real argument name not inside a spec (#1/A:87 is a residue)
+    kv = re.compile(r"(?<![\w/#:@.])([A-Za-z_]+)\s*(=|:)\s*(\[[^\]]*\]|\"[^\"]*\"|'[^']*'|[^\s,]+)")
+
+    def take(mo):
+        k, sep, v = mo.group(1), mo.group(2), mo.group(3)
+        if k in props:
+            args[k] = _coerce(v, props[k])
+            return " "
+        return " " if sep == "=" else mo.group(0)
+    loose = kv.sub(take, rest)
+    tokens = re.findall(r"\"[^\"]*\"|'[^']*'|\[[^\]]*\]|\S+", loose)
+    specs = [x for t in tokens if t.startswith(("#", "/", ":")) for x in re.split(r",(?=[#/])", t) if x]
+    words = [t for t in tokens if not t.startswith(("#", "/", ":")) and t.strip(",")]
+    model_slots = [p for p in _MODEL_ARGS if p in props and p not in args]
+    if "models" in model_slots and specs:
+        args["models"] = " ".join(specs)
+        specs = []
+    for p in model_slots:
+        if not specs:
+            break
+        if p != "models":
+            args[p] = specs.pop(0)
+    free = [p for p in required + list(props) if p not in args and p not in _MODEL_ARGS
+            and (props.get(p) or {}).get("type") in ("string", "array", None)]
+    seen = set()
+    free = [p for p in free if not (p in seen or seen.add(p))]
+    i = 0
+    while i < len(words):
+        w = words[i].strip(",")
+        if w.lower() in props and i + 1 < len(words):     # `kind clinvar`: an argument name followed by its value
+            if w.lower() not in args:
+                args[w.lower()] = _coerce(words[i + 1].strip(","), props[w.lower()])
+                if w.lower() in free:
+                    free.remove(w.lower())
+                i += 2
+            else:                                           # `#1 model P68871`: the name repeats a value already read
+                i += 1
+            continue
+        if free:
+            p = free.pop(0)
+            args[p] = _coerce(w, props.get(p) or {})
+        i += 1
+    if any(r not in args for r in required):
+        return None
+    return name, args
 
 
 _RMSD_RE = re.compile(r"RMSD between (\d+) pruned atom pairs is ([\d.]+)(?: angstroms)?(?:; \(across all (\d+) pairs: ([\d.]+)\))?", re.I)
@@ -238,7 +471,7 @@ class Agent:
             recipes=self._prompt_parts["recipes"],
             allow_python=self.config.allow_python,
             vision=self.config.vision and getattr(self.provider, "supports_vision", False),
-            edition=self.config.edition, compact=self.compact)
+            edition=self.config.edition, compact=self.compact, initiative=self.config.initiative)
 
     def go_compact(self) -> bool:
         """Switch to the short prompt and shrink what was already built. False if already compact."""
@@ -277,7 +510,7 @@ class Agent:
     def _tools(self):
         return tool_specs(self.config.allow_python,
                           self.config.vision and getattr(self.provider, "supports_vision", False),
-                          tables=bool(self.tables), compact=self.compact)
+                          tables=bool(self.tables), compact=self.compact, edition=self.config.edition)
 
     # ------------------------------------------------------------ public
     @property
@@ -301,10 +534,33 @@ class Agent:
             self._status("Thinking…")
             self._failed_this_turn = set()
             self._contacts_runs = {}
+            self._turn_text = user_text
+            self._coloring_sources = []
+            self._windows_this_turn = []
+            self._overlay_done = ""
+            # "it" is only ambiguous when nothing was opened or named in the last two requests
+            prior = list(getattr(self, "_prior_texts", []))[-2:]
+            since = (getattr(self, "_turn_starts", []) or [0.0])[-2:][0]
+            opened_recently = any(first_word(str(j.get("command", ""))) == "open" and j.get("ok") and float(j.get("ts", 0)) >= since
+                                  for j in self.journal[-60:])
+            self._no_recent_focus = not opened_recently and not any(_WHICH_NAMED_RE.search(t) or "#" in t for t in prior)
+            self._prior_texts = (list(getattr(self, "_prior_texts", [])) + [user_text])[-4:]
+            self._turn_starts = (list(getattr(self, "_turn_starts", [])) + [time.time()])[-4:]
             self._impossible_ask = bool(_IMPOSSIBLE_RE.search(user_text)) and not _SAVE_WANTED_RE.search(user_text)
             # the whole request is the impossible thing: then nothing the model runs can be right
             self._impossible_only = self._impossible_ask and not _ACTION_RE.search(user_text)
+            self._question_only = question_only(user_text)
+            self._dont_run = bool(_DONT_RUN_RE.search(user_text))
+            self._failed_opens = set()
+            self._ambiguous_fired = False
+            self._dispatched_this_turn = set()
+            self._turn_start_index = start_len
             self._user_text_upper += " " + user_text.upper()
+            if self.config.edition == "chimerax" and hasattr(self.executor, "checkpoint_request"):
+                try:   # a restore point for undo_last_request; bookkeeping must never break a turn
+                    self.executor.checkpoint_request(user_text)
+                except Exception:  # noqa: BLE001
+                    pass
             context = self._build_context(user_text)
             self.conversation.append(Message.user(user_text, context))
             if self.config.edition == "chimerax" and _WHY_RE.search(user_text) and hasattr(self.executor, "residue_provenance"):
@@ -343,6 +599,14 @@ class Agent:
             if outcome.get("asked"):
                 self.total_usage.add(usage)
                 return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
+            asked_in_text = self._text_since(start_len)
+            if getattr(self, "_ambiguous_fired", False) and asked_in_text.rstrip().endswith("?") and not self._commands_ran_since(start_len):
+                # the ambiguity guard told the model to ask; it asked in plain text instead of calling ask_user.
+                # Deliver it as the question it is, so the panel shows it as one and waits for the answer.
+                if self.cb.on_ask_user:
+                    self.cb.on_ask_user(asked_in_text, [])
+                self.total_usage.add(usage)
+                return TurnResult(asked_in_text, len(self.conversation) - start_len, usage, asked_user=True)
             for attempt in range(2):
                 nudge = None
                 last_ctx = context
@@ -356,11 +620,17 @@ class Agent:
                         nudge = NUDGE          # words but no action
                     elif outcome.get("ended_after_error"):
                         nudge = NUDGE_AFTER_ERROR   # gave up after a failed command
+                    elif (_SAVE_CLAIM_RE.search(self._last_assistant_text() or "")
+                          and not _SAVE_DENIED_RE.search(self._last_assistant_text() or "")
+                          and not any(first_word(c) in ("save", "movie") for c in ran)
+                          and not self._tool_called_since(start_len, "save_figure")):
+                        # "opne 2gbp, hid the ions, and safe a pic": it replied "saved the picture to your desktop"
+                        nudge = NUDGE_SAVE_CLAIM
                     elif _ONLY_RE.search(user_text) and not any(
                             (_HIDE_RE_CHIMERA if self.config.edition == "chimera" else _HIDE_RE).match(c) for c in ran):
                         nudge = NUDGE_ONLY_CHIMERA if self.config.edition == "chimera" else NUDGE_ONLY
                     elif _AA_TYPE_RE.search(user_text) and ran and not any(_AA_CLASS_RE.search(c) for c in ran) \
-                            and not self._mentions_table(user_text):
+                            and not any(_MLP_RAN_RE.match(c) for c in ran) and not self._mentions_table(user_text):
                         nudge = NUDGE_AA       # residue-type coloring done with a wrong built-in scheme
                     elif _TIDY_RE.search(user_text) and not self._tool_called_since(start_len, "tidy_labels") and self.config.edition == "chimerax":
                         nudge = NUDGE_TIDY
@@ -369,7 +639,17 @@ class Agent:
                         nudge = NUDGE_LOOK
                     elif _WHY_RE.search(user_text) and not self._tool_called_since(start_len, "explain_residue") and self.config.edition == "chimerax":
                         nudge = NUDGE_WHY
-                    elif _ANNOT_RE.search(user_text) and not self._tool_called_since(start_len, "annotate") \
+                    elif (self.config.edition == "chimerax" and _IDENTITY_ASK_RE.search(user_text)
+                          and not self._tool_called_since(start_len, "sequence_identity")):
+                        nudge = NUDGE_SEQID
+                    elif (self.config.edition == "chimerax" and _CLOSE_WIN_RE.search(user_text)
+                          and not self._tool_called_since(start_len, "close_windows")):
+                        nudge = NUDGE_CLOSEWIN
+                    elif (self.config.edition == "chimerax" and _UNDO_RE.search(user_text)
+                          and not self._tool_called_since(start_len, "undo_last_request")):
+                        nudge = NUDGE_UNDO
+                    elif _ANNOT_RE.search(user_text) and not _PAE_ASK_RE.search(user_text) \
+                            and not self._tool_called_since(start_len, "annotate") \
                             and not (self._tool_called_since(start_len, "protein_features") and ran):
                         # variants/domains asked for and neither route taken. Fetching the features and
                         # coloring them by hand is the other correct route: asked to color the transmembrane
@@ -383,7 +663,7 @@ class Agent:
                     break
                 if attempt == 1 and not _ANNOUNCE_RE.search(self._last_assistant_text()):
                     break  # second try only when the model keeps announcing instead of acting
-                self.conversation.append(Message.user(nudge, last_ctx))
+                self.conversation.append(Message.user(nudge, self._refreshed_context(last_ctx)))
                 outcome = self._loop(tools, cancel, usage)
                 if outcome.get("asked"):
                     self.total_usage.add(usage)
@@ -392,7 +672,11 @@ class Agent:
                     self.total_usage.add(usage)
                     return TurnResult(self._last_assistant_text(), len(self.conversation) - start_len, usage, asked_user=True)
             if self.config.nudge_on_no_action and looks_like_action_request(user_text) and not outcome.get("asked") \
-                    and not self._commands_since(start_len) and not any(c.name != "run_commands" for c in self._tool_calls_since(start_len)):
+                    and not self._commands_since(start_len) and not any(c.name != "run_commands" for c in self._tool_calls_since(start_len)) \
+                    and not self._impossible_ask and not getattr(self, "_dont_run", False) \
+                    and self._fallback_wanted(self._text_since(start_len)):
+                # only for a model that meant to act and could not make a tool call. It used to fire on any
+                # words-only turn and replaced correct answers ("ChimeraX cannot send email") with "Nothing ran."
                 self._commands_only_fallback(user_text, context, cancel, usage)
             self._canned_fallbacks(user_text, start_len)
             self.total_usage.add(usage)
@@ -526,7 +810,7 @@ class Agent:
         """Last resort for requests the model keeps getting wrong: run a known-good recipe ourselves."""
         ran = self._commands_since(start_len)
         if _AA_TYPE_RE.search(user_text) and looks_like_action_request(user_text) and not self._mentions_table(user_text) \
-                and not any(_AA_CLASS_RE.search(c) for c in ran):
+                and not any(_AA_CLASS_RE.search(c) for c in ran) and not any(_MLP_RAN_RE.match(c) for c in ran):
             if self.config.edition == "chimera":
                 cmds = ["color white,a,r :ala,val,ile,leu,met,phe,trp,pro,gly", "color green,a,r :ser,thr,asn,gln,cys,tyr",
                         "color blue,a,r :lys,arg,his", "color red,a,r :asp,glu"]
@@ -553,6 +837,10 @@ class Agent:
                 [ToolResult(c.id, c.name, note, is_error=True) for c in calls]))
 
     def _tool_called_since(self, index: int, name: str) -> bool:
+        # a tool line typed inside run_commands and run as the tool counts as a call: otherwise the "call the tool"
+        # nudge fired after the tool had answered, with the turn's first state block ("no models are open")
+        if name in getattr(self, "_dispatched_this_turn", set()) and index >= getattr(self, "_turn_start_index", 0):
+            return True
         return any(c.name == name for m in self.conversation[index:] if m.role == "assistant" for c in m.tool_calls())
 
     def _commands_since(self, index: int) -> List[str]:
@@ -602,7 +890,27 @@ class Agent:
                     + " Do not repeat them and do not describe them as successful. Find a different, correct approach "
                       "(call search_docs and/or command_usage first), run different commands, or state plainly that "
                       "ChimeraX cannot do it and why.")
+        found = self._locate_sequences(user_text)
+        if found:
+            note = (note + "\n" if note else "") + found
         return prompt_mod.build_context(state, docs, note=note)
+
+    _PEPTIDE_RE = re.compile(r"(?<![A-Za-z0-9])[ACDEFGHIKLMNPQRSTVWY]{6,}(?![A-Za-z0-9])")
+
+    def _locate_sequences(self, text: str) -> str:
+        """A typed amino-acid sequence ("select LEVEPSDT...") located in the open chains, so the model gets residue
+        numbers instead of guessing them or opening a sequence window to read them."""
+        if not hasattr(self.executor, "find_sequence"):
+            return ""
+        lines = []
+        for seq in dict.fromkeys(self._PEPTIDE_RE.findall(text or "")):
+            try:
+                hits = self.executor.find_sequence(seq)
+            except Exception:  # noqa: BLE001
+                continue
+            if hits:
+                lines.append("The sequence %s is residues %s. Use these residue numbers." % (seq, ", ".join(hits)))
+        return "\n".join(lines)
 
     def _dispatch(self, call: ToolCall):
         if self.cb.on_tool_start:
@@ -690,13 +998,18 @@ class Agent:
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
             elif name == "table_overlay":
+                self._overlay_pending = "table_overlay"
                 payload = self._table_overlay(str(args.get("dataset", "") or ""), str(args.get("column", "") or ""),
                                               args.get("chain") or None, str(args.get("palette", "") or ""),
                                               str(args.get("model", "") or ""), args.get("accession") or None, bool(args.get("label", False)))
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
                                     is_error="error" in payload)
             elif name == "annotate":
-                payload = self._annotate(str(self._scalar(args.get("model"), "#1") or "#1"), str(self._scalar(args.get("accession"), "")),
+                kind = str(self._scalar(args.get("kind"), "variant") or "variant").lower()
+                self._overlay_pending = "annotate"
+                src = "clinvar" if kind in CLINVAR_KINDS else ("uniprot variants" if kind in ("variant", "disease") else None)
+                refusal = self._source_guard(src) if src else None
+                payload = {"error": refusal} if refusal else self._annotate(str(self._scalar(args.get("model"), "#1") or "#1"), str(self._scalar(args.get("accession"), "")),
                                          str(self._scalar(args.get("kind"), "variant") or "variant"), str(self._scalar(args.get("color"), "orange") or "orange"),
                                          bool(args.get("label", True)))
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
@@ -712,12 +1025,71 @@ class Agent:
                     payload = self.executor.run_python(approved[0] if approved else code)
                     result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error=not payload.get("ok", False))
             elif name == "fetch_annotation":
-                payload = self._fetch_annotation(str(self._scalar(args.get("source"), "alphamissense") or "alphamissense"),
+                src = str(self._scalar(args.get("source"), "alphamissense") or "alphamissense").lower()
+                self._overlay_pending = "fetch_annotation"
+                refusal = self._source_guard("conservation" if src.startswith(("conserv", "consurf")) else "alphamissense")
+                payload = {"error": refusal} if refusal else self._fetch_annotation(str(self._scalar(args.get("source"), "alphamissense") or "alphamissense"),
                                                  str(self._scalar(args.get("protein"), "") or ""),
                                                  str(self._scalar(args.get("model"), "#1") or "#1"),
                                                  str(self._scalar(args.get("chain"), "") or ""))
                 result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"},
                                                               ensure_ascii=False), is_error="error" in payload)
+            elif name in ("sequence_identity", "close_windows"):
+                fn = getattr(self.executor, name, None)
+                if fn is None:
+                    payload = {"error": "%s is not available in this edition." % name}
+                elif name == "sequence_identity":
+                    models = args.get("models")
+                    models = " ".join(str(x) for x in models) if isinstance(models, list) else str(models or "")
+                    payload = fn(models, str(self._scalar(args.get("chain"), "") or "") or None)
+                else:
+                    payload = fn(str(self._scalar(args.get("which"), "sequence") or "sequence"))
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+            elif name == "undo_last_request":
+                fn = getattr(self.executor, "undo_last_request", None)
+                if fn is None:
+                    payload = {"error": "Undo is not available in this edition."}
+                else:
+                    preview_fn = getattr(self.executor, "pending_undo", None)
+                    preview = preview_fn() if preview_fn else {}
+                    if preview.get("error"):
+                        payload = preview
+                    elif self.config.autonomy == AUTONOMY_ALL:
+                        payload = fn()
+                    else:
+                        classification = Classification(
+                            "undo_last_request", True,
+                            "restores ChimeraX to before the last request (\"%s\")%s; anything done since is lost"
+                            % (preview.get("request", "the last request"),
+                               " by closing the model(s) it opened" if preview.get("kind") == "models" else ""))
+                        approved = self._confirm([classification.command], [classification.reason])
+                        payload = {"error": "The user chose not to undo.", "skipped": True} if approved is None else fn()
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False),
+                                    is_error=bool(payload.get("error")) and not payload.get("skipped"))
+            elif name in ("membrane_view", "gpcr_states"):
+                fn = getattr(self.executor, "membrane_orient" if name == "membrane_view" else "gpcr_states", None)
+                if fn is None:
+                    payload = {"error": "%s is not available in this edition." % name}
+                elif name == "membrane_view":
+                    # minimal scope: the membrane planes are drawn only when the request speaks of a membrane
+                    if "slabs" in args:
+                        slabs = bool(args.get("slabs"))
+                    else:
+                        slabs = bool(re.search(r"membrane|bilayer|lipid|slab|plane", getattr(self, "_turn_text", "") or "", re.I))
+                    payload = fn(str(self._scalar(args.get("model"), "#1") or "#1"), str(self._scalar(args.get("pdb"), "") or "") or None, slabs)
+                else:
+                    states = args.get("open_states") or []
+                    if isinstance(states, str):
+                        states = [x.strip() for x in re.split(r"[,\s]+", states) if x.strip()]
+                    payload = fn(str(self._scalar(args.get("protein"), "") or ""), [str(x).lower() for x in states])
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+            elif name == "view_axis":
+                fn = getattr(self.executor, "view_axis", None)
+                if fn is None:
+                    payload = {"error": "view_axis is not available in this edition."}
+                else:
+                    payload = fn(str(self._scalar(args.get("model"), "") or ""), str(self._scalar(args.get("axis"), "short") or "short").lower())
+                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "map_numbering":
                 positions = args.get("positions") or []
                 if not isinstance(positions, list):
@@ -741,6 +1113,13 @@ class Agent:
                 result = ToolResult(call.id, name, "Unknown tool: %s" % name, is_error=True)
         except Exception as e:
             result = ToolResult(call.id, name, "Tool failed: %s" % e, is_error=True)
+        if getattr(self, "_overlay_pending", "") and isinstance(payload, dict) and not payload.get("error") and payload.get("colored", True):
+            self._overlay_done = self._overlay_pending
+            if isinstance(payload, dict):
+                payload.setdefault("note", "The coloring, color key and title are drawn. Nothing else to run: report this result.")
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k not in ("commands", "png_b64")}, ensure_ascii=False),
+                                    is_error=False)
+        self._overlay_pending = ""
         if self.cb.on_tool_result:
             self.cb.on_tool_result(call, result, payload)
         return result, payload
@@ -763,11 +1142,303 @@ class Agent:
         return self.execute_commands(commands, origin="model")
 
     def execute_commands(self, commands: List[str], origin: str = "model", preapproved: bool = False) -> Dict[str, Any]:
-        """The single path for running commands: policy, repeat guard, execution, journal."""
+        """The single path for running commands: rewrites, policy, repeat guard, execution, journal."""
         commands = split_joined([c.strip() for c in commands if c and c.strip()])
+        notes: List[str] = []
+        tags: List[str] = []
+        if origin == "model" and self.config.guards and self.config.edition == "chimerax" and commands:
+            commands, notes, tags = self._rewrite_batch(commands)
+        out = self._execute_commands(commands, origin, preapproved)
+        if tags:
+            out["fixups"] = list(out.get("fixups") or []) + tags
+        if notes:
+            text = "Pellaeon corrected: " + "; ".join(notes) + "."
+            out["note"] = (text + " " + out["note"]) if out.get("note") else text
+        return out
+
+    # the rewrite notes of fixups.rewrite -> short names for the run report
+    _REWRITE_TAGS = (("attribute test", "attr_test"), ("several specs", "spec_list"), ("`info", "info_residues"),
+                     ("the alignment window", "mm_show"), ("`hide` alone", "hide_rest"), ("bychain takes", "bychain_palette"),
+                     ("submodel range", "submodel_range"), ("a class after", "class_and"), ("DNA/RNA", "class_chain"))
+
+    def _rewrite_batch(self, commands: List[str]) -> Tuple[List[str], List[str], List[str]]:
+        """Deterministic corrections of the model's batch before anything runs. Each returns the new list and
+        says what it changed; the model sees the notes, the run report the tags."""
+        text = getattr(self, "_turn_text", "") or ""
+        notes: List[str] = []
+        tags: List[str] = []
+        out = []
+        for c in commands:
+            if re.match(r"^\s*run_commands\s+\S", c):       # the tool's name typed in front of its command
+                c = c.split(None, 1)[1]
+                tags.append("run_commands_prefix")
+            new, why = rewrite_command(c, text)
+            if why:
+                notes.append("`%s` -> `%s` (%s)" % (c, new, "; ".join(why)))
+                tags.extend(next((t for k, t in self._REWRITE_TAGS if w.startswith(k)), "rewrite") for w in why)
+            out.append(new)
+        for step in (self._select_union, self._key_for_coloring, self._show_before_style, self._ligand_with_ions,
+                     self._compact_submodels, self._unasked_atoms, self._label_cap, self._structure_targets):
+            try:
+                out, n, tag = step(out, text)
+            except Exception:  # noqa: BLE001  (a correction must never break the batch)
+                continue
+            if n:
+                notes.extend(n)
+                tags.extend([tag] * len(n))
+        return out, notes, tags
+
+    def _select_union(self, commands: List[str], text: str):
+        """`select A` then `select B` in one batch: the second replaces the first, which nobody writes on purpose
+        (asked for the residues of chain A near B and of B near A, a model selected one side only). -> select add B."""
+        out, notes, last_plain = list(commands), [], None
+        subs = ("add", "subtract", "intersect", "clear", "up", "down", "zone", "~sel", "sel", "all")
+        for i, c in enumerate(out):
+            if first_word(c) == "select" and not c.lstrip().startswith("~"):
+                rest = c.split(None, 1)[1].strip() if len(c.split(None, 1)) > 1 else ""
+                if rest and rest.split()[0].lower() not in subs:
+                    if last_plain is not None and rest != last_plain[1] and not any(
+                            re.search(r"\bsel\b", out[k]) for k in range(last_plain[0] + 1, i)):
+                        out[i] = "select add " + rest
+                        notes.append("`%s` -> `%s` (a second select replaces the first; both sets were meant)" % (c, out[i]))
+                    last_plain = (i, rest)
+                    continue
+            if re.search(r"\bsel\b", c):
+                last_plain = None
+        return out, notes, "select_add"
+
+    _KEY_TRIGGER = ("true", "on", "yes", "show", "add", "bfactor", "byattribute", "attribute", "palette", "legend")
+    _ATTR_COLOR_RE = re.compile(r"^\s*(colou?r\s+(bfactor|byattr\w*)|mlp|coulombic)\b", re.I)
+
+    def _key_for_coloring(self, commands: List[str], text: str):
+        """`key true` / `key bfactor ...` read their first word as a palette name (a web lookup that fails). What was
+        meant is a key for the attribute coloring just made: repeat that coloring with `key true`."""
+        out, notes = list(commands), []
+        for i, c in enumerate(out):
+            if first_word(c) != "key":
+                continue
+            args = c.split()[1:]
+            if not args or ":" in args[0] or not (args[0].lower() in self._KEY_TRIGGER or args[0].startswith("#")):
+                continue
+            prior = [x for x in out[:i] if self._ATTR_COLOR_RE.match(x)]
+            if not prior:
+                prior = [str(j.get("command", "")) for j in self.journal if j.get("ok") and self._ATTR_COLOR_RE.match(str(j.get("command", "")))]
+            if not prior:
+                continue
+            base = re.sub(r"\s+key\s+\S+", "", prior[-1].strip())
+            out[i] = base + " key true"
+            notes.append("`%s` -> `%s` (a key for an attribute coloring comes from the coloring command)" % (c, out[i]))
+        return out, notes, "key_from_coloring"
+
+    _SHOW_ASK_RE = re.compile(r"\b(show\w*|display\w*|see|visible|draw)\b", re.I)
+    _STYLE_SPEC_RE = re.compile(r"^\s*style\s+(\S.*?)\s+(stick|ball|sphere)\s*$", re.I)
+
+    def _show_before_style(self, commands: List[str], text: str):
+        """Asked to display a selection in stick style, `style sel stick` alone changes how DISPLAYED atoms are drawn and shows nothing.
+        When the user asked to see them and the batch shows or hides nothing, show the styled atoms first."""
+        if not self._SHOW_ASK_RE.search(text or "") or not hasattr(self.executor, "spec_atoms"):
+            return commands, [], "show_before_style"
+        if any(first_word(c) in ("show", "hide", "display") or c.lstrip().startswith("~") for c in commands):
+            return commands, [], "show_before_style"
+        out, notes = [], []
+        for c in commands:
+            m = self._STYLE_SPEC_RE.match(c)
+            if m:
+                chk = self.executor.spec_atoms(m.group(1)) or {}
+                n, shown = chk.get("atoms"), chk.get("shown")
+                if chk.get("used") and n and shown is not None and shown < 0.5 * n:
+                    add = "show %s atoms" % chk["used"]
+                    out.append(add)
+                    notes.append("added `%s` before `%s` (style changes only atoms that are displayed; %d of %d were hidden)"
+                                 % (add, c.strip(), n - shown, n))
+            out.append(c)
+        return out, notes, "show_before_style"
+
+    _SUBMODEL_CMD_RE = re.compile(r"^(\w+)\s+#(\d+)\.(\d+)\b(.*)$")
+    _SUBMODEL_WORDS = ("surface", "color", "colour", "show", "hide", "style", "cartoon", "transparency", "rainbow", "size")
+
+    def _compact_submodels(self, commands: List[str], text: str):
+        """`surface #2.1 ...` repeated for #2.2 ... #2.60 (an assembly's copies) is one command on the parent: 60 separate
+        surface calculations take minutes and fill the log; `surface #2 ...` does the same thing."""
+        out, notes, i = [], [], 0
+        while i < len(commands):
+            m = self._SUBMODEL_CMD_RE.match(commands[i].strip())
+            if m and m.group(1).lower() in self._SUBMODEL_WORDS:
+                j = i
+                while j < len(commands):
+                    mj = self._SUBMODEL_CMD_RE.match(commands[j].strip())
+                    if not (mj and mj.group(1) == m.group(1) and mj.group(2) == m.group(2) and mj.group(4) == m.group(4)):
+                        break
+                    j += 1
+                if j - i >= 4:
+                    merged = "%s #%s%s" % (m.group(1), m.group(2), m.group(4))
+                    out.append(merged)
+                    notes.append("%d commands on submodels #%s.* merged into `%s`" % (j - i, m.group(2), merged))
+                    i = j
+                    continue
+            out.append(commands[i])
+            i += 1
+        return out, notes, "compact_submodels"
+
+    _ATOM_WORDS_RE = re.compile(r"\b(atoms?|sticks?|side ?chains?|spheres?|balls?|ball[- ]and[- ]stick|stick style|residues? as|all atoms)\b", re.I)
+    _CARTOON_ONLY_RE = re.compile(r"\b(cartoons?|ribbons?)\b|\b(keep|show|display|leave)\s+only\b|\bonly\s+(the\s+)?(receptor|protein|chain)\b", re.I)
+    _SHOW_ATOMS_RE = re.compile(r"^show\s+(\S+(?:\s*&\s*\S+)?)\s+atoms\s*$", re.I)
+
+    def _unasked_atoms(self, commands: List[str], text: str):
+        """"Keep only chain A" or "as a cartoon" is a display of what was asked, not an invitation to show every
+        atom: drop a `show ... atoms` the request never asked for (the cartoon is what the user will see)."""
+        if not text or not self._CARTOON_ONLY_RE.search(text) or self._ATOM_WORDS_RE.search(text):
+            return commands, [], "unasked_atoms"
+        out, notes = [], []
+        for c in commands:
+            if self._SHOW_ATOMS_RE.match(c.strip()):
+                notes.append("dropped `%s`: atoms were not asked for (cartoon / keep-only request)" % c.strip())
+                continue
+            out.append(c)
+        return out, notes, "unasked_atoms"
+
+    _LABEL_SPEC_RE = re.compile(r"^label\s+(?!delete\b|height\b|size\b|offset\b|color\b|bgColor\b|onTop\b)(\S+(?:\s*&\s*\S+)?)", re.I)
+    _LABEL_ALL_RE = re.compile(r"\b(all|every|each)\b.{0,25}\b(residues?|labels?)\b|\blabel\s+(all|every|everything)\b", re.I)
+    LABEL_CAP = 60
+
+    def _label_cap(self, commands: List[str], text: str):
+        """`label sel` on 600 residues (a whole domain, a 4 A zone) paints the view white with labels: refuse a label
+        on more than LABEL_CAP residues unless the user asked for all of them, and say how to narrow it."""
+        if not hasattr(self.executor, "spec_atoms") or (text and self._LABEL_ALL_RE.search(text)):
+            return commands, [], "label_cap"
+        out, notes = [], []
+        for c in commands:
+            m = self._LABEL_SPEC_RE.match(c.strip())
+            if m and not c.strip().startswith("~"):
+                try:
+                    chk = self.executor.spec_atoms(m.group(1)) or {}
+                except Exception:  # noqa: BLE001
+                    chk = {}
+                n = chk.get("residues") or 0
+                if chk.get("used") and n > self.LABEL_CAP:
+                    notes.append("refused `%s`: it would label %d residues. Label the few that matter (name them, or the ones "
+                                 "within 4 A of the ligand), or say 'label all of them' if that is really wanted." % (c.strip(), n))
+                    continue
+            out.append(c)
+        return out, notes, "label_cap"
+
+    _MM_TO_RE = re.compile(r"^(matchmaker|mm|align)\s+(#\d+)(\S*)\s+(to|toAtoms)\s+(#\d+)(\S*)(.*)$", re.I)
+
+    def _structure_targets(self, commands: List[str], text: str):
+        """`matchmaker #3/A to #2/A` where #2 is the distances (or a key, a slab, a label) model: the model counted
+        model numbers instead of reading the state. When exactly one other atomic structure is open, use it."""
+        if not any(first_word(c) in ("matchmaker", "mm", "align") for c in commands) or not hasattr(self.executor, "get_state"):
+            return commands, [], "structure_targets"
+        try:
+            models = (self.executor.get_state() or {}).get("models") or []
+        except Exception:  # noqa: BLE001
+            return commands, [], "structure_targets"
+        structures = [m["id"] for m in models if m.get("id") and not m.get("note", "").startswith("not a structure") and m.get("num_atoms")]
+        non = {m["id"] for m in models if m.get("id") and m.get("note", "").startswith("not a structure")}
+        out, notes = [], []
+        for c in commands:
+            m = self._MM_TO_RE.match(c.strip())
+            if m and m.group(5) in non:
+                others = [sid for sid in structures if sid != m.group(2)]
+                if len(others) == 1:
+                    fixed = "%s %s%s %s %s%s%s" % (m.group(1), m.group(2), m.group(3), m.group(4), others[0], m.group(6), m.group(7))
+                    notes.append("`%s` -> `%s` (%s is not a structure; the other open structure is %s)" % (c.strip(), fixed, m.group(5), others[0]))
+                    c = fixed
+                else:
+                    notes.append("%s is not a structure (a key, distances or label model); name the structure to match to" % m.group(5))
+            out.append(c)
+        return out, notes, "structure_targets"
+
+    def _ligand_with_ions(self, commands: List[str], text: str):
+        """A heme's iron (a cofactor's metal) is classified as an ion, so `show ligand` leaves it hidden: show the
+        whole residue of a ligand that contains an ion atom as well."""
+        if not any(first_word(c) == "show" and re.search(r"\bligands?\b", c) for c in commands):
+            return commands, [], "ligand_ions"
+        try:
+            models = (self.executor.get_state() or {}).get("models") or []
+        except Exception:  # noqa: BLE001
+            return commands, [], "ligand_ions"
+        both = sorted({n for m in models for n in (set((m.get("hets") or {}).get("ligand") or [])
+                                                   & set((m.get("hets") or {}).get("ions") or []))})
+        if not both:
+            return commands, [], "ligand_ions"
+        out, notes = [], []
+        for c in commands:
+            out.append(c)
+            if first_word(c) == "show" and re.search(r"\bligands?\b", c):
+                mid = re.search(r"#\d+(?:\.\d+)*", c)
+                for name in both:
+                    extra = "show %s:%s atoms" % (mid.group(0) if mid else "", name)
+                    if not any((":" + name).lower() in x.lower() for x in commands):
+                        out.append(extra)
+                        notes.append("added `%s` (its metal atom is classified as an ion, which `ligand` leaves out)" % extra)
+        return out, notes, "ligand_ions"
+
+    def _recipe_mismatch(self, command: str) -> str:
+        """Why an RBVI community recipe does not fit this request ('' when it does or cannot be checked)."""
+        m = _RECIPE_DIR_RE.search(command)
+        lib = getattr(getattr(self.executor, "knowledge", None), "recipe_library", None) if m else None
+        if not m or not lib:
+            return ""
+        entry = next((r for r in lib if str(r.get("dir", "")).lower() == m.group(1).lower()), None)
+        if not entry:
+            return ""
+        text = (getattr(self, "_turn_text", "") or "").lower()
+        what = str(entry.get("what", ""))[:160]
+        if entry.get("only_if") and not re.search(entry["only_if"], text, re.I):
+            return ("The community recipe '%s' does something else: %s Do not run it; use plain ChimeraX commands "
+                    "for what the user asked, or say ChimeraX cannot do it." % (entry.get("name", m.group(1)), what))
+
+        def words(t):
+            return {w[:5] for w in re.findall(r"[a-z][a-z0-9-]{3,}", t.lower()) if w not in _RECIPE_STOP}
+        mine = words(" ".join([str(entry.get("name", "")), str(entry.get("what", ""))] + [str(x) for x in entry.get("requests") or []]))
+        if not (words(text) & mine):
+            return ("The community recipe '%s' is unrelated to this request (%s). Do not run it; use plain ChimeraX "
+                    "commands, or say plainly that ChimeraX cannot do it." % (entry.get("name", m.group(1)), what))
+        return ""
+
+    def _run_tool_line(self, commands: List[str], at: int, name: str, args: Dict[str, Any], origin: str,
+                       preapproved: bool) -> Dict[str, Any]:
+        """A line naming one of our tools, run as that tool; the commands around it run as usual."""
+        out: Dict[str, Any] = {"ok": True, "results": []}
+        if at > 0:
+            out = self.execute_commands(commands[:at], origin, preapproved)
+            if not out.get("ok"):
+                out["not_run"] = commands[at:]
+                return out
+        res, _payload = self._dispatch(ToolCall(new_id(), name, dict(args)))
+        self._dispatched_this_turn = set(getattr(self, "_dispatched_this_turn", set())) | {name}
+        out["results"] = list(out.get("results") or [])
+        out["tool"] = name
+        out["tool_args"] = args
+        out["tool_result"] = res.content[:4000]
+        out["fixups"] = list(out.get("fixups") or []) + ["tool_as_command:" + name]
+        note = ("`%s` is a Pellaeon tool, not a ChimeraX command: it was run as the tool %s(%s); its result is in "
+                "tool_result. Do not run it again." % (commands[at].strip()[:80], name, json.dumps(args)[:200]))
+        out["note"] = (out["note"] + " " + note) if out.get("note") else note
+        if res.is_error:
+            out["ok"] = False
+            out["error"] = "The tool %s reported an error (see tool_result)." % name
+            if commands[at + 1:]:
+                out["not_run"] = commands[at + 1:]
+            return out
+        if commands[at + 1:]:
+            more = self.execute_commands(commands[at + 1:], origin, preapproved)
+            out["results"] += more.get("results") or []
+            for k, v in more.items():
+                if k in ("results", "note"):
+                    continue
+                out[k] = v if k != "fixups" else out["fixups"] + list(v)
+            if more.get("note"):
+                out["note"] += " " + more["note"]
+        return out
+
+    def _execute_commands(self, commands: List[str], origin: str = "model", preapproved: bool = False) -> Dict[str, Any]:
         if not commands:
             return {"ok": False, "results": [], "error": "No commands given."}
         blocked = None
+        dispatch = None
+        turn_text = getattr(self, "_turn_text", "") or ""
         for idx, c in enumerate(commands):
             for acc in re.findall(r"alphafold:([A-Za-z0-9]+)", c, re.I):
                 if acc.upper() not in self._verified_accessions and acc.upper() not in self._user_text_upper:
@@ -804,6 +1475,43 @@ class Agent:
                                  "commands yourself instead; if you do not know them, call search_docs or command_usage."
                                  % c.split()[1][:80], "remote_script": True})
                 break
+            if (origin == "model" and self.config.guards and _SEQ_WINDOW_RE.match(c) and _IDENTITY_ASK_RE.search(getattr(self, "_turn_text", "") or "")
+                    and not _WANTS_VIEWER_RE.search(getattr(self, "_turn_text", "") or "")):
+                if self.config.edition == "chimerax" and hasattr(self.executor, "sequence_identity"):
+                    # what was meant is the table: run the sequence_identity tool on the models it names
+                    specs = [t for t in re.split(r"[\s,]+(?=[#/])|\s+", " ".join(c.split()[2:])) if t.startswith(("#", "/"))]
+                    dispatch = (idx, "sequence_identity", {"models": " ".join(specs)})
+                    break
+                blocked = (idx, {"error": "For sequence identity call the sequence_identity tool: it aligns every pair and "
+                                 "returns a table without opening any window. `%s` opens a viewer window." % c.strip()[:60],
+                                 "window": True})
+                break
+            if origin == "model" and self.config.guards and _WINDOW_CMD_RE.match(c) and len(getattr(self, "_windows_this_turn", [])) >= WINDOW_CAP:
+                blocked = (idx, {"error": "This request already opened %d tool windows (%s). Do not open more: report what "
+                                 "you have, or use close_windows if the user wants them gone."
+                                 % (len(self._windows_this_turn), ", ".join(sorted(set(self._windows_this_turn)))),
+                                 "window": True})
+                break
+            if origin == "model" and self.config.guards and getattr(self, "_overlay_done", "") and _REDO_OVERLAY_RE.match(c):
+                blocked = (idx, {"error": "%s already colored the model and drew the key and title. Do not redo or restyle "
+                                 "that: report its result (the legend text it returned) to the user now." % self._overlay_done,
+                                 "scope": True})
+                break
+            if origin == "model" and self.config.guards and _TERMINUS_RE.search(c):
+                blocked = (idx, {"error": "A bare :end/:first/:last matches nothing (silently; ranges like :70-end do work). "
+                                 "Use the residue numbers: %s" % self._chain_ranges_text(), "terminus": True})
+                break
+            if (origin == "model" and self.config.guards and w not in _NO_CHAIN_CHECK and _CHAIN_SPEC_RE.search(c) and any(first_word(x) == "open" for x in commands[:idx])
+                    and not _USER_CHAINS_RE.search(getattr(self, "_turn_text", "") or "")):
+                blocked = (idx, {"error": "You just opened a structure and guessed its chain letters. Call get_state to see "
+                                 "its chains and what each one is, then run the chain commands.", "chains_unchecked": True})
+                break
+            if (origin == "model" and self.config.guards and w == "preset" and self.config.initiative != "initiative"
+                    and not _PRESET_ASK_RE.search(getattr(self, "_turn_text", "") or "")):
+                blocked = (idx, {"error": "Do not use a preset: it changes lighting, colors and styles the user did not ask "
+                                 "about. Run only the command for what was asked (e.g. `set bgColor white`, "
+                                 "`style #1 stick`, `lighting soft`).", "scope": True})
+                break
             if origin == "model" and _looks_like_prose(c):
                 # the model put its own reasoning into the commands list ("Wait, no. Let me re-read...")
                 blocked = (idx, {"error": "That is a sentence, not a ChimeraX command: %r. Put only commands in the "
@@ -820,10 +1528,43 @@ class Agent:
                            "cannot do it, and that they can save an image themselves and send it from their own email or file "
                            "manager. Do not run any other command in its place.", "impossible": True})
                 break
+            if origin == "model" and self.config.guards and getattr(self, "_dont_run", False):
+                blocked = (idx, {"error": "The user asked to be told the command, not to have it run. Run nothing: give the "
+                                 "command(s) in your reply.", "dont_run": True})
+                break
+            if origin == "model" and self.config.guards and getattr(self, "_question_only", False) and _SCENE_CMD_RE.match(c) \
+                    and w not in _TOOL_NAMES:
+                blocked = (idx, {"error": "The user asked a question and did not ask to change anything. Answer in words. Commands "
+                                 "that only read or measure are fine (info residues, measure, log metadata, distance, angle, "
+                                 "select); `%s` changes the display." % c.strip()[:60], "question": True})
+                break
+            if origin == "model" and self.config.guards and _UNASKED_WINDOW_RE.match(c) and not _ASKS_WINDOW_RE.search(turn_text):
+                blocked = (idx, {"error": "`%s` opens a tool window the user did not ask for. Do the task without it (a morph "
+                                 "plays by itself, replay it with `coordset #N`; residue names and numbers come from "
+                                 "`info residues`)." % c.strip()[:60], "window": True})
+                break
+            if origin == "model" and self.config.guards and w == "open" and getattr(self, "_failed_opens", None):
+                mo = _OPEN_ID_RE.match(c)
+                if mo and mo.group(1).lower() not in self._failed_opens and not re.search(r"\b%s\b" % re.escape(mo.group(1)), turn_text, re.I):
+                    blocked = (idx, {"error": "%s could not be opened. Do not open a different entry in its place: tell the user "
+                                     "it could not be fetched and to check the ID." % ", ".join(sorted(self._failed_opens)),
+                                     "substitute": True})
+                    break
+            if origin == "model" and self.config.guards and w == "open" and _RBVI_RECIPE_RE.search(c):
+                why = self._recipe_mismatch(c)
+                if why:
+                    blocked = (idx, {"error": why, "recipe": True})
+                    break
             if w in _TOOL_NAMES:
+                parsed = parse_tool_line(c) if (origin == "model" and self.config.guards) else None
+                if parsed:
+                    dispatch = (idx, parsed[0], parsed[1])
+                    break
                 blocked = (idx, {"error": "'%s' is one of YOUR TOOLS, not a ChimeraX command. Call the tool "
                            "named %s with its arguments instead of running it as text." % (w, w), "tool_misuse": w})
                 break
+        if dispatch is not None:
+            return self._run_tool_line(commands, dispatch[0], dispatch[1], dispatch[2], origin, preapproved)
         if blocked is not None:
             # The batch used to be discarded whole: asked to "open the AlphaFold model of ADRB2 and show
             # its variants", a model that wrote `annotate ...` as text lost the `open` in front of it too,
@@ -840,6 +1581,19 @@ class Agent:
                 out["error"] = err["error"]
             return out
 
+        if origin == "model" and self.config.guards:
+            ask = self._ambiguous_it(commands)
+            if ask:
+                self._ambiguous_fired = True
+                return {"ok": False, "results": [], "error": ask, "ambiguous": True}
+            commands, order_note = self._broad_first(commands)
+        else:
+            order_note = ""
+        open_notes = []
+        if origin == "model" and self.config.edition == "chimerax" and self.config.guards:
+            commands, open_notes = self._drop_duplicate_opens(commands)
+            if not commands:
+                return {"ok": True, "results": [], "note": " ".join(open_notes)}
         if self.config.edition == "chimerax":
             commands = self._one_legend(commands)
         if self.config.readable_labels and self.config.edition == "chimerax" and any(_DISTANCE_RE.match(c) for c in commands):
@@ -893,6 +1647,8 @@ class Agent:
             if not commands:
                 return {"ok": False, "results": [], "error": "The user removed all commands.", "skipped": True}
         results = self.executor.run_commands(commands)
+        self._windows_this_turn = list(getattr(self, "_windows_this_turn", [])) + [
+            t for t in (getattr(self.executor, "last_new_tools", None) or []) if t not in _HARMLESS_TOOLS]
         bad = next((r for r in results if not r.get("ok") and str(r.get("command", "")).startswith("2dlabels change pellaeon_title ")), None)
         if bad is not None:      # the title Pellaeon remembered was deleted by hand: make it afresh
             commands = [("2dlabels create pellaeon_title " + c[len("2dlabels change pellaeon_title "):]) if c == bad["command"] else c
@@ -904,6 +1660,10 @@ class Agent:
         for r in results:
             self.journal.append({"ts": now, "origin": origin, "command": r.get("command", ""), "ok": bool(r.get("ok")), "noop": bool(r.get("noop")),
                                  "error": r.get("error", "")})
+        for r in results:
+            mo = _OPEN_ID_RE.match(str(r.get("command", "")))
+            if mo and not r.get("ok") and _OPEN_FAILED_RE.search(str(r.get("error", ""))):
+                self._failed_opens = set(getattr(self, "_failed_opens", set())) | {mo.group(1).lower()}
         ok = all(r.get("ok") for r in results) and len(results) == len(commands)
         out: Dict[str, Any] = {"ok": ok, "results": results}
         if not ok:
@@ -921,7 +1681,8 @@ class Agent:
                     if usage:
                         out["usage_of_%s" % word] = usage[:1500]
                 tip = suggest(failed[0].get("command", ""), failed[0].get("error", "")) if self.config.edition == "chimerax" else None
-                if self.layers and re.search(r"(?<!:):[A-Za-z_][A-Za-z0-9_]*\s*[<>=]", failed[0].get("command", "")):
+                bad_attr = re.search(r"::?([A-Za-z_][A-Za-z0-9_]*)\s*[<>=]", failed[0].get("command", ""))
+                if self.layers and bad_attr and bad_attr.group(1) not in {l.get("attr") for l in self.layers}:
                     tip = ((tip + " ") if tip else "") + "Table values are residue ATTRIBUTES, selected with two colons and the attribute name: " + \
                           ", ".join("`%s::%s>3`" % (l["model"], l["attr"]) for l in self.layers[-3:] if l.get("attr")) + \
                           ". E.g. `label %s::%s>3 residues; show %s::%s>3 atoms; style %s::%s>3 stick`." % ((self.layers[-1]["model"], self.layers[-1]["attr"]) * 3)
@@ -935,6 +1696,8 @@ class Agent:
                 out["not_run"] = remaining
         if label_notes:
             out["label_note"] = " ".join(label_notes)
+        if open_notes or order_note:
+            out["note"] = " ".join(open_notes + ([order_note] if order_note else []))
         # outcome check: a command whose spec matches nothing changed nothing, even though ChimeraX did not complain
         if self.config.edition == "chimerax" and hasattr(self.executor, "spec_atoms"):
             noops = []
@@ -1132,6 +1895,10 @@ class Agent:
                                   "'kind_changed' pairs still touch but interact differently, and contacts counted as "
                                   "unmapped were not judged at all - never describe those as lost.")
         cmds = contact_commands(res, prep["ref_spec"], prep["other_spec"])
+        out["legend"] = ("In the view: %s is light gray, %s dark gray (cartoons made transparent); red dashes and red side chains "
+                         "are contacts present in %s but lost in %s, green ones are contacts gained in %s. Say this in one "
+                         "sentence so the user can read the picture." % (prep["ref_spec"], prep["other_spec"], prep["ref_spec"],
+                                                                       prep["other_spec"], prep["other_spec"]))
         if cmds:
             col = self.execute_commands(cmds, origin="compare")
             out["drawn"] = bool(col.get("ok"))
@@ -1145,6 +1912,115 @@ class Agent:
 
 
     # ------------------------------------------------------------ published annotations
+    def _any_structure_open(self) -> bool:
+        try:
+            return any(m.get("chains") for m in ((self.executor.get_state() or {}).get("models") or []))
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _chain_ranges_text(self) -> str:
+        try:
+            models = (self.executor.get_state() or {}).get("models") or []
+        except Exception:  # noqa: BLE001
+            models = []
+        parts = ["%s/%s %s" % (m.get("id"), c.get("id"), c.get("range")) for m in models for c in (m.get("chains") or []) if c.get("range")]
+        return ("residue ranges: " + ", ".join(parts[:12]) + " (first = the lower number, last = the higher)") if parts \
+            else "call get_state for the residue range of each chain (first = its lower number, last = its higher)."
+
+    def _broad_first(self, commands: List[str]) -> Tuple[List[str], str]:
+        """Run a whole-model command before narrower ones with the same verb, so it does not undo them."""
+        out = list(commands)
+        moved = []
+        for j in range(len(out)):
+            c = out[j]
+            v = first_word(c)
+            if v not in _ORDER_VERBS or _NARROW_SPEC_RE.search(c.split(None, 1)[1] if " " in c.strip() else ""):
+                continue
+            i = next((k for k in range(j) if first_word(out[k]) == v and _NARROW_SPEC_RE.search(out[k])), None)
+            if i is not None:
+                out.insert(i, out.pop(j))
+                moved.append(c.strip())
+        if not moved:
+            return commands, ""
+        return out, "Ran %s before the narrower %s commands, so it does not undo them." % (
+            ", ".join("`%s`" % m for m in moved), first_word(moved[0]))
+
+    def _ambiguous_it(self, commands: List[str]) -> Optional[str]:
+        """Several structures open, nothing opened or named in the last two requests, the user says "it": ask which."""
+        text = getattr(self, "_turn_text", "") or ""
+        if (not getattr(self, "_no_recent_focus", False) or not _PRONOUN_RE.search(text) or _WHICH_NAMED_RE.search(text)
+                or len(re.findall(r"[A-Za-z']+", text)) > 10
+                or not any(first_word(c) in _ACTION_VERBS for c in commands) or any(first_word(c) == "open" for c in commands)
+                or self._tool_called_since(max(0, len(self.conversation) - 6), "ask_user")):
+            return None
+        try:
+            st = self.executor.get_state() or {}
+        except Exception:  # noqa: BLE001
+            return None
+        structs = [m for m in (st.get("models") or []) if m.get("type") in ("AtomicStructure", None) and m.get("chains")]
+        if len(structs) < 2 or (st.get("selection") or {}).get("num_atoms"):
+            return None
+        names = [m.get("name", "") for m in structs]
+        if any(n and n.lower() in text.lower() for n in names):
+            return None
+        opts = ", ".join("%s %s" % (m.get("id"), m.get("name", "")) for m in structs[:4])
+        return ("%d structures are open (%s) and the user said \"it\" without saying which. Call ask_user now with "
+                "those as options plus 'all of them'; do not guess." % (len(structs), opts))
+
+    def _drop_duplicate_opens(self, commands: List[str]) -> Tuple[List[str], List[str]]:
+        """Drop `open <id>` / `open alphafold:<acc>` / `alphafold fetch <acc>` for something already open
+        (unless the user asked for another copy) and say which model to use instead."""
+        if not any(_OPEN_TARGET_RE.match(c) for c in commands) or _OPEN_AGAIN_RE.search(getattr(self, "_turn_text", "") or ""):
+            return commands, []
+        try:
+            models = (self.executor.get_state() or {}).get("models") or []
+        except Exception:  # noqa: BLE001
+            return commands, []
+        names = [(str(m.get("id", "")), str(m.get("name", "")).lower()) for m in models]
+        kept, notes, seen = [], [], set()
+        for c in commands:
+            m = _OPEN_TARGET_RE.match(c)
+            if not m:
+                kept.append(c)
+                continue
+            pdb, acc = (m.group(1) or "").lower(), (m.group(2) or m.group(3) or "").lower()
+            key = pdb or acc
+            hit = next((mid for mid, n in names if (pdb and (n == pdb or n.startswith(pdb + " ")))
+                        or (acc and ("alphafold " + acc) in n)), None)
+            if key in seen:
+                notes.append("Skipped `%s`: it is already being opened in this batch." % c.strip())
+                continue
+            seen.add(key)
+            if hit is None or re.search(r"\b%s\b" % re.escape(key), getattr(self, "_turn_text", "") or "", re.I):
+                kept.append(c)      # not open, or the user asked for it by name: their call
+                continue
+            if m.group(3) and re.search(r"\bpae\b", c, re.I):
+                notes.append("Skipped `%s`: %s is already open as %s. For its PAE use `alphafold pae %s` (add "
+                             "colorDomains true for domains)." % (c.strip(), key.upper(), hit, hit))
+            else:
+                notes.append("Skipped `%s`: %s is already open as %s. Work on %s; do not open another copy."
+                             % (c.strip(), key.upper(), hit, hit))
+        return kept, notes
+
+    def _source_guard(self, source: str) -> Optional[str]:
+        """One per-residue data source per request unless the user named more: refuse a source the user did not
+        ask for when they named another one, or a second coloring on top of the first. Returns an error or None."""
+        text = getattr(self, "_turn_text", "") or ""
+        if not text or not self.config.guards:   # `pellaeon tool ...` commands: the user picked the tool themselves
+            return None
+        named = [k for k, rx in _SOURCE_NAMED_RE.items() if rx.search(text)]
+        if named and source not in named:
+            return ("The user asked for %s, not %s. Use %s instead, and nothing else."
+                    % (" and ".join(_SOURCE_LABEL[n] for n in named), _SOURCE_LABEL[source], _SOURCE_HOW[named[0]]))
+        done = [d for d in getattr(self, "_coloring_sources", []) if d != source]
+        if done and source not in named:
+            return ("This request already used %s. The user did not ask for %s as well: report that result now. You may "
+                    "mention in one sentence that %s is also available, without running it."
+                    % (_SOURCE_LABEL[done[0]], _SOURCE_LABEL[source], _SOURCE_LABEL[source]))
+        if source not in getattr(self, "_coloring_sources", []):
+            self._coloring_sources = list(getattr(self, "_coloring_sources", [])) + [source]
+        return None
+
     def _fetch_annotation(self, source: str, protein: str, model: str, chain: str) -> Dict[str, Any]:
         """AlphaMissense or ConSurf as a table overlay: the dataset lands in self.tables like a
         user-loaded CSV, so placement, the key, the layers list and the figure legend come for free."""
@@ -1438,6 +2314,50 @@ class Agent:
         parts.append("")
         parts.append("_Draft written from the recorded commands; edit before use._")
         return "\n".join(parts)
+
+    def _refreshed_context(self, ctx: str) -> str:
+        """The turn's context with its state block brought up to date. A nudge used to carry the state from before
+        the turn ('No models are open' after the model had opened two) and the model believed it."""
+        try:
+            state = self.executor.get_state()
+            if self.tables and isinstance(state, dict):
+                state["tables"] = self._tables_state()
+            fresh = "<chimerax_state>\n%s\n</chimerax_state>" % prompt_mod.format_state(state or {})
+        except Exception:  # noqa: BLE001
+            return ctx
+        if ctx and "<chimerax_state>" in ctx:
+            return re.sub(r"<chimerax_state>\n.*?\n</chimerax_state>", lambda _m: fresh, ctx, count=1, flags=re.S)
+        return fresh
+
+    def _text_since(self, start_len: int) -> str:
+        """The last non-empty assistant text of this turn ('' if the model said nothing in words)."""
+        for m in reversed(self.conversation[start_len:]):
+            if m.role == "assistant":
+                t = m.text().strip()
+                if t:
+                    return t
+        return ""
+
+    def _commands_ran_since(self, start_len: int) -> bool:
+        since = (getattr(self, "_turn_starts", []) or [0.0])[-1]
+        return any(j.get("ok") and not j.get("noop") and float(j.get("ts", 0)) >= since for j in self.journal[-40:])
+
+    _CLAIM_RE = re.compile(r"\b(i'?ve|i have|has been|have been|is now|are now|now (shown|colou?red|displayed|hidden|visible))\b", re.I)
+    _REFUSAL_RE = re.compile(r"\b(cannot|can'?t|can not|unable|not (possible|able|supported|available)|no (such|built-?in|way|command)|"
+                             r"does ?n[o']?t (support|have|exist|offer|provide)|isn'?t (possible|supported|available))\b", re.I)
+
+    def _fallback_wanted(self, text: str) -> bool:
+        """The commands-only fallback is for a model that meant to act: it said nothing, announced or claimed an action,
+        or wrote the commands as text. A reply that explains why it cannot be done is an answer, not a failed call."""
+        t = (text or "").strip()
+        if not t:
+            return True
+        if self._REFUSAL_RE.search(t):
+            return False
+        if _ANNOUNCE_RE.search(t) or self._CLAIM_RE.search(t):
+            return True
+        known = self._known_commands()
+        return any(first_word(x) in known for x in re.findall(r"`([^`\n]+)`", t)) if known else False
 
     def _tool_calls_since(self, start_len: int) -> List[ToolCall]:
         out: List[ToolCall] = []
@@ -1744,6 +2664,9 @@ class Agent:
             out["legend"] = "red = pathogenic, orange = likely pathogenic, yellow = uncertain, cyan/blue = (likely) benign"
             self.figure_notes.append("ClinVar variants of %s: %s" % (gene, out["legend"]))
             out["pathogenic"] = [it["label"] for it in items if it.get("pathogenic")][:40]
+            # which disease each pathogenic variant is recorded for, so "which of these cause X" is answered from data
+            out["conditions"] = dict(list({it["label"]: it["conditions"] for it in items
+                                           if it.get("pathogenic") and it.get("conditions")}.items())[:40])
             out["by_significance"] = {}
             for it in items:
                 out["by_significance"][it["type"]] = out["by_significance"].get(it["type"], 0) + 1

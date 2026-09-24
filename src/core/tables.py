@@ -150,7 +150,10 @@ def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str
             if m and (m["chain"], int(m["number"])) in residues:
                 targets = [(m["chain"], int(m["number"]))]
         else:
-            cs = [row["chain"]] if row.get("chain") else (chains or all_chains)
+            # a chain letter the model lacks (ConSurf grades for 8XOR chain R placed on a one-chain model whose
+            # chain is A) falls back to the only chain, or to every chain
+            wanted = [c for c in (chains or []) if c in all_chains] or all_chains   # an asked-for chain the model lacks: every chain
+            cs = [row["chain"]] if row.get("chain") and row["chain"] in all_chains else wanted
             targets = [(c, row["position"]) for c in cs if (c, row["position"]) in residues]
         if not targets:
             missing.append(row["position"])
@@ -172,7 +175,20 @@ def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str
         vals = list(assign.values())
         lo, hi = min(vals), max(vals)
         pal = PALETTES.get(palette, palette or "blue:white:red")
-        if edition == "chimerax":
+        if edition == "chimerax" and palette == "consurf":
+            # ConSurf grades are nine bins with fixed colors, not a gradient: one color per grade, and a
+            # key with distinct blocks labelled 1 (variable) to 9 (conserved), as ConSurf itself draws it
+            stops = pal.split(":")
+            cmds.append("color %s gray target ac" % model)
+            for grade, colour in enumerate(stops, start=1):
+                cmds.append("color %s::%s=%d %s target ac" % (model, attr, grade, colour))
+            cmds.append("color %s::%s=0 #FFFF96 target ac" % (model, attr))   # ConSurf's yellow: too few sequences at that position
+            cmds.append("key %s #FFFF96:? colorTreatment distinct pos 0.30,0.075 size 0.40,0.04 fontSize 20"
+                        % " ".join("%s:%d" % (c, g) for g, c in enumerate(stops, start=1)))
+            cmds.append('2dlabels create pellaeon_title text "ConSurf conservation: 1 variable ... 9 conserved; ? = too few sequences; gray = no data" xpos 0.30 ypos 0.165 size 20 color black')
+            cmds.append('view %s' % model)
+            cmds.append('zoom 0.85')
+        elif edition == "chimerax":
             cmds.append("color byattribute r:%s %s palette %s range %g,%g target ac novalue gray" % (attr, model, pal, lo, hi))
             stops = pal.split(":")
             if len(stops) >= 2 and hi > lo:
@@ -181,7 +197,11 @@ def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str
                 cmds.append('2dlabels create pellaeon_title text "%s (gray = no value)" xpos 0.30 ypos 0.165 size 20 color black' % _title_words(attr))
                 cmds.append('view %s' % model)   # fit what was colored, then leave the legend its own band
                 cmds.append('zoom 0.85')
-        legend = "%s from %g (low) to %g (high), palette %s; residues without a value gray" % (attr, lo, hi, palette)
+        if palette == "consurf":
+            legend = ("ConSurf grades in ConSurf's own nine colors: 1 = variable (teal) through 5 = average (white) to 9 = conserved "
+                      "(maroon); residues without data gray. Say 'teal to maroon', not 'blue to red'.")
+        else:
+            legend = "%s from %g (low) to %g (high), palette %s; residues without a value gray" % (attr, lo, hi, palette)
     else:
         cats = sorted({str(v) for v in assign.values()})
         colors = {c: CATEGORY_COLORS[i % len(CATEGORY_COLORS)] for i, c in enumerate(cats)}

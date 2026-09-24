@@ -519,14 +519,116 @@ def test_rerun_path_uses_execute_commands_and_journal():
     assert out["ok"] and agent.journal[-1]["origin"] == "rerun"
 
 
-def test_tool_name_typed_as_command_is_refused():
+def test_tool_name_typed_as_command_runs_the_tool():
+    """gemma wrote `annotate #1 model P68871 kind clinvar` as a command, was told to call the tool, and wrote it again."""
     prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["annotate #1 model P68871 kind clinvar"]})]}, "ok"])
     ex = FakeExecutor()
+    started = []
+    agent = Agent(prov, ex, config=AgentConfig(nudge_on_no_action=False), callbacks=Callbacks(on_tool_start=lambda c: started.append((c.name, dict(c.args)))))
+    seen = {}
+    agent._annotate = lambda model, acc, kind, color, label: seen.update(model=model, acc=acc, kind=kind) or {"ok": True, "commands": []}
+    agent.run_turn("show the clinvar variants")
+    assert ex.ran == []
+    assert ("annotate", {"model": "#1", "accession": "P68871", "kind": "clinvar"}) in started
+    assert seen == {"model": "#1", "acc": "P68871", "kind": "clinvar"}
+    tr = json.loads(agent.conversation[2].tool_results_list()[0].content)
+    assert tr["tool"] == "annotate" and "tool_as_command:annotate" in tr["fixups"]
+
+
+def test_tool_name_without_its_required_arguments_is_still_refused():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["fetch_annotation source=alphamissense"]})]}, "ok"])
+    ex = FakeExecutor()
     agent = Agent(prov, ex, config=AgentConfig(nudge_on_no_action=False))
-    agent.run_turn("show variants")
+    agent.run_turn("color by alphamissense")
     assert ex.ran == []
     tr = json.loads(agent.conversation[2].tool_results_list()[0].content)
-    assert tr["tool_misuse"] == "annotate" and "YOUR TOOLS" in tr["error"]
+    assert tr["tool_misuse"] == "fetch_annotation" and "YOUR TOOLS" in tr["error"]
+
+
+class ToolLineExecutor(FakeExecutor):
+    def __init__(self):
+        super().__init__()
+        self.calls = []
+
+    def membrane_orient(self, model, pdb=None, slabs=True):
+        self.calls.append(("membrane_view", model))
+        return {"ok": True, "model": model}
+
+    def gpcr_states(self, protein, open_states=None):
+        self.calls.append(("gpcr_states", protein, list(open_states or [])))
+        return {"ok": True, "protein": protein}
+
+    def view_axis(self, model="", axis="short"):
+        self.calls.append(("view_axis", model, axis))
+        return {"ok": True}
+
+
+def test_view_axis_is_dispatched_as_a_tool_and_as_a_typed_line():
+    ex = ToolLineExecutor()
+    agent = Agent(ScriptedProvider([]), ex, config=AgentConfig(nudge_on_no_action=False))
+    agent._turn_text = "look down the long axis of the ring"
+    agent._dispatch(ToolCall("t1", "view_axis", {"model": "#2", "axis": "Long"}))
+    agent.execute_commands(["view_axis #2 axis short"])
+    assert ex.calls == [("view_axis", "#2", "long"), ("view_axis", "#2", "short")]
+
+
+def test_the_four_tool_lines_seen_in_a_gui_session_are_dispatched():
+    """Live GUI session, gemma4:12b: these lines came inside run_commands, three times each, until the retries ran out."""
+    lines = ["membrane_view #1", "gpcr_states protein=P25116", "gpcr_states protein=P25116 open_states=[inactive,active]",
+             "fetch_annotation protein=3vw7 source=conservation"]
+    ex = ToolLineExecutor()
+    agent = Agent(ScriptedProvider([]), ex, config=AgentConfig(nudge_on_no_action=False))
+    fetched = []
+    agent._fetch_annotation = lambda source, protein, model, chain: fetched.append((source, protein, model)) or {"ok": True, "commands": []}
+    agent._turn_text = "orient it in the membrane, show the receptor states and color by conservation"
+    for line in lines:
+        out = agent.execute_commands([line])
+        assert out.get("tool") == line.split()[0], out
+        assert "tool_misuse" not in out and "tool_as_command:" + line.split()[0] in out["fixups"]
+    assert ex.calls == [("membrane_view", "#1"), ("gpcr_states", "P25116", []), ("gpcr_states", "P25116", ["inactive", "active"])]
+    assert fetched == [("conservation", "3vw7", "#1")]
+    assert ex.ran == []
+
+
+def test_tool_line_between_commands_keeps_the_commands_around_it():
+    ex = ToolLineExecutor()
+    agent = Agent(ScriptedProvider([]), ex, config=AgentConfig(nudge_on_no_action=False))
+    agent._turn_text = "open it, orient it in the membrane, color it white"
+    out = agent.execute_commands(["open 2rh1", "membrane_view #1", "color #1 white"])
+    assert ex.ran == ["open 2rh1", "color #1 white"] and ex.calls == [("membrane_view", "#1")]
+    assert out["ok"] and out["tool"] == "membrane_view"
+
+
+def test_a_dispatched_tool_line_counts_as_the_tool_call_for_nudges():
+    """The identity nudge fired after `sequence identity #1,#2` had already run as the tool, re-sending the turn's
+    first state block ('no models are open'); the model then told the user nothing was open."""
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["sequence identity #1,#2"]})]}, "They are 100% identical."])
+    ex = FakeExecutor()
+    ex.sequence_identity = lambda spec="", chain=None: {"pairs": [{"a": "#1/A", "b": "#2/A", "identity_percent": 100.0}]}
+    agent = Agent(prov, ex)
+    res = agent.run_turn("what is the sequence identity of the two")
+    assert res.reply == "They are 100% identical." and len(prov.requests) == 2
+
+
+def test_a_nudge_carries_the_current_state_not_the_turns_first():
+    prov = ScriptedProvider([{"calls": [("run_commands", {"commands": ["open 1abc", "cartoon #1/B"]})]}, "Done.",
+                             {"calls": [("run_commands", {"commands": ["hide #1 target acs", "cartoon #1/B"]})]}, "Done."])
+    ex = FakeExecutor()
+    agent = Agent(prov, ex)
+    agent.run_turn("open 1abc and show only chain B")
+    nudges = [m for m in agent.conversation if m.role == "user" and m.text().startswith("(system)")]
+    assert nudges and "1abc" in nudges[0].meta["context"] and "No models are open" not in nudges[0].meta["context"]
+
+
+def test_parse_tool_line_reads_specs_pairs_and_lists():
+    from core.agent import parse_tool_line
+    assert parse_tool_line("compare_structures #1 #2 chain A") == ("compare_structures", {"reference": "#1", "other": "#2", "chain": "A"})
+    assert parse_tool_line("explain_residue #1/A:87") == ("explain_residue", {"residue": "#1/A:87"})
+    assert parse_tool_line("sequence_identity #1 #2 #3") == ("sequence_identity", {"models": "#1 #2 #3"})
+    # "#1,#2" is read by ChimeraX as #1 plus a leftover: the tool then saw one chain and "nothing to compare"
+    assert parse_tool_line("sequence_identity #1,#2") == ("sequence_identity", {"models": "#1 #2"})
+    assert parse_tool_line("color #1 red") is None
+    assert parse_tool_line("run_commands color red") is None
 
 
 def test_the_wizard_offers_the_free_options_first():
@@ -614,7 +716,8 @@ def test_table_attribute_selector_hint_after_failed_command():
     prov = ScriptedProvider([{"calls": [("table_overlay", {"column": "score"})]},
                              {"calls": [("run_commands", {"commands": ["label #1:score>0.5 residues"]})]},
                              {"calls": [("run_commands", {"commands": ["label #1::pellaeon_scores_score>0.5 residues"]})]}, "Labeled."])
-    ex = FakeExecutor(fail=("label #1:score>0.5 residues",))
+    # the single colon is rewritten to the attribute form (::score), which still names no registered attribute
+    ex = FakeExecutor(fail=("label #1::score>0.5 residues",))
     agent = Agent(prov, ex)
     agent.tables = _loaded_table()
     res = agent.run_turn("label residues with score above 0.5")
@@ -945,9 +1048,10 @@ def test_commands_before_a_misused_tool_name_still_run():
     open as well, and the model then said the structure was open when nothing was."""
     ex = FakeExecutor()
     agent = Agent(ScriptedProvider([]), ex)
-    out = agent.execute_commands(["open 1ubq", "color red", "annotate #1 accession P1 kind domain", "view"])
+    # (a tool line whose arguments can be read is run as the tool now; this one lacks its protein)
+    out = agent.execute_commands(["open 1ubq", "color red", "fetch_annotation source=alphamissense", "view"])
     assert ex.ran == ["open 1ubq", "color red"]          # the prefix ran
-    assert out["ok"] is False and out.get("tool_misuse") == "annotate"
+    assert out["ok"] is False and out.get("tool_misuse") == "fetch_annotation"
     assert [r["command"] for r in out["results"]] == ["open 1ubq", "color red"]
     assert [j["command"] for j in agent.journal] == ["open 1ubq", "color red"]   # and was journalled
 
@@ -955,8 +1059,8 @@ def test_commands_before_a_misused_tool_name_still_run():
 def test_a_misused_tool_name_first_still_runs_nothing():
     ex = FakeExecutor()
     agent = Agent(ScriptedProvider([]), ex)
-    out = agent.execute_commands(["annotate #1 accession P1 kind domain", "color red"])
-    assert ex.ran == [] and out["ok"] is False and out.get("tool_misuse") == "annotate"
+    out = agent.execute_commands(["fetch_annotation source=alphamissense", "color red"])
+    assert ex.ran == [] and out["ok"] is False and out.get("tool_misuse") == "fetch_annotation"
 
 
 def test_annotate_says_so_when_the_model_is_not_open():

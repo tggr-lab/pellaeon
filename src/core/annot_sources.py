@@ -40,7 +40,9 @@ _AA3_TO_1 = {"ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C", "GLN": 
              "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V"}
 _VARIANT_RE = re.compile(r"^([A-Z])(\d+)([A-Z])$")
 # POS SEQ ATOM SCORE COLOR ... ; ATOM is "MET:1:A" (or "MET:1:A " padded), COLOR may carry a trailing *
-_GRADE_RE = re.compile(r"^\s*(\d+)\s+(\w)\s+([A-Z]{3}):(-?\d+[A-Za-z]?):(\w)\s+(-?\d+\.\d+)\s+(\d)\s*\*?")
+_GRADE_RE = re.compile(r"^\s*(\d+)\s+(\w)\s+([A-Z]{3}):(-?\d+[A-Za-z]?):(\w)\s+(-?\d+\.\d+)\s+(\d)\s*(\*?)")
+_MSA_DEPTH_RE = re.compile(r"\b(\d+)/(\d+)\b")     # "3/25": sequences with data at this position / MSA depth
+INSUFFICIENT_COLOR = "#FFFF96"                       # ConSurf's own yellow for positions it marks with *
 
 
 def am_class(score: float) -> str:
@@ -196,30 +198,49 @@ def conservation(accession_or_pdb: str, chain: str = "", cache_dir: Optional[str
         final = request_json("GET", "%s/get_final_data/?unique_pdb=%s&identical_pdb=%s&identical_chain=%s"
                              % (_CONSURF, pdb, rep_pdb, rep_chain), timeout=timeout)
         score_url = final.get("Score_File")
+        # ConSurf-DB also ships ready-made sessions (regular and color-blind-safe palettes); worth telling the user
+        extras = {k: final.get(v) for k, v in (("consurf_chimerax_session", "chimera_file"), ("consurf_cbs_chimerax_session", "CBS_chimera_file"),
+                                              ("scores_in_bfactor_pdb", "model_with_scores")) if final.get(v)}
         if not score_url:
             return {"error": "ConSurf-DB returned no grades file for %s chain %s." % (pdb, chain)}
         time.sleep(0.34)
-        rows = _parse_consurf_grades(request_text(score_url, timeout=timeout), chain)
+        grades_text = request_text(score_url, timeout=timeout)
+        rows = _parse_consurf_grades(grades_text, chain)
+        depth = consurf_msa_depth(grades_text)
     except Exception as e:  # noqa: BLE001
         return {"error": "ConSurf-DB request failed: %s" % e}
     if not rows:
         return {"error": "The ConSurf-DB grades file for %s chain %s had no per-residue rows." % (pdb, chain)}
-    grades = [int(r[3]) for r in rows]
+    grades = [int(r[3]) for r in rows if r[3] != "0"] or [0]
+    n_insufficient = sum(1 for r in rows if r[5] == "1")
     note = ""
     if rep_pdb.upper() != pdb:
         # ConSurf computes once per sequence cluster; the grades carry the representative's residue
         # numbers, which usually but not always equal the queried entry's.
         note = ("Grades come from the identical chain %s/%s, so residue numbers are that entry's; they match %s "
                 "only if the two entries number the sequence the same way." % (rep_pdb, rep_chain, pdb))
-    out = {"columns": ["position", "chain", "wt", "consurf_grade", "consurf_score"], "rows": rows, "delimiter": "comma",
+    out = {"columns": ["position", "chain", "wt", "consurf_grade", "consurf_score", "insufficient_data"], "rows": rows, "delimiter": "comma",
            "name": "consurf_%s_%s" % (pdb, chain), "position_numbering": "pdb", "position_column": "position",
            "source": "ConSurf-DB (Ben Chorin et al.) grades for %s chain %s" % (rep_pdb, rep_chain),
            "source_url": score_url, "palette": "consurf", "pdb": pdb, "chain": chain,
            "representative": "%s/%s" % (rep_pdb, rep_chain), "note": note,
            "n_positions": len(rows), "value_range": [min(grades), max(grades)],
-           "colors": {str(k): v for k, v in CONSURF_COLORS.items()}}
+           "colors": {str(k): v for k, v in CONSURF_COLORS.items()}, "msa_depth": depth, "n_insufficient": n_insufficient, **extras}
+    if depth and depth < 50:
+        # 3VW7's ConSurf-DB entry rests on 25 sequences: half the residues came out grade 9, many grade 4-5
+        # (white), which a reader rightly found suspicious. 8XOR chain R has 300.
+        out["warning"] = ("ConSurf-DB computed these grades from only %d sequences, so they are rough (many residues land "
+                          "in the middle grades or all at 9). Prefer another entry of the same protein with a deeper alignment, "
+                          "or run ConSurf yourself at consurf.tau.ac.il on this sequence." % depth)
+    else:
+        out["msa_note"] = "grades from a %d-sequence alignment" % depth
     _store(path, out)
     return out
+
+
+def consurf_msa_depth(text: str) -> int:
+    depths = [int(m.group(2)) for line in text.splitlines() for m in [_MSA_DEPTH_RE.search(line)] if m]
+    return max(depths) if depths else 0
 
 
 def _parse_consurf_grades(text: str, chain: str) -> List[List[str]]:
@@ -242,5 +263,7 @@ def _parse_consurf_grades(text: str, chain: str) -> List[List[str]]:
         if pos in seen:
             continue
         seen.add(pos)
-        rows.append([str(pos), chain, _AA3_TO_1.get(m.group(3), ""), m.group(7), m.group(6)])
+        insufficient = bool(m.group(8))   # ConSurf marks a grade with * when too few sequences cover the position
+        rows.append([str(pos), chain, _AA3_TO_1.get(m.group(3), ""), "0" if insufficient else m.group(7), m.group(6),
+                     "1" if insufficient else "0"])
     return rows

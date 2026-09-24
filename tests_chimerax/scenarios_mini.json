@@ -27,7 +27,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "measure the distance between residue 10 and residue 20",
+  "request": "how far is residue 10 from residue 20",
   "expected": "a distance pseudobond exists",
   "check_type": "state_expr",
   "check": "any(m.__class__.__name__ == 'PseudobondGroup' and m.num_pseudobonds > 0 for m in models)"
@@ -72,7 +72,7 @@
    "open 4hhb",
    "show atoms"
   ],
-  "request": "show only the cartoon",
+  "request": "just the cartoon, nothing else",
   "expected": "atoms hidden (cartoon remains)",
   "check_type": "state_expr",
   "check": "not any(a.display for a in atoms if a.residue.name not in ('HEM','PO4'))"
@@ -83,7 +83,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "rainbow it",
+  "request": "rainbow coloring",
   "expected": "rainbow / color sequential",
   "check_type": "commands_regex",
   "check": "rainbow|sequential"
@@ -105,7 +105,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "close everything",
+  "request": "close all of it",
   "expected": "confirmation requested",
   "check_type": "confirm_requested",
   "check": ""
@@ -116,7 +116,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "what is open?",
+  "request": "what do I have open right now",
   "expected": "answers without commands",
   "check_type": "no_commands",
   "check": ""

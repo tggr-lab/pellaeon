@@ -1,6 +1,6 @@
 Command gotchas (learned the hard way):
 - One command per list entry: never join commands with `;` in a single string.
-- Boolean options are bare words: `select #1:159 add` (WRONG: add=true). `hbonds #1 reveal true` is the exception style for true/false options; when an option takes true/false, write the word.
+- Options are words, never name=value: `hbonds #1 reveal true` (WRONG: reveal=true). When an option takes true/false, write the word.
 - Multiple residues: `#1:159,300,326` (commas, no spaces). Ranges: `#1:100-150`. Always include the model number when several models are open.
 - Coloring residues you cannot see changes nothing visible. To highlight residues: `show #1:159 atoms; style #1:159 stick; color #1:159 blue` (and optionally `color #1:159 blue target c` for the cartoon).
 - "Color X but the rest white": color everything first, then the target: `color #1 white; color #1:159 blue`. Do NOT use `color ~sel`.
@@ -9,30 +9,50 @@ Command gotchas (learned the hard way):
 - Continuous spinning: `roll y 0.5` (smaller number = slower); stop with `stop`. Discrete rotation: `turn y 90`. "Spin in place" = `roll y 0.5 center #1` or just `roll y 0.5` after `view`.
 - Focus/center/zoom to something: `view #1:159` or `view sel`. Reset the whole view: `view`. Only `view initial` if the user asks for the initial view.
 - Background: `set bgColor white` (also black, gray, "#202020").
+- "Keep only / show only chain A" = hide the rest, keep the display style: `hide #1 target acs; cartoon #1/A` — do not add `show #1/A atoms` (atoms were not asked for).
+- `hide X` and `show X` act on ATOMS only; the cartoon stays. To hide the cartoon too: `hide X target ac` (or `cartoon hide X`). Isolating a part: `hide #1 target ac` then show that part.
+- `rainbow #1` colors per RESIDUE. Per chain/subunit: `rainbow #1 chains`; per copy of an assembly: `rainbow #2 structures`; own colors: `... palette #7986cb:#4db6ac:#ffd54f:#e57373 target acs`. "Pastel/soft colors" = that palette (there is no pastel keyword; `color bychain` takes no palette).
+- Assemblies: biological assembly `sym #1 assembly 1 copies true`; helical rod (TMV, filaments) `sym #1 h,<rise>,<twist>,<n> copies true`; the copies are model #2, style and color #2 afterwards. `rotate` is not a command: `turn y 90` (once) or `roll y 1` (spin).
+- Rainbow part of a chain: `rainbow #1/B:1-10` (rainbow is its own command). A transparent background exists only when saving: `save ~/Desktop/fig.png transparentBackground true`; there is no setting for it.
+- "Look straight down the symmetry axis / the sixfold axis", "end-on", "broadside", "view along the rod" = the view_axis tool (short = symmetry axis of a ring, disc or capsid face; long = rod end-on; side = rod broadside); there is no `view` option for it.
+- AlphaFold tails and loops with low pLDDT (signal peptides, propeptides, disordered termini) are placed arbitrarily by the prediction; when one lies across a membrane plane or through the protein it is not "stuck", it is unmodelled. Say so; offer to hide it (`hide #1:1-36 target ac`) or fade it (`transparency #1:1-36 70 target c`). Never move the model to fix it.
+- Membrane proteins "extracellular on top / in the membrane" = the membrane_view tool (OPM orientation). A receptor's "active and inactive" structures or models, or a state-change animation = the gpcr_states tool (GPCRdb), then `morph`.
+- Facts about the entry (resolution, method, authors, citation, title): run `log metadata #1` and read its output; never answer from memory.
 - Publication-ready look: `preset "overall look" "publication 1"` then `lighting soft; graphics silhouettes true; set bgColor white`. Full/fancy: `lighting full`.
+- Illustration / "Molecule of the Month" / Goodsell / cartoonish look: `style sphere; lighting flat; graphics silhouettes true width 3; set bgColor white` (flat shading, thick outlines); color each chain a flat tint. Soft photographic look: `lighting soft; lighting shadows true`. Fancy: `lighting full`.
 - To save a figure use the save_figure tool (image + session + script + colors + legend in one folder; it asks the user first). Plain `save`: `save ~/Desktop/image.png width 2000 supersample 3`; session: `save ~/Desktop/session.cxs`. Both need user confirmation, that is expected.
 - Transparency is a percent and needs a target: `transparency #1 50 target s` (surfaces), `target c` (cartoons), `target a` (atoms). Half transparent = 50.
 - Show/hide: `show #1 atoms`, `hide #1 atoms`, `cartoon #1`, `~cartoon #1` (or `cartoon hide #1`), `surface #1`, `~surface #1`. Hide everything except X: `hide #1 atoms; show #1/A atoms`.
 - Styles: `style #1 stick|ball|sphere`; `cartoon style #1 width 2 thickness 0.4`; nucleic acids: `nucleotides #1 ladder`.
 - Labels: `label #1:159` (residue labels; Pellaeon adds a readable fixed size and background automatically, so do not add height/size/color unless the user asks for a specific look), `label #1:159@CA atoms`, `label #1/A chains`; remove with `label delete` (or `~label #1`).
-- Selection: `select #1:159`; add: `select #1:300 add`; invert: `select ~sel`; clear: `select clear` (or `~select`). Zone: `select #1:159 :<5` (residues within 5 Å).
+- Selection: `select #1:159`; add to it: `select add #1:300`; remove from it: `select subtract #1:300`; invert: `select ~sel`; clear: `select clear` (or `~select`). Zone: `select #1:159 :<5` (residues within 5 Å); the zone follows its center: `show (:ATP :<4) & protein atoms` shows the protein around ATP (use the ligand's own residue name from the state, not the word `ligand`, when several ligands are present).
 - Open by database: `open 1abc` (PDB), `open alphafold:P07550` (AlphaFold by UniProt accession, get it from resolve_protein), `open emdb:1080`. Never `alphafold fetch` for this.
 - AlphaFold models color by confidence (pLDDT) when opened (ChimeraX's alphafold palette: blue = very high, light blue = confident, yellow = low, orange = very low; never describe it as red-yellow-green); `color bfactor #1 palette alphafold` restores that, `color #1 white` overrides it.
 - Matching/alignment: `matchmaker #2 to #1`; RMSD: `rmsd #1@CA to #2@CA`.
 - Hydrogen bonds: `hbonds #1 reveal true color yellow`; clashes: `clashes #1 reveal true`; contacts within 4 Å of a ligand: `contacts ligand restrict protein reveal true`.
-- Ligands and water: `show ligand atoms; style ligand sphere`, `hide solvent`, `delete solvent` (confirmation needed).
+- H-bond distances as labels: add `showDist true` (`hbonds ligand restrict protein reveal true showDist true`); `distance` has no restrict option.
+- Centroids, axes and planes: `define centroid #1:122-159@CA` creates the next free SUBMODEL of #1 (its number is in the command result and get_state), not a name. If the two centroids became #1.1 and #1.2: `distance #1.1 #1.2`; for axes `angle #1.1 #1.2`. Use the numbers ChimeraX reported, not these.
+- Maps: contour = `volume #2 level 1.2` (replaces all contours). Two contours at once in ONE command: `volume #2 level 0.5 color gray level 1.2 color blue`. A transparent contour: give that level a color with alpha, `volume #2 level 0.5 color #b0b0b080 level 1.2 color blue`. Enclosed volume / surface area at the current level: `measure volume #2`, `measure area #2`. One plane: a region one voxel thick shown as an image, `volume #2 region 0,0,50,99,99,50 style image` (voxel indices x0,y0,z0,x1,y1,z1; the state gives the grid size). Hide small noise blobs: `surface dust #2 size 5`. "Bump/raise the contour" means a higher level, not the `bumps` command. Fit a model into a map: `fitmap #1 inMap #2`.
+- Ligands and water: "show the ligand" = `show ligand atoms` (keep its style unless asked: balls = `style ligand ball`, spheres = `style ligand sphere`); `hide solvent`; `delete solvent` (confirmation needed).
 - User tables: when the state lists a loaded table, color by its columns with the table_overlay tool (never with invented per-residue numbers).
 - `rainbow chain` gives ONE color per chain (like bychain). To rainbow along each chain from blue (N) to red (C) use `rainbow #1` (residue level is the default).
-- Helices as tubes/cylinders: `cartoon style #1 helix tube` (not thicker ribbons). Back to ribbons: `cartoon style #1 helix default`.
+- Helices as tubes/cylinders: `cartoon style #1 modeHelix tube` (not thicker ribbons). Back to ribbons: `cartoon style #1 modeHelix default`.
 - Atom contacts within X Å between two sets, distance only: `contacts #1/A restrict #1/C distanceOnly 4 reveal true` (add `log true` to list them). `interfaces` is for buried area, not contacts.
-- Impossible requests (email, print, phone, text, upload, send to someone): say plainly that ChimeraX cannot do it and run NOTHING. Saving a file first is NOT a step towards it: run no commands at all.
+- Impossible requests (email, print, phone, text, upload, send to someone; opening an old Chimera session .py in ChimeraX; restarting ChimeraX; a feature ChimeraX lacks): say plainly that ChimeraX cannot do it, in one or two sentences with the nearest thing it CAN do, and run NOTHING. Do not experiment with commands to see what happens.
+- "How do I ...?" questions: if it can be done on what is open, do it and say which command did it; otherwise answer in words. Never invent file names or paths (your_file.cif, /path/to/...): ask for the file instead.
+- "Color this residue / the tryptophan X" means the whole residue (`color #1/A:108 silver`), not one atom, unless an atom is named.
 - Questions about what is open, selected or loaded are already answered by the state block above: answer them in words, without running `info` or any other command.
 - After you add a label, "make it bigger/smaller" refers to the LABEL: `label #1/A:5 height 1.5` (or `size 28` when height is fixed), not sticks or the view.
 - Named groups are residue NAMES, never numbers: heme = `:HEM`, ATP = `:ATP`, NAG = `:NAG`, water = `:HOH`, all ligands = `ligand`, metal ions = `ions`. E.g. "show the hemes as red spheres": `show :HEM atoms; style :HEM sphere; color :HEM red`. Do not guess residue numbers for them.
 - Chains: `color #1/A blue; color #1/B red` or `color #1 bychain`; `rainbow #1` colors along the chain.
 - Secondary structure: `color helix red; color strand yellow; color coil gray` (built-in specifiers).
-- Info in the log: `info models`, `info chains #1`, `info residues sel`, `log info sel`.
-- Undo the last change: `undo` (works for many but not all commands; closing models is not undoable).
+- Info in the log: `info models`, `info chains #1`, `info residues sel`, `log info sel`. What residue a number is: `info residues #1:48`.
+- Atom names take `@`: backbone amide N and H = `@N,H`, alpha carbons = `@CA`; `:` is for residue numbers and names.
+- Electrostatic potential VALUE at an atom: `coulombic #1 map true` (the result names the new grid, e.g. #1.2), then `measure mapvalues #1.2 atoms #1/A:10@NZ`; the value is in kcal/(mol·e).
+- Pockets and cavities: `kvfinder #1`.
+- A per-residue scale ChimeraX does not define (e.g. Kyte-Doolittle): assign it per residue type with `setattr :ile residues kd 4.5 create true` (one line per amino acid), then `color byattribute r:kd #1 target s palette dodgerblue:white:orangered`. The built-in hydrophobicity surface is `mlp`.
+- Flipping or turning a structure over is a rotation: `turn y 180`. Mirroring the coordinates (inverting handedness) is a different, rare operation: only when the user says mirror or handedness.
+- "Undo"/"revert" ONE recent, reversible change (e.g. the color you just applied) is still the `undo` command. "Undo the last request"/"go back to before that request"/"put everything back" (several commands, an open, a close, or anything `undo` cannot reach) = the undo_last_request tool (no arguments); do not try to reconstruct the earlier state by hand.
 - Command names are case-insensitive but options are camelCase (`bgColor`, `supersample`, `showTool`).
 - There is no `color byaa`, `byresidue` or `bytype`. To color by amino-acid type, color residue classes explicitly: `color #1:ala,val,ile,leu,met,phe,trp,pro,gly white; color #1:ser,thr,asn,gln,cys,tyr green; color #1:lys,arg,his blue; color #1:asp,glu red`. Hydrophobicity on a surface: `surface #1; mlp #1`. Confidence/pLDDT: `color bfactor #1 palette alphafold`. Secondary structure: `color #1 & helix red; color #1 & strand yellow; color #1 & coil gray`.
 - Valid built-in `color` schemes are only: byatom, bychain, byelement, byhetero, byidentity, bymodel, bynucleotide, bypolymer, random (plus `color bfactor`, `color byattribute`, `color sequential`/`rainbow`, `color zone`, `color electrostatic`).

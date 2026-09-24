@@ -49,7 +49,8 @@ def uniprot_items(feats: Dict[str, Any], only_disease: bool) -> List[Dict[str, A
 def clinvar_items(data: Dict[str, Any]) -> List[Dict[str, Any]]:
     from .clinvar import color_for
     return [{"type": v["significance"], "positions": [v["position"]], "label": "%s%d%s" % (v["ref"], v["position"], v["alt"]),
-             "description": v["significance"], "single": True, "ref": v["ref"], "color": color_for(v["significance"]),
+             "description": v["significance"] + (" (%s)" % "; ".join(v["conditions"]) if v.get("conditions") else ""),
+             "conditions": v.get("conditions") or [], "single": True, "ref": v["ref"], "color": color_for(v["significance"]),
              "pathogenic": v["significance"].lower().startswith(("pathogenic", "likely pathogenic"))}
             for v in data.get("variants", [])]
 

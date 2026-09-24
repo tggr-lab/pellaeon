@@ -21,6 +21,7 @@ try:  # inside the ChimeraX bundle (package chimerax.pellaeon)
     from .core.providers.base import ProviderError
     from .core.providers.presets import PRESETS, make_provider, preset_by_id
     from .core.safety import AUTONOMY_MODES
+    from .core.prompt import INITIATIVE_MODES
     from .core.schema import conversation_to_json, conversation_from_json
     from .core.secrets import masked
     from . import __version__
@@ -31,6 +32,7 @@ except ImportError:  # classic edition: src/ is on sys.path
     from core.providers.base import ProviderError
     from core.providers.presets import PRESETS, make_provider, preset_by_id
     from core.safety import AUTONOMY_MODES
+    from core.prompt import INITIATIVE_MODES
     from core.schema import conversation_to_json, conversation_from_json
     from core.secrets import masked
     __version__ = "0.1.0"
@@ -369,6 +371,13 @@ class PanelBase:
         s.vision = bool(payload.get("vision", False))
         s.think = bool(payload.get("think", False))
         s.effort = str(payload.get("effort", "") or "")
+        if payload.get("initiative") in INITIATIVE_MODES:
+            s.initiative = payload["initiative"]
+        if payload.get("allow_docking") is not None and hasattr(self, "set_docking"):
+            try:
+                self.set_docking(bool(payload["allow_docking"]))
+            except Exception as e:  # noqa: BLE001
+                self.log("Pellaeon: could not change docking: %s" % e)
         try:
             s.temperature = float(payload.get("temperature", s.temperature))
         except (TypeError, ValueError):
@@ -524,6 +533,8 @@ class PanelBase:
                 "settings": {"preset": s.preset, "provider": s.provider, "model": s.model, "base_url": s.base_url,
                              "autonomy": s.autonomy, "allow_python": bool(s.allow_python), "vision": bool(s.vision), "readable_labels": bool(getattr(s, "readable_labels", True)),
                              "think": bool(s.think), "temperature": s.temperature, "effort": s.effort,
+                             "initiative": getattr(s, "initiative", "minimal"),
+                             "allow_docking": self.docking_allowed() if hasattr(self, "docking_allowed") else None,
                              "configured": bool(s.configured)},
                 "key_masked": masked(key), "key_source": self.secrets.source(s.preset)}
 
@@ -568,7 +579,7 @@ class PanelBase:
         compact = bool((preset_by_id(getattr(s, "preset", "")) or {}).get("compact_prompt"))
         cfg = AgentConfig(autonomy=getattr(self, "_runtime_autonomy", None) or s.autonomy, allow_python=bool(s.allow_python), vision=bool(s.vision),
                           docs_per_turn=int(s.docs_per_turn), edition=self.edition, readable_labels=bool(getattr(s, "readable_labels", True)),
-                          compact_prompt=compact)
+                          compact_prompt=compact, initiative=getattr(s, "initiative", "minimal") or "minimal")
         if preset["provider"] == "ollama":
             # keep the conversation well inside the local context window (32k by default)
             cfg.compact_after_tokens = max(8000, int(options.get("num_ctx", 32768) * 0.55))

@@ -20,7 +20,7 @@ class PellaeonSettings(Settings):
         "configured": False,
         "preset": "ollama",          # preset id (see core.providers.presets)
         "provider": "ollama",        # adapter name
-        "model": "qwen3:8b",
+        "model": "gemma4:12b",
         "base_url": "",
         "autonomy": AUTONOMY_AUTO,
         "allow_python": False,
@@ -33,6 +33,8 @@ class PellaeonSettings(Settings):
         "show_tool_details": True,
         "last_conversation": "",
         "effort": "",                # Anthropic effort level, "" = default
+        "initiative": "minimal",     # "minimal" (do exactly what was asked) or "initiative"
+        "docking_default_applied": False,   # the panel was made undockable once; later ChimeraX's setting rules
     }
 
 

@@ -25,7 +25,7 @@ Offline: download the `.whl` from [Releases](https://github.com/tggr-lab/pellaeo
 ## Models
 
 - **Free, no card:** Mistral's free tier (recommended, fast) or Google Gemini.
-- **Local, private:** Ollama on your own computer (`qwen3:8b` on a GPU).
+- **Local, private:** Ollama on your own computer (`gemma4:12b` on a 12 GB GPU, `qwen3:8b` on 8 GB).
 - **Paid:** Anthropic Claude, OpenAI, Mistral Medium, or any OpenAI-compatible server (OpenRouter, Groq, LM Studio).
 
 Keys stay on your computer. How to get a key, and how each model did on our test set: [tested models](https://tggr-lab.github.io/pellaeon/models.html).
@@ -43,7 +43,9 @@ Keys stay on your computer. How to get a key, and how each model did on our test
 - **Map your data:** a residue table, UniProt features, ClinVar variants, ConSurf conservation or AlphaMissense scores, placed in the structure's own numbering with a color key.
 - **Make figures:** publication look, tidy overlapping labels, save the image with a replayable `.cxc` script and the sources of everything shown.
 
-Every reply lists the commands it ran with copy, re-run and a link to the ChimeraX docs. Closing, deleting, saving and scripts wait for your OK.
+Every reply lists the commands it ran with copy, re-run and a link to the ChimeraX docs. Closing, deleting, saving and scripts wait for your OK. "Undo last request" restores the session to how it was before the previous request.
+
+Membrane proteins get OPM's orientation on request, receptors their GPCRdb structures and inactive/active AlphaFold models, and ConSurf coloring uses ConSurf's nine grades.
 
 ## Learn more
 

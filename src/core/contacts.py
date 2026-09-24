@@ -333,6 +333,8 @@ def _busiest_residues(entries: List[Dict[str, Any]], limit: int, show_chain: boo
 # and these match the red end of the displacement palette used by compute_displacement.
 LOST_COLOR = "#b2182b"
 GAINED_COLOR = "#1a9850"
+REF_CARTOON = "#d5d5d5"      # the two structures in two grays, so only the dashes carry color
+OTHER_CARTOON = "#7a8590"
 
 
 def _model_of(spec: str) -> str:
@@ -388,7 +390,9 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
                        # keep the chains that were not compared out of the picture
                        *["hide %s & ~/%s target acs" % (m, spec.split("/", 1)[1].split(":")[0])
                          for m, spec in ((ref_model, ref_spec), (other_model, other_spec)) if "/" in spec],
-                       "transparency %s 55 target c" % ref_model, "transparency %s 55 target c" % other_model,
+                       # two grays: a reader saw wheat and light blue and asked what those colors meant
+                       "color %s %s target c" % (ref_model, REF_CARTOON), "color %s %s target c" % (other_model, OTHER_CARTOON),
+                       "transparency %s 45 target c" % ref_model, "transparency %s 45 target c" % other_model,
                        "distance delete"]      # a previous comparison's dashes must not be read as this one's
 
     for entries, model, color in ((lost, ref_model, LOST_COLOR), (gained, other_model, GAINED_COLOR)):
@@ -404,7 +408,7 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
             # `distance` needs exactly one atom on each side; without measured atom names the
             # residues are still shown and colored above, just not joined by a dash.
             if e.get("a_atom") and e.get("b_atom"):
-                cmds.append("distance %s %s color %s dashes 6 radius 0.08" % (a, b, color))
+                cmds.append("distance %s %s color %s dashes 5 radius 0.2" % (a, b, color))   # 0.08 vanished in screenshots
 
     # `key` labels must be single words - it rejects even a quoted "lost in #2" - so the models
     # are named in the 2D label underneath instead.
@@ -414,7 +418,7 @@ def contact_commands(result: Dict[str, Any], ref_spec: str, other_spec: str,
     # the dashes are drawn with `distance`, which labels each one with its length: on a figure with
     # dozens of them that is noise, and the numbers are in the result card anyway
     cmds.append("label delete pseudobonds")
-    cmds.append('2dlabels create pellaeon_title text "Contacts lost (red, %s) and gained (green, %s)" xpos 0.30 ypos 0.165 size 20 color black'
+    cmds.append('2dlabels create pellaeon_title text "Lost from %s (light gray): red.  Gained in %s (dark gray): green" xpos 0.22 ypos 0.165 size 20 color black'
                 % (ref_model, other_model))
     cmds.append('view %s %s' % (ref_spec, other_spec))   # fit the analysed chains, then leave the legend a band
     cmds.append('zoom 0.85')

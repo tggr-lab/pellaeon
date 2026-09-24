@@ -120,6 +120,152 @@ def registry_usage_entries(session, max_entries: int = 400) -> Dict[str, str]:
     return out
 
 
+# Color keys and the pellaeon_title label describe the structure they were drawn for. Closing that
+# structure left them on screen, over whatever was opened next; now they go with it.
+# a key made by an attribute coloring (`color bfactor #1 key true`, `mlp #1 key true`) belongs to that structure too
+_OVERLAY_RE = re.compile(r"^\s*(key\s+(?!delete\b)\S|2dlabels\s+(create|change)\s+pellaeon_title\b|"
+                         r"(colou?r\s+(bfactor|byattr\w*)|mlp|coulombic)\b.*\bkey\s+(true|t|yes|1)\b)", re.I)
+
+
+def _entry_metadata(m) -> str:
+    """Method, resolution and citation from the mmCIF header: asked for 7kkj's resolution and journal, models
+    answered from memory (2.7 A in Nature Communications; 1.60 A in Nature) even after reading the Log."""
+    try:
+        from chimerax.mmcif import get_mmcif_tables_from_metadata
+        refine, em, exptl, cit = get_mmcif_tables_from_metadata(m, ["refine", "em_3d_reconstruction", "exptl", "citation"])
+    except Exception:  # noqa: BLE001
+        return ""
+    parts = []
+
+    def first(tab, field):
+        try:
+            v = tab.fields([field])[0][0] if tab is not None else ""
+        except Exception:  # noqa: BLE001
+            return ""
+        return "" if v in ("?", ".", None) else str(v)
+    method = first(exptl, "method")
+    res = first(refine, "ls_d_res_high") or first(em, "resolution")
+    if method:
+        parts.append(method.lower())
+    if res:
+        try:
+            parts.append("%.2f A resolution" % float(res))
+        except ValueError:
+            pass
+    title, journal, year = first(cit, "title"), first(cit, "journal_abbrev"), first(cit, "year")
+    if journal or title:
+        parts.append("published %s%s%s" % (journal, (" " + year) if year else "", (': "%s"' % title[:90]) if title else ""))
+    return "; ".join(parts)
+
+
+def parse_error(session, text: str) -> str:
+    """ChimeraX's own parser, without executing: the error it would raise, or "". About 3 ms.
+
+    The parse phase of chimerax.core.commands.cli.Command.run, stopped before the function call.
+    A malformed command (`select :10 add`, `cartoon style helix tube`, `color #1 rde`) is caught
+    here with zero side effects, so the model gets the usage on the first try and nothing before
+    it in the batch has to be undone."""
+    from chimerax.core.commands import cli
+    c = cli.Command(session)
+    c._reset()
+    c.current_text = text
+    try:
+        while True:
+            c._find_command_name(True)
+            if c._error:
+                return str(c._error)
+            if not c._ci:
+                if len(c.current_text) > c.amount_parsed and c.current_text[c.amount_parsed] == ";":
+                    c.amount_parsed += 1
+                    continue
+                return ""
+            prev = c._process_positional_arguments()
+            if c._error:
+                return str(c._error)
+            c._process_keyword_arguments(True, prev)
+            if c._error:
+                return str(c._error)
+            missing = [kw for kw in c._ci._required_arguments if kw not in c._kw_args]
+            if missing:
+                return "Missing required %s" % ", ".join('"%s"' % m for m in missing)
+            for cond in c._ci._postconditions:
+                if not cond.check(c._kw_args):
+                    return str(cond.error_message())
+            rest = c.current_text[c.amount_parsed:]
+            if not rest.strip():
+                return ""
+            if rest.lstrip().startswith(";"):
+                c.amount_parsed = len(c.current_text) - len(rest.lstrip()) + 1
+                c._ci = None
+                c._kw_args = {}
+                continue
+            return "Unexpected text after the command: %r" % rest.strip()[:40]
+    except Exception:  # noqa: BLE001  (the parser is not ours to debug; let the real run report)
+        return ""
+
+
+def _alignments(session) -> list:
+    return list(getattr(getattr(session, "alignments", None), "alignments", []) or [])
+
+
+def _track_overlays(session, commands: List[str], results: List[Dict[str, Any]]) -> None:
+    if not any(r.get("ok") and _OVERLAY_RE.match(str(r.get("command", ""))) for r in results):
+        return
+    from chimerax.atomic import all_atomic_structures
+    structs = list(all_atomic_structures(session))
+    ids = set(re.findall(r"#(\d+)", " ".join(commands)))
+    # a key that names no model belongs to the only structure, never to "all of them"
+    owners = [m for m in structs if m.id and str(m.id[0]) in ids] or (structs if len(structs) == 1 else [])
+    if not owners:
+        return
+    session._pellaeon_overlay_owners = owners
+    if getattr(session, "_pellaeon_overlay_handler", None) is None:
+        session._pellaeon_overlay_handler = session.triggers.add_handler("remove models", _models_removed)
+
+
+def _models_removed(trigger_name, models):
+    session = next((m.session for m in models if getattr(m, "session", None) is not None), None)
+    owners = getattr(session, "_pellaeon_overlay_owners", None) if session is not None else None
+    if not owners or not any(m in owners for m in models):
+        return
+    session._pellaeon_overlay_owners = None
+    if getattr(session.ui, "is_gui", False):
+        # not from inside the trigger that is closing models: after the next frame
+        def once(*_):
+            _clear_overlays(session)
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
+        session.triggers.add_handler("new frame", once)
+    else:
+        _clear_overlays(session)
+
+
+def _clear_overlays(session) -> None:
+    removed = []
+    try:
+        from chimerax.color_key.model import get_model
+        key = get_model(session, create=False)
+        if key is not None and not key.deleted:
+            key.delete()
+            removed.append("color key")
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from chimerax.label.label2d import session_labels
+        lm = session_labels(session, create=False)
+        lbl = lm.named_label("pellaeon_title") if lm is not None else None
+        if lbl is not None:
+            lbl.delete()
+            removed.append("title")
+    except Exception:  # noqa: BLE001
+        pass
+    if removed:
+        session.logger.info("Pellaeon: removed the %s drawn for the closed structure." % " and ".join(removed))
+
+
+_REMOTE_FILE_RE = re.compile(r"^\s*(open|runscript)\s+(https?://\S+\.(?:py|cxc|pdb|cif|mmcif|ent|pdb\.gz|cif\.gz))(\s.*)?$", re.I)
+_HELP_RE = re.compile(r"^\s*(?:help|open\s+help:(?:user/)?(?:commands/)?)\s*([A-Za-z0-9_ ]*?)(?:\.html)?\s*$", re.I)
+
 class ChimeraXExecutor:
     """Executor implementation for the agent. Safe to call from any thread."""
 
@@ -181,11 +327,46 @@ class ChimeraXExecutor:
         from chimerax.core.commands import run
         from chimerax.core.errors import UserError, NotABug
         results: List[Dict[str, Any]] = []
+        before = set(id(t) for t in self.session.tools.list())
+        alns_before = set(id(a) for a in _alignments(self.session))
         self.last_returns: Dict[str, Any] = {}   # values returned by commands (e.g. matchmaker's atom pairs)
         for cmd in commands:
             if cancel is not None and cancel.is_set():
                 break
             entry: Dict[str, Any] = {"command": cmd, "ok": False, "info": [], "warnings": [], "error": ""}
+            models_before = set(id(m) for m in self.session.models.list())
+            rm = _REMOTE_FILE_RE.match(cmd)
+            if rm:
+                # `open https://.../flip.py` makes ChimeraX save a copy in ~/Downloads every time; fetch it into
+                # Pellaeon's cache and run the local copy instead
+                try:
+                    from .analysis import fetch_to_cache
+                    local = fetch_to_cache(rm.group(2), "recipes" if rm.group(2).lower().endswith((".py", ".cxc")) else "downloads")
+                    cmd = "%s %s%s" % ("runscript" if local.lower().endswith(".py") else "open",
+                                       ('"%s"' % local) if " " in local else local, rm.group(3) or "")
+                    entry["command"] = cmd
+                    entry["fetched_from"] = rm.group(2)
+                except Exception as e:  # noqa: BLE001
+                    entry["error"] = "Could not download %s: %s" % (rm.group(2), e)
+                    results.append(entry)
+                    self.last_error = entry["error"]
+                    break
+            hm = _HELP_RE.match(cmd)
+            if hm:
+                # `help X` opens a browser (the system browser in a headless run); answer with the usage text instead
+                entry["ok"] = True
+                entry["not_run"] = True
+                entry["info"] = [self.command_usage(hm.group(1)) if hm.group(1) else
+                                 "help opens the documentation browser; ask for a command's usage instead."]
+                results.append(entry)
+                continue
+            perr = parse_error(self.session, cmd)
+            if perr:
+                entry["error"] = perr
+                entry["not_run"] = True     # refused by the parser; nothing changed
+                results.append(entry)
+                self.last_error = "%s -> %s" % (cmd, perr)
+                break
             with _CapturingLog(self.session.logger, echo=True) as cap:
                 try:
                     self.last_returns[cmd] = run(self.session, cmd, log=True, return_list=True)
@@ -206,14 +387,43 @@ class ChimeraXExecutor:
                 entry["ok"] = False
             elif errs:
                 entry["error_log"] = errs[:3]
-            # trim very long info dumps
-            entry["info"] = [m[:500] for m in entry["info"]]
+            # trim very long info dumps. Read-only reports keep more: `log metadata` of an entry with many authors
+            # was cut before its resolution line and a model then invented one; a long `info residues` list is
+            # also summarized as ranges before it is cut (the first dozen residues were reported as the answer)
+            reading = cmd.split()[0].lower() in ("log", "info", "measure") if cmd.split() else False
+            if reading:
+                from .core.fixups import residue_ranges_summary
+                summary = residue_ranges_summary("\n".join(entry["info"]))
+                if summary:
+                    entry["summary"] = summary
+            entry["info"] = [m[:3000 if reading else 500] for m in entry["info"]]
+            try:   # e.g. `define centroid` makes #1.2 and says nothing about its number
+                made = [m for m in self.session.models.list() if id(m) not in models_before]
+                if made:
+                    entry["new_models"] = ["#%s %s" % (m.id_string, m.name) for m in made][:8]
+            except Exception:  # noqa: BLE001
+                pass
             results.append(entry)
             if not entry["ok"]:
                 self.last_error = "%s -> %s" % (cmd, entry["error"])
                 break
         else:
             self.last_error = None
+        new = [t for t in self.session.tools.list() if id(t) not in before and t.tool_name != "Pellaeon"]
+        self.last_new_tools = [t.tool_name for t in new]
+        if not getattr(self.session.ui, "is_gui", False):   # headless: an alignment is the window it would have opened
+            self.last_new_tools += ["Sequence Viewer" for a in _alignments(self.session) if id(a) not in alns_before]
+        self.session._pellaeon_opened_tools = [t for t in getattr(self.session, "_pellaeon_opened_tools", [])
+                                               if t in self.session.tools.list()] + new
+        try:
+            _track_overlays(self.session, commands, results)
+        except Exception:  # noqa: BLE001  (bookkeeping must never fail a command batch)
+            pass
+        try:
+            from .analysis import note_checkpoint_activity
+            note_checkpoint_activity(self.session, commands, results)
+        except Exception:  # noqa: BLE001  (bookkeeping must never fail a command batch)
+            pass
         return results
 
     def command_usage(self, name: str) -> str:
@@ -258,6 +468,42 @@ class ChimeraXExecutor:
                 flatten(val)
         return _run_on_main_thread(self.session, lambda: compute_displacement(self.session, prep, returns))
 
+    def membrane_orient(self, model: str, pdb: Optional[str] = None, slabs: bool = True) -> Dict[str, Any]:
+        from .analysis import membrane_orient
+        return _run_on_main_thread(self.session, lambda: membrane_orient(self.session, model, pdb, slabs))
+
+    def view_axis(self, model: str = "", axis: str = "short") -> Dict[str, Any]:
+        from .analysis import view_axis
+        return _run_on_main_thread(self.session, lambda: view_axis(self.session, model or "", axis or "short"))
+
+    def gpcr_states(self, protein: str, open_states: Optional[List[str]] = None) -> Dict[str, Any]:
+        from .analysis import gpcr_states
+        cache = os.path.join(pellaeon_dir("cache"), "gpcrdb")
+        return _run_on_main_thread(self.session, lambda: gpcr_states(self.session, protein, open_states, cache))
+
+    def sequence_identity(self, spec: str = "", chain: Optional[str] = None) -> Dict[str, Any]:
+        from .analysis import sequence_identity
+        return _run_on_main_thread(self.session, lambda: sequence_identity(self.session, spec, chain))
+
+    def close_windows(self, which: str = "sequence") -> Dict[str, Any]:
+        from .analysis import close_windows
+        return _run_on_main_thread(self.session, lambda: close_windows(
+            self.session, which, getattr(self.session, "_pellaeon_opened_tools", [])))
+
+    def checkpoint_request(self, request_text: str) -> None:
+        """Record a restore point before this request runs (see undo_last_request)."""
+        from .analysis import checkpoint_request as _checkpoint
+        cache_dir = os.path.join(pellaeon_dir("cache"), "checkpoints")
+        _run_on_main_thread(self.session, lambda: _checkpoint(self.session, request_text, cache_dir))
+
+    def pending_undo(self) -> Dict[str, Any]:
+        from .analysis import pending_undo
+        return _run_on_main_thread(self.session, lambda: pending_undo(self.session))
+
+    def undo_last_request(self) -> Dict[str, Any]:
+        from .analysis import undo_last_request
+        return _run_on_main_thread(self.session, lambda: undo_last_request(self.session))
+
     def label_layout(self) -> Dict[str, Any]:
         from .analysis import label_layout
         return _run_on_main_thread(self.session, lambda: label_layout(self.session))
@@ -277,6 +523,10 @@ class ChimeraXExecutor:
     def residue_colors(self) -> List[List[Any]]:
         from .analysis import residue_colors
         return _run_on_main_thread(self.session, lambda: residue_colors(self.session))
+
+    def find_sequence(self, seq: str) -> List[str]:
+        from .analysis import find_sequence
+        return _run_on_main_thread(self.session, lambda: find_sequence(self.session, seq))
 
     def count_residues(self, spec: str) -> int:
         from .analysis import count_residues
@@ -307,6 +557,11 @@ class ChimeraXExecutor:
             try:
                 with contextlib.redirect_stdout(buf):
                     exec(compile(code, "<pellaeon>", "exec"), ns)
+                try:   # run_python can do anything: the undo fast path (close what was opened) no longer applies
+                    from .analysis import mark_checkpoint_dirty
+                    mark_checkpoint_dirty(self.session)
+                except Exception:  # noqa: BLE001
+                    pass
                 return {"ok": True, "stdout": buf.getvalue()[-4000:]}
             except Exception as e:  # noqa: BLE001
                 return {"ok": False, "stdout": buf.getvalue()[-2000:], "error": "%s: %s" % (e.__class__.__name__, e),
@@ -356,6 +611,24 @@ class ChimeraXExecutor:
                     if "alphafold" in (m.name or "").lower():
                         entry["note"] = "AlphaFold model, colored by pLDDT confidence when opened: dark blue very high, light blue confident, yellow low, orange very low"
                     entry["num_atoms"] = int(m.num_atoms)
+                    meta = _entry_metadata(m)
+                    if meta:
+                        entry["entry"] = meta
+                    try:   # the residue names of ligands and ions: models guessed "STI" for 1stp's biotin (BTN)
+                        a = m.atoms
+                        cats = a.structure_categories
+                        het = {}
+                        for kind in ("ligand", "ions"):
+                            names = sorted(set(a.filter(cats == kind).unique_residues.names))
+                            if names:
+                                het[kind] = names[:12]
+                        if het:
+                            entry["hets"] = het
+                            names = _het_names(m, set(het.get("ligand", [])))
+                            if names:
+                                entry["het_names"] = names
+                    except Exception:  # noqa: BLE001
+                        pass
                     chains = []
                     for c in m.chains:
                         try:
@@ -372,6 +645,14 @@ class ChimeraXExecutor:
                         if len(ligs):
                             entry["ligands"] = sorted(set(r.name for r in ligs.residues))[:10]
                     except Exception:
+                        pass
+                if m.__class__.__name__ == "Volume":
+                    try:   # plane indices and "the level now shown": the model needs the grid size and contour levels
+                        entry.pop("note", None)
+                        entry["grid"] = "x".join(str(int(n)) for n in m.data.size)
+                        entry["levels"] = [round(float(sf.level), 4) for sf in m.surfaces][:4]
+                        entry["style"] = "image" if getattr(m, "image_shown", False) else "surface"
+                    except Exception:  # noqa: BLE001
                         pass
                 state["models"].append(entry)
         except Exception as e:  # noqa: BLE001
@@ -403,6 +684,35 @@ class ChimeraXExecutor:
         if self.last_error:
             state["last_error"] = self.last_error
         return state
+
+
+def _het_names(m, codes) -> Dict[str, str]:
+    """Common names of the ligand codes (CAU -> (S)-Carazolol): users name the drug, the state lists the code.
+    From the mmCIF chem_comp table: the first synonym, else the name when it is short."""
+    out: Dict[str, str] = {}
+    if not codes:
+        return out
+    try:
+        from chimerax.mmcif import get_mmcif_tables_from_metadata
+        table = get_mmcif_tables_from_metadata(m, ["chem_comp"])[0]
+        if table is None:
+            return out
+        try:
+            rows = table.fields(["id", "name", "pdbx_synonyms"], allow_missing_fields=True)
+        except Exception:  # noqa: BLE001
+            rows = [(i, n, "") for i, n in table.fields(["id", "name"])]
+        for cid, name, syn in rows:
+            if cid not in codes:
+                continue
+            syn = (syn or "").strip()
+            pick = syn.split(";")[0].strip() if syn and syn != "?" else ""
+            if not pick and name and len(name) <= 32:
+                pick = name.strip()
+            if pick and pick.upper() != cid.upper():
+                out[cid] = pick[:40]
+    except Exception:  # noqa: BLE001
+        pass
+    return out
 
 
 def _residues_spec(residues, max_len: int = 200) -> str:

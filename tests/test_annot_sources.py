@@ -154,9 +154,9 @@ def test_errors_are_not_cached(monkeypatch, tmp_path):
 def test_consurf_rows_use_structure_numbering(monkeypatch, tmp_path):
     _fake_consurf(monkeypatch)
     d = A.conservation("1ubq", "A", str(tmp_path))
-    assert d["columns"] == ["position", "chain", "wt", "consurf_grade", "consurf_score"]
-    assert d["rows"][0] == ["1", "A", "M", "9", "-1.527"]
-    assert d["rows"][1] == ["2", "A", "Q", "7", "-0.599"]
+    assert d["columns"] == ["position", "chain", "wt", "consurf_grade", "consurf_score", "insufficient_data"]
+    assert d["rows"][0] == ["1", "A", "M", "9", "-1.527", "0"]
+    assert d["rows"][1] == ["2", "A", "Q", "7", "-0.599", "0"]
     assert d["position_numbering"] == "pdb" and "accession" not in d
     assert d["representative"] == "6Q00/A" and "6Q00" in d["note"]
 
@@ -242,3 +242,13 @@ def test_consurf_dataset_feeds_guess_and_plan(monkeypatch, tmp_path):
     residues = {("A", int(r[0])): AA3[r[2]] for r in d["rows"]}
     plan = plan_overlay(rows, residues, "#1", "pellaeon_consurf_grade", palette="blue-white-red")
     assert plan["mapped"] == len(residues) and plan["numeric"] and plan["chains"] == ["A"]
+
+
+def test_consurf_star_rows_are_insufficient_and_depth_is_read():
+    from core.annot_sources import _parse_consurf_grades, consurf_msa_depth
+    text = ("  1\t  S\t  SER:91:A\t 0.144\t   5*\t-0.701,  0.648  8,4\t  e\t   \t    2/25\tS 50%, D 50%\n"
+            "  2\t  G\t  GLY:92:A\t-0.170\t   6\t-0.749,  0.048  8,5\t  e\t   \t   20/25\tG 66%, N 33%\n")
+    rows = _parse_consurf_grades(text, "A")
+    assert rows[0][3] == "0" and rows[0][5] == "1"      # starred: no grade, flagged
+    assert rows[1][3] == "6" and rows[1][5] == "0"
+    assert consurf_msa_depth(text) == 25

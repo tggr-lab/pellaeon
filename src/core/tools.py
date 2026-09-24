@@ -168,7 +168,9 @@ ANNOTATE = ToolSpec(
     "Overlay UniProt annotations on a model: color the residues and label them. kind: 'variant' (natural variants), "
     "'disease' (variants linked to a disease), 'domain', 'transmembrane', 'topology', 'binding', 'active', 'site', "
     "'glycosylation', 'disulfide', 'modified', 'ptm', 'region', 'motif', and 'clinvar' (ClinVar missense variants colored by "
-    "clinical significance: red pathogenic, yellow uncertain, blue benign; accepts a gene symbol). Needs the UniProt accession (resolve_protein). "
+    "clinical significance: red pathogenic, yellow uncertain, blue benign; accepts a gene symbol). Known, pathogenic or disease "
+    "mutations of a human protein = 'clinvar'. This shows REPORTED variants; AlphaMissense (fetch_annotation) is a prediction and "
+    "is a different request. Needs the UniProt accession (resolve_protein). "
     "Numbering matches AlphaFold models; PDB entries may be offset.",
     {"type": "object", "properties": {
         "model": {"type": "string", "description": "model spec, e.g. '#1'"},
@@ -290,12 +292,80 @@ APPLY_FIGURE_STYLE = ToolSpec(
      "required": ["figure"]},
 )
 
+SEQUENCE_IDENTITY = ToolSpec(
+    "sequence_identity",
+    "Percent sequence identity between the chains of several open structures, every pair, as a table. Aligns the full "
+    "chain sequences (Needleman-Wunsch, BLOSUM-62) in the background: NO windows open. Use it for 'sequence identity', "
+    "'how similar are the sequences', 'percent identity between these'. Do not use `sequence align` / `sequence chain` "
+    "for this: they open one viewer window per alignment.",
+    {"type": "object", "properties": {
+        "models": {"type": "string", "description": "which structures or chains: '#1-4', '#1,3', '#1/A #2/B', or '' for every open structure"},
+        "chain": {"type": "string", "description": "chain id to use in every model (optional; default: the longest protein chain of each)"}},
+     "required": []},
+)
+
+CLOSE_WINDOWS = ToolSpec(
+    "close_windows",
+    "Close tool windows ChimeraX has no command for closing: which='sequence' closes every sequence viewer and its "
+    "alignment; which='opened' closes the tool windows your own commands opened in this conversation.",
+    {"type": "object", "properties": {
+        "which": {"type": "string", "enum": ["sequence", "opened"], "description": "default 'sequence'"}},
+     "required": []},
+)
+
+MEMBRANE_VIEW = ToolSpec(
+    "membrane_view",
+    "Orient a membrane protein in the membrane: fetches the OPM (Orientations of Proteins in Membranes) coordinates for a "
+    "PDB entry, superposes the model on them, looks from the side with the EXTRACELLULAR side up and the cytoplasm down, "
+    "and draws the two membrane boundaries. Use for 'extracellular on top', 'in the membrane', 'membrane view'. The model "
+    "needs a PDB id (its own, or a close homologue's via pdb).",
+    {"type": "object", "properties": {
+        "model": {"type": "string", "description": "model spec, e.g. '#1'"},
+        "pdb": {"type": "string", "description": "PDB entry to take the orientation from when the model is not itself a PDB entry (e.g. an AlphaFold model)"},
+        "slabs": {"type": "boolean", "description": "draw the two membrane planes (default true)"}},
+     "required": ["model"]},
+)
+
+VIEW_AXIS = ToolSpec(
+    "view_axis",
+    "Look straight down a principal axis of an assembly. axis='short' (default) looks down the axis of least extent: "
+    "the symmetry axis of a ring, disc, hexagonal bilayer or capsid face ('look down the sixfold axis', 'top view'); "
+    "'long' looks along a rod or filament end-on; 'side' shows a rod broadside with its axis horizontal. Use it whenever "
+    "the user asks for a view along a symmetry axis; plain `view` cannot do that.",
+    {"type": "object", "properties": {
+        "model": {"type": "string", "description": "model or atom spec to orient on, e.g. '#2' (default: everything shown)"},
+        "axis": {"type": "string", "enum": ["short", "long", "side"], "description": "which principal axis to look along"}}},
+)
+
+GPCR_STATES = ToolSpec(
+    "gpcr_states",
+    "GPCRdb for a G-protein-coupled receptor: its experimental structures with activation state, ligand, method and "
+    "resolution, and optionally its AlphaFold-Multistate models: open_states=['inactive','active'] opens both as new models, "
+    "superposed, ready for a morph animation. Use for 'active and inactive', 'what structures exist for this receptor', "
+    "'animate the state change'. protein: UniProt accession (P25116) or entry name (PAR1_HUMAN); use resolve_protein for a gene name.",
+    {"type": "object", "properties": {
+        "protein": {"type": "string"},
+        "open_states": {"type": "array", "items": {"type": "string", "enum": ["inactive", "active"]},
+                        "description": "which multistate models to open (optional; [] lists structures only)"}},
+     "required": ["protein"]},
+)
+
+UNDO_LAST_REQUEST = ToolSpec(
+    "undo_last_request",
+    "Undo the LAST user request: restore ChimeraX to how it was immediately before that request ran. Closes the "
+    "model(s) it opened when that is all it did, or restores the whole saved session when it also colored, styled, "
+    "moved the view, labeled or deleted anything. ChimeraX itself has no general undo command; use this tool "
+    "whenever the user says undo, revert, go back, or that a change should be taken back. Asks the user to confirm "
+    "before restoring. No arguments; only the single most recent request can be undone.",
+    {"type": "object", "properties": {}},
+)
+
 ALL_TOOLS = [RUN_COMMANDS, COMPARE, COMPARE_CONTACTS, ANNOTATE, FETCH_ANNOTATION, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, MAP_NUMBERING, APPLY_FIGURE_STYLE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
-             PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW]
+             PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW, SEQUENCE_IDENTITY, CLOSE_WINDOWS, MEMBRANE_VIEW, GPCR_STATES, VIEW_AXIS, UNDO_LAST_REQUEST]
 
 
 def tool_specs(allow_python: bool = False, vision: bool = False,
-               tables: bool = False, compact: bool = False) -> List[ToolSpec]:
+               tables: bool = False, compact: bool = False, edition: str = "chimerax") -> List[ToolSpec]:
     """The tools offered to the model this turn.
 
     Every tool costs input tokens on each request, so the ones that only apply in a
@@ -310,6 +380,8 @@ def tool_specs(allow_python: bool = False, vision: bool = False,
     # tidy_labels and explain_residue are demanded by nudges, map_numbering by a gotcha: a tool the
     # prompt orders the model to call must be on the list, compact or not
     specs.extend([TIDY_LABELS, EXPLAIN_RESIDUE, MAP_NUMBERING])
+    if edition == "chimerax":
+        specs.extend([SEQUENCE_IDENTITY, CLOSE_WINDOWS, MEMBRANE_VIEW, GPCR_STATES, VIEW_AXIS, UNDO_LAST_REQUEST])
     if not compact:
         specs.append(APPLY_FIGURE_STYLE)
     if allow_python:

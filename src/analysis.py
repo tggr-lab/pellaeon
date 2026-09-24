@@ -1,7 +1,9 @@
 """ChimeraX-side analysis helpers used by the compare and annotate tools (main thread only)."""
 from __future__ import annotations
 
+import os
 import re
+import time
 from typing import Any, Dict, List, Optional
 
 
@@ -296,7 +298,7 @@ def spec_atoms(session, text: str) -> Dict[str, Any]:
     try:
         results = spec.evaluate(session)
         return {"used": used.strip(), "atoms": len(results.atoms), "residues": len(results.atoms.unique_residues),
-                "models": len(results.models)}
+                "models": len(results.models), "shown": int(results.atoms.displays.sum()) if len(results.atoms) else 0}
     except Exception as e:  # noqa: BLE001
         return {"used": used.strip(), "error": str(e)}
 
@@ -762,3 +764,537 @@ def _ordered(r1, r2):
     k1 = (r1.chain_id, int(r1.number), r1.insertion_code or "")
     k2 = (r2.chain_id, int(r2.number), r2.insertion_code or "")
     return (r1, r2) if k1 <= k2 else (r2, r1)
+
+
+def _identity_chains(session, spec: str, chain: Optional[str]):
+    """The chains to compare: those a spec with a chain part names, else one per structure
+    (the chain id asked for, or the longest protein chain)."""
+    from chimerax.atomic import AtomicStructure
+    spec = (spec or "").strip()
+    if spec.startswith("["):   # "['#1', '#2']" from a small model
+        spec = " ".join(re.findall(r"#[\w./:,-]+", spec))
+    if spec.lower() in ("all", "*", "everything"):
+        spec = ""
+    spec = re.sub(r",\s*(?=[#/])", " ", spec)   # "#1,#2" parses as #1 and a leftover: one chain, "nothing to compare"
+    if spec:
+        from chimerax.core.commands import atomspec
+        try:
+            parsed, used, rest = atomspec.AtomSpecArg.parse(spec, session)
+            res = parsed.evaluate(session)
+        except Exception as e:  # noqa: BLE001
+            return None, "Could not read %r as models: %s" % (spec, e)
+        structs = [m for m in res.models if isinstance(m, AtomicStructure)]
+        touched = {}
+        for r in res.atoms.unique_residues:
+            if r.chain is not None:
+                touched.setdefault(r.structure, [])
+                if r.chain not in touched[r.structure]:
+                    touched[r.structure].append(r.chain)
+    else:
+        structs = [m for m in session.models.list() if isinstance(m, AtomicStructure)]
+        touched = {}
+    out = []
+    for st in structs:
+        chains = [c for c in st.chains if c.polymer_type == 1 or len(c) > 0]
+        if chain:
+            pick = [c for c in chains if c.chain_id == chain]
+        elif "/" in spec and touched.get(st):
+            pick = touched[st]
+        else:
+            protein = [c for c in chains if c.polymer_type == 1] or chains
+            pick = sorted(protein, key=lambda c: -len(c))[:1]
+        out.extend(pick)
+    return out, None
+
+
+def sequence_identity(session, spec: str = "", chain: Optional[str] = None) -> Dict[str, Any]:
+    """Pairwise percent identity between chains, aligned with ChimeraX's own Needleman-Wunsch and
+    BLOSUM-62 (as matchmaker does), without creating alignments or viewer windows."""
+    from chimerax.alignment_algs import NeedlemanWunsch
+    from chimerax import sim_matrices
+    chains, err = _identity_chains(session, spec, chain)
+    if err:
+        return {"error": err}
+    chains = [c for c in chains if len(c) >= 5]
+    if len(chains) < 2:
+        return {"error": "Need at least two chains to compare; found %d%s." % (
+            len(chains), (" with chain id " + chain) if chain else "")}
+    if len(chains) > 12:
+        return {"error": "That is %d chains (%d pairs); name up to 12, e.g. '#1-4'." % (len(chains), len(chains) * (len(chains) - 1) // 2)}
+    matrix = sim_matrices.matrix("BLOSUM-62", session.logger)
+    label = lambda c: "#%s/%s" % (c.structure.id_string, c.chain_id)
+    entries = [{"chain": label(c), "name": c.structure.name, "length": len(c)} for c in chains]
+    pairs = []
+    for i in range(len(chains)):
+        for j in range(i + 1, len(chains)):
+            a, b = chains[i], chains[j]
+            score, matches = NeedlemanWunsch.nw(a, b, score_gap=-1, score_gap_open=-10,
+                                                similarity_matrix=matrix, ss_fraction=None)
+            sa, sb = a.characters, b.characters
+            same = sum(1 for x, y in matches if sa[x] == sb[y])
+            shorter = min(len(sa), len(sb))
+            pairs.append({"a": label(a), "b": label(b), "identity_percent": round(100.0 * same / shorter, 1),
+                          "identical": same, "aligned": len(matches), "shorter_length": shorter})
+    ids = [e["chain"] for e in entries]
+    cell = {(p["a"], p["b"]): p["identity_percent"] for p in pairs}
+    rows = ["| | " + " | ".join(ids) + " |", "|---" * (len(ids) + 1) + "|"]
+    for x in ids:
+        vals = []
+        for y in ids:
+            v = 100.0 if x == y else cell.get((x, y), cell.get((y, x)))
+            vals.append("%.1f" % v if v is not None else "")
+        rows.append("| **%s** | %s |" % (x, " | ".join(vals)))
+    table = "\n".join(rows)
+    session.logger.info("Pellaeon: sequence identity (%%, identical residues / length of the shorter chain)\n%s\n%s" % (
+        "\n".join("  %s  %s (%d residues)" % (e["chain"], e["name"], e["length"]) for e in entries),
+        "\n".join("  %s vs %s: %.1f%% (%d of %d)" % (p["a"], p["b"], p["identity_percent"], p["identical"], p["shorter_length"])
+                  for p in pairs)))
+    return {"chains": entries, "pairs": pairs, "table": table,
+            "note": "Identity = identical aligned residues / length of the shorter chain, full sequences (SEQRES where the "
+                    "file has it). Show the user the table; no windows were opened."}
+
+
+def close_windows(session, which: str = "sequence", opened=None) -> Dict[str, Any]:
+    closed = []
+    if which != "opened":
+        mgr = getattr(session, "alignments", None)
+        for aln in list(getattr(mgr, "alignments", []) or []):
+            try:
+                mgr.destroy_alignment(aln)
+                closed.append("alignment " + str(getattr(aln, "ident", "") or ""))
+            except Exception:  # noqa: BLE001
+                pass
+        for t in list(session.tools.list()):
+            if t.tool_name == "Sequence Viewer":
+                try:
+                    t.delete()
+                    closed.append("Sequence Viewer")
+                except Exception:  # noqa: BLE001
+                    pass
+    else:
+        for t in list(opened or []):
+            if t in session.tools.list():
+                try:
+                    name = t.tool_name
+                    t.delete()
+                    closed.append(name)
+                except Exception:  # noqa: BLE001
+                    pass
+    viewers = sum(1 for c in closed if c == "Sequence Viewer")
+    return {"closed": len(closed), "sequence_viewers": viewers,
+            "summary": ("Closed %d window(s)." % len(closed)) if closed else "No such windows were open."}
+
+
+def fetch_to_cache(url: str, subdir: str = "downloads") -> str:
+    """Download a URL into Pellaeon's cache and return the local path. `open <url>` in ChimeraX saves a copy of
+    every file into ~/Downloads (with (1), (2)... suffixes on repeats); this keeps them out of the user's folders."""
+    import hashlib
+    from .bridge import pellaeon_dir
+    from .core.http import request_bytes
+    d = os.path.join(pellaeon_dir("cache"), subdir)
+    os.makedirs(d, exist_ok=True)
+    name = url.rstrip("/").rsplit("/", 1)[-1].split("?")[0] or "file"
+    path = os.path.join(d, "%s_%s" % (hashlib.sha1(url.encode()).hexdigest()[:8], name))
+    if not (os.path.isfile(path) and os.path.getsize(path) > 0):
+        with open(path, "wb") as f:
+            f.write(request_bytes("GET", url, timeout=90))
+    return path
+
+
+def _open_url_or_path(session, what: str):
+    """Open a file or URL and return the new top-level models (URLs are cached locally first)."""
+    from chimerax.core.commands import run
+    if re.match(r"^https?://", what.strip(), re.I):
+        what = fetch_to_cache(what.strip())
+    before = set(id(m) for m in session.models.list())
+    run(session, "open %s" % _quote_path(what), log=False)
+    return [m for m in session.models.list() if id(m) not in before and m.parent is session.models.scene_root_model]
+
+
+def membrane_orient(session, model: str, pdb: Optional[str] = None, slabs: bool = True) -> Dict[str, Any]:
+    """Put a membrane protein in the membrane frame from OPM (Orientations of Proteins in Membranes):
+    fetch OPM's oriented coordinates for a PDB entry, superpose the model onto them, look from the side
+    with the extracellular face up, and optionally draw the two membrane boundaries."""
+    from chimerax.core.commands import run
+    from chimerax.atomic import AtomicStructure
+    import numpy as np
+    st = _find_structure(session, model)
+    if st is None:
+        return {"error": _no_structure(session, model)}
+    ident = (pdb or "").strip().lower() or (re.match(r"^([0-9][a-z0-9]{3})\b", (st.name or "").lower()) or [None, None])[1]
+    candidates = [ident] if ident else []
+    via = ""
+    if not candidates:
+        # an AlphaFold/UniProt model: for a GPCR, GPCRdb knows its experimental structures; try those on OPM
+        acc = re.search(r"\b([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})\b", st.name or "")
+        if acc:
+            try:
+                from .core import gpcrdb
+                entry = gpcrdb.entry_for_accession(acc.group(1))
+                rows = gpcrdb.structures(entry).get("structures") or []
+                candidates = [str(r["pdb"]).lower() for r in rows if r.get("pdb")][:6]
+                via = "GPCRdb (%s)" % entry
+            except Exception:  # noqa: BLE001
+                candidates = []
+    if not candidates:
+        return {"error": "No PDB id for %s (%s). Give the PDB entry of this protein or a close homologue (pdb='3vw7'); "
+                         "OPM stores orientations per PDB entry." % (model, st.name)}
+    ref, tried = None, []
+    for ident in candidates:
+        try:
+            ref = _open_url_or_path(session, "https://opm-assets.storage.googleapis.com/pdb/%s.pdb" % ident)
+            break
+        except Exception as e:  # noqa: BLE001
+            tried.append("%s (%s)" % (ident.upper(), str(e)[:60]))
+            ref = None
+    if ref is None:
+        return {"error": "OPM has no entry for %s. Try the PDB entry of a close homologue." % "; ".join(tried)}
+    refs = [m for m in ref if isinstance(m, AtomicStructure)]
+    if not refs:
+        for m in ref:
+            m.delete()
+        return {"error": "OPM returned no structure for %s." % ident.upper()}
+    opm = refs[0]
+    # membrane half-thickness: OPM's dummy atoms (DUM) mark the two boundary planes
+    dum = opm.atoms.filter(opm.atoms.residues.names == "DUM")
+    half = float(np.abs(dum.coords[:, 2]).mean()) if len(dum) else 15.0
+    run(session, "matchmaker #%s to #%s" % (st.id_string, opm.id_string), log=False)
+    xyz = st.atoms.scene_coords
+    cx, cy = float(xyz[:, 0].mean()), float(xyz[:, 1].mean())
+    zmax = float(xyz[:, 2].max())
+    extent = float(max(xyz[:, 0].max() - xyz[:, 0].min(), xyz[:, 1].max() - xyz[:, 1].min()))
+    for m in ref:
+        m.delete()
+    # OPM's frame: z is the membrane normal, +z the extracellular side (checked on 3vw7: ECL residues at z ~ +19)
+    run(session, "view orient; turn x -90", log=False)      # look along the membrane plane, +z up on screen
+    cmds = []
+    if slabs:
+        w = int(extent + 30)
+        for z, name in ((half, "pellaeon_membrane_out"), (-half, "pellaeon_membrane_in")):
+            # a thin box, not a one-sided sheet: the sheet's back face is unlit and shows black from below
+            cmds.append("shape rectangle width %d height %d center %.1f,%.1f,%.1f slab 1.5 color #90a4ae80 name %s" % (w, w, cx, cy, z, name))
+    cmds.append("view #%s" % st.id_string)
+    low = None
+    try:
+        b = st.residues.filter(st.residues.numbers <= 60).atoms
+        if len(b) and st.name.lower().startswith(("alphafold", "af-")) :
+            low = float((b.bfactors < 50).mean()) if len(b) else None
+    except Exception:  # noqa: BLE001
+        low = None
+    for c in cmds:
+        run(session, c, log=False)
+    return {"model": "#" + st.id_string, "opm_entry": ident.upper(), "membrane_half_thickness": round(half, 1),
+            "extracellular": "up (+z of the OPM frame); cytoplasm down", "slabs": bool(slabs),
+            "reference_via": via or "the model's own PDB id",
+            "note": "The camera now looks along the membrane with the extracellular side up. Turning with `turn y N` keeps that; "
+                    "`view` re-fits. Other structures superposed on %s share the frame." % ("#" + st.id_string)
+                    + (" The N-terminal region has low pLDDT: its placement (across the membrane plane or elsewhere) is not modelled; "
+                       "hide or fade it if asked, never move the model." if low and low > 0.5 else "")}
+
+
+def gpcr_states(session, protein: str, open_states: Optional[List[str]] = None, cache_dir: Optional[str] = None) -> Dict[str, Any]:
+    """GPCRdb for a receptor: its experimental structures (state, ligand, resolution) and, on request, its
+    AlphaFold-Multistate inactive/active models opened as new models (superposed on each other)."""
+    from chimerax.core.commands import run
+    from .core import gpcrdb
+    try:
+        entry = gpcrdb.entry_for_accession(protein)
+    except Exception as e:  # noqa: BLE001
+        return {"error": "Could not turn %r into a GPCRdb entry name: %s (give a UniProt accession or entry name such as PAR1_HUMAN)." % (protein, e)}
+    if not entry:
+        return {"error": "No GPCRdb entry name for %r." % protein}
+    out = gpcrdb.structures(entry)
+    if out.get("error"):
+        return out
+    opened = []
+    for state in (open_states or []):
+        got = gpcrdb.fetch_model(entry, state, cache_dir)
+        if got.get("error"):
+            out.setdefault("model_errors", []).append(got["error"])
+            continue
+        try:
+            new = _open_url_or_path(session, got["path"])
+        except Exception as e:  # noqa: BLE001
+            out.setdefault("model_errors", []).append("Could not open the %s model: %s" % (state, e))
+            continue
+        if new:
+            m = new[0]
+            m.name = "GPCRdb %s %s (AlphaFold-Multistate%s)" % (entry, state, (" " + got["version"]) if got.get("version") else "")
+            opened.append({"model": "#" + m.id_string, "state": state, "name": m.name, "path": got["path"]})
+    if len(opened) >= 2:
+        run(session, "matchmaker %s to %s" % (opened[1]["model"], opened[0]["model"]), log=False)
+        # no recording recipe here: given one, the model records a movie to the desktop unasked
+        out["animation"] = ("For a state-change animation: morph %s,%s frames 30 same true  (makes a new model; play it with "
+                            "coordset #N 1,30). Record or save only if the user asks."
+                            % (opened[0]["model"].lstrip("#"), opened[1]["model"].lstrip("#")))
+    if not open_states:
+        out["multistate_models"] = ("GPCRdb also has AlphaFold-Multistate models (inactive and active, full length) for this receptor; "
+                                    "call gpcr_states again with open_states=['inactive','active'] to open them.")
+    out["opened"] = opened
+    out["note"] = ("Experimental structures are listed with their state and ligand; open one with `open <pdb>`. The multistate "
+                   "models are full-length AlphaFold predictions from GPCRdb, one per state, superposed on each other.")
+    return out
+
+
+_AA3 = {"ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C", "GLN": "Q", "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I",
+        "LEU": "L", "LYS": "K", "MET": "M", "PHE": "F", "PRO": "P", "SER": "S", "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V",
+        "MSE": "M", "SEC": "U"}
+
+
+def find_sequence(session, seq: str) -> List[str]:
+    """Read-only: where a typed one-letter peptide sequence occurs in the open chains, as residue specs
+    ('#1/A:18-38'). Searches the residues that exist, so gaps in the model do not shift the numbers."""
+    from chimerax.atomic import AtomicStructure
+    seq = (seq or "").upper()
+    hits: List[str] = []
+    if len(seq) < 5:
+        return hits
+    for m in session.models.list(type=AtomicStructure):
+        for c in m.chains:
+            res = [r for r in c.existing_residues]
+            letters = "".join(_AA3.get(r.name, "X") for r in res)
+            start = letters.find(seq)
+            while start >= 0 and len(hits) < 6:
+                a, b = res[start], res[start + len(seq) - 1]
+                hits.append("#%s/%s:%d-%d" % (m.id_string, c.chain_id, a.number, b.number))
+                start = letters.find(seq, start + 1)
+    return hits
+
+
+def view_axis(session, spec: str = "", axis: str = "short") -> Dict[str, Any]:
+    """Look straight down a principal axis of an assembly: 'short' = the axis of least extent (the
+    symmetry axis of rings, discs, capsid faces, the membrane normal of a flat complex), 'long' = the
+    axis of greatest extent (a rod or filament seen end-on). 'side' turns a rod broadside on."""
+    from chimerax.core.commands import run, atomspec
+    from chimerax.atomic import AtomicStructure, all_atomic_structures
+    from chimerax.geometry import Place, orthonormal_frame
+    import numpy as np
+    spec = (spec or "").strip()
+    if spec:
+        try:
+            sp, used, rest = atomspec.AtomSpecArg.parse(spec, session)
+            atoms = sp.evaluate(session).atoms
+        except Exception as e:  # noqa: BLE001
+            return {"error": "Cannot read '%s' as a model or atom specifier: %s" % (spec, e)}
+    else:
+        atoms = None
+        structs = all_atomic_structures(session)
+        if structs:
+            from chimerax.atomic import concatenate
+            atoms = concatenate([s.atoms for s in structs if s.display])
+    if atoms is None or len(atoms) < 3:
+        return {"error": "Nothing to orient: %s" % (_no_structure(session, spec) if spec else "no atomic structures are open.")}
+    xyz = atoms.scene_coords
+    center = xyz.mean(axis=0)
+    cov = np.cov((xyz - center).T)
+    vals, vecs = np.linalg.eigh(cov)          # ascending: vecs[:, 0] = least extent, vecs[:, 2] = greatest
+    which = {"short": 0, "long": 2, "side": 2}.get((axis or "short").lower())
+    if which is None:
+        return {"error": "axis must be 'short' (look down the thin direction), 'long' (rod end-on) or 'side' (rod broadside)."}
+    look = vecs[:, which]
+    cam = session.main_view.camera
+    if (axis or "").lower() == "side":
+        # camera looks along the middle axis with the long axis horizontal on screen
+        view_dir, screen_up = vecs[:, 1], vecs[:, 0]
+        frame = orthonormal_frame(-view_dir, ydir=screen_up).axes()
+    else:
+        # keep the current camera's sense so the view does not flip on repeat; nothing else to keep
+        if np.dot(cam.view_direction(), look) < 0:
+            look = -look
+        frame = orthonormal_frame(-look).axes()
+    dist = max(1.0, float(np.sqrt(vals[2]) * 6))
+    cam.position = Place(axes=frame, origin=center - frame[:, 2] * dist)   # camera looks down its -z axis
+    run(session, "view %s" % (spec or ""), log=False)
+    ext = np.sqrt(vals) * 2
+    return {"axis": axis, "atoms": len(atoms), "extents": [round(float(e), 1) for e in ext],
+            "hint": "spread of the atoms along the three principal axes (least to greatest); 'short' is the symmetry axis of a ring or disc, 'long' a rod"}
+
+
+# --------------------------------------------------------------------------------------
+# Request-level undo. A checkpoint is recorded on the session (not the Executor, which can be
+# rebuilt) at the start of every user request: which models were open, and, unless the session
+# is very large, a saved .cxs snapshot. undo_last_request restores the checkpoint before the
+# LAST request: closing the model(s) it opened when that is all it did, or the whole session
+# when it also colored, styled, moved the view or deleted anything.
+# --------------------------------------------------------------------------------------
+
+CHECKPOINT_ATOM_CAP = 300_000     # a .cxs of more than this takes seconds; above it only model ids are kept
+CHECKPOINT_SLOW_SECONDS = 3.0     # one slow save switches the session to ids-only checkpoints
+MAX_CHECKPOINTS = 3
+
+
+def _quote_path(path: str) -> str:
+    return '"%s"' % path.replace('"', '\\"')
+
+
+def _checkpoints(session) -> List[Dict[str, Any]]:
+    cps = getattr(session, "_pellaeon_checkpoints", None)
+    if cps is None:
+        cps = session._pellaeon_checkpoints = []
+    return cps
+
+
+def _open_model_ids(session) -> List[str]:
+    return sorted(m.id_string for m in session.models.list() if m.id)
+
+
+def _atom_count(session) -> int:
+    try:
+        from chimerax.atomic import all_atomic_structures
+        return int(sum(m.num_atoms for m in all_atomic_structures(session)))
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+def checkpoint_request(session, request_text: str, cache_dir: str) -> Dict[str, Any]:
+    """Record a restore point before a user request runs: the ids of every open model and,
+    unless the session is very large (over CHECKPOINT_ATOM_CAP atoms), a saved .cxs snapshot.
+    Keeps the last MAX_CHECKPOINTS; older snapshot files are removed. Called once at the start
+    of every request; bookkeeping only, must never raise into the turn that calls it."""
+    cps = _checkpoints(session)
+    cp: Dict[str, Any] = {"request": request_text, "ts": time.time(), "models_before": _open_model_ids(session),
+                          "cxs_path": None, "capped": False, "save_error": "",
+                          "new_model_ids": [], "only_opens": True, "any_activity": False}
+    atoms = _atom_count(session)
+    if os.environ.get("PELLAEON_CHECKPOINTS", "").lower() in ("off", "0", "no"):
+        cp["capped"] = True                      # evaluation runs: no per-request session files
+    elif atoms > CHECKPOINT_ATOM_CAP or getattr(session, "_pellaeon_checkpoint_slow", False):
+        cp["capped"] = True
+    elif not cp["models_before"]:
+        pass                                     # empty session: the model ids say it all, nothing to snapshot
+    else:
+        try:
+            from chimerax.core.commands import run
+            os.makedirs(cache_dir, exist_ok=True)
+            path = os.path.join(cache_dir, "checkpoint_%d.cxs" % int(cp["ts"] * 1000))
+            t0 = time.time()
+            run(session, "save %s" % _quote_path(path), log=False)
+            if time.time() - t0 > CHECKPOINT_SLOW_SECONDS:
+                session._pellaeon_checkpoint_slow = True   # big session: do not pay this on every request
+            cp["cxs_path"] = path if os.path.exists(path) else None
+            if cp["cxs_path"] is None:
+                cp["save_error"] = "the session file was not written"
+        except Exception as e:  # noqa: BLE001
+            cp["save_error"] = str(e)
+    cps.append(cp)
+    while len(cps) > MAX_CHECKPOINTS:
+        old = cps.pop(0)
+        p = old.get("cxs_path")
+        if p and os.path.exists(p):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+    return cp
+
+
+def note_checkpoint_activity(session, commands: List[str], results: List[Dict[str, Any]]) -> None:
+    """After a batch of commands ran: update the current checkpoint with what it did, so
+    undo_last_request can tell a request that only opened models (cheap to undo: just close
+    them) from one that changed anything else (needs the whole session restored)."""
+    cps = getattr(session, "_pellaeon_checkpoints", None)
+    if not cps:
+        return
+    cp = cps[-1]
+    for cmd, r in zip(commands, results):
+        if not r.get("ok"):
+            continue
+        cp["any_activity"] = True
+        toks = str(cmd).strip().lstrip("~").split()
+        word = toks[0].lower() if toks else ""
+        if word == "open":
+            for nm in (r.get("new_models") or []):
+                mid = nm[1:].split()[0] if nm.startswith("#") else ""
+                if mid:
+                    cp["new_model_ids"].append(mid)
+        else:
+            cp["only_opens"] = False
+
+
+def mark_checkpoint_dirty(session) -> None:
+    """Something changed the session outside run_commands (run_python can do anything): the
+    models-only fast path no longer applies to the current request."""
+    cps = getattr(session, "_pellaeon_checkpoints", None)
+    if cps:
+        cps[-1]["only_opens"] = False
+        cps[-1]["any_activity"] = True
+
+
+def _undo_target(session):
+    """The checkpoint to restore to (the one recorded before the last real request), or None
+    when there is nothing earlier than the checkpoint just recorded for THIS request."""
+    cps = _checkpoints(session)
+    if len(cps) < 2:
+        return None, cps
+    return cps[-2], cps
+
+
+def pending_undo(session) -> Dict[str, Any]:
+    """What undo_last_request would do, without doing it: used to word the confirmation card."""
+    target, _cps = _undo_target(session)
+    if target is None:
+        return {"error": "There is no earlier request to undo yet."}
+    if target["only_opens"] and target["new_model_ids"]:
+        return {"request": target["request"], "kind": "models"}
+    if target.get("capped"):
+        return {"request": target["request"], "kind": "models" if target["new_model_ids"] else "none"}
+    if not target.get("cxs_path"):
+        return {"request": target["request"], "kind": "none"}
+    return {"request": target["request"], "kind": "session"}
+
+
+def undo_last_request(session) -> Dict[str, Any]:
+    """Restore ChimeraX to how it was immediately before the last request ran. `run` is imported lazily
+    at each use (not at the top) so the no-op/error branches below stay callable without ChimeraX, for
+    plain-Python testing of the fast-path-vs-full-restore decision."""
+    target, cps = _undo_target(session)
+    if target is None:
+        return {"error": "There is no earlier request to undo yet."}
+    models_before = _open_model_ids(session)
+    open_now = {m.id_string for m in session.models.list() if m.id}
+
+    if target["only_opens"] and target["new_model_ids"]:
+        ids = sorted(set(target["new_model_ids"]) & open_now)
+        cps.pop()
+        if not ids:
+            return {"error": "The model(s) that request opened are already closed; nothing to undo.",
+                    "request": target["request"]}
+        from chimerax.core.commands import run
+        run(session, "close " + " ".join("#" + i for i in ids), log=False)
+        models_after = _open_model_ids(session)
+        return {"restored": "models", "request": target["request"], "models_before": models_before,
+                "models_after": models_after,
+                "summary": "Undid the last request (\"%s\"): closed the model(s) it opened (%s). Models now open: %s."
+                           % (target["request"], ", ".join("#" + i for i in ids), ", ".join("#" + i for i in models_after) or "none")}
+
+    if target.get("capped"):
+        ids = sorted(set(target["new_model_ids"]) & open_now)
+        cps.pop()
+        if ids:
+            from chimerax.core.commands import run
+            run(session, "close " + " ".join("#" + i for i in ids), log=False)
+            models_after = _open_model_ids(session)
+            return {"restored": "models only", "request": target["request"], "models_before": models_before,
+                    "models_after": models_after,
+                    "summary": "The session was too large to snapshot (over %d atoms) before that request ran, so "
+                               "only the model(s) it opened could be closed (%s); any color, style or view change "
+                               "it made is still there."
+                               % (CHECKPOINT_ATOM_CAP, ", ".join("#" + i for i in ids))}
+        return {"error": "The session was too large to snapshot (over %d atoms) before that request ran, and it "
+                         "did more than open a model, so it cannot be undone." % CHECKPOINT_ATOM_CAP,
+                "request": target["request"]}
+
+    path = target.get("cxs_path")
+    if not path or not os.path.exists(path):
+        cps.pop()
+        return {"error": "The saved checkpoint for that request is missing (%s), so it cannot be restored."
+                         % (target.get("save_error") or "file not found"), "request": target["request"]}
+    from chimerax.core.commands import run
+    run(session, "close", log=False)
+    run(session, "open %s" % _quote_path(path), log=False)
+    cps.pop()
+    models_after = _open_model_ids(session)
+    return {"restored": "session", "request": target["request"], "models_before": models_before,
+            "models_after": models_after,
+            "summary": "Undid the last request (\"%s\"): restored the session to how it was before it ran. "
+                       "Models now open: %s." % (target["request"], ", ".join("#" + i for i in models_after) or "none")}

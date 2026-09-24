@@ -68,6 +68,12 @@ def request_json(method: str, url: str, headers: Optional[Dict[str, str]] = None
         raise HttpError(getattr(resp, "status", 200), "Non-JSON response: " + raw[:300], url)
 
 
+def request_bytes(method: str, url: str, headers: Optional[Dict[str, str]] = None, timeout: float = 60) -> bytes:
+    req = _build_request(method, url, headers, None)
+    with _open(req, timeout) as resp:
+        return resp.read()
+
+
 def stream_lines(method: str, url: str, headers: Optional[Dict[str, str]] = None,
                  body: Optional[Any] = None, timeout: float = 120,
                  cancel: Optional[threading.Event] = None) -> Iterator[str]:

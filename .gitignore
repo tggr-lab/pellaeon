@@ -9,3 +9,12 @@ secrets.json
 *.log
 .DS_Store
 classic/pellaeon_classic/data/chimera_docs/
+
+# never in the public repo: reviews, drafts, correspondence, blind sets
+notes/
+drafts/
+private_notes/
+*review*.zip
+*_draft.md
+reply_to_*
+blind_sets/

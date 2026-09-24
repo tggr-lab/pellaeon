@@ -33,11 +33,27 @@ def show_panel(session, page: Optional[str] = None) -> "PellaeonTool":
     return inst
 
 
+def _default_undockable(session, settings, tool_name: str) -> None:
+    """Once per user: make the panel undockable, so dragging the floating window can't dock it by accident.
+    After that ChimeraX's own setting rules (Settings toggle, or `ui dockable`)."""
+    if getattr(settings, "docking_default_applied", False):
+        return
+    try:
+        undockable = session.ui.settings.undockable
+        if tool_name not in undockable:
+            session.ui.settings.undockable = list(undockable) + [tool_name]
+            session.ui.settings.save("undockable")
+    except Exception:
+        return
+    settings.docking_default_applied = True
+    settings.save()
+
+
 class PellaeonTool(HtmlToolInstance, PanelBase):
     SESSION_ENDURING = True
     SESSION_SAVE = False
     CUSTOM_SCHEME = "pellaeon"
-    PLACEMENT = "right"
+    PLACEMENT = None   # floating: the chat needs room, and a docked panel loses Shift to the command line on macOS
     help = "https://github.com/tggr-lab/pellaeon#readme"
     edition = "chimerax"
 
@@ -48,13 +64,15 @@ class PellaeonTool(HtmlToolInstance, PanelBase):
         self.session.ui.thread_safe(self.session.logger.info, msg)
 
     def __init__(self, session, tool_name):
-        super().__init__(session, tool_name, size_hint=(440, 720), log_errors=True)
+        settings = PellaeonSettings(session, "Pellaeon")
+        _default_undockable(session, settings, tool_name)
+        super().__init__(session, tool_name, size_hint=(520, 760), log_errors=True)
         self.display_name = "Pellaeon"
         _INSTANCES[id(session)] = self
         self._init_panel_state()
         self.dirs = {"data": pellaeon_dir("data"), "config": pellaeon_dir("config"), "cache": pellaeon_dir("cache")}
         self.data_dir = data_path()
-        self.settings = PellaeonSettings(session, "Pellaeon")
+        self.settings = settings
         self.secrets = SecretStore(pellaeon_dir("config"))
         self.executor = ChimeraXExecutor(session, log=self._log_info)
         self._sel_handler = None
@@ -71,6 +89,15 @@ class PellaeonTool(HtmlToolInstance, PanelBase):
         html = pathlib.Path(os.path.dirname(os.path.abspath(__file__)), "ui", "panel.html")
         from Qt.QtCore import QUrl
         self.html_view.setUrl(QUrl.fromLocalFile(str(html)))
+
+    def docking_allowed(self) -> bool:
+        return self.tool_name not in self.session.ui.settings.undockable
+
+    def set_docking(self, allow: bool) -> None:
+        """The Settings toggle; the same switch as ChimeraX's `ui dockable true|false Pellaeon`."""
+        if bool(allow) != self.docking_allowed():
+            from chimerax.ui.cmd import ui_dockable
+            ui_dockable(self.session, bool(allow), self.tool_name)
 
     def _log_info(self, msg: str) -> None:
         self.session.ui.thread_safe(self.session.logger.info, msg)

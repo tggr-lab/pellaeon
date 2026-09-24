@@ -18,16 +18,20 @@ def test_clinvar_client_parses_summaries(monkeypatch):
     def fake(method, url, timeout=0, **kw):
         calls.append(url)
         if "esearch" in url:
-            return {"esearchresult": {"idlist": ["1", "2", "3"]}}
-        return {"result": {"uids": ["1", "2", "3"],
+            return {"esearchresult": {"idlist": ["1", "2", "3", "4"]}}
+        return {"result": {"uids": ["1", "2", "3", "4"],
                            "1": {"title": "NM_1(HBB):c.20A>T (p.Glu7Val)", "germline_classification": {"description": "Pathogenic"}},
                            "2": {"protein_change": "p.Glu7Lys", "germline_classification": {"description": "Likely benign"}},
-                           "3": {"protein_change": ["p.Gly17Asp"], "clinical_significance": {"description": "Uncertain significance"}}}}
+                           "3": {"protein_change": ["p.Gly17Asp"], "clinical_significance": {"description": "Uncertain significance"}},
+                           "4": {"title": "NM_181523.3(PIK3R1):c.1718T>C (p.Leu573Pro)", "protein_change": "L210P, L273P, L303P, L573P",
+                                 "germline_classification": {"description": "Pathogenic", "trait_set": [{"trait_name": "SHORT syndrome"}, {"trait_name": "not provided"}]}}}}
     monkeypatch.setattr(cv, "request_json", fake)
     monkeypatch.setattr(cv.time, "sleep", lambda s: None)
     out = ClinVarClient(None).missense_variants("hbb")
-    assert out["count"] == 2 and out["variants"][0] == {"position": 7, "ref": "E", "alt": "V", "significance": "Pathogenic", "id": "1"}
+    assert out["count"] == 3 and out["variants"][0] == {"position": 7, "ref": "E", "alt": "V", "significance": "Pathogenic", "id": "1", "conditions": []}
     assert out["variants"][1]["position"] == 17
+    # the title carries the canonical (MANE transcript) numbering; protein_change lists every isoform
+    assert out["variants"][2]["position"] == 573 and out["variants"][2]["conditions"] == ["SHORT syndrome"]
 
 
 def test_guide_chunks_are_searchable():

@@ -41,11 +41,11 @@ PRESETS: List[Dict[str, Any]] = [
     },
     {
         "id": "ollama", "provider": "ollama", "label": "Ollama (local, free, private)",
-        "base_url": "http://localhost:11434", "model": "qwen3:8b", "key_env": "",
+        "base_url": "http://localhost:11434", "model": "gemma4:12b", "key_env": "",
         "free": True, "needs_key": False,
-        "models_hint": ["qwen3:8b", "gemma4:e4b", "qwen3:4b", "qwen3:14b", "llama3.1:8b"],
+        "models_hint": ["gemma4:12b", "qwen3:8b", "gemma4:e4b", "qwen3:4b", "qwen3:14b"],
         "blurb": "Private: the model runs on your own computer. Needs the free Ollama app from ollama.com and a one-time model download "
-                 "(qwen3:8b for a gaming GPU, qwen3:4b for laptops; slow without a GPU).",
+                 "(gemma4:12b for a 12 GB GPU, qwen3:8b for 8 GB, qwen3:4b for laptops; slow without a GPU).",
         "key_url": "https://ollama.com/download",
     },
     {

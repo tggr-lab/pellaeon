@@ -7,6 +7,11 @@
     pellaeon tool table /path/scores.csv [column hydropathy] [model #1] [chain A] [palette viridis]
     pellaeon tool tidy [keep sel]
     pellaeon tool explain #1/A:87
+    pellaeon tool identity #1-4 [chain A]
+    pellaeon tool closewindows
+    pellaeon tool undo
+    pellaeon tool membrane #1 [pdb 3vw7] [slabs true]
+    pellaeon tool gpcr P25116 [open inactive,active]
     pellaeon tool list
 
 The same code the chat panel calls, driven from the command line, a .cxc script, or an external agent
@@ -31,6 +36,12 @@ TOOLS = [
     ("table", "table_overlay", "color a model by a column of a residue table (CSV/TSV)"),
     ("tidy", "tidy_labels", "move or drop overlapping residue labels so every label is readable"),
     ("explain", "explain_residue", "why a residue has its current color: the command, table, annotation or comparison"),
+    ("identity", "sequence_identity", "percent sequence identity between every pair of chains, as a table, no windows"),
+    ("closewindows", "close_windows", "close sequence viewers and their alignments"),
+    ("undo", "undo_last_request", "undo the last request: close the model(s) it opened, or restore the whole session"),
+    ("membrane", "membrane_view", "orient a membrane protein from OPM: extracellular up, membrane planes drawn"),
+    ("axis", "view_axis", "look down a principal axis: symmetry axis of a ring or capsid, rod end-on or broadside"),
+    ("gpcr", "gpcr_states", "GPCRdb structures of a receptor, and its inactive/active AlphaFold-Multistate models"),
 ]
 
 
@@ -58,6 +69,8 @@ def _run(session, tool: str, args: Dict[str, Any]) -> Dict[str, Any]:
     from .core.schema import ToolCall, new_id
     ag = _agent(session)
     ag._contacts_runs = {}   # each command is its own request
+    ag._turn_text = ""       # the user chose this tool, so no source guard
+    ag._coloring_sources = []
     _, payload = ag._dispatch(ToolCall(new_id(), tool, args))
     if not isinstance(payload, dict):
         payload = {"result": payload}
@@ -136,6 +149,42 @@ def tool_explain(session, residue):
     return _run(session, "explain_residue", {"residue": _spec(residue)})
 
 
+def tool_identity(session, models=None, chain=None):
+    return _run(session, "sequence_identity", {"models": _spec(models), "chain": chain or None})
+
+
+def tool_closewindows(session):
+    return _run(session, "close_windows", {"which": "sequence"})
+
+
+def tool_undo(session):
+    """Typing this command is itself the user's OK, so it calls the executor directly instead of
+    going through the agent's tool dispatch (which asks the panel to confirm)."""
+    ag = _agent(session)
+    fn = getattr(ag.executor, "undo_last_request", None)
+    if fn is None:
+        raise UserError("pellaeon tool undo: not available in this edition.")
+    payload = fn()
+    if payload.get("error"):
+        raise UserError("pellaeon tool undo: %s" % payload["error"])
+    session.logger.info("Pellaeon: " + payload.get("summary", "Undid the last request."))
+    session.logger.info("pellaeon tool undo result:\n%s" % json.dumps(payload, indent=1, ensure_ascii=False)[:6000])
+    return payload
+
+
+def tool_membrane(session, model, pdb=None, slabs=True):
+    return _run(session, "membrane_view", {"model": _spec(model), "pdb": pdb or None, "slabs": bool(slabs)})
+
+
+def tool_axis(session, model=None, axis="short"):
+    return _run(session, "view_axis", {"model": _spec(model) if model else "", "axis": axis})
+
+
+def tool_gpcr(session, protein, open=None):  # noqa: A002  (ChimeraX keyword name)
+    states = [x.strip().lower() for x in (open or "").split(",") if x.strip()]
+    return _run(session, "gpcr_states", {"protein": protein, "open_states": states})
+
+
 def register_tools(base: str, logger):
     """Register `<base> tool <name>` commands; `base` is the bundle's command name ("pellaeon")."""
     register(base + " tool list", CmdDesc(synopsis="List Pellaeon's analysis tools"), tool_list, logger=logger)
@@ -167,5 +216,21 @@ def register_tools(base: str, logger):
              tool_table, logger=logger)
     register(base + " tool tidy", CmdDesc(keyword=[("keep", StringArg)], synopsis="Rearrange overlapping labels"),
              tool_tidy, logger=logger)
+    register(base + " tool identity", CmdDesc(optional=[("models", StringArg)], keyword=[("chain", StringArg)],
+                                              synopsis="Pairwise sequence identity between chains, no windows"),
+             tool_identity, logger=logger)
+    register(base + " tool closewindows", CmdDesc(synopsis="Close sequence viewers and their alignments"),
+             tool_closewindows, logger=logger)
+    register(base + " tool undo", CmdDesc(synopsis="Undo the last request: close the model(s) it opened, or restore the whole session"),
+             tool_undo, logger=logger)
+    register(base + " tool membrane", CmdDesc(required=[("model", StringArg)], keyword=[("pdb", StringArg), ("slabs", BoolArg)],
+                                              synopsis="Orient a membrane protein from OPM, extracellular up"),
+             tool_membrane, logger=logger)
+    register(base + " tool axis", CmdDesc(optional=[("model", StringArg)], keyword=[("axis", StringArg)],
+                                          synopsis="Look down a principal axis: short (symmetry axis), long (rod end-on), side"),
+             tool_axis, logger=logger)
+    register(base + " tool gpcr", CmdDesc(required=[("protein", StringArg)], keyword=[("open", StringArg)],
+                                          synopsis="GPCRdb structures and inactive/active models of a receptor"),
+             tool_gpcr, logger=logger)
     register(base + " tool explain", CmdDesc(required=[("residue", StringArg)], synopsis="Why a residue has its color"),
              tool_explain, logger=logger)

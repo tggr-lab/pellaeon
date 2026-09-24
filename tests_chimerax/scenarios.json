@@ -5,7 +5,7 @@
   "setup_commands": [
    "open 4hhb"
   ],
-  "request": "color by chain",
+  "request": "give each chain its own color",
   "expected": "chains get distinct colors",
   "check_type": "state_expr",
   "check": "len(set(tuple(a.color) for a in atoms if a.name=='CA')) >= 4"
@@ -73,7 +73,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "measure the distance between residue 10 and residue 20",
+  "request": "how far is residue 10 from residue 20",
   "expected": "a distance pseudobond exists",
   "check_type": "state_expr",
   "check": "any(m.__class__.__name__ == 'PseudobondGroup' and m.num_pseudobonds > 0 for m in models)"
@@ -84,7 +84,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "make it spin",
+  "request": "spin it around",
   "expected": "roll or turn command",
   "check_type": "commands_regex",
   "check": "^(roll|turn)\\b"
@@ -95,9 +95,9 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "make it spin",
+  "request": "spin it around",
   "followups": [
-   "stop it"
+   "ok stop"
   ],
   "expected": "stop command issued",
   "check_type": "commands_regex",
@@ -109,7 +109,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "color the bacground grey",
+  "request": "grey background",
   "expected": "background gray",
   "check_type": "state_expr",
   "check": "abs(bg[0]-bg[1]) < 0.05 and 0.3 < bg[0] < 0.75"
@@ -154,7 +154,7 @@
    "open 1zik",
    "view :10"
   ],
-  "request": "reset the view",
+  "request": "go back to the default view",
   "expected": "view with no args",
   "check_type": "commands_regex",
   "check": "^view\\s*$"
@@ -200,7 +200,7 @@
    "open 4hhb",
    "show atoms"
   ],
-  "request": "show only the cartoon",
+  "request": "just the cartoon, nothing else",
   "expected": "atoms hidden (cartoon remains)",
   "check_type": "state_expr",
   "check": "not any(a.display for a in atoms if a.residue.name not in ('HEM','PO4'))"
@@ -211,7 +211,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "show hydrogen bonds",
+  "request": "display the h-bonds",
   "expected": "hbonds pseudobonds",
   "check_type": "state_expr",
   "check": "any(m.name == 'hydrogen bonds' or (m.__class__.__name__ == 'PseudobondGroup' and m.num_pseudobonds > 0) for m in models)"
@@ -222,7 +222,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "rainbow it",
+  "request": "rainbow coloring",
   "expected": "rainbow / color sequential",
   "check_type": "commands_regex",
   "check": "rainbow|sequential"
@@ -233,7 +233,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "color by the type of aa",
+  "request": "color the residues by amino acid class",
   "expected": "residue classes colored explicitly",
   "check_type": "commands_regex",
   "check": ":ala|:asp|:lys|:ser|byattr",
@@ -245,9 +245,9 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "color by the type of aa",
+  "request": "color the residues by amino acid class",
   "followups": [
-   "you did not"
+   "no you didn't"
   ],
   "expected": "no repeated wrong claim; residue-class coloring",
   "check_type": "commands_regex",
@@ -282,7 +282,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "close everything",
+  "request": "close all of it",
   "expected": "confirmation requested",
   "check_type": "confirm_requested",
   "check": ""
@@ -326,7 +326,7 @@
   "setup_commands": [
    "open 1zik"
   ],
-  "request": "what is open?",
+  "request": "what do I have open right now",
   "expected": "answers without commands",
   "check_type": "no_commands",
   "check": ""
@@ -337,7 +337,7 @@
   "setup_commands": [
    "open 4hhb"
   ],
-  "request": "show only chain B",
+  "request": "only chain B, hide the rest",
   "expected": "chain B shown, others hidden",
   "check_type": "state_expr",
   "check": "any(re.search('hide|~', c) for c in ran) and any(re.search('/B', c) for c in ran)"
@@ -417,9 +417,9 @@
    "open alphafold:P07550"
   ],
   "request": "color the transmembrane regions orange",
-  "expected": "annotate or explicit ranges",
+  "expected": "transmembrane helices orange (via annotate or the UniProt ranges), the N-terminus not",
   "check_type": "state_expr",
-  "check": "any(c[0]=='annotate' for c in record['calls']) or any(re.search('72-101|:47', c) for c in ran)"
+  "check": "(lambda rc: sum(1 for n in (45,115,210,285) if n in rc and (lambda c: c[0]>=200 and 90<=c[1]<=190 and c[2]<=80)(rc[n]))>=3 and 5 in rc and not (lambda c: c[0]>=200 and 90<=c[1]<=190 and c[2]<=80)(rc[5]))({int(a.residue.number): tuple(int(x) for x in a.residue.ribbon_color) for a in atoms if a.name=='CA'})"
  },
  {
   "id": "pdb-id-not-gene",

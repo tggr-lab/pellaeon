@@ -441,9 +441,9 @@
    "name": "Show a chain's sequence in the Sequence Viewer",
    "goal": "Open the sequence of a chain and select residues, which are highlighted in 3D and as green boxes in the sequence.",
    "requests": [
-    "Show me the sequence of chain A",
     "open the sequence viewer for chain B and show whats missing",
-    "select residues 62 to 65 of chain A"
+    "select residues 62 to 65 of chain A",
+    "pull up chain A in the sequence panel"
    ],
    "commands": [
     "sequence chain /A",
@@ -1033,9 +1033,9 @@
    "name": "Color a surface by hydrophobicity (MLP)",
    "goal": "Compute molecular lipophilicity potential and color the protein surface to reveal hydrophobic pockets or membrane belts.",
    "requests": [
-    "Color the surface by hydrophobicity",
     "where does this membrane protein sit in the bilayer?",
-    "show a lipophilicity surface with a color key"
+    "show a lipophilicity surface with a color key",
+    "hydrophobic patches on the surface, please"
    ],
    "commands": [
     "open 4xt3",
@@ -2590,6 +2590,253 @@
    "notes": "Toolbar: Medical Image / Segmentation Controls. 3D: right-click adds, SHIFT+right-click removes, SHIFT+middle-drag moves the sphere, SHIFT+scroll resizes. VR right controller: grip moves cursor, A adds, B removes, thumbstick resizes. Modes reset when the tool closes.",
    "topic": "medical",
    "source": "https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
+  },
+  {
+   "name": "Hide the dashed lines to a metal ion",
+   "goal": "Hide the metal coordination pseudobonds (purple dashes) without hiding the metal.",
+   "requests": [
+    "get rid of the dotted lines around the metal",
+    "I don't want the coordination dashes shown",
+    "no lines to the ion please"
+   ],
+   "commands": [
+    "hide #1.1 models"
+   ],
+   "notes": "Coordination dashes are a submodel named 'metal coordination bonds' (see get_state; often #1.1). Hide that submodel; `crosslinks` is unrelated.",
+   "topic": "display",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/hide.html"
+  },
+  {
+   "name": "Atoms of one element near an ion or ligand",
+   "goal": "Select the nitrogens and oxygens within 3.5 A of a zinc and list them.",
+   "requests": [
+    "list the polar atoms close to the metal",
+    "N and O atoms near the ion, within 3 A or so",
+    "what coordinates the metal, nitrogens and oxygens only"
+   ],
+   "commands": [
+    "select (:ZN @<3.5) & (N | O)",
+    "info atoms sel"
+   ],
+   "notes": "@<3.5 is an atom zone; element symbols (N, O, C, S) are specifiers. Use the ion or ligand residue name from get_state.",
+   "topic": "select",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/atomspec.html"
+  },
+  {
+   "name": "Van der Waals contacts with a ligand at a cutoff",
+   "goal": "Show and list residues within a distance of a ligand.",
+   "requests": [
+    "residues packing against the ligand, cutoff about 4",
+    "what is the ligand touching, use 3.5 A",
+    "contacts to the bound compound, just list them without dashes"
+   ],
+   "commands": [
+    "contacts :BTN restrict protein distanceOnly 3.8 reveal true log true"
+   ],
+   "notes": "Use the ligand's residue name from get_state (1stp biotin = BTN) and the user's own cutoff. log true lists the pairs in the Log. To list them WITHOUT drawing dashed lines add makePseudobonds false.",
+   "topic": "ligand/binding",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/clashes.html"
+  },
+  {
+   "name": "Hydrogen bonds between one chain and the rest",
+   "goal": "Show only the H-bonds that cross from chain F to everything else, with distances.",
+   "requests": [
+    "hbonds from the antibody chain to the antigen only",
+    "which h-bonds cross from chain B to the others",
+    "h-bonds ligand to protein and print the lengths"
+   ],
+   "commands": [
+    "hbonds /F restrict cross reveal true",
+    "hbonds :BTN restrict protein reveal true showDist true"
+   ],
+   "notes": "restrict cross = bonds with one atom inside the spec and one outside. showDist true labels the distances.",
+   "topic": "ligand/binding",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/hbonds.html"
+  },
+  {
+   "name": "Interface residues between two chains",
+   "goal": "Select residues of chain A within 4 A of chain B.",
+   "requests": [
+    "what residues of A face chain B, 4 angstrom cutoff",
+    "pick the contact residues at the A/B interface"
+   ],
+   "commands": [
+    "select /A & (/B :<4)",
+    "select add /B & (/A :<4)",
+    "show sel atoms"
+   ],
+   "notes": "There is no 'chain' keyword inside a zone: intersect the chain with the zone.",
+   "topic": "select",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/atomspec.html"
+  },
+  {
+   "name": "Color only the buried interface patch",
+   "goal": "Color the part of chain A's surface buried by chain B.",
+   "requests": [
+    "paint the part of A's surface that B covers",
+    "show the buried patch on the surface of chain A"
+   ],
+   "commands": [
+    "surface /A",
+    "measure buriedarea /A withAtoms2 /B select true",
+    "color sel orange target s"
+   ],
+   "notes": "select true selects the buried atoms; color them on the surface only.",
+   "topic": "surface",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/measure.html#buriedarea"
+  },
+  {
+   "name": "Size atoms by B-factor",
+   "goal": "Make atoms bigger where the B-factor is high.",
+   "requests": [
+    "scale atom size with the temperature factor",
+    "bigger balls for high b-factor atoms"
+   ],
+   "commands": [
+    "show #1 atoms",
+    "style #1 sphere",
+    "size byattribute bfactor #1 20:.6 300:9"
+   ],
+   "notes": "Attribute name first, then the atoms, then value:radius pairs.",
+   "topic": "display",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/size.html"
+  },
+  {
+   "name": "Move a 3D label toward the camera",
+   "goal": "Offset a residue label in x,y,z.",
+   "requests": [
+    "nudge the label forward so it is in front",
+    "shift a label along z"
+   ],
+   "commands": [
+    "label #1:50 offset 0,0,10"
+   ],
+   "notes": "offset takes x,y,z with commas and no spaces.",
+   "topic": "labels/2D",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/label.html"
+  },
+  {
+   "name": "Color residues on a Gaussian (resolution) surface",
+   "goal": "Per-residue colors on a surface made with the resolution option.",
+   "requests": [
+    "residue colors don't show on my low-res surface",
+    "color a patch on a smooth blob surface"
+   ],
+   "commands": [
+    "surface #1 resolution 6 sharpBoundaries true",
+    "color #1:50-76 red target s"
+   ],
+   "notes": "Without sharpBoundaries true a resolution surface does not keep per-atom patches.",
+   "topic": "surface",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/surface.html"
+  },
+  {
+   "name": "Bring back the morph / trajectory slider",
+   "goal": "Show the coordinate-set slider again.",
+   "requests": [
+    "where did the frame slider go",
+    "reopen the coordinate set player"
+   ],
+   "commands": [
+    "coordset slider #3"
+   ],
+   "notes": "Use the morph's model number from get_state.",
+   "topic": "other",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/coordset.html"
+  },
+  {
+   "name": "Open a single ligand from the Chemical Component Dictionary",
+   "goal": "Open a small molecule by its 3-letter PDB code.",
+   "requests": [
+    "load just the small molecule by its three letter code",
+    "open a ligand on its own, no protein"
+   ],
+   "commands": [
+    "open ccd:CIR"
+   ],
+   "notes": "ccd:<code> fetches the ideal coordinates of that component; no file needed.",
+   "topic": "open",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/open.html"
+  },
+  {
+   "name": "Solvent-accessible surface area, total or by part",
+   "goal": "Report SASA of the protein, and of a subset such as polar atoms.",
+   "requests": [
+    "how much surface is exposed, and the polar share",
+    "accessible area of the protein"
+   ],
+   "commands": [
+    "measure sasa #1 & protein",
+    "measure sasa #1 & protein sum #1 & protein & (N | O)"
+   ],
+   "notes": "sum reports the part of the total area contributed by the atoms after it (here polar N and O). Results are in the Log.",
+   "topic": "measure",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/measure.html#sasa"
+  },
+  {
+   "name": "Smoother ribbons and surfaces",
+   "goal": "Remove jagged edges on ribbons and surfaces.",
+   "requests": [
+    "the ribbons look blocky",
+    "increase the ribbon smoothness"
+   ],
+   "commands": [
+    "graphics quality ribbonDivisions 20",
+    "graphics quality 2"
+   ],
+   "notes": "Higher ribbonDivisions = smoother ribbons. Nothing else about the model changes.",
+   "topic": "display",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/graphics.html"
+  },
+  {
+   "name": "Two contour levels of one map at once",
+   "goal": "A low transparent contour around a high solid one.",
+   "requests": [
+    "outer transparent mesh plus inner solid map",
+    "nested contour levels on the density"
+   ],
+   "commands": [
+    "volume #2 level 0.5 color #80808060 level 1.2 color blue"
+   ],
+   "notes": "Repeat level and color in ONE volume command; the last two hex digits of a color are its opacity (60 = mostly see-through).",
+   "topic": "maps",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/volume.html"
+  },
+  {
+   "name": "Illustration look (Molecule of the Month style)",
+   "goal": "Flat-shaded, outlined rendering in the style of David Goodsell's PDB-101 paintings: spheres, flat lighting, thick silhouettes, one flat tint per chain.",
+   "requests": [
+    "make it look like a molecule of the month painting",
+    "goodsell style please",
+    "flat cartoony illustration look with outlines"
+   ],
+   "commands": [
+    "hide #1 cartoons",
+    "show #1 atoms",
+    "style #1 sphere",
+    "color #1 bychain",
+    "lighting flat",
+    "graphics silhouettes true width 3",
+    "set bgColor white"
+   ],
+   "notes": "The look comes from flat lighting plus thick silhouettes on spheres; a surface (`surface #1`) works too but spheres give the grainy painted edge. Use muted tints (two hue families, e.g. reds and blues) rather than a rainbow. `lighting soft` restores the normal look.",
+   "topic": "figure",
+   "source": "https://pdb101.rcsb.org/motm"
+  },
+  {
+   "name": "Undo the last request",
+   "goal": "Take back everything the last request did, when the request opened, closed or otherwise changed more than a single command and plain undo cannot reach it.",
+   "requests": [
+    "undo the last request",
+    "go back to before that whole request",
+    "that whole thing was wrong, put it back the way it was"
+   ],
+   "commands": [
+    "undo_last_request"
+   ],
+   "notes": "Pellaeon keeps a restore point from immediately before each request. undo_last_request closes the model(s) that request opened when opening models was all it did, or restores the whole saved session when it also colored, styled, moved the view, labeled or deleted something. It reaches back one request only and asks for confirmation before restoring. For a single reversible change (e.g. a color just applied), the plain undo command is still the right tool.",
+   "topic": "other",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/commands/undo.html"
   }
  ],
  "tips": [

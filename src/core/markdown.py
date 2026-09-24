@@ -58,6 +58,21 @@ def render(md: str) -> str:
             out.append("<pre><code%s>%s</code></pre>" % (cls, html.escape("\n".join(code))))
             i += 1
             continue
+        if stripped.startswith("|") and i + 1 < len(lines) and re.match(r"^\|?\s*:?-{2,}", lines[i + 1].strip()):
+            # a pipe table: header row, separator row, body rows (the sequence_identity result is one)
+            flush_para()
+            close_list()
+            cells = lambda row: [c.strip() for c in row.strip().strip("|").split("|")]
+            head = cells(stripped)
+            i += 2
+            body = []
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                body.append(cells(lines[i]))
+                i += 1
+            out.append("<table><thead><tr>%s</tr></thead><tbody>%s</tbody></table>" % (
+                "".join("<th>%s</th>" % _inline(h) for h in head),
+                "".join("<tr>%s</tr>" % "".join("<td>%s</td>" % _inline(c) for c in r) for r in body)))
+            continue
         m = re.match(r"^(#{1,3})\s+(.*)$", stripped)
         if m:
             flush_para()

@@ -30,6 +30,7 @@ _SYNONYMS = {
     "af": "alphafold", "afdb": "alphafold",
     "picture": "save", "image": "save", "screenshot": "save", "png": "save",
     "publication": "preset", "pretty": "preset", "nice": "preset",
+    "goodsell": "preset", "cartoonish": "preset", "cartoony": "preset", "illustration": "preset", "toon": "preset",
     "measure": "distance", "mesure": "distance", "measuring": "distance",
     "hbond": "hbonds", "hydrogen": "hbonds",
     "bg": "background", "bacground": "background", "backround": "background",

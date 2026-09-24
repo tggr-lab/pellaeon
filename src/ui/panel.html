@@ -19,9 +19,9 @@
   </div>
   <div class="topbar-actions">
     <select id="autonomy" title="When should Pellaeon ask before running commands?">
-      <option value="ask">Ask before every command</option>
-      <option value="auto">Auto-run, ask for risky ones</option>
-      <option value="all">Never ask (this session)</option>
+      <option value="ask">Ask every time</option>
+      <option value="auto">Ask for risky ones</option>
+      <option value="all">Never ask</option>
     </select>
     <button class="icon-btn" id="btn-table" title="Import a table (CSV/TSV) of per-residue values to color the structure by">&#8862;</button>
     <button class="icon-btn" id="btn-export" title="Export this chat's commands as a ChimeraX script (.cxc)">&#8681;</button>
@@ -67,7 +67,7 @@
         <button data-text="show the ligands as sticks and hide water">Show ligands</button>
         <button data-text="show hydrogen bonds">H-bonds</button>
         <button data-text="reset the view">Reset view</button>
-        <button data-text="undo the last change">Undo</button>
+        <button data-text="undo the last request" title="Restores ChimeraX to how it was before your last request">Undo last request</button>
         <button data-text="compare the two open models and tell me what changed">Compare models</button>
         <button data-text="show the ClinVar variants on this model">ClinVar variants</button>
         <button data-text="color the domains and transmembrane regions">Domains</button>
@@ -116,7 +116,7 @@
       <div class="field" id="f-pull">
         <label>Download a model into Ollama</label>
         <div class="row">
-          <input id="s-pull" placeholder="qwen3:8b">
+          <input id="s-pull" placeholder="gemma4:12b">
           <button id="btn-pull" class="secondary">Pull</button>
         </div>
         <div class="progress" id="pull-progress" hidden><div class="bar"></div><span class="ptext"></span></div>
@@ -140,6 +140,14 @@
 
       <details class="advanced">
         <summary>Advanced</summary>
+        <div class="field">
+          <label for="s-initiative">How much should Pellaeon do?</label>
+          <select id="s-initiative">
+            <option value="minimal">Exactly what I ask, nothing extra (recommended)</option>
+            <option value="initiative">Take some initiative: small finishing touches and a suggested next step</option>
+          </select>
+        </div>
+        <label class="check" id="f-docking"><input type="checkbox" id="s-docking"> Allow docking the panel into the ChimeraX window</label>
         <div class="field">
           <label for="s-autonomy">Before running commands</label>
           <select id="s-autonomy">

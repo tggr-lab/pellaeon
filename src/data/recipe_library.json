@@ -373,7 +373,8 @@
    "commands": [
     "open https://raw.githubusercontent.com/RBVI/chimerax-recipes/master/flip_z/flip.py",
     "flip #1"
-   ]
+   ],
+   "only_if": "mirror|handed|enantiomer|chiral|\\bD[- ]?(amino|form|isomer|protein|peptide)|\\bL[- ]?to[- ]?D\\b|invert\\w*\\s+(the\\s+)?(z|coordinates)"
   },
   {
    "name": "Make atoms for Gaussian cube file",
