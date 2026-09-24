@@ -4,9 +4,9 @@ Notes for earlier versions are on the [releases page](https://github.com/tggr-la
 
 ## 0.2.2 (2026-09-24)
 
-Reported after the Toolshed release, now changed:
+Changed:
 
-- The panel opens as a floating window (a docked panel took the Shift key from the command line on macOS).
+- The panel opens as a floating window.
 - Default scope is "exactly what was asked": no extra coloring, windows or suggestions. Settings ▸ Advanced ▸ "take some initiative" restores them.
 - Sequence identity between open structures is reported as a table; no alignment windows are opened. "Close those sequence windows" closes any that are.
 - Keys, legends and titles are removed together with the structure they belong to.
