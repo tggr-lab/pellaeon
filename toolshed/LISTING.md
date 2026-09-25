@@ -69,8 +69,9 @@ None yet. Cite the GitHub repository: https://github.com/tggr-lab/pellaeon
 
 ## Icon
 
-`docs/img/logo_lockup.png` is the full artwork (mark and wordmark). `docs/logo.png` is the mark on its own, cropped
-from it, and is what the website uses for its nav brand and favicon.
+`docs/img/logo_lockup.png` is the full artwork (mark and wordmark, black text, for light backgrounds);
+`docs/img/logo_lockup_white.png` is the same with white text, for dark backgrounds. `docs/img/logo_mark.png` (1024 px)
+is the mark on its own, and `docs/logo.png` (256 px) is the mark the website uses for its nav brand and favicon.
 
 ## Screenshots (this folder)
 
