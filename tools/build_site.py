@@ -123,7 +123,7 @@ HOW_SVG = '<svg class="how" viewBox="0 0 1180 500" role="img" aria-labelledby="h
 INDEX = """
 <section class="hero">
   <div>
-    <div class="term"><span class="path">~/molecules</span>$ pellaeon <span class="blink">&#9646;</span></div>
+    <div class="hero-logo"><img class="on-light" src="img/logo_lockup.png" alt="Pellaeon"><img class="on-dark" src="img/logo_lockup_white.png" alt="Pellaeon"></div>
     <p class="pill"><b>New</b> Pellaeon is in the <a href="%(toolshed)s">ChimeraX Toolshed</a></p>
     <h1>Talk to ChimeraX in plain English.</h1>
     <p class="lead">Open structures, inspect residues, compare models, and make figures from a chat panel inside ChimeraX. See the commands Pellaeon runs and copy or reuse them.</p>

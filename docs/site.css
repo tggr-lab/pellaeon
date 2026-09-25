@@ -202,3 +202,11 @@ figure img { max-height: 78vh; width: auto; max-width: 100%; margin: 0 auto; }
 .how.how-v.how-mcp { min-width: 0; max-width: 440px; }
 .how-mcp .node.shared rect { stroke: var(--accent2); stroke-width: 1.6; }
 .how-mcp .node.shared { animation: none; }
+.hero-logo { margin: 0 auto 6px; }
+.hero-logo img { width: 190px; height: auto; border: none; }
+.hero-logo .on-dark { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hero-logo .on-light { display: none; } :root:not([data-theme="light"]) .hero-logo .on-dark { display: inline; } }
+:root[data-theme="dark"] .hero-logo .on-light { display: none; }
+:root[data-theme="dark"] .hero-logo .on-dark { display: inline; }
+@media (max-width: 720px) { .hero-logo { margin: 0 0 4px; } .hero-logo img { width: 140px; } }
+
