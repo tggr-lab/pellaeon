@@ -23,12 +23,24 @@ DESC = "Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. 
 SITE = "https://tggr-lab.github.io/pellaeon"
 
 
+def css_version():
+    """A short hash of site.css: the stylesheet link changes whenever the file does, so browsers never mix new
+    pages with a cached old stylesheet."""
+    import hashlib
+    with open(os.path.join(DOCS, "site.css"), "rb") as f:
+        return hashlib.sha1(f.read()).hexdigest()[:8]
+
+
 def layout(title, body, active, toc_html=""):
+    return _layout(title, body, active, toc_html).replace("CSSVER", css_version())
+
+
+def _layout(title, body, active, toc_html=""):
     nav = "".join('<a class="link%s" href="%s">%s</a>' % (" active" if f == active else "", f, n) for f, n in NAV)
     main = ('<div class="doc"><nav class="toc"><details open><summary>Contents</summary>%s</details></nav><article>%s</article></div>' % (toc_html, body)) if toc_html else body
     return """<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>%s</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css">
+<title>%s</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=CSSVER">
 <meta name="description" content="%s">
 <meta property="og:title" content="%s"><meta property="og:description" content="%s"><meta property="og:image" content="%s/img/hero_poster.png"><meta property="og:url" content="%s/%s"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
 <body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a>%s<span class="spacer"></span><a class="link gh" href="%s">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
@@ -123,7 +135,7 @@ HOW_SVG = '<svg class="how" viewBox="0 0 1180 500" role="img" aria-labelledby="h
 INDEX = """
 <section class="hero">
   <div>
-    <div class="hero-logo"><img class="on-light" src="img/logo_lockup.png" alt="Pellaeon"><img class="on-dark" src="img/logo_lockup_white.png" alt="Pellaeon"></div>
+    <div class="hero-logo"><img class="on-light" src="img/logo_lockup.png" width="190" height="190" alt="Pellaeon"><img class="on-dark" src="img/logo_lockup_white.png" width="190" height="190" alt="Pellaeon"></div>
     <p class="pill"><b>New</b> Pellaeon is in the <a href="%(toolshed)s">ChimeraX Toolshed</a></p>
     <h1>Talk to ChimeraX in plain English.</h1>
     <p class="lead">Open structures, inspect residues, compare models, and make figures from a chat panel inside ChimeraX. See the commands Pellaeon runs and copy or reuse them.</p>
@@ -368,7 +380,7 @@ def check_links():
             ref = m.group(1)
             if ref.startswith(("http://", "https://", "mailto:", "//")):
                 continue
-            if not os.path.exists(os.path.join(DOCS, ref)):
+            if not os.path.exists(os.path.join(DOCS, ref.split("?", 1)[0])):
                 bad.append((name, ref))
     if bad:
         print("BROKEN LOCAL LINKS:", bad)
