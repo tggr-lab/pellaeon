@@ -1,0 +1,283 @@
+[
+ {
+  "request": "open the af model for the gene adrb2",
+  "commands": [
+   "open alphafold:P07550"
+  ],
+  "note": "P07550 came from resolve_protein('ADRB2'); never guess accessions."
+ },
+ {
+  "request": "open the alphafold model for the gene adrb2, after that color it in white but color amino acid 87 in blue",
+  "commands": [
+   "open alphafold:P07550",
+   "color #1 white",
+   "show #1:87 atoms",
+   "style #1:87 stick",
+   "color #1:87 blue",
+   "view #1:87"
+  ]
+ },
+ {
+  "request": "i want to see the human protein coded by the gene adrb1",
+  "commands": [
+   "open alphafold:P07550"
+  ],
+  "note": "resolve_protein first; open the AlphaFold model by accession."
+ },
+ {
+  "request": "open 1zik",
+  "commands": [
+   "open 1zik"
+  ]
+ },
+ {
+  "request": "select amino acids 113 79 87 and 211 and show their atoms",
+  "commands": [
+   "select #1:113,79,87,211",
+   "show sel atoms",
+   "style sel stick"
+  ]
+ },
+ {
+  "request": "color each one of these in a diffrent color",
+  "commands": [
+   "color #1:113 red",
+   "color #1:79 green",
+   "color #1:87 blue",
+   "color #1:211 orange"
+  ],
+  "note": "'these' = the residues just selected; get_state shows the selection."
+ },
+ {
+  "request": "select amono acids 100 and 150 and mesure the distance between them",
+  "commands": [
+   "select #1:100,150",
+   "distance #1:100@CA #1:150@CA"
+  ]
+ },
+ {
+  "request": "delete chains A B E and G",
+  "commands": [
+   "delete #1/A,B,E,G"
+  ],
+  "note": "delete needs confirmation."
+ },
+ {
+  "request": "close it, instead open adra2a, and make it look publiction ready",
+  "commands": [
+   "close #1",
+   "open alphafold:P08913",
+   "preset \"overall look\" \"publication 1\"",
+   "lighting soft",
+   "graphics silhouettes true",
+   "set bgColor white",
+   "view"
+  ]
+ },
+ {
+  "request": "select postions 87 and 140 and color them green. the rest of the protein should be white",
+  "commands": [
+   "color #1 white",
+   "select #1:87,140",
+   "show sel atoms",
+   "style sel stick",
+   "color sel green"
+  ]
+ },
+ {
+  "request": "make it spin",
+  "commands": [
+   "roll y 0.5"
+  ]
+ },
+ {
+  "request": "make it spin in place",
+  "commands": [
+   "view",
+   "roll y 0.5"
+  ]
+ },
+ {
+  "request": "stop it",
+  "commands": [
+   "stop"
+  ]
+ },
+ {
+  "request": "slower",
+  "commands": [
+   "stop",
+   "roll y 0.1"
+  ]
+ },
+ {
+  "request": "reverse selection",
+  "commands": [
+   "select ~sel"
+  ]
+ },
+ {
+  "request": "deselect all",
+  "commands": [
+   "select clear"
+  ]
+ },
+ {
+  "request": "make the selected half transperent",
+  "commands": [
+   "transparency sel 50 target acs"
+  ]
+ },
+ {
+  "request": "color the bacground grey",
+  "commands": [
+   "set bgColor gray"
+  ]
+ },
+ {
+  "request": "show the surface and color it by hydrophobicity",
+  "commands": [
+   "surface #1",
+   "mlp #1"
+  ]
+ },
+ {
+  "request": "show hydrogen bonds",
+  "commands": [
+   "hbonds #1 reveal true"
+  ]
+ },
+ {
+  "request": "show the ligand as spheres and hide water",
+  "commands": [
+   "show ligand atoms",
+   "style ligand sphere",
+   "hide solvent"
+  ]
+ },
+ {
+  "request": "color by chain",
+  "commands": [
+   "color #1 bychain"
+  ]
+ },
+ {
+  "request": "rainbow it",
+  "commands": [
+   "rainbow #1"
+  ]
+ },
+ {
+  "request": "focos on the selection",
+  "commands": [
+   "view sel"
+  ]
+ },
+ {
+  "request": "reset the view",
+  "commands": [
+   "view"
+  ]
+ },
+ {
+  "request": "label residues 87 and 140",
+  "commands": [
+   "label #1:87,140"
+  ]
+ },
+ {
+  "request": "show the transmembrane helices of ADRB2 in orange",
+  "commands": [
+   "color #1 white",
+   "color #1:47-73,84-107,124-147,169-192,222-247,271-294,305-329 orange target ac"
+  ],
+  "note": "ranges from protein_features(accession, ['Transmembrane']) after resolve_protein('ADRB2')."
+ },
+ {
+  "request": "save a picture",
+  "commands": [
+   "save ~/Desktop/chimerax.png width 2000 supersample 3"
+  ],
+  "note": "save needs confirmation; the interface asks."
+ },
+ {
+  "request": "close everything",
+  "commands": [
+   "close"
+  ],
+  "note": "close needs confirmation."
+ },
+ {
+  "request": "align these two proteins",
+  "commands": [
+   "matchmaker #2 to #1",
+   "view"
+  ]
+ },
+ {
+  "request": "what is open?",
+  "commands": [],
+  "note": "Use get_state and answer in words; no commands needed."
+ },
+ {
+  "request": "color by the type of aa",
+  "commands": [
+   "color #1:ala,val,ile,leu,met,phe,trp,pro,gly white",
+   "color #1:ser,thr,asn,gln,cys,tyr green",
+   "color #1:lys,arg,his blue",
+   "color #1:asp,glu red"
+  ],
+  "note": "No built-in scheme colors by residue type; color the classes explicitly (hydrophobic, polar, positive, negative)."
+ },
+ {
+  "request": "color it by hydrophobicity",
+  "commands": [
+   "surface #1",
+   "mlp #1"
+  ],
+  "note": "mlp colors a molecular surface by lipophilicity. On cartoons use the residue-class coloring instead."
+ },
+ {
+  "request": "color by confidence",
+  "commands": [
+   "color bfactor #1 palette alphafold"
+  ],
+  "note": "AlphaFold pLDDT is stored as B-factor."
+ },
+ {
+  "request": "color by secondary structure",
+  "commands": [
+   "color #1 & helix red",
+   "color #1 & strand yellow",
+   "color #1 & coil gray"
+  ]
+ },
+ {
+  "request": "show only chain B",
+  "commands": [
+   "hide #1 target acs",
+   "cartoon #1/B",
+   "show #1/B atoms"
+  ],
+  "note": "There is no 'only': hide everything (atoms, cartoons, surfaces), then show the part."
+ },
+ {
+  "request": "show only the cartoon",
+  "commands": [
+   "cartoon #1",
+   "hide #1 atoms"
+  ]
+ },
+ {
+  "request": "measure the distance between residue 10 and residue 20",
+  "commands": [
+   "distance #1/A:10@CA #1/A:20@CA"
+  ],
+  "note": "Always give chain and atom name so each spec is exactly one atom; dimers have the same numbers in every chain."
+ },
+ {
+  "request": "you did not",
+  "commands": [],
+  "note": "The user is saying the last action failed. Do not repeat it; look up the right approach and run different commands, or say plainly that it was not done."
+ }
+]

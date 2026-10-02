@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Pellaeon"
+license = { text = "MIT" }
+authors = [{ name = "Yam Amir" }]
+description = "Control ChimeraX in plain English with local or cloud AI models"
+dependencies = ["ChimeraX-Core ~=1.9", "ChimeraX-UI ~=1.0"]
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Pellaeon adds a chat panel to ChimeraX. Type what you want in plain English
+("open the AlphaFold model of ADRB2 and color residue 113 blue", "which contacts
+are lost between these two conformations", "color it by ClinVar variants") and
+Pellaeon runs the ChimeraX commands, lists every command it ran so you can copy
+or re-run it, sends errors back to the model for one corrected attempt, and
+asks before closing, deleting, saving or running scripts. Works with free cloud
+tiers (Mistral, Google Gemini), local models through Ollama (model requests stay
+on your computer; structure and annotation fetches contact public databases), and
+paid Anthropic, OpenAI or OpenAI-compatible servers. Pure Python,
+no extra packages. Not affiliated with UCSF."""
+
+[project.urls]
+Home = "https://github.com/tggr-lab/pellaeon"
+Author = "https://github.com/YAMIR-1138"
+Lab = "https://github.com/tggr-lab"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+module-name-override = "pellaeon"
+min-session-version = 1
+max-session-version = 1
+categories = ["General"]
+classifiers = ["Development Status :: 4 - Beta"]
+
+[tool.chimerax.tool.Pellaeon]
+category = "General"
+description = "AI assistant: control ChimeraX in plain English"
+
+[tool.chimerax.command.pellaeon]
+category = "General"
+description = "Run a plain-English request through Pellaeon"
+
+[tool.chimerax.package-data]
+"src/ui/" = ["*.html", "*.css", "*.js", "*.svg"]
+"src/data/" = ["*.json", "*.md"]
+"src/data/guides/" = ["*.txt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q -p no:cacheprovider"

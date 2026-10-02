@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classic edition - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=7951b716">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first.">
+<meta property="og:title" content="Classic edition - Pellaeon"><meta property="og:description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/hero_poster.png"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/classic.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link active" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#install-and-run">Install and run</a></li>
+<li><a href="#differences-from-the-chimerax-edition">Differences from the ChimeraX edition</a></li>
+</ul>
+</div>
+</details></nav><article><h1 id="pellaeon-classic-for-ucsf-chimera-1x">Pellaeon Classic: for UCSF Chimera 1.x</h1>
+<p>The same assistant, for the classic Chimera. Because Chimera 1.x runs Python 2 and Tk, Pellaeon Classic is a small
+separate program: it serves the Pellaeon panel to your web browser and drives Chimera through Chimera's built-in
+REST server. It shares the agent, providers, safety gate and UI with the ChimeraX bundle; only the executor and
+the command knowledge (Chimera's Midas-style syntax, models numbered from #0, <code>:10.A</code> chains) differ.</p>
+<figure><img alt="Pellaeon Classic: Chimera 1.20 with hemoglobin, the panel in a browser tab and the launcher window" src="img/classic.png" /><figcaption>Pellaeon Classic: Chimera 1.20 with hemoglobin, the panel in a browser tab and the launcher window</figcaption></figure>
+<h2 id="install-and-run">Install and run</h2>
+<ol>
+<li>Python 3.9 or newer (python.org; on Windows tick "Add Python to PATH"). Nothing else to install.</li>
+<li>Download <code>pellaeon-classic.zip</code> from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and unzip it anywhere.</li>
+<li>Windows: double-click <strong>Start Pellaeon Classic.cmd</strong>. macOS: double-click <strong>Start Pellaeon Classic.command</strong>. Linux: <code>./start.sh</code>.
+   A small launcher window opens (panel address, Chimera status, <strong>Launch Chimera</strong>, <strong>Test</strong>, activity log) and your
+   browser opens the Pellaeon panel at <code>http://127.0.0.1:8765</code>.</li>
+<li>Press <strong>Launch Chimera</strong> in the launcher (it starts Chimera with <code>--start RESTServer</code> and picks up the port
+   automatically; the executable is auto-detected in <code>C:\Program Files\Chimera*</code>, <code>/Applications/Chimera*.app</code>,
+   <code>~/.local/UCSF-Chimera*</code>, or use <strong>Browse…</strong>). Or start Chimera yourself, open <strong>Tools ▸ Utilities ▸ RESTServer</strong>, type the
+   port from its Reply Log and press <strong>Test</strong>.</li>
+<li>In the browser panel choose an AI provider once (same settings page as the ChimeraX edition), then type requests.</li>
+<li>Optional: <code>python install.py</code> puts a <strong>Pellaeon Classic</strong> shortcut on the desktop and in the Start menu (Windows),
+   a <code>.command</code> on the desktop (macOS) or an applications-menu entry (Linux).</li>
+</ol>
+<p><code>python run.py --console</code> runs without the launcher window (terminal only); <code>--no-browser</code> skips opening the browser.</p>
+<h2 id="differences-from-the-chimerax-edition">Differences from the ChimeraX edition</h2>
+<ul>
+<li>Commands use Chimera syntax (<code>color red :10</code>, <code>display</code>, <code>~ribbon</code>, <code>focus</code>, <code>turn y 1 360</code>, <code>background solid white</code>).</li>
+<li>AlphaFold models open from the EBI URL (<code>open https://alphafold.ebi.ac.uk/files/AF-&lt;accession&gt;-F1-model_v4.pdb</code>).</li>
+<li>No Python execution, no per-residue displacement coloring in <em>compare</em> (RMSD from matchmaker only).</li>
+<li>Chat exports are <code>.cmd</code> Chimera command files; <code>copy file</code> (images), <code>save</code>, <code>close</code>, <code>delete</code>, <code>system</code> ask first.</li>
+<li>Syntax lookups use the bundled Chimera documentation (Chimera has no <code>usage</code> command).</li>
+<li>Both editions share the chat interface and model providers. It also knows what is open and selected (via <code>list models</code> and <code>list selection</code>),
+  and by default closing models, deleting atoms, saving files and running scripts require confirmation.</li>
+</ul>
+<p>These are ChimeraX-edition only:</p>
+<ul>
+<li>table overlays (painting a per-residue CSV onto a structure)</li>
+<li>contact comparison (which contacts and salt bridges are lost and gained between two conformations)</li>
+<li>figure bundles (image, session, command script, color table and draft legend in one folder)</li>
+<li>label tidying (moving overlapping labels apart)</li>
+<li>screenshot review (the model looks at the view and fixes framing, clutter and colors)</li>
+</ul>
+<p>Tested with Chimera 1.20.</p></article></div></main>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
+<footer><div class="in">Pellaeon v0.2.11 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl"),
+        img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    btn.dataset.playing = "0";
+    function toggle(){
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      lbl.textContent = playing ? "Stop" : "Play recording";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
+</body></html>

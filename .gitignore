@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.egg-info/
+.venv/
+secrets.json
+*.log
+.DS_Store
+classic/pellaeon_classic/data/chimera_docs/

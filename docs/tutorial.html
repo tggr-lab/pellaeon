@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pellaeon tutorial - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=7951b716">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first.">
+<meta property="og:title" content="Pellaeon tutorial - Pellaeon"><meta property="og:description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/hero_poster.png"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/tutorial.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link active" href="tutorial.html">Tutorial</a><a class="link" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#five-minute-version">Five-minute version</a></li>
+<li><a href="#short-tutorials">Short tutorials</a></li>
+<li><a href="#part-1-setup">Part 1: Setup</a><ul>
+<li><a href="#1-install-chimerax-and-pellaeon">1. Install ChimeraX and Pellaeon</a></li>
+<li><a href="#2-connect-an-ai-once">2. Connect an AI (once)</a></li>
+</ul>
+</li>
+<li><a href="#part-2-step-by-step">Part 2: Step by step</a><ul>
+<li><a href="#step-1-open-a-structure">Step 1 · Open a structure</a></li>
+<li><a href="#step-2-color-and-style">Step 2 · Color and style</a></li>
+<li><a href="#step-2b-make-it-move">Step 2b · Make it move</a></li>
+<li><a href="#step-3-click-on-something-and-ask-about-it">Step 3 · Click on something and ask about it</a></li>
+<li><a href="#step-3b-why-is-this-residue-this-color">Step 3b · Why is this residue this color?</a></li>
+<li><a href="#step-4-make-it-look-like-a-figure">Step 4 · Make it look like a figure</a></li>
+<li><a href="#step-5-measure-something">Step 5 · Measure something</a></li>
+<li><a href="#step-5b-save-a-figure-you-can-reproduce">Step 5b · Save a figure you can reproduce</a></li>
+<li><a href="#step-6-open-an-alphafold-model-by-gene-name">Step 6 · Open an AlphaFold model by gene name</a></li>
+<li><a href="#step-6b-numbering-from-a-paper">Step 6b · Numbering from a paper</a></li>
+<li><a href="#step-6c-bookmark-a-view">Step 6c · Bookmark a view</a></li>
+<li><a href="#step-7-paint-annotations-from-uniprot">Step 7 · Paint annotations from UniProt</a></li>
+<li><a href="#step-8-clinvar-variants">Step 8 · ClinVar variants</a></li>
+<li><a href="#step-8b-when-labels-pile-up">Step 8b · When labels pile up</a></li>
+<li><a href="#step-8c-re-use-a-look">Step 8c · Re-use a look</a></li>
+<li><a href="#step-9-compare-two-conformations">Step 9 · Compare two conformations</a></li>
+<li><a href="#step-9b-which-contacts-change">Step 9b · Which contacts change</a></li>
+<li><a href="#step-10-risky-commands-ask-first">Step 10 · Risky commands ask first</a></li>
+<li><a href="#step-11-your-own-data-on-the-structure">Step 11 · Your own data on the structure</a></li>
+</ul>
+</li>
+<li><a href="#part-3-good-to-know">Part 3: Good to know</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+</div>
+</details></nav><article><h1 id="pellaeon-tutorial">Pellaeon tutorial</h1><nav class="subnav"><span>Tutorials:</span><a class="active" href="tutorial.html">Full walkthrough</a><a href="pocket.html">A ligand in its pocket</a><a href="surfaces.html">Electrostatics and hydrophobicity</a></nav>
+<p>The full walkthrough takes about twenty minutes: hemoglobin, a residue and its neighbours, a figure, a distance, an AlphaFold model by gene name, variants, two conformations of an enzyme, and your own data. Each step shows what to type, what Pellaeon ran, and what ChimeraX shows afterwards.</p>
+<h2 id="five-minute-version">Five-minute version</h2>
+<ol>
+<li>In ChimeraX's <strong>Command:</strong> line, paste <code>toolshed install ChimeraX-Pellaeon</code> and press Enter, then open <strong>Tools ▸ General ▸ Pellaeon</strong>.</li>
+<li>The panel opens on its settings page. Pick <strong>ChatGPT</strong> and sign in if you have a Plus or Pro account (no key), else <strong>Mistral</strong> (free key) or <strong>Ollama</strong> (runs on your computer). Press <strong>Test connection</strong>.</li>
+<li>Press <strong>Run a first request</strong>: it saves the settings, opens ubiquitin and colors it by chain.</li>
+<li>
+<p>Type these into Pellaeon's message box, one at a time:</p>
+<ul>
+<li><code>close everything and open 4hhb</code></li>
+<li><code>color it by chain and show the heme groups as spheres</code></li>
+<li><code>make it look publication ready</code></li>
+</ul>
+</li>
+</ol>
+<h2 id="short-tutorials">Short tutorials</h2>
+<p>Four requests each, with the commands and the result after every step:</p>
+<ul>
+<li><a href="pocket.html">A ligand in its pocket</a>: HIV protease and indinavir; pocket surface, hydrogen bonds, close-up.</li>
+<li><a href="surfaces.html">Electrostatics and hydrophobicity</a>: p53 on DNA; surface coloured by potential and by hydrophobicity.</li>
+</ul>
+<p>The rest of this page is the full walkthrough.</p>
+<h2 id="part-1-setup">Part 1: Setup</h2>
+<h3 id="1-install-chimerax-and-pellaeon">1. Install ChimeraX and Pellaeon</h3>
+<ol>
+<li>Install <a href="https://www.cgl.ucsf.edu/chimerax/download.html">UCSF ChimeraX</a> 1.9 or newer (Windows: run the installer with the defaults).</li>
+<li>Start ChimeraX. Click into the <strong>Command:</strong> line at the bottom of the window, paste this and press Enter:</li>
+</ol>
+<pre><code>toolshed install ChimeraX-Pellaeon
+</code></pre>
+<p>That installs Pellaeon from the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a>. The menu route does the same thing without typing: <strong>Tools ▸ More Tools…</strong>, find <strong>Pellaeon</strong>, press <strong>Install</strong>.</p>
+<p>Open the panel from the menu: <strong>Tools ▸ General ▸ Pellaeon</strong>. It opens as a floating window (drag it onto an edge of the ChimeraX window to dock it) and comes back the next time you start ChimeraX.</p>
+<figure><img alt="Tools menu, General submenu, Pellaeon entry" src="img/tut/00_menu.png" /><figcaption>Tools menu, General submenu, Pellaeon entry</figcaption></figure>
+<p>Or type <code>ui tool show Pellaeon</code> in the command line. Nothing else to install: no Python, no terminal, no admin rights. (For an offline install, see <a href="install.html">Installation</a>.)</p>
+<figure><img alt="Pellaeon docked in ChimeraX" src="img/docked_4hhb.png" /><figcaption>Pellaeon docked in ChimeraX</figcaption></figure>
+<h3 id="2-connect-an-ai-once">2. Connect an AI (once)</h3>
+<p>The panel opens on its settings page. The choices:</p>
+<ul>
+<li><strong>A ChatGPT Plus or Pro account (recommended if you have one):</strong> pick <strong>ChatGPT</strong>, press <strong>Sign in with ChatGPT</strong>, and sign in in the browser. No key; Pellaeon uses <code>gpt-6-sol</code>, the highest score in the feature comparison on <a href="models.html">Tested models</a>.</li>
+<li><strong>Nothing to install, free:</strong> pick <strong>Mistral</strong>, click "get a key", sign up at console.mistral.ai, press <em>Create new key</em>, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses <code>ministral-8b-latest</code>, which the free tier serves at about 190 requests a minute. Google Gemini is an equally good choice at 15 requests a minute; its key comes from AI Studio the same way.</li>
+<li><strong>The AI runs on your computer:</strong> pick <strong>Ollama</strong>. Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press <strong>Pull</strong> next to <code>gemma4:12b</code> once (8 GB, needs a 12 GB GPU; on a smaller card pull <code>qwen3:8b</code>, on a laptop <code>qwen3:4b</code> and expect slower answers).</li>
+</ul>
+<p>One thing to know before you paste a cloud key. With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection, the commands you ran by hand in ChimeraX since your previous request (with their output) and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings. The free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models: for unpublished work use Ollama, or check the provider's data-handling terms first (<a href="https://mistral.ai/terms">Mistral</a>, <a href="https://ai.google.dev/gemini-api/terms">Google</a>).</p>
+<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong>, or <strong>Run a first request</strong>, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.</p>
+<figure><img alt="Settings page" src="img/01_settings.png" /><figcaption>Settings page</figcaption></figure>
+<h2 id="part-2-step-by-step">Part 2: Step by step</h2>
+<p>Start from an empty session: if the first request opened ubiquitin for you, say "close everything" (it asks for confirmation) before Step 1. The model numbers in the text below assume you did, so hemoglobin is model #1.</p>
+<p>Type each request into the box at the bottom and press Enter. Typos and casual phrasing are fine. The pictures on this page were rendered on a white background with silhouettes (<code>set bgColor white; lighting soft; graphics silhouettes true</code>); yours will be on black until step 4, which is fine.</p>
+<h3 id="step-1-open-a-structure">Step 1 · Open a structure</h3>
+<blockquote>
+<p>open 4hhb</p>
+</blockquote>
+<p>Pellaeon fetches human hemoglobin from the PDB and tells you what it found: four chains (two alpha, two beta), heme groups and a phosphate.</p>
+<figure><img alt="After &quot;open 4hhb&quot;" src="img/tut/01_open.png" /><figcaption>After &quot;open 4hhb&quot;</figcaption></figure>
+<figure><img alt="What Pellaeon said" src="img/tut/01_open_panel.png" /><figcaption>What Pellaeon said</figcaption></figure>
+<p>The <strong>Ran 1 command</strong> line is the exact ChimeraX command it used. Click it to expand; every command has <em>copy</em>, <em>rerun</em> and <em>?</em> (opens ChimeraX's own documentation for that command).</p>
+<h3 id="step-2-color-and-style">Step 2 · Color and style</h3>
+<blockquote>
+<p>color it by chain and show the heme groups as spheres</p>
+</blockquote>
+<p>"it" means the model you just opened. The chains get different colors and the four hemes appear as spheres.</p>
+<figure><img alt="Colored by chain, hemes as spheres" src="img/tut/02_chains.png" /><figcaption>Colored by chain, hemes as spheres</figcaption></figure>
+<figure><img alt="Commands and reply" src="img/tut/02_chains_panel.png" /><figcaption>Commands and reply</figcaption></figure>
+<h3 id="step-2b-make-it-move">Step 2b · Make it move</h3>
+<blockquote>
+<p>make it spin</p>
+</blockquote>
+<figure><img alt="Hemoglobin spinning" src="img/tut/spin_4hhb.gif" /><figcaption>Hemoglobin spinning</figcaption></figure>
+<p>"stop it" stops. "slower", "spin the other way", "rock it back and forth" all work.</p>
+<h3 id="step-3-click-on-something-and-ask-about-it">Step 3 · Click on something and ask about it</h3>
+<p>Ctrl-click any atom in the 3D view (that is ChimeraX's normal way of selecting); to get exactly this example, type <code>select #1/A:87</code> in ChimeraX's command line (<code>#1</code> is hemoglobin, the first model). A bar appears above the input. <strong>Highlight</strong> colors the selection and shows its atoms; the two questions send it to the AI. Alt-click asks about a residue directly, without selecting first (the <code>pellaeon ask</code> mouse mode; rebind it with <code>ui mousemode alt leftMode "pellaeon ask"</code> if you use Alt for something else).</p>
+<figure><img alt="Selection bar" src="img/tut/03_nearby_panel.png" /><figcaption>Selection bar</figcaption></figure>
+<p>Press <strong>What is nearby?</strong> (or type your own question). <strong>Why this color?</strong> answers from Pellaeon's own record of what colored the residue (step 3b). Pellaeon looks up the residues and ligands within 5 Å, shows them as sticks and labels them:</p>
+<figure><img alt="Neighbourhood of His 87" src="img/tut/03_nearby_b.png" /><figcaption>Neighbourhood of His 87</figcaption></figure>
+<p>His 87 of chain A is the proximal histidine that holds the heme iron; the sticks around it are the heme and its pocket.</p>
+<h3 id="step-3b-why-is-this-residue-this-color">Step 3b · Why is this residue this color?</h3>
+<p>Select a residue and press <strong>Why this color?</strong>, or type it. Pellaeon does not guess a biological reason: it reports the residue's current colors and labels, the recorded command, annotation, table or comparison that produced them, and any value behind them.</p>
+<blockquote>
+<p>Why is residue 87 (HIS) of chain A in 4hhb this color?</p>
+</blockquote>
+<figure><img alt="Answer from the record" src="img/tut/03c_why_panel.png" /><figcaption>Answer from the record</figcaption></figure>
+<p>A command that runs without error but matches nothing (wrong residue numbers, wrong chain) is marked <em>changed nothing</em> with an amber dot, and the model is told to fix it, instead of getting a green tick.</p>
+<h3 id="step-4-make-it-look-like-a-figure">Step 4 · Make it look like a figure</h3>
+<blockquote>
+<p>make it look publication ready and focus on the heme of chain A, shown as sticks with its iron as a small sphere</p>
+</blockquote>
+<p>This applies ChimeraX's publication preset and centres the view on the heme of chain A:</p>
+<figure><img alt="Publication look" src="img/tut/04_pub.png" /><figcaption>Publication look</figcaption></figure>
+<figure><img alt="Commands" src="img/tut/04_pub_panel.png" /><figcaption>Commands</figcaption></figure>
+<p>To save it: "save a picture to my desktop". Saving writes a file, so Pellaeon shows a confirmation card first (Step 10).</p>
+<h3 id="step-5-measure-something">Step 5 · Measure something</h3>
+<blockquote>
+<p>measure the distance between the iron of the heme in chain A and the CA of residue 87 in chain A</p>
+</blockquote>
+<figure><img alt="Distance monitor" src="img/tut/05_distance.png" /><figcaption>Distance monitor</figcaption></figure>
+<figure><img alt="The answer" src="img/tut/05_distance_panel.png" /><figcaption>The answer</figcaption></figure>
+<p>CA is the Cα backbone atom, so this is the iron to backbone distance, about 6.5 Å, not the Fe–His coordination bond (that would be the NE2 atom of His 87, about 2.1 Å). The number is shown in the 3D view and in the reply. Angles, hydrogen bonds ("show hydrogen bonds"), clashes and contacts work the same way.</p>
+<h3 id="step-5b-save-a-figure-you-can-reproduce">Step 5b · Save a figure you can reproduce</h3>
+<p>Do this now, while hemoglobin is still open. Press <strong>Save figure</strong> above the composer (or say "save this as a figure called heme_pocket"). Pick a name and a folder, a size, optionally a close-up (an atom spec such as <code>#1/A:87 :&lt;6</code>, the residues within 6 Å of His 87), and press <strong>Save</strong>.</p>
+<figure><img alt="Figure bundle form and result" src="img/tut/12_figure_panel.png" /><figcaption>Figure bundle form and result</figcaption></figure>
+<p>The folder contains more than the picture:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>heme_pocket.png</code>, <code>heme_pocket_closeup.png</code></td>
+<td>the image, plus the close-up if you asked for one</td>
+</tr>
+<tr>
+<td><code>heme_pocket.cxs</code></td>
+<td>a ChimeraX session (when <em>include session</em> is ticked): reopen and keep working</td>
+</tr>
+<tr>
+<td><code>heme_pocket.cxc</code></td>
+<td>the commands Pellaeon recorded, replayable with <code>open heme_pocket.cxc</code>; mouse rotations and commands typed outside Pellaeon are not in it, the session is</td>
+</tr>
+<tr>
+<td><code>heme_pocket_colors.csv</code></td>
+<td>ribbon and atom color of every residue</td>
+</tr>
+<tr>
+<td><code>heme_pocket_legend.md</code></td>
+<td>a draft legend written only from the recorded commands, annotations and tables</td>
+</tr>
+<tr>
+<td><code>heme_pocket.json</code></td>
+<td>structures and their sources (PDB id, AlphaFold accession or file), camera, background, sizes</td>
+</tr>
+</tbody>
+</table></div>
+<p>When the AI saves a figure on its own the image save asks for your OK first, like any other file write.</p>
+<h3 id="step-6-open-an-alphafold-model-by-gene-name">Step 6 · Open an AlphaFold model by gene name</h3>
+<blockquote>
+<p>close everything, then open the AlphaFold model of the gene ADRB2</p>
+</blockquote>
+<p>Pellaeon looks the gene up in UniProt (ADRB2 is the beta-2 adrenergic receptor, accession P07550) and opens the AlphaFold model. AlphaFold models are colored by confidence (pLDDT): dark blue very confident, light blue confident, yellow low, orange very low. Confidence in the prediction of that stretch, not experimental evidence and not motion.</p>
+<figure><img alt="AlphaFold model of ADRB2" src="img/tut/06_af.png" /><figcaption>AlphaFold model of ADRB2</figcaption></figure>
+<figure><img alt="UniProt lookup then open" src="img/tut/06_af_panel.png" /><figcaption>UniProt lookup then open</figcaption></figure>
+<p>"close everything" asked for confirmation first: closing models is one of the risky actions.</p>
+<h3 id="step-6b-numbering-from-a-paper">Step 6b · Numbering from a paper</h3>
+<blockquote>
+<p>where is UniProt residue 159 in this structure?</p>
+</blockquote>
+<p>The AlphaFold model uses UniProt numbering, so here it is residue 159 exactly. Try the same on an experimental structure and the answer is often different: a missing initiator methionine, an expression tag or a construct that starts at residue 20 shifts every number. Pellaeon maps the positions through the chain's own UniProt alignment and reports the offset, or that it varies along the chain, before anything gets colored. Ask "color UniProt positions 120 to 135 orange" and it maps them first.</p>
+<figure><img alt="Residue 159 mapped through the chain's UniProt entry" src="img/tut/06b_map_panel.png" /><figcaption>Residue 159 mapped through the chain's UniProt entry</figcaption></figure>
+<h3 id="step-6c-bookmark-a-view">Step 6c · Bookmark a view</h3>
+<blockquote>
+<p>highlight residue 113, pull back so the whole receptor is visible, and bookmark this view as pocket</p>
+<p>now show the whole thing, then go back to the pocket view</p>
+</blockquote>
+<p>Bookmarks are ChimeraX's named views: Pellaeon lists the ones you have saved in what it tells the model, so "back to the pocket view" works, and "make a movie touring my bookmarks" produces a fly-through (the encode step asks for your OK, like any file save).</p>
+<figure><img alt="Back at the bookmarked view" src="img/tut/06c.png" /><figcaption>Back at the bookmarked view</figcaption></figure>
+<figure><img alt="Bookmark round-trip" src="img/tut/06c_panel.png" /><figcaption>Bookmark round-trip</figcaption></figure>
+<h3 id="step-7-paint-annotations-from-uniprot">Step 7 · Paint annotations from UniProt</h3>
+<blockquote>
+<p>color the transmembrane helices orange and the rest white</p>
+</blockquote>
+<p>Pellaeon fetches the transmembrane segments from UniProt and colors exactly those residues. The seven helices of this receptor light up:</p>
+<figure><img alt="Transmembrane helices" src="img/tut/07_tm.png" /><figcaption>Transmembrane helices</figcaption></figure>
+<figure><img alt="What it did" src="img/tut/07_tm_panel.png" /><figcaption>What it did</figcaption></figure>
+<p>The same works for domains, binding sites, active sites, glycosylation, disulfides.</p>
+<h3 id="step-8-clinvar-variants">Step 8 · ClinVar variants</h3>
+<blockquote>
+<p>close everything and open the AlphaFold model of the gene HBB</p>
+<p>show the ClinVar variants of HBB on it</p>
+</blockquote>
+<p>Hemoglobin beta again, this time the AlphaFold model, with the ClinVar missense positions that mapped onto the model colored by clinical significance: red pathogenic, orange likely pathogenic, magenta conflicting, yellow uncertain, cyan and blue (likely) benign. When several variants share a position, the color shows the highest-priority classification: pathogenic, then likely pathogenic, then uncertain, then likely benign, then benign; the card lists all of them. The pathogenic ones are labeled; E7V is the sickle-cell mutation (ClinVar counts the initiator methionine, so it is Glu6→Val in mature-chain numbering). This is the AlphaFold model of one β chain, not the tetramer from step 1.</p>
+<figure><img alt="ClinVar variants on hemoglobin beta" src="img/tut/08_clinvar.png" /><figcaption>ClinVar variants on hemoglobin beta</figcaption></figure>
+<figure><img alt="Result card" src="img/tut/08_clinvar_panel.png" /><figcaption>Result card</figcaption></figure>
+<p>Pellaeon maps UniProt numbering onto the model's chains (PDB entries often start counting differently) and checks that the residue in the model really is the reference amino acid; mismatches are skipped and counted in the card.</p>
+<h3 id="step-8b-when-labels-pile-up">Step 8b · When labels pile up</h3>
+<p>Forty variant labels on a small protein overlap. Say so:</p>
+<blockquote>
+<p>the labels overlap, tidy them</p>
+</blockquote>
+<p>Pellaeon works out where every label sits on screen, moves the colliding ones to a free spot next to their residue and removes the ones that cannot fit, then tells you which. It is a fix for the current view: rotate or resize and ask again. Ask for specific residues to label those again.</p>
+<figure><img alt="Labels after tidying" src="img/tut/08b_tidy.png" /><figcaption>Labels after tidying</figcaption></figure>
+<figure><img alt="What was moved and removed" src="img/tut/08b_tidy_panel.png" /><figcaption>What was moved and removed</figcaption></figure>
+<h3 id="step-8c-re-use-a-look">Step 8c · Re-use a look</h3>
+<p>Once you have saved a figure bundle (step 5b), its styling can be applied to something else:</p>
+<blockquote>
+<p>open 1omp and make it look like my hemoglobin figure</p>
+</blockquote>
+<p>Pellaeon replays the bundle's styling commands, colors, cartoon and surface style, lighting and background, on the new structure and leaves out the bundle's own open, save and close steps.</p>
+<figure><img alt="1omp styled like the hemoglobin figure" src="img/tut/07b_reuse.png" /><figcaption>1omp styled like the hemoglobin figure</figcaption></figure>
+<figure><img alt="What Pellaeon replayed" src="img/tut/07b_reuse_panel.png" /><figcaption>What Pellaeon replayed</figcaption></figure>
+<h3 id="step-9-compare-two-conformations">Step 9 · Compare two conformations</h3>
+<p>Maltose-binding protein is a classic hinge: open without ligand (1omp), closed around maltose (1anf). Open both, then ask:</p>
+<blockquote>
+<p>close everything, open 1omp and 1anf, then compare these two models and tell me what changed</p>
+</blockquote>
+<figure><img alt="Closed maltose-binding protein colored by how far each residue moved from the open form" src="img/tut/09_compare_b.png" /><figcaption>Closed maltose-binding protein colored by how far each residue moved from the open form</figcaption></figure>
+<p>What you are looking at: the second model (closed, 1anf) after superposition on the first, shown alone and colored by how far each Cα moved between the two forms: gray under 1 Å, gold, orange, dark red 6 Å or more; a key sits in the corner. The reference is hidden; <strong>Show reference</strong> on the card draws it as a pale ghost on top. Gray means the residue sits close to its counterpart <em>after the fit</em>; it is not a statement about which part is the hinge.</p>
+<figure><img alt="Comparison card" src="img/tut/09_compare_b_panel.png" /><figcaption>Comparison card</figcaption></figure>
+<p>The card leads with the change: how many residues moved more than 2 Å, the mean and maximum shift, and the segments with the largest shifts (each clickable). Below it, the fit details: MatchMaker's RMSD over the Cα pairs it kept after pruning, and the RMSD over all aligned pairs. They are different numbers about different sets of atoms, which is why the card keeps them apart.</p>
+<h3 id="step-9b-which-contacts-change">Step 9b · Which contacts change</h3>
+<blockquote>
+<p>which contacts are lost when it opens, and which salt bridges break?</p>
+</blockquote>
+<p>Where step 9 asks how far residues moved, this asks what they stopped touching. Pellaeon collects every residue-residue contact in both conformations, matches them through the same alignment, and draws the lost ones as red dashes on the closed form and the gained ones green on the open form, with a key. The result lists lost and gained contacts and the residues involved, which salt bridges broke, and where the change clusters. Add "for the ligand" to see only what the ligand touches in one form but not the other.</p>
+<figure><img alt="Contacts lost (red) and gained (green)" src="img/tut/09b_contacts.png" /><figcaption>Contacts lost (red) and gained (green)</figcaption></figure>
+<figure><img alt="The salt bridges that break" src="img/tut/09b_contacts_panel.png" /><figcaption>The salt bridges that break</figcaption></figure>
+<h3 id="step-10-risky-commands-ask-first">Step 10 · Risky commands ask first</h3>
+<blockquote>
+<p>close everything</p>
+</blockquote>
+<figure><img alt="Confirmation card" src="img/tut/10_close_panel.png" /><figcaption>Confirmation card</figcaption></figure>
+<p>By default, closing models, deleting atoms, saving files, and running scripts require confirmation. The card shows the exact commands and they are editable: <strong>Run</strong> or <strong>Skip</strong>. The dropdown at the top switches to the other two modes: <em>ask before every command</em> stops for every command, and <em>never ask</em> runs everything without a card.</p>
+<h3 id="step-11-your-own-data-on-the-structure">Step 11 · Your own data on the structure</h3>
+<p>Any per-residue table can be painted onto a structure: conservation scores, deep mutational scanning, contact changes, your own residue groups. The table needs a residue-position column; a chain column, a reference-residue column (wild-type amino acid) and an accession column are used when present.</p>
+<ol>
+<li>Open a structure (<code>open 1ubq</code>), then press the <strong>Import table</strong> button (⊞) in the panel header and pick a CSV or TSV. <a href="examples/ubiquitin_hydropathy.csv">ubiquitin_hydropathy.csv</a> is a small example: Kyte-Doolittle hydropathy for every residue of ubiquitin.</li>
+<li>A card shows what Pellaeon detected: the position column, the reference-residue column, the chain column, and a few sample rows. For the example: column <code>hydropathy</code>, model <code>#1</code>, chain left empty, numbering <code>structure</code>, palette <code>blue-white-red</code>, then <strong>Apply</strong>. Expect 76 residues placed and no reference mismatches. Positive Kyte-Doolittle values are hydrophobic (red), negative hydrophilic (blue); a key appears in the 3D view.</li>
+</ol>
+<figure><img alt="Table preview card" src="img/tut/11_table_preview_panel.png" /><figcaption>Table preview card</figcaption></figure>
+<ol start="3">
+<li>The result card says how many rows were placed, which positions do not exist in the structure, and how many rows were <strong>skipped because the reference residue did not match</strong> the structure. A wrong numbering shows up here as a wall of mismatches instead of a silently wrong picture. Numeric columns get a color ramp (residues without a value stay gray), text columns get one color per category.</li>
+<li>The AI now knows about the table, so you can ask in words. Applied tables appear as <strong>Layers</strong> chips above the composer; click one to re-apply it after other coloring.</li>
+</ol>
+<blockquote>
+<p>label the residues with hydropathy above 3 and show them as sticks</p>
+</blockquote>
+<figure><img alt="Ubiquitin colored by hydropathy" src="img/tut/11_table.png" /><figcaption>Ubiquitin colored by hydropathy</figcaption></figure>
+<figure><img alt="Result card and request" src="img/tut/11_table_panel.png" /><figcaption>Result card and request</figcaption></figure>
+<p>Every value is stored as a residue attribute named <code>pellaeon_&lt;table&gt;_&lt;column&gt;</code>, so ChimeraX's own attribute selection (<code>select ::pellaeon_ubiquitin_hydropathy_hydropathy&gt;3</code>) and saved sessions work with it. Table overlays are ChimeraX-edition only.</p>
+<h2 id="part-3-good-to-know">Part 3: Good to know</h2>
+<ul>
+<li><strong>Review the view:</strong> the <strong>Review the view</strong> chip makes Pellaeon take a screenshot, judge framing, clutter, labels and colors, fix what it can and look again. Reviewing screenshots requires a vision-capable model and the review-the-view option enabled in Settings. Which models were tested for it is on the <a href="models.html">Tested models</a> page.</li>
+<li><strong>Commands that match nothing are flagged:</strong> a command that ran but matched nothing shows an amber <em>changed nothing</em> mark, and "why is this red?" tells you which command, table or annotation gave a residue its look.</li>
+<li><strong>Labels</strong> are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.</li>
+<li><strong>Undo:</strong> the <strong>Undo last request</strong> chip (or "undo the last request") restores the session to its state before the previous request, from a checkpoint Pellaeon saves before each request. For sessions above 300,000 atoms the checkpoint holds only the list of open models, so their display is not restored. "Undo the last change" runs ChimeraX's own undo, which reverses supported actions only. Save a session (<code>.cxs</code>) before experimenting on something you care about.</li>
+<li><strong>When it gets a command wrong</strong>, it reads ChimeraX's error and the real syntax and retries once or twice. Explain what went wrong so Pellaeon can revise the request.</li>
+<li><strong>Export a session as a script:</strong> the ⇩ button saves every command that actually ran as a <code>.cxc</code> file; replay it with <code>open myscript.cxc</code>.</li>
+<li><strong>Your own data:</strong> ⊞ imports a per-residue CSV/TSV (Step 11).</li>
+<li><strong>Past chats:</strong> ☰ lists them; + starts a new one.</li>
+<li><strong>From ChimeraX's own command line:</strong> <code>pellaeon color everything by chain</code>.</li>
+<li><strong>Classic Chimera 1.x:</strong> there is a separate edition, same panel in your browser. See <a href="classic.html">Classic edition</a>.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Ollama is not running"</td>
+<td>Start Ollama (Windows: it is in the system tray; or run <code>ollama serve</code>), or switch to the Gemini card.</td>
+</tr>
+<tr>
+<td>"model not found"</td>
+<td>Settings ▸ <strong>Pull</strong> the model, or type its exact name (<code>ollama list</code> shows what you have).</td>
+</tr>
+<tr>
+<td>Empty or very slow answers with Ollama</td>
+<td>Use <code>qwen3:8b</code> on a GPU; on CPU-only PCs use <code>qwen3:4b</code> and expect 10–30 s per request.</td>
+</tr>
+<tr>
+<td>"rejected the API key (401)"</td>
+<td>Re-paste the key; check it belongs to the provider you selected.</td>
+</tr>
+<tr>
+<td>Panel is blank</td>
+<td><code>Tools ▸ General ▸ Pellaeon</code> again, or restart ChimeraX.</td>
+</tr>
+<tr>
+<td>Something changed that you did not want</td>
+<td>"undo", or reopen the structure.</td>
+</tr>
+</tbody>
+</table></div></article></div></main>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
+<footer><div class="in">Pellaeon v0.2.11 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl"),
+        img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    btn.dataset.playing = "0";
+    function toggle(){
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      lbl.textContent = playing ? "Stop" : "Play recording";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
+</body></html>

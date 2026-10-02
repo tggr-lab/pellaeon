@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Learned fixes
+    url: https://github.com/tggr-lab/pellaeon/discussions/categories/learned-fixes
+    about: Command corrections shared from the panel's Learned page

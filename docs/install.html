@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installation - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=7951b716">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first.">
+<meta property="og:title" content="Installation - Pellaeon"><meta property="og:description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/hero_poster.png"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/install.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link active" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#chimerax-edition">ChimeraX edition</a></li>
+<li><a href="#classic-edition-chimera-1x">Classic edition (Chimera 1.x)</a></li>
+<li><a href="#choosing-an-ai">Choosing an AI</a></li>
+<li><a href="#privacy">Privacy</a></li>
+<li><a href="#reporting-a-problem">Reporting a problem</a></li>
+<li><a href="#updating">Updating</a></li>
+<li><a href="#where-things-are-stored">Where things are stored</a></li>
+</ul>
+</div>
+</details></nav><article><h1 id="installation">Installation</h1>
+<p>Three steps: install the panel, choose an AI when the panel first opens, press <strong>Run a first request</strong>.</p>
+<p>Pellaeon comes in two editions. Pick the one for the program you use.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>ChimeraX edition</th>
+<th>Classic edition (old Chimera 1.x)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Runs</td>
+<td>inside UCSF ChimeraX 1.9+ as a docked panel</td>
+<td>as a small program next to UCSF Chimera 1.x, panel in your browser</td>
+</tr>
+<tr>
+<td>Install</td>
+<td>from ChimeraX's own Toolshed, or one line typed into ChimeraX</td>
+<td>unzip, double-click</td>
+</tr>
+<tr>
+<td>Needs</td>
+<td>ChimeraX</td>
+<td>Chimera 1.x and Python 3.9+</td>
+</tr>
+<tr>
+<td>Extras</td>
+<td>click-to-ask, displacement-colored comparisons, in-place annotations</td>
+<td>superposition (RMSD), annotations</td>
+</tr>
+</tbody>
+</table></div>
+<p>Both use the same AI providers, the same panel and the same safety rules.</p>
+<h2 id="chimerax-edition">ChimeraX edition</h2>
+<p>Pellaeon is on the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a>, the bundle
+catalogue built into ChimeraX, so ChimeraX installs and updates it for you.</p>
+<ol>
+<li>Install <a href="https://www.cgl.ucsf.edu/chimerax/download.html">UCSF ChimeraX</a> 1.9 or newer.</li>
+<li>Start ChimeraX and install Pellaeon, from the menu or from the command line. <strong>From the menu:</strong> <strong>Tools ▸ More Tools…</strong> opens the Toolshed; find <strong>Pellaeon</strong> (category <em>General</em>) and press <strong>Install</strong>. <strong>From the command line:</strong> paste this into the <strong>Command:</strong> line at the bottom of the window and press Enter:</li>
+</ol>
+<pre><code>toolshed install ChimeraX-Pellaeon
+</code></pre>
+<ol start="3">
+<li>Open <strong>Tools ▸ General ▸ Pellaeon</strong>. The panel opens as a floating window (drag it onto an edge to dock it) and asks you to choose an AI. The <code>pellaeon</code> command works on the ChimeraX command line too.</li>
+</ol>
+<p>No terminal, no Python installation, no administrator rights. It works the same on Windows, macOS and Linux.</p>
+<p><strong>Straight from GitHub instead:</strong> this one line fetches the newest release from the
+<a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a>, installs it and opens the panel. Use it to pick up a
+release before it reaches the Toolshed.</p>
+<pre><code>open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py
+</code></pre>
+<p><strong>Offline install:</strong> get the <code>.whl</code> file from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and type (quotes needed when the path has spaces):</p>
+<pre><code>toolshed install &quot;C:\Users\you\Downloads\chimerax_pellaeon-&lt;version&gt;-py3-none-any.whl&quot;
+</code></pre>
+<p><code>&lt;version&gt;</code> is a placeholder: type the name of the file you actually downloaded.</p>
+<p><strong>Uninstall:</strong> <code>toolshed uninstall ChimeraX-Pellaeon</code> in ChimeraX.</p>
+<h2 id="classic-edition-chimera-1x">Classic edition (Chimera 1.x)</h2>
+<ol>
+<li>Install <a href="https://www.python.org/downloads/">Python 3.9 or newer</a>. On Windows tick <strong>Add Python to PATH</strong> in the installer.</li>
+<li>Download <code>pellaeon-classic.zip</code> from the <a href="https://github.com/tggr-lab/pellaeon/releases">releases page</a> and unzip it anywhere.</li>
+<li>Windows: double-click <strong>Start Pellaeon Classic.cmd</strong>. macOS: double-click <strong>Start Pellaeon Classic.command</strong>. Linux: <code>./start.sh</code>.
+   A small launcher window opens and your browser shows the Pellaeon panel.</li>
+<li>In the launcher press <strong>Launch Chimera</strong> (it starts Chimera with its REST server and connects by itself), or start Chimera yourself, open <strong>Tools ▸ Utilities ▸ RESTServer</strong>, type the port shown in the Reply Log into the launcher and press <strong>Test</strong>.</li>
+<li>Optional: <code>python install.py</code> puts a <strong>Pellaeon Classic</strong> shortcut on your desktop and Start menu.</li>
+</ol>
+<h2 id="choosing-an-ai">Choosing an AI</h2>
+<p>The first time the panel opens it shows provider cards. There is one decision to make: <strong>local or cloud</strong>. Local (Ollama) needs no account and no key, but needs a machine with a reasonable GPU and a one-time model download of a few GB. Cloud needs a key, or a ChatGPT Plus/Pro account.</p>
+<p>If you have a ChatGPT Plus or Pro account, press <strong>Sign in with ChatGPT</strong>: no key, and its <code>gpt-6-sol</code> has the highest score in the feature comparison on <a href="models.html">Tested models</a>. Otherwise start with Mistral: the free key takes two minutes at <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, needs no credit card, and Pellaeon uses <code>ministral-8b-latest</code> on it. If you would rather not send anything to a provider, install Ollama and pull <code>qwen3:8b</code> instead.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>How to get a key</th>
+<th>Free allowance (September 2026, new account)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ChatGPT</strong> (recommended with a Plus/Pro account)</td>
+<td>no key: press <strong>Sign in with ChatGPT</strong> and sign in in the browser; the plan's usage limits apply</td>
+<td>included in the subscription</td>
+</tr>
+<tr>
+<td><strong>Ollama</strong> (local)</td>
+<td>no key: install <a href="https://ollama.com/download">Ollama</a>, then press <strong>Pull</strong> next to <code>gemma4:12b</code> in Pellaeon's settings (needs a 12 GB GPU; <code>qwen3:8b</code> on 8 GB, <code>qwen3:4b</code> on a machine without a GPU)</td>
+<td>free, no limit</td>
+</tr>
+<tr>
+<td><strong>Mistral</strong> (recommended)</td>
+<td><a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, no credit card</td>
+<td>free tier, about 190 requests a minute</td>
+</tr>
+<tr>
+<td><strong>Google Gemini</strong></td>
+<td><a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>, no credit card</td>
+<td>free tier, 15 requests a minute on Flash-Lite plus a daily cap</td>
+</tr>
+<tr>
+<td><strong>Anthropic Claude</strong></td>
+<td><a href="https://console.anthropic.com/settings/keys">console.anthropic.com</a>; Claude Pro/Max subscriptions cannot be used by third-party tools</td>
+<td>none, pay per use</td>
+</tr>
+<tr>
+<td><strong>OpenAI</strong></td>
+<td><a href="https://platform.openai.com/api-keys">platform.openai.com</a></td>
+<td>none, pay per use</td>
+</tr>
+<tr>
+<td><strong>OpenRouter</strong></td>
+<td>one key, many models</td>
+<td>50 requests a day in total</td>
+</tr>
+<tr>
+<td><strong>Groq</strong></td>
+<td>one key, many models</td>
+<td>7000 to 8000 input tokens a minute, about one request a minute</td>
+</tr>
+<tr>
+<td><strong>LM Studio, llama.cpp, vLLM</strong></td>
+<td>no key: enter the address of any local server that speaks the OpenAI protocol</td>
+<td>free, no limit</td>
+</tr>
+</tbody>
+</table></div>
+<p>Press <strong>Test connection</strong>, then <strong>Save &amp; use</strong> or <strong>Run a first request</strong> (it saves the settings and has the AI open ubiquitin and color it by chain). Keys are stored privately on your computer (system keyring or a private file), never in ChimeraX sessions or files you share. Environment variables (<code>MISTRAL_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>) are picked up automatically.</p>
+<p>Which model to run on the provider you picked, and how each one did on Pellaeon's own request sets, is on <a href="models.html">Tested models</a>.</p>
+<p>When a limit is hit Pellaeon waits and retries rather than failing, and on the tightest tiers it automatically shortens its prompt to fit. A quota that resets tomorrow is reported plainly instead of being retried.</p>
+<h2 id="privacy">Privacy</h2>
+<p>With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection, the commands you ran by hand in ChimeraX since your previous request (with their output) and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings.</p>
+<p>The free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished work, use a local model through Ollama, or check the provider's data-handling terms before you paste a key: <a href="https://mistral.ai/terms">Mistral</a>, <a href="https://ai.google.dev/gemini-api/terms">Google</a>.</p>
+<h2 id="reporting-a-problem">Reporting a problem</h2>
+<p>The <strong>?</strong> button in the panel has <em>Report a problem…</em>: it opens a new <a href="https://github.com/tggr-lab/pellaeon/issues">GitHub issue</a> in your browser, prefilled with the Pellaeon and ChimeraX versions, the provider and model, and the last two turns of the chat with the commands that ran and their errors. Paths and web addresses are replaced; keys from Settings are not part of the report. Read the text on GitHub before you post it, since the chat itself may contain things you typed. <em>Copy report</em> puts the same text on the clipboard for an email, and <em>Copy chat</em> copies the whole conversation.</p>
+<h2 id="updating">Updating</h2>
+<p>ChimeraX edition: ChimeraX notes available bundle updates in <strong>Tools ▸ More Tools…</strong>; <code>toolshed update ChimeraX-Pellaeon</code> on the command line does the same thing. If you installed from GitHub, run that install line again and it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
+<h2 id="where-things-are-stored">Where things are stored</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Windows</th>
+<th>macOS</th>
+<th>Linux</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ChimeraX edition</td>
+<td><code>%LOCALAPPDATA%\UCSF\ChimeraX\Pellaeon\</code></td>
+<td><code>~/Library/Application Support/ChimeraX/Pellaeon/</code></td>
+<td><code>~/.local/share/ChimeraX/Pellaeon/</code></td>
+</tr>
+<tr>
+<td>Classic edition</td>
+<td><code>%LOCALAPPDATA%\Pellaeon-Classic\</code></td>
+<td><code>~/Library/Application Support/Pellaeon-Classic/</code></td>
+<td><code>~/.local/share/pellaeon-classic/</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Chats are saved there as JSON, and <code>learned.json</code> holds the command corrections Pellaeon learns (Settings ▸ <em>Remember command fixes</em>; <em>view</em> lists them). Delete the folder to start clean.</p></article></div></main>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
+<footer><div class="in">Pellaeon v0.2.11 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl"),
+        img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    btn.dataset.playing = "0";
+    function toggle(){
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      lbl.textContent = playing ? "Stop" : "Play recording";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
+</body></html>

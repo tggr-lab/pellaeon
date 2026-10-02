@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A ligand in its pocket - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=7951b716">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first.">
+<meta property="og:title" content="A ligand in its pocket - Pellaeon"><meta property="og:description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/hero_poster.png"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/tutorial.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link active" href="tutorial.html">Tutorial</a><a class="link" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#1-open-the-structure">1. Open the structure</a></li>
+<li><a href="#2-the-pocket-as-a-surface">2. The pocket as a surface</a></li>
+<li><a href="#3-hydrogen-bonds">3. Hydrogen bonds</a></li>
+<li><a href="#4-a-close-up">4. A close-up</a></li>
+</ul>
+</div>
+</details></nav><article><h1 id="a-ligand-in-its-pocket">A ligand in its pocket</h1><nav class="subnav"><span>Tutorials:</span><a href="tutorial.html">Full walkthrough</a><a class="active" href="pocket.html">A ligand in its pocket</a><a href="surfaces.html">Electrostatics and hydrophobicity</a></nav>
+<p>HIV-1 protease with the inhibitor indinavir (PDB 1HSG), in four requests.</p>
+<h3 id="1-open-the-structure">1. Open the structure</h3>
+<blockquote>
+<p>open the HIV protease structure 1hsg and show the inhibitor indinavir as orange sticks</p>
+</blockquote>
+<pre><code>open 1hsg
+show #1:MK1 atoms; style #1:MK1 stick; color #1:MK1 orange
+</code></pre>
+<p>MK1 is the residue name of indinavir in this entry.</p>
+<figure><img alt="Indinavir as orange sticks in the middle of the protease dimer" src="img/tut/pocket/01_open.png" /><figcaption>Indinavir as orange sticks in the middle of the protease dimer</figcaption></figure>
+<h3 id="2-the-pocket-as-a-surface">2. The pocket as a surface</h3>
+<blockquote>
+<p>show the binding pocket: a white surface of the residues within 5 Å of indinavir, 70% transparent</p>
+</blockquote>
+<pre><code>surface (#1:MK1 :&lt;5) &amp; protein color white transparency 70
+</code></pre>
+<p><code>:&lt;5</code> selects the residues with any atom within 5 Å of the ligand.</p>
+<figure><img alt="Transparent surface of the pocket residues around the inhibitor" src="img/tut/pocket/02_pocket.png" /><figcaption>Transparent surface of the pocket residues around the inhibitor</figcaption></figure>
+<h3 id="3-hydrogen-bonds">3. Hydrogen bonds</h3>
+<blockquote>
+<p>show the hydrogen bonds between indinavir and the protein, and label the residues it binds</p>
+</blockquote>
+<pre><code>hbonds #1:MK1 restrict protein reveal true select true
+select sel &amp; protein; label sel
+</code></pre>
+<p>Nine hydrogen bonds to five residues: Arg 8, Asp 25 of both chains, Gly 27 and Asp 29. The catalytic aspartates (Asp 25) bind the inhibitor's central hydroxyl.</p>
+<figure><img alt="Hydrogen bonds drawn as dashes, with the bonded residues labelled" src="img/tut/pocket/03_hbonds.png" /><figcaption>Hydrogen bonds drawn as dashes, with the bonded residues labelled</figcaption></figure>
+<h3 id="4-a-close-up">4. A close-up</h3>
+<blockquote>
+<p>hide the cartoon except around the pocket and give me a clean close-up of indinavir in its pocket</p>
+</blockquote>
+<pre><code>hide #1 target c
+cartoon (#1:MK1 :&lt;5) &amp; protein
+view #1:MK1
+</code></pre>
+<figure><img alt="Indinavir, its pocket surface and the hydrogen bonds" src="img/tut/pocket/04_closeup.png" /><figcaption>Indinavir, its pocket surface and the hydrogen bonds</figcaption></figure>
+<figure><img alt="The same view, rotating" src="img/tut/pocket/04_closeup_spin.gif" /><figcaption>The same view, rotating</figcaption></figure>
+<p><strong>Save figure</strong> writes the image, the session and the commands to a folder (<a href="tutorial.html#step-5b-save-a-figure-you-can-reproduce">tutorial, step 5b</a>).</p></article></div></main>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
+<footer><div class="in">Pellaeon v0.2.11 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl"),
+        img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    btn.dataset.playing = "0";
+    function toggle(){
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      lbl.textContent = playing ? "Stop" : "Play recording";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
+</body></html>

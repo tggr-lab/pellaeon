@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pellaeon</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<iframe id="beacon" title="bridge" hidden></iframe>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true" title="Captain Pellaeon, at your service"><svg viewBox="0 0 64 64" width="28" height="28"><defs><linearGradient id="plg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#761a1b"/><stop offset="1" stop-color="#e32b2c"/></linearGradient></defs><circle cx="32" cy="32" r="32" fill="url(#plg)"/><polygon points="31.7,7.1 51.1,16.2 31.7,58.3 12.4,16.2" fill="#eeeae3"/></svg></span>
+    <div>
+      <div class="title">Pellaeon</div>
+      <div class="subtitle" id="config-line">Not configured</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <select id="autonomy" title="When should Pellaeon ask before running commands?">
+      <option value="ask">Ask every time</option>
+      <option value="auto">Ask for risky ones</option>
+      <option value="all">Never ask</option>
+    </select>
+    <button class="icon-btn" id="btn-table" title="Import a table (CSV/TSV) of per-residue values to color the structure by">&#8862;</button>
+    <button class="icon-btn" id="btn-export" title="Export this chat's commands as a ChimeraX script (.cxc)">&#8681;</button>
+    <button class="icon-btn" id="btn-history" title="Past conversations">&#9776;</button>
+    <button class="icon-btn" id="btn-help" title="Help, copy this chat, report a problem">?</button>
+    <button class="icon-btn" id="btn-new" title="New chat">&#65291;</button>
+    <button class="icon-btn" id="btn-settings" title="Settings">&#9881;</button>
+  </div>
+</header>
+
+<div id="scene" class="scene" title="What is open in ChimeraX right now"></div>
+
+<main id="pages">
+  <!-- ============================ chat ============================ -->
+  <section id="page-chat" class="page active">
+    <div id="transcript" class="transcript">
+      <div class="welcome" id="welcome">
+        <h2>Tell ChimeraX what you want.</h2>
+        <p>Type in plain English, for example:</p>
+        <ul class="examples">
+          <li data-text="open the AlphaFold model of ADRB2 and color residue 113 blue">open the AlphaFold model of ADRB2 and color residue 113 blue</li>
+          <li data-text="show the ligand as spheres and hide the water">show the ligand as spheres and hide the water</li>
+          <li data-text="measure the distance between residues 100 and 150">measure the distance between residues 100 and 150</li>
+          <li data-text="make it look publication ready">make it look publication ready</li>
+        </ul>
+        <p class="muted">Pellaeon shows every command it runs. Risky ones (close, delete, save…) ask first.</p>
+      </div>
+    </div>
+    <div class="composer">
+      <div class="selbar layers" id="layers" hidden></div>
+      <div class="selbar" id="selbar" hidden>
+        <span id="sel-text"></span>
+        <button class="secondary small" id="sel-ask">What is this?</button>
+        <button class="secondary small" id="sel-near">What is nearby?</button>
+        <button class="secondary small" id="sel-color">Highlight</button>
+        <button class="secondary small" id="sel-why" title="Which command, table or annotation gave this residue its look">Why this color?</button>
+      </div>
+      <div class="chips" id="chips">
+        <button id="chip-review" title="The model takes a screenshot, reviews framing, labels and colors, and fixes what it can (needs a vision model and the screenshot setting)">Review the view</button>
+        <button id="chip-figure" title="Image + session + script + colors + legend in one folder">Save figure</button>
+        <button data-text="tidy up the labels, they overlap">Tidy labels</button>
+        <button data-text="make it look publication ready">Publication look</button>
+        <button data-text="color by chain">Color by chain</button>
+        <button data-text="show the ligands as sticks and hide water">Show ligands</button>
+        <button data-text="show hydrogen bonds">H-bonds</button>
+        <button data-text="reset the view">Reset view</button>
+        <button data-text="undo the last request" title="Restores ChimeraX to how it was before your last request">Undo last request</button>
+        <button data-text="compare the two open models and tell me what changed">Compare models</button>
+        <button data-text="show the ClinVar variants on this model">ClinVar variants</button>
+        <button data-text="color the domains and transmembrane regions">Domains</button>
+        <button id="chip-bind" title="Bind Alt+click to ask about an atom">Alt+click = ask</button>
+      </div>
+      <div class="input-row">
+        <textarea id="input" rows="2" placeholder="What should ChimeraX do?  (Enter to send, Shift+Enter for a new line)"></textarea>
+        <button id="send" class="send" title="Send (Enter)">Send</button>
+      </div>
+      <div class="statusline"><span id="status"></span><span id="usage" class="muted"></span></div>
+    </div>
+  </section>
+
+  <!-- ============================ settings ============================ -->
+  <section id="page-settings" class="page">
+    <div class="settings">
+      <h2>Choose your AI</h2>
+      <p class="muted">Pellaeon sends your requests (and what is open in ChimeraX) to the model you pick. Local models keep everything on your computer.</p>
+      <div id="presets" class="presets"></div>
+
+      <div class="field">
+        <label for="s-model">Model</label>
+        <div class="row">
+          <input id="s-model" list="model-list" placeholder="model name">
+          <datalist id="model-list"></datalist>
+          <button id="btn-models" class="secondary" title="Fetch the list of models from the provider">Refresh list</button>
+        </div>
+        <div id="model-hints" class="hints"></div>
+      </div>
+
+      <div class="field" id="f-key">
+        <label for="s-key">API key <a id="key-link" href="#" target="_blank">get a key</a></label>
+        <div class="row">
+          <input id="s-key" type="password" placeholder="paste your key" autocomplete="off">
+          <button id="btn-showkey" class="secondary" title="Show / hide">&#128065;</button>
+          <button id="btn-clearkey" class="secondary" title="Forget the saved key">clear</button>
+        </div>
+        <div class="hints" id="key-note"></div>
+      </div>
+
+      <div class="field" id="f-signin" hidden>
+        <label>ChatGPT account</label>
+        <div class="row wrap">
+          <button id="btn-signin" class="secondary">Sign in with ChatGPT</button>
+          <button id="btn-signout" class="secondary" hidden>Sign out</button>
+          <span id="signin-status" class="hints">Not signed in</span>
+        </div>
+        <div class="hints" id="signin-note"></div>
+      </div>
+
+      <div class="field" id="f-url">
+        <label for="s-url">Server address</label>
+        <input id="s-url" placeholder="http://localhost:11434">
+      </div>
+
+      <div class="field" id="f-pull">
+        <label>Download a model into Ollama</label>
+        <div class="row">
+          <input id="s-pull" placeholder="gemma4:12b">
+          <button id="btn-pull" class="secondary">Pull</button>
+        </div>
+        <div class="progress" id="pull-progress" hidden><div class="bar"></div><span class="ptext"></span></div>
+      </div>
+
+      <div class="field" id="f-chimera" hidden>
+        <label>UCSF Chimera connection</label>
+        <div class="row">
+          <input id="s-chimera-port" type="number" placeholder="REST server port" style="max-width:160px">
+          <button id="btn-chimera-test" class="secondary">Test Chimera</button>
+          <button id="btn-chimera-launch" class="secondary" title="Start Chimera with its REST server and connect automatically">Launch Chimera</button>
+        </div>
+        <div class="row"><input id="s-chimera-path" placeholder="path to the chimera executable (auto-detected if empty)"></div>
+        <div class="hints" id="chimera-status">In Chimera: Tools ▸ Utilities ▸ RESTServer, then enter the port shown in its Reply Log. Or press Launch Chimera.</div>
+      </div>
+      <div class="row wrap">
+        <button id="btn-test" class="secondary">Test connection</button>
+        <button id="btn-first" class="secondary" title="Saves these settings, opens a small test structure (ubiquitin, 1ubq) and colors it by chain, through the AI, so the whole route is checked">Run a first request</button>
+        <span id="test-result" class="hints"></span>
+      </div>
+
+      <details class="advanced">
+        <summary>Advanced</summary>
+        <div class="field">
+          <label for="s-initiative">How much should Pellaeon do?</label>
+          <select id="s-initiative">
+            <option value="minimal">Exactly what I ask, nothing extra (recommended)</option>
+            <option value="initiative">Take some initiative: small finishing touches and a suggested next step</option>
+          </select>
+        </div>
+        <label class="check" id="f-docking"><input type="checkbox" id="s-docking"> Allow docking the panel into the ChimeraX window</label>
+        <div class="field">
+          <label for="s-autonomy">Before running commands</label>
+          <select id="s-autonomy">
+            <option value="ask">Ask before every command</option>
+            <option value="auto">Run immediately, ask only for risky commands (recommended)</option>
+            <option value="all">Never ask</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="s-labels" checked> Readable labels: fixed size, drawn on top, white background (unless the request says otherwise)</label>
+        <label class="check"><input type="checkbox" id="s-learn" checked> Remember command fixes across sessions (a refused command and the one that ran instead; kept on this computer) <button type="button" id="btn-learned" class="link">view</button></label>
+        <label class="check"><input type="checkbox" id="s-python"> Allow Python code (always asks first)</label>
+        <label class="check"><input type="checkbox" id="s-vision"> Let the model look at screenshots of the 3D view (vision models only)</label>
+        <label class="check" id="f-think"><input type="checkbox" id="s-think"> Ollama: let thinking models think (slower, sometimes smarter)</label>
+        <div class="field" id="f-effort">
+          <label for="s-effort">Reasoning effort (Claude, ChatGPT)</label>
+          <select id="s-effort">
+            <option value="">Default</option><option value="low">Low (fast, cheap)</option>
+            <option value="medium">Medium</option><option value="high">High</option><option value="xhigh">Extra high</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="s-temp">Temperature</label>
+          <input id="s-temp" type="number" min="0" max="1" step="0.1" value="0.2">
+        </div>
+        <div class="row wrap">
+          <button id="btn-index" class="secondary">Rebuild docs index</button>
+          <span id="index-result" class="hints"></span>
+        </div>
+      </details>
+
+      <div class="row end">
+        <button id="btn-cancel-settings" class="secondary">Back</button>
+        <button id="btn-save" class="primary">Save &amp; use</button>
+      </div>
+      <p class="muted small">Keys are stored privately on this computer (system keyring or a private file), never in ChimeraX sessions. Environment variables like ANTHROPIC_API_KEY are used automatically.</p>
+    </div>
+  </section>
+
+  <!-- ============================ history ============================ -->
+  <section id="page-learned" class="page">
+    <div class="settings">
+      <h2>Learned fixes</h2>
+      <p class="muted">A ChimeraX command the model wrote that the parser refused, and the command with the same first word that ran afterwards in the same turn. Offered to the model only when that command comes up again. Stored in <code>learned.json</code> in Pellaeon's data folder; nothing leaves this computer unless you share it.</p>
+      <div id="learned-list" class="history"></div>
+      <div class="row end">
+        <button id="btn-learned-share" class="secondary" title="Opens a GitHub discussion in your browser, prefilled with the list below, for you to read and post">Share with the Pellaeon project…</button>
+        <button id="btn-learned-clear" class="secondary">Forget all</button>
+        <button id="btn-cancel-learned" class="secondary">Back</button>
+      </div>
+    </div>
+  </section>
+  <section id="page-help" class="page">
+    <div class="settings">
+      <h2>Help and feedback</h2>
+      <p class="muted">Pellaeon <span id="help-version"></span>. The <a href="#" id="link-docs">documentation</a> has the install steps, the model list and the tutorials.</p>
+      <p>Something went wrong? A report with the versions, the model and the last two turns of this chat (file paths and web addresses replaced) opens as a new GitHub issue in your browser. Nothing is sent until you read it there and post it.</p>
+      <div class="row">
+        <button id="btn-report" class="secondary">Report a problem…</button>
+        <button id="btn-copy-report" class="secondary" title="The same report, to the clipboard, for an email or a message">Copy report</button>
+      </div>
+      <p>The whole chat, with the commands each request ran, as plain text:</p>
+      <div class="row">
+        <button id="btn-copy-chat" class="secondary">Copy chat</button>
+        <button id="btn-export-2" class="secondary" title="Only the commands that ran, as a ChimeraX script">Export commands (.cxc)</button>
+      </div>
+      <div class="row end"><button id="btn-cancel-help" class="secondary">Back</button></div>
+    </div>
+  </section>
+  <section id="page-history" class="page">
+    <div class="settings">
+      <h2>Past conversations</h2>
+      <div id="history-list" class="history"></div>
+      <div class="row end"><button id="btn-cancel-history" class="secondary">Back</button></div>
+    </div>
+  </section>
+</main>
+
+<div id="toasts"></div>
+<script src="panel.js"></script>
+</body>
+</html>

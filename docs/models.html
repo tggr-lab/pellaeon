@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tested models - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=7951b716">
+<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first.">
+<meta property="og:title" content="Tested models - Pellaeon"><meta property="og:description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/hero_poster.png"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/models.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link active" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#which-model">Which model</a></li>
+<li><a href="#scores">Scores</a></li>
+<li><a href="#free-tier-limits">Free-tier limits</a></li>
+<li><a href="#local-models">Local models</a></li>
+</ul>
+</div>
+</details></nav><article><h1 id="tested-models">Tested models</h1>
+<p>Scores are from Pellaeon's own request sets, run through the real panel and checked by the program (the resulting ChimeraX state, the commands run, the cards shown). Local models ran on an RTX 4070 Super (12 GB). Last run: 2026-10-02, Pellaeon 0.2.8.</p>
+<h2 id="which-model">Which model</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Want</th>
+<th>Pick</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Highest score in the feature comparison</td>
+<td>ChatGPT <code>gpt-6-sol</code></td>
+<td>Plus/Pro subscription, sign in from Settings; about 10 s a request</td>
+</tr>
+<tr>
+<td>Faster, same account</td>
+<td>ChatGPT <code>gpt-6-luna</code></td>
+<td>about 7 s a request</td>
+</tr>
+<tr>
+<td>Free, nothing to install</td>
+<td>Mistral <code>ministral-8b-latest</code></td>
+<td>free key, about 3 s a request; vision</td>
+</tr>
+<tr>
+<td>Free, alternative</td>
+<td>Gemini <code>gemini-flash-lite-latest</code></td>
+<td>free key, 15 requests a minute; vision; 32/32 on the precise-request set below</td>
+</tr>
+<tr>
+<td>Private, on a 12 GB GPU</td>
+<td>Ollama <code>gemma4:12b</code></td>
+<td>runs on your computer</td>
+</tr>
+<tr>
+<td>Private, faster</td>
+<td>Ollama <code>qwen3.5:9b</code></td>
+<td>about 2.5 s a request; a few more mistakes on display and ligand requests</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="scores">Scores</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Everyday requests (152 × 3)</th>
+<th>ChimeraX features (31 × 3)</th>
+<th>Feature comparison (19 × 2)</th>
+<th>Time per request</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gpt-6-sol</code></td>
+<td></td>
+<td></td>
+<td>35/38</td>
+<td>11 s</td>
+</tr>
+<tr>
+<td><code>gpt-6-luna</code></td>
+<td></td>
+<td></td>
+<td>30/38</td>
+<td>8 s</td>
+</tr>
+<tr>
+<td><code>ministral-8b-latest</code></td>
+<td>376/456</td>
+<td>69/93</td>
+<td></td>
+<td>3 s</td>
+</tr>
+<tr>
+<td><code>gemini-flash-lite-latest</code></td>
+<td></td>
+<td>28/31 (one repeat)</td>
+<td>29/38</td>
+<td>3 s</td>
+</tr>
+<tr>
+<td><code>gemma4:12b</code></td>
+<td>383/456</td>
+<td>80/93</td>
+<td>21/38</td>
+<td>5 s</td>
+</tr>
+<tr>
+<td><code>qwen3.5:9b</code></td>
+<td>357/456</td>
+<td></td>
+<td></td>
+<td>2.5 s</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>Everyday requests:</strong> 152 requests mined from RBVI tutorials, the chimerax-users list and courses (open, colour, select, measure, label, compare, save). Used during development, so these scores are tuned.</li>
+<li><strong>ChimeraX features:</strong> 31 requests covering the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html">ChimeraX feature highlights</a> (maps, morphs, glycans, symmetry, membranes, MD, ...); three repeats per model, one for Gemini.</li>
+<li><strong>Feature comparison:</strong> 19 of the harder feature requests (map fitting, membrane orientation, palettes, worms, sequence, rotamers), run twice per model.</li>
+<li>Time is the median per request, from the same runs. A blank cell means that set was not run on that model.</li>
+<li>Differences of a few requests between runs are noise: two runs of the same code differ by up to 7 of 152.</li>
+</ul>
+<p><strong>Precise requests (32, Pellaeon 0.2.8, one repeat):</strong> chain scopes, gaps, insertion codes, signed numbering, conditionals, preservation. <code>gpt-6-sol</code>, <code>gpt-6-luna</code>, <code>claude-sonnet-5.5</code> and <code>gemini-flash-lite</code> 32/32; <code>gemma4:12b</code> 31/32; <code>claude-haiku-4.5</code> 30/32; <code>ministral-8b</code> 28/32. Median response latency: Mistral 1.9 s, Gemini 2.1 s, Haiku 3.1 s, Sonnet 5.5 3.6 s, gemma 4.2 s, luna 5.1 s, sol 8.5 s. These 32 requests were used during development, so the scores measure regression, not an unseen benchmark.</p>
+<h2 id="free-tier-limits">Free-tier limits</h2>
+<p>As seen on new free accounts in September 2026; providers change them, and paid accounts differ.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Free allowance</th>
+<th>In practice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mistral</td>
+<td>about 190 requests a minute</td>
+<td>no limit reached in any run</td>
+</tr>
+<tr>
+<td>Gemini Flash-Lite</td>
+<td>15 a minute, plus a daily cap</td>
+<td>enough for one person; a long run can hit the daily cap</td>
+</tr>
+<tr>
+<td>Gemini Flash</td>
+<td>5 a minute</td>
+<td>not usable: every miss was a rate limit</td>
+</tr>
+<tr>
+<td>Groq</td>
+<td>7,000 to 8,000 input tokens a minute</td>
+<td>not usable: about one request a minute</td>
+</tr>
+<tr>
+<td>OpenRouter <code>openrouter/free</code></td>
+<td>50 requests a day</td>
+<td>about a dozen questions</td>
+</tr>
+</tbody>
+</table></div>
+<p>One question is two to four requests of a few thousand tokens each (the state of your structures and the tool definitions travel with it).</p>
+<h2 id="local-models">Local models</h2>
+<p>Basic set of 38 requests, Pellaeon 0.2.0, September 2026. Larger did not mean better on this card: the 20B models spill out of 12 GB and slow down.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Basic set</th>
+<th>Time</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qwen3:8b</code></td>
+<td>38/38</td>
+<td>3 s</td>
+<td></td>
+</tr>
+<tr>
+<td><code>qwen3:4b</code></td>
+<td>37/38</td>
+<td>20 s</td>
+<td>2.5 GB, the smallest that works</td>
+</tr>
+<tr>
+<td><code>gemma4:12b</code></td>
+<td>37/38</td>
+<td>8 s</td>
+<td>the default; vision</td>
+</tr>
+<tr>
+<td><code>gemma4:e4b</code></td>
+<td>37/38</td>
+<td>5 s</td>
+<td>vision, fits small cards</td>
+</tr>
+<tr>
+<td><code>granite4.1:8b</code></td>
+<td>37/38</td>
+<td>5 s</td>
+<td></td>
+</tr>
+<tr>
+<td><code>qwen3:14b</code></td>
+<td>36/38</td>
+<td>8 s</td>
+<td></td>
+</tr>
+<tr>
+<td><code>gpt-oss:20b</code></td>
+<td>36/38</td>
+<td>15 s</td>
+<td>spills out of 12 GB</td>
+</tr>
+<tr>
+<td><code>ministral-3:3b</code></td>
+<td>34/38</td>
+<td>2 s</td>
+<td>3 GB; vision</td>
+</tr>
+<tr>
+<td><code>llama3.1:8b</code></td>
+<td>33/38</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>Below 30/38 and not recommended: <code>command-r7b</code>, <code>cogito:8b</code>, <code>granite4:1b</code>, <code>qwen2.5:3b</code>, <code>granite4:micro</code>, <code>mistral-nemo:12b</code>, <code>lfm2.5:8b</code>, <code>llama3.2:3b</code>, <code>llama3-groq-tool-use:8b</code>, <code>granite3.3:2b</code>, <code>smollm2:1.7b</code>, <code>nemotron-mini:4b</code>. No tool calling, so unusable: <code>gemma3:12b</code>, <code>falcon3:3b</code>, <code>exaone3.5:2.4b</code>.</p>
+<p>Ollama keeps the previous model loaded for a few minutes; on a full card the new one runs on the CPU until the old one unloads.</p></article></div></main>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
+<footer><div class="in">Pellaeon v0.2.11 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl"),
+        img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    btn.dataset.playing = "0";
+    function toggle(){
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      lbl.textContent = playing ? "Stop" : "Play recording";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
+</body></html>
