@@ -736,6 +736,10 @@ class ChimeraXExecutor:
         from .analysis import spec_atoms
         return _run_on_main_thread(self.session, lambda: spec_atoms(self.session, text))
 
+    def visible_snapshot(self) -> Dict[str, Any]:
+        from .analysis import visible_snapshot
+        return _run_on_main_thread(self.session, lambda: visible_snapshot(self.session))
+
     def selection_snapshot(self) -> Dict[str, Any]:
         from .analysis import selection_snapshot
         return _run_on_main_thread(self.session, lambda: selection_snapshot(self.session))

@@ -1522,3 +1522,60 @@ def spec_residue_keys(session, spec: str) -> Optional[List[Tuple[str, str, int, 
     except Exception:  # noqa: BLE001
         return None
     return sorted({(r.structure.id_string, r.chain_id, int(r.number), r.insertion_code or "") for r in res})
+
+
+def visible_snapshot(session) -> Dict[str, Any]:
+    """What is on screen, compact enough to compare before and after a batch (core.effects.describe does the
+    comparison): per structure the displayed atom and cartoon counts and digests of their colours (displayed
+    and all), styles, positions and coordinates; per surface its visibility, style, colours and transparency;
+    other models by a digest of their display state; the selection size; the camera."""
+    import hashlib
+    import numpy as np
+    from chimerax.atomic import AtomicStructure, selected_atoms
+
+    def dg(arr) -> str:
+        try:
+            a = np.ascontiguousarray(arr)
+            return hashlib.blake2b(a.tobytes(), digest_size=8).hexdigest() + ":" + str(a.shape[0] if a.ndim else 0)
+        except Exception:  # noqa: BLE001
+            return str(arr)
+
+    models: Dict[str, Any] = {}
+    for m in session.models.list():
+        name = m.__class__.__name__
+        e: Dict[str, Any] = {"display": bool(m.display)}
+        try:
+            if isinstance(m, AtomicStructure):
+                atoms, res = m.atoms, m.residues
+                shown = atoms.displays
+                rib = res.ribbon_displays
+                e.update(kind="structure", atoms_shown=int(shown.sum()), atom_colors=dg(atoms.colors),
+                         atom_colors_shown=dg(atoms.colors[shown]), atom_styles=dg(atoms.draw_modes[shown]),
+                         ribbons_shown=int(rib.sum()), ribbon_colors=dg(res.ribbon_colors),
+                         ribbon_colors_shown=dg(res.ribbon_colors[rib]),
+                         position=dg(np.round(m.position.matrix, 3)), coords=dg(np.round(atoms.coords, 3)))
+                labels = [c for c in m.all_models() if "Label" in c.__class__.__name__ and c.display]
+                e["labels"] = len(labels)
+                e["surface_shown"] = any(c.__class__.__name__ == "MolecularSurface" and c.display and
+                                         (getattr(c, "triangle_mask", None) is None or int(c.triangle_mask.sum()) > 0) for c in m.all_models())
+            elif name == "MolecularSurface":
+                mask = getattr(m, "triangle_mask", None)
+                vis = bool(m.display) and (mask is None or int(mask.sum()) > 0)
+                vc = getattr(m, "vertex_colors", None)
+                e.update(kind="surface", visible=vis, style=str(getattr(m, "display_style", "")),
+                         colors=dg(vc) if vc is not None else dg(np.array(m.color)),
+                         transparency=int(m.color[3]) if vc is None else int(np.asarray(vc)[:, 3].min()))
+            else:
+                e.update(kind=name, digest=dg(np.array([int(m.display)] + list(np.asarray(getattr(m, "color", (0, 0, 0, 0)))))))
+        except Exception:  # noqa: BLE001
+            e["kind"] = name
+        models["#" + m.id_string] = e
+    try:
+        cam = dg(np.round(session.main_view.camera.position.matrix, 2))
+    except Exception:  # noqa: BLE001
+        cam = ""
+    try:
+        nsel = len(selected_atoms(session))
+    except Exception:  # noqa: BLE001
+        nsel = 0
+    return {"models": models, "selection": nsel, "camera": cam}

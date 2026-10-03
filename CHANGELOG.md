@@ -2,6 +2,11 @@
 
 Notes for earlier versions are on the [releases page](https://github.com/tggr-lab/pellaeon/releases).
 
+## 0.2.12 (2026-10-03)
+
+- Every batch reports what it changed on screen, from a comparison of the view before and after it: atoms or cartoon shown, recoloured, moved, surfaces, labels, selection. A batch that changed nothing visible says so and why; colouring atoms that are hidden (`color ... target a` on a cartoon) gets the fix in the same result, instead of a reply that claims success. A complaint ("it is not") carries what the previous batch did change.
+- The context states what the colours on screen mean, from the colour commands that ran (white = #1:ala,val,...; a scheme such as `color bfactor` replaces it), so a legend or a "what does green mean" starts from that instead of from a documentation example.
+
 ## 0.2.11 (2026-10-02)
 
 - Prompt examples and bundled notes revised; a generic command-line overview is no longer part of the documentation index. Provider labels and privacy wording made precise.

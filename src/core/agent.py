@@ -22,6 +22,7 @@ from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_to
 from .recovery import split_joined, _looks_like_prose
 from .tools import shortlist, tool_specs
 from .beacons import mentions_structures
+from . import effects
 from .annotate import CLINVAR_KINDS
 from .http import Cancelled
 from .providers.base import Provider, ProviderError
@@ -445,6 +446,17 @@ def parse_rmsd_line(line: str) -> Dict[str, Any]:
     if m.group(3):
         out["all_pairs"] = int(m.group(3)); out["all_rmsd"] = float(m.group(4))
     return out
+
+
+def _model_of(spec: str) -> str:
+    """The model a spec addresses (#1 for `#1/A:10-20`, `#1.2`), 'all' when it names none."""
+    m = re.match(r"^\s*(#\d+)", spec or "")
+    return m.group(1) if m else "all"
+
+
+def _first_model_spec(text: str) -> str:
+    m = re.search(r"(#\d+(?:\.\d+)*(?:/\S*)?)", text or "")
+    return m.group(1) if m else ""
 
 
 def looks_like_complaint(text: str) -> bool:
@@ -956,6 +968,9 @@ class Agent:
         if getattr(self, "_nothing_to_run", False) and self._CLAIMS_CHANGE_RE.search(reply) \
                 and not any(first_word(c) in ("hide", "show", "color", "colour", "cartoon", "surface", "style") for c in self._ran_this_turn):
             notes.append("Nothing was changed on screen: those commands were outside the request and did not run.")
+        elif str(getattr(self, "_last_visible", "") or "").startswith("No visible change") and self._CLAIMS_CHANGE_RE.search(reply) \
+                and getattr(self, "_last_visible_turn", None) == getattr(self, "_turn_text", None):
+            notes.append("Nothing visible changed on screen: " + str(self._last_visible)[len("No visible change"):].strip(": ."))
         return notes
 
     def _state_the_facts(self, start_len: int, cancel=None, usage=None) -> None:
@@ -990,6 +1005,62 @@ class Agent:
                         p.text = p.text.rstrip() + " " + " ".join(notes)
                         break
                 break
+
+    def _visible_snapshot(self) -> Optional[Dict[str, Any]]:
+        """What is on screen now, for the before/after comparison of a batch (ChimeraX edition only)."""
+        if self.config.edition != "chimerax" or not hasattr(self.executor, "visible_snapshot"):
+            return None
+        try:
+            return self.executor.visible_snapshot()
+        except Exception:  # noqa: BLE001
+            return None
+
+    _SIMPLE_COLOR_RE = re.compile(r"^colou?r\s+(?P<spec>\S.*?)\s+(?P<color>[A-Za-z]+(?: ?[A-Za-z]+)?|#[0-9A-Fa-f]{6,8})(?:\s+target\s+\w+)?\s*$", re.I)
+    _SCHEME_COLOR_RE = re.compile(r"^(?:colou?r\s+(?P<spec>\S+)?\s*(?P<scheme>by\w+|bfactor|zone|sequential|single|fromatoms|fromribbons)\b|rainbow\b|coulombic\b|mlp\b|color\s+electrostatic)", re.I)
+    _COLOR_WORD_RE = re.compile(r"^(white|black|red|green|blue|yellow|orange|purple|magenta|cyan|gray|grey|pink|brown|gold|salmon|tan|khaki|lime|navy|teal|violet|"
+                                r"indigo|maroon|olive|silver|coral|crimson|turquoise|plum|orchid|sienna|beige|ivory|lavender|aquamarine|chartreuse|"
+                                r"(?:light|dark|medium|pale|deep|hot|dim|dodger|royal|sky|steel|forest|sea|spring|slate|cornflower|golden)\s?\w+|#[0-9A-Fa-f]{6,8})$", re.I)
+
+    def _note_colorings(self, ran: List[str]) -> None:
+        """Keep what the colours on screen mean, from the colour commands that ran: `color #1:ala,val white`
+        records white = #1:ala,val; a scheme (`color bfactor`, `rainbow`) replaces the record of its model;
+        a whole-model colour resets it. The context block states this, so a key or a "what does green mean"
+        starts from the truth instead of from a documentation example."""
+        store: Dict[str, List[Tuple[str, str]]] = getattr(self, "_colorings", None) or {}
+        for cmd in ran:
+            c = cmd.strip()
+            m = self._SCHEME_COLOR_RE.match(c)
+            if m:
+                spec = (m.groupdict().get("spec") or "").strip() or _first_model_spec(c) or "all"
+                model = _model_of(spec)
+                scheme = (m.groupdict().get("scheme") or first_word(c)).lower()
+                store[model] = [(scheme, spec)]
+                continue
+            m = self._SIMPLE_COLOR_RE.match(c)
+            if not m or not self._COLOR_WORD_RE.match(m.group("color").strip()):
+                continue
+            spec, color = m.group("spec").strip(), m.group("color").strip().lower()
+            if spec.lower() in ("sel", "selected"):
+                continue
+            model = _model_of(spec)
+            entries = store.get(model, [])
+            if re.match(r"^(#\d+(?:\.\d+)*|all|protein|nucleic)$", spec, re.I):
+                entries = []            # a whole-model colour: everything before it is overwritten
+            entries = [(col, sp) for col, sp in entries if sp != spec]
+            entries.append((color, spec))
+            store[model] = entries[-10:]
+        self._colorings = store
+
+    def _coloring_note(self) -> str:
+        store = getattr(self, "_colorings", None) or {}
+        parts = []
+        for model, entries in list(store.items())[:4]:
+            if not entries:
+                continue
+            parts.append("%s: %s" % (model, "; ".join("%s = %s" % (col, sp) for col, sp in entries[-8:])))
+        return ("Colours on screen, from the commands run: " + " | ".join(parts)
+                + ". A legend for named colours is one `key` command with one entry per colour, label after the colon: "
+                  "`key white:Hydrophobic green:Polar blue:Basic red:Acidic`.") if parts else ""
 
     def _canned_fallbacks(self, user_text: str, start_len: int) -> None:
         """Last resort for requests the model keeps getting wrong: run a known-good recipe ourselves."""
@@ -1076,8 +1147,10 @@ class Agent:
                     "run a corrected version with the change the user asks for." % failed_typed[-1])
         elif complaint:
             last = self._last_commands()
+            seen = getattr(self, "_last_visible", "")
             note = ("The user says the previous action did NOT do what they asked."
                     + (" The previous commands were: %s." % "; ".join(last) if last else "")
+                    + (" What they changed on screen: %s" % seen if seen else "")
                     + " Do not repeat them and do not describe them as successful. Find a different, correct approach "
                       "(call search_docs and/or command_usage first), run different commands, or state plainly that "
                       "ChimeraX cannot do it and why.")
@@ -1085,6 +1158,9 @@ class Agent:
         named = self._named_residues(user_text)
         if named:
             found = (found + "\n" if found else "") + named
+        colors = self._coloring_note()
+        if colors:
+            found = (found + "\n" if found else "") + colors
         if found:
             note = (note + "\n" if note else "") + found
         if self.learned is not None and self.config.learn_fixes:
@@ -2128,6 +2204,7 @@ class Agent:
                 sel_snap = self.executor.selection_snapshot()
             except Exception:  # noqa: BLE001
                 sel_snap = None
+        vis_before = self._visible_snapshot()
         results = self.executor.run_commands(commands)
         self._windows_this_turn = list(getattr(self, "_windows_this_turn", [])) + [
             t for t in (getattr(self.executor, "last_new_tools", None) or []) if t not in _HARMLESS_TOOLS]
@@ -2149,6 +2226,16 @@ class Agent:
         ok = all(r.get("ok") for r in results) and len(results) == len(commands)
         out: Dict[str, Any] = {"ok": ok, "results": results}
         self._ran_this_turn = list(getattr(self, "_ran_this_turn", [])) + [str(r.get("command", "")) for r in results if r.get("ok")]
+        self._note_colorings([str(r.get("command", "")) for r in results if r.get("ok")])
+        if vis_before is not None:
+            eff = effects.summary([str(r.get("command", "")) for r in results if r.get("ok")], vis_before, self._visible_snapshot())
+            if eff:
+                out["visible"] = eff["visible"]
+                self._last_visible = eff["visible"]
+                self._last_visible_turn = getattr(self, "_turn_text", None)
+                if eff.get("hint") and ok:
+                    out["hint"] = eff["hint"]
+                    out["fixups"] = list(out.get("fixups") or []) + ["blank_structure" if "now shows nothing" in eff["visible"] else "invisible_change"]
         if self.learned is not None and self.config.learn_fixes and self._failed_errors:
             # the first command of the same family that ran after a refusal this turn is its corrected form;
             # the refusal is then paired once, so a later batch of the same family adds nothing
