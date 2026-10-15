@@ -73,7 +73,7 @@ class OllamaProvider(Provider):
             },
             "keep_alive": self.options.get("keep_alive", "10m"),
         }
-        if self.options.get("seed") is not None:   # harness runs pin a seed per repeat (common random numbers)
+        if self.options.get("seed") is not None:   # a fixed seed makes repeated requests reproducible
             body["options"]["seed"] = int(self.options["seed"])
         if tools:
             body["tools"] = self._tools(tools)

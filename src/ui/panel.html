@@ -23,6 +23,7 @@
       <option value="auto">Ask for risky ones</option>
       <option value="all">Never ask</option>
     </select>
+    <button class="icon-btn" id="btn-undo" disabled title="Nothing to undo yet">&#8630;</button>
     <button class="icon-btn" id="btn-table" title="Import a table (CSV/TSV) of per-residue values to color the structure by">&#8862;</button>
     <button class="icon-btn" id="btn-export" title="Export this chat's commands as a ChimeraX script (.cxc)">&#8681;</button>
     <button class="icon-btn" id="btn-history" title="Past conversations">&#9776;</button>
@@ -68,7 +69,7 @@
         <button data-text="show the ligands as sticks and hide water">Show ligands</button>
         <button data-text="show hydrogen bonds">H-bonds</button>
         <button data-text="reset the view">Reset view</button>
-        <button data-text="undo the last request" title="Restores ChimeraX to how it was before your last request">Undo last request</button>
+        <button id="chip-undo" title="Restores ChimeraX to how it was before your last request">Undo last request</button>
         <button data-text="compare the two open models and tell me what changed">Compare models</button>
         <button data-text="show the ClinVar variants on this model">ClinVar variants</button>
         <button data-text="color the domains and transmembrane regions">Domains</button>
@@ -167,7 +168,7 @@
             <option value="all">Never ask</option>
           </select>
         </div>
-        <label class="check"><input type="checkbox" id="s-labels" checked> Readable labels: fixed size, drawn on top, white background (unless the request says otherwise)</label>
+        <label class="check"><input type="checkbox" id="s-labels" checked> Readable labels: fixed size, drawn on top, white background, keys long enough for their labels (unless the request says otherwise)</label>
         <label class="check"><input type="checkbox" id="s-learn" checked> Remember command fixes across sessions (a refused command and the one that ran instead; kept on this computer) <button type="button" id="btn-learned" class="link">view</button></label>
         <label class="check"><input type="checkbox" id="s-python"> Allow Python code (always asks first)</label>
         <label class="check"><input type="checkbox" id="s-vision"> Let the model look at screenshots of the 3D view (vision models only)</label>
@@ -204,7 +205,7 @@
       <p class="muted">A ChimeraX command the model wrote that the parser refused, and the command with the same first word that ran afterwards in the same turn. Offered to the model only when that command comes up again. Stored in <code>learned.json</code> in Pellaeon's data folder; nothing leaves this computer unless you share it.</p>
       <div id="learned-list" class="history"></div>
       <div class="row end">
-        <button id="btn-learned-share" class="secondary" title="Opens a GitHub discussion in your browser, prefilled with the list below, for you to read and post">Share with the Pellaeon project…</button>
+        <button id="btn-learned-share" class="secondary" title="Copies the list below and opens a new GitHub discussion, empty, for you to paste, read and post">Share with the Pellaeon project…</button>
         <button id="btn-learned-clear" class="secondary">Forget all</button>
         <button id="btn-cancel-learned" class="secondary">Back</button>
       </div>
@@ -214,7 +215,7 @@
     <div class="settings">
       <h2>Help and feedback</h2>
       <p class="muted">Pellaeon <span id="help-version"></span>. The <a href="#" id="link-docs">documentation</a> has the install steps, the model list and the tutorials.</p>
-      <p>Something went wrong? A report with the versions, the model and the last two turns of this chat (file paths and web addresses replaced) opens as a new GitHub issue in your browser. Nothing is sent until you read it there and post it.</p>
+      <p>Something went wrong? A report with the versions, the model and the last two turns of this chat (file paths and web addresses replaced) is copied, and a new GitHub issue opens empty in your browser. Paste it there, read it, and post it. Nothing is sent before that.</p>
       <div class="row">
         <button id="btn-report" class="secondary">Report a problem…</button>
         <button id="btn-copy-report" class="secondary" title="The same report, to the clipboard, for an email or a message">Copy report</button>

@@ -54,8 +54,14 @@ def structures(entry: str, timeout: float = 30) -> Dict[str, Any]:
                       "the field says (GPCRdb lists 3VW7, PAR1 with the antagonist vorapaxar, as Active). Judge by the ligand's function."}
 
 
+def model_urls(entry: str, state: str) -> List[str]:
+    """Where GPCRdb serves a model: the current address first, the earlier one as a fallback."""
+    return ["%s/structure/structure_models/receptor/%s_%s_full/download_pdb" % (GPCRDB, entry, state),
+            "%s/structure/homology_models/%s_%s_full/download_pdb" % (GPCRDB, entry, state)]
+
+
 def model_url(entry: str, state: str) -> str:
-    return "%s/structure/homology_models/%s_%s_full/download_pdb" % (GPCRDB, entry, state)
+    return model_urls(entry, state)[0]
 
 
 def fetch_model(entry: str, state: str, cache_dir: Optional[str], timeout: float = 90) -> Dict[str, Any]:
@@ -68,10 +74,17 @@ def fetch_model(entry: str, state: str, cache_dir: Optional[str], timeout: float
         cached = os.path.join(cache_dir, "%s_%s_afms.pdb" % (entry, state))
         if os.path.isfile(cached) and os.path.getsize(cached) > 100:
             return {"path": cached, "entry": entry, "state": state, "cached": True}
-    try:
-        raw = request_bytes("GET", model_url(entry, state), timeout=timeout)
-    except Exception as e:  # noqa: BLE001
-        return {"error": "GPCRdb has no %s multistate model for %s (%s)." % (state, entry, e)}
+    raw, errors = None, []
+    for url in model_urls(entry, state):
+        try:
+            raw = request_bytes("GET", url, timeout=timeout)
+            break
+        except Exception as e:  # noqa: BLE001
+            errors.append(str(e))
+    if raw is None:
+        if all(e.startswith("HTTP ") for e in errors):   # GPCRdb answered, with no model: 404 or, for an unknown entry, 500
+            return {"error": "GPCRdb has no %s multistate model for %s (%s)." % (state, entry, errors[-1].split(" from ")[0])}
+        return {"error": "Could not download the %s model of %s from GPCRdb (%s)." % (state, entry, errors[-1][:120])}
     text = None
     if raw[:2] == b"PK":
         with zipfile.ZipFile(io.BytesIO(raw)) as z:

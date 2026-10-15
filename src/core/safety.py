@@ -157,11 +157,29 @@ def needs_confirmation(commands: List[str], mode: str) -> List[Classification]:
     return [c for c in cls if c.confirm]
 
 
+def split_on_semicolons(cmd: str) -> List[str]:
+    """Split one line at the ';' that separate commands, as ChimeraX does: a quote opens a string only at the
+    start of a word (`text "A; B"` stays whole, `text it's; color red` splits), and `alias` / `perframe`
+    own the rest of their line."""
+    if first_word(cmd) in ("alias", "perframe"):
+        return [cmd.strip()] if cmd.strip() else []
+    parts, buf, quote, prev = [], [], "", " "
+    for ch in cmd:
+        if quote:
+            if ch == quote:
+                quote = ""
+        elif ch in "\"'" and (prev.isspace() or prev in "=;"):
+            quote = ch
+        elif ch == ";":
+            parts.append("".join(buf))
+            buf, prev = [], " "
+            continue
+        buf.append(ch)
+        prev = ch
+    parts.append("".join(buf))
+    return [p.strip() for p in parts if p.strip()]
+
+
 def split_commands(text: str) -> List[str]:
-    """Split a ';'-joined command string into individual commands."""
-    out = []
-    for piece in text.split(";"):
-        piece = piece.strip()
-        if piece and not piece.startswith("#"):
-            out.append(piece)
-    return out
+    """Split a ';'-joined command string into individual commands (quotes respected; comments dropped)."""
+    return [p for p in split_on_semicolons(text or "") if not p.startswith("#")]

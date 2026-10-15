@@ -7,7 +7,7 @@ import json
 import re
 from typing import Iterable, List, Optional, Set
 
-from .safety import first_word, split_commands
+from .safety import first_word, split_commands, split_on_semicolons
 
 # ChimeraX command words a reply may legitimately contain (the executor's directory is merged in at runtime)
 KNOWN_COMMANDS: Set[str] = set("""
@@ -142,23 +142,8 @@ def split_joined(commands):
     """
     out = []
     for cmd in commands:
-        if first_word(cmd) in ("alias", "perframe") or "{" in cmd:   # bodies and format strings own their ';'
+        if "{" in cmd:   # format strings own their ';'
             out.append(cmd.strip())
             continue
-        parts, buf, quote = [], [], ""
-        for ch in cmd:
-            if quote:
-                if ch == quote:
-                    quote = ""
-                buf.append(ch)
-            elif ch in "\"'":
-                quote = ch
-                buf.append(ch)
-            elif ch == ";":
-                parts.append("".join(buf))
-                buf = []
-            else:
-                buf.append(ch)
-        parts.append("".join(buf))
-        out.extend([p.strip() for p in parts if p.strip()] or [cmd])
+        out.extend(split_on_semicolons(cmd) or [cmd])
     return out

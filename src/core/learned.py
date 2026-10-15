@@ -30,6 +30,8 @@ def first_word(cmd: str) -> str:
 def _scrub(cmd: str) -> str:
     """Replace path-like strings and URLs before storing or sharing."""
     cmd = re.sub(r"https?://\S+", "<url>", cmd)
+    cmd = re.sub(r"([\"'])(?:[A-Za-z]:\\|~?/)[^\"']*\1", "<path>", cmd)   # a quoted path may hold spaces
+    cmd = re.sub(r"(?:/home|/Users)/[^/\s]+|[A-Za-z]:\\Users\\[^\\\s]+", "<home>", cmd)   # the user name goes first
     cmd = re.sub(r"(?<![\w#:/])(?:[A-Za-z]:\\|~?/)[^\s'\"]+", "<path>", cmd)
     return cmd.strip()
 
@@ -78,7 +80,7 @@ class LearnedFixes:
                 e["last"] = int(time.time())
                 self.save()
                 return False
-        entry = {"word": w, "refused": refused, "accepted": accepted, "error": (error or "")[:160].strip(),
+        entry = {"word": w, "refused": refused, "accepted": accepted, "error": _scrub((error or "")[:160]),
                  "count": 1, "last": int(time.time())}
         self.entries.append(entry)
         self._recent.append(entry)
@@ -125,7 +127,8 @@ class LearnedFixes:
         hits.sort(key=lambda e: (-int(e.get("count", 1)), -int(e.get("last", 0))))
         out, used = [], 0
         for e in hits[:MAX_LINES]:
-            line = "`%s` was refused%s; `%s` ran." % (e["refused"], (" (%s)" % e["error"]) if e.get("error") else "", e["accepted"])
+            err = _scrub(e.get("error") or "")
+            line = "`%s` was refused%s; `%s` ran." % (e["refused"], (" (%s)" % err) if err else "", e["accepted"])
             if used + len(line) > MAX_CHARS:
                 break
             out.append(line)
@@ -146,5 +149,8 @@ class LearnedFixes:
         return sorted(lines, key=closeness)
 
     def export(self) -> Dict[str, Any]:
-        """What "share with the project" sends: the entries as stored (already scrubbed), nothing else."""
-        return {"format": 1, "entries": [{k: e[k] for k in ("word", "refused", "accepted", "error", "count")} for e in self.entries]}
+        """What "share with the project" copies: the entries, scrubbed again here so entries stored by an
+        earlier version are covered too, and nothing else."""
+        keys = ("word", "refused", "accepted", "error", "count")
+        return {"format": 1, "entries": [{k: (_scrub(str(e.get(k, ""))) if k in ("refused", "accepted", "error") else e.get(k))
+                                          for k in keys} for e in self.entries]}

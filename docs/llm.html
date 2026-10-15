@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How can I use an LLM inside UCSF ChimeraX? - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=f7f78c10">
+<meta name="description" content="Two ways to use an LLM with UCSF ChimeraX: an external assistant through ChimeraX&#x27;s mcp command, or the Pellaeon chat panel inside ChimeraX with Ollama or a cloud model."><link rel="canonical" href="https://tggr-lab.github.io/pellaeon/llm.html">
+<meta property="og:title" content="How can I use an LLM inside UCSF ChimeraX? - Pellaeon"><meta property="og:description" content="Two ways to use an LLM with UCSF ChimeraX: an external assistant through ChimeraX&#x27;s mcp command, or the Pellaeon chat panel inside ChimeraX with Ollama or a cloud model."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/gui/hero_poster.jpg"><meta property="og:image:width" content="1920"><meta property="og:image:height" content="1080"><meta property="og:image:alt" content="A request typed into Pellaeon above the erythrocruorin assembly, its globin surfaces see-through and its hemes white"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/llm.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#use-an-assistant-you-already-have">Use an assistant you already have</a></li>
+<li><a href="#keep-the-conversation-inside-chimerax">Keep the conversation inside ChimeraX</a></li>
+<li><a href="#limits-and-data-handling">Limits and data handling</a></li>
+<li><a href="#using-both">Using both</a></li>
+<li><a href="#questions">Questions</a><ul>
+<li><a href="#is-there-an-ai-assistant-plugin-for-ucsf-chimerax">Is there an AI assistant plugin for UCSF ChimeraX?</a></li>
+<li><a href="#can-i-control-chimerax-with-natural-language-without-an-external-assistant">Can I control ChimeraX with natural language without an external assistant?</a></li>
+<li><a href="#can-i-use-ollama-inside-chimerax">Can I use Ollama inside ChimeraX?</a></li>
+<li><a href="#can-i-use-free-models-with-pellaeon">Can I use free models with Pellaeon?</a></li>
+<li><a href="#does-my-data-leave-my-machine">Does my data leave my machine?</a></li>
+<li><a href="#does-pellaeon-work-with-classic-ucsf-chimera">Does Pellaeon work with classic UCSF Chimera?</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</details></nav><article><h1 id="how-can-i-use-an-llm-inside-ucsf-chimerax">How can I use an LLM inside UCSF ChimeraX?</h1>
+<p>You can control ChimeraX with natural language through an assistant outside the application or a chat panel inside it. The choice depends on where you want to work and which model you want to use. An LLM can turn a request into commands, but you still need to check that the result matches your scientific question.</p>
+<h2 id="use-an-assistant-you-already-have">Use an assistant you already have</h2>
+<p>ChimeraX's built-in <code>mcp</code> command lets an external AI assistant send commands to ChimeraX, so the conversation stays in that assistant while ChimeraX displays the structures. Run <code>mcp setup</code> in ChimeraX to configure the assistant; the <a href="https://www.cgl.ucsf.edu/chimerax/docs/user/commands/mcp.html">ChimeraX mcp documentation</a> lists the supported assistants and the remaining steps.</p>
+<h2 id="keep-the-conversation-inside-chimerax">Keep the conversation inside ChimeraX</h2>
+<p>Pellaeon is an AI assistant plugin that adds a chat panel inside UCSF ChimeraX. You can ask it to "open 4hhb and color it by chain" or compare contacts between two conformations. It runs ChimeraX commands and shows every command it ran, so you can inspect, copy or reuse them.</p>
+<p>Pellaeon also has tools for mapping ClinVar variants, ConSurf conservation and AlphaMissense scores onto structures. You can compare residue displacements and contacts, or save figures with recorded commands and sources.</p>
+<p>To install it in ChimeraX 1.9 or newer, enter <code>toolshed install ChimeraX-Pellaeon</code>. Open <strong>Tools &gt; General &gt; Pellaeon</strong> and connect a model. Choose a cloud provider or run a local model through Ollama.</p>
+<h2 id="limits-and-data-handling">Limits and data handling</h2>
+<p>Pellaeon needs a model for chat. Local models are slower and make more mistakes than strong cloud models, so expect to correct requests and inspect results. The model normally works from session information and command output. Screenshot review requires a vision-capable model and an option enabled in Settings.</p>
+<p>By default, Pellaeon asks before closing models, deleting atoms, saving files or running scripts. You can change that setting.</p>
+<p>With local Ollama, model requests stay on your computer. Fetching structures or annotations still contacts external databases. Cloud providers receive your requests and session context.</p>
+<h2 id="using-both">Using both</h2>
+<p>An assistant connected through <code>mcp</code> can also call Pellaeon's analysis tools as ChimeraX commands, without Pellaeon's chat or a model (<a href="mcp.html">Pellaeon and MCP</a>).</p>
+<h2 id="questions">Questions</h2>
+<h3 id="is-there-an-ai-assistant-plugin-for-ucsf-chimerax">Is there an AI assistant plugin for UCSF ChimeraX?</h3>
+<p>Pellaeon adds a chat panel inside ChimeraX and turns plain-English requests into commands. It shows every command it runs and needs a local or cloud model to handle the conversation.</p>
+<h3 id="can-i-control-chimerax-with-natural-language-without-an-external-assistant">Can I control ChimeraX with natural language without an external assistant?</h3>
+<p>Yes. Pellaeon runs its chat panel inside ChimeraX and connects to the model you choose, local or cloud.</p>
+<h3 id="can-i-use-ollama-inside-chimerax">Can I use Ollama inside ChimeraX?</h3>
+<p>Yes. Pellaeon connects its ChimeraX chat panel to Ollama running on your computer. You need to install Ollama and download a model that fits your hardware, and you should expect slower responses and more mistakes than with strong cloud models.</p>
+<h3 id="can-i-use-free-models-with-pellaeon">Can I use free models with Pellaeon?</h3>
+<p>Yes. You can use local models through Ollama without an account or API key, or choose one of the free cloud tiers listed under <a href="models.html#free-tier-limits">Tested models</a>. Cloud tiers have usage limits, and their providers may use your requests to improve their models.</p>
+<h3 id="does-my-data-leave-my-machine">Does my data leave my machine?</h3>
+<p>With a local Ollama server, model requests stay on your computer, though structure and annotation fetches still contact external databases. With a cloud provider, Pellaeon sends your request, open-model list, selection, recent manual commands and their output, and loaded tables to that provider. It shares screenshots only when you enable the review-the-view option.</p>
+<h3 id="does-pellaeon-work-with-classic-ucsf-chimera">Does Pellaeon work with classic UCSF Chimera?</h3>
+<p>Yes, through the separate Pellaeon Classic edition for Chimera 1.x. Its chat panel opens in your browser, and it uses the same model providers and safety rules. Some features, including table overlays and certain analysis tools, are available only in the ChimeraX edition.</p></article></div></main>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
+<footer><div class="in">Pellaeon v0.2.13 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl");
+    if (!btn || !ctl) return;
+    var img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    btn.dataset.playing = "0";
+    function toggle(){
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      lbl.textContent = playing ? "Stop" : "Play recording";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+        var v = p.querySelector("video");
+        if (v && !v.paused) v.pause();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
+</body></html>

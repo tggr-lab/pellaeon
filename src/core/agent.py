@@ -24,6 +24,7 @@ from .tools import shortlist, tool_specs
 from .beacons import mentions_structures
 from . import effects
 from .annotate import CLINVAR_KINDS
+from .resid import ALIGN_IDENTITY_CHOSEN, ResId
 from .http import Cancelled
 from .providers.base import Provider, ProviderError
 
@@ -54,7 +55,7 @@ class AgentConfig:
     readable_labels: bool = True       # add fixed size / white background / on-top to plain label commands
     compact_prompt: bool = False       # short prompt for providers that meter input tokens per minute
     initiative: str = "minimal"        # "minimal": exactly what was asked; "initiative": small extras allowed
-    guards: bool = True                # the 2026-09-23 deterministic guards (ablation: harness PELLAEON_GUARDS=off)
+    guards: bool = True                # deterministic guards (PELLAEON_GUARDS=off turns them off)
     shortlist_tools: bool = False      # offer specialised tools only when the request calls for them (tools.shortlist)
     learn_fixes: bool = True           # remember refused -> accepted command pairs across sessions (core.learned)
 
@@ -344,6 +345,10 @@ command commands script recipe file files view image""".split())
 # These are dispatched as the tool they name (a `#1` goes to the tool's model argument).
 _MODEL_ARGS = ("model", "models", "reference", "other", "residue", "keep")
 _NOT_DISPATCHED = {"run_commands", "ask_user", "run_python"}
+# words that join two model specs in a tool line; never a value. After the first spec, a word of
+# _TOWARD_WORDS names the second spec as the one the first is placed on (the reference).
+_SPEC_JOINERS = {"to", "onto", "into", "on", "against", "vs", "versus", "and", "with", "from", "than"}
+_TOWARD_WORDS = {"to", "onto", "into", "on", "against"}
 
 
 def _coerce(value: str, schema: Dict[str, Any]):
@@ -398,8 +403,33 @@ def parse_tool_line(line: str) -> Optional[Tuple[str, Dict[str, Any]]]:
         return " " if sep == "=" else mo.group(0)
     loose = kv.sub(take, rest)
     tokens = re.findall(r"\"[^\"]*\"|'[^']*'|\[[^\]]*\]|\S+", loose)
-    specs = [x for t in tokens if t.startswith(("#", "/", ":")) for x in re.split(r",(?=[#/])", t) if x]
-    words = [t for t in tokens if not t.startswith(("#", "/", ":")) and t.strip(",")]
+    specs: List[str] = []
+    words: List[str] = []
+    joiner = ""          # the word between the first spec and the second (`#2 to #1`)
+    leading = ""         # a word before the first spec (`from #1 to #2`)
+    i = 0
+    while i < len(tokens):
+        t = tokens[i].strip(",")
+        low = t.lower()
+        nxt = tokens[i + 1].strip(",") if i + 1 < len(tokens) else ""
+        if t.startswith(("#", "/", ":")):
+            specs.extend(x for x in re.split(r",(?=[#/])", t) if x)
+        elif low in _MODEL_ARGS and low in props and nxt.startswith(("#", "/", ":")):
+            args.setdefault(low, nxt)               # `reference #1 other #2`: the name binds the spec after it
+            i += 2
+            continue
+        elif low in _SPEC_JOINERS:
+            if len(specs) == 1 and not joiner:
+                joiner = low
+            elif not specs and not leading:
+                leading = low
+        elif t:
+            words.append(t)
+        i += 1
+    if ("reference" in props and "other" in props and "reference" not in args and "other" not in args
+            and len(specs) >= 2 and joiner in _TOWARD_WORDS and leading != "from"):
+        # `compare_structures #2 to #1`: #2 is laid onto #1, so #1 is the reference
+        specs[0], specs[1] = specs[1], specs[0]
     model_slots = [p for p in _MODEL_ARGS if p in props and p not in args]
     if "models" in model_slots and specs:
         args["models"] = " ".join(specs)
@@ -1015,6 +1045,60 @@ class Agent:
         except Exception:  # noqa: BLE001
             return None
 
+    _RECOLOR_WORDS = ("color", "colour", "rainbow", "mlp", "coulombic")
+    _KEY_WORD_RE = re.compile(r"\b(key|legend)s?\b", re.I)
+
+    def _key_status(self) -> Dict[str, Any]:
+        """The colour key on screen and which of its colours are still shown (ChimeraX edition only)."""
+        if self.config.edition != "chimerax" or not hasattr(self.executor, "key_status"):
+            return {}
+        try:
+            return self.executor.key_status() or {}
+        except Exception:  # noqa: BLE001
+            return {}
+
+    def _check_stale_key(self, key_before: Dict[str, Any], out: Dict[str, Any], results: List[Dict[str, Any]],
+                         origin: str, ok: bool) -> None:
+        """After a recolouring batch: a key that still shows the colours the batch replaced is removed, and the result
+        says so. When the request mentions a key, or the batch failed, the key stays and the result names it."""
+        now_key = self._key_status()
+        stale = effects.stale_key(key_before, now_key)
+        turn = (getattr(self, "_turn_starts", None) or [0.0])[-1]
+        if not stale and getattr(self, "_stale_key_turn", None) == turn and effects.still_stale(getattr(self, "_stale_key", None), now_key):
+            stale = self._stale_key          # found stale earlier in this turn by a batch that then failed
+        if not stale:
+            return
+        self._stale_key, self._stale_key_turn = stale, turn
+        if ok and not self._KEY_WORD_RE.search(getattr(self, "_turn_text", "") or ""):
+            cmds = ["key delete"] + (["2dlabels delete %s" % stale["title"]] if stale.get("title") else [])
+            done = self.executor.run_commands(cmds)
+            now = time.time()
+            for r in done:
+                self.journal.append({"ts": now, "origin": origin, "command": r.get("command", ""), "ok": bool(r.get("ok")),
+                                     "noop": False, "error": r.get("error", "")})
+            if all(r.get("ok") for r in done):
+                results.extend(done)
+                if stale.get("title"):
+                    self._legend_title = False
+                self._stale_key = None
+                out["key_note"] = effects.stale_key_text(stale, removed=True)
+                out["visible"] = ((out.get("visible") or "").rstrip(". ") + "; color key %s removed" % stale["id"]).lstrip("; ")
+                out["fixups"] = list(out.get("fixups") or []) + ["stale_key_removed"]
+                return
+        out["key_note"] = effects.stale_key_text(stale)
+        out["fixups"] = list(out.get("fixups") or []) + ["stale_key"]
+
+    def _stale_key_note(self) -> str:
+        """For the context: a key found stale earlier that is still on screen unchanged."""
+        stale = getattr(self, "_stale_key", None)
+        if not stale:
+            return ""
+        if not effects.still_stale(stale, self._key_status()):
+            self._stale_key = None
+            return ""
+        return ("The color key %s on screen (%s) describes an earlier colouring: most of its colours are on no displayed "
+                "structure. `key delete` removes it." % (stale.get("id") or "", ", ".join(stale["names"][:8])))
+
     _SIMPLE_COLOR_RE = re.compile(r"^colou?r\s+(?P<spec>\S.*?)\s+(?P<color>[A-Za-z]+(?: ?[A-Za-z]+)?|#[0-9A-Fa-f]{6,8})(?:\s+target\s+\w+)?\s*$", re.I)
     _SCHEME_COLOR_RE = re.compile(r"^(?:colou?r\s+(?P<spec>\S+)?\s*(?P<scheme>by\w+|bfactor|zone|sequential|single|fromatoms|fromribbons)\b|rainbow\b|coulombic\b|mlp\b|color\s+electrostatic)", re.I)
     _COLOR_WORD_RE = re.compile(r"^(white|black|red|green|blue|yellow|orange|purple|magenta|cyan|gray|grey|pink|brown|gold|salmon|tan|khaki|lime|navy|teal|violet|"
@@ -1158,7 +1242,7 @@ class Agent:
         named = self._named_residues(user_text)
         if named:
             found = (found + "\n" if found else "") + named
-        colors = self._coloring_note()
+        colors = "\n".join(x for x in (self._coloring_note(), self._stale_key_note()) if x)
         if colors:
             found = (found + "\n" if found else "") + colors
         if found:
@@ -1491,6 +1575,23 @@ class Agent:
                                  "Nothing else is needed for this request. Reply to the user now with the outcome you already have "
                                  "(for example that a residue is absent and the selection is unchanged); do not try other commands.")}
         out = self._execute_commands(commands, origin, preapproved)
+        if origin == "model" and self.config.guards and self.config.edition == "chimerax":
+            # `select A` then `select B` with nothing using A in between: run as written (the request may mean either
+            # a replacement or both sets) and say what the selection now is, with the command for each reading
+            replaced = self._replaced_selects([str(r.get("command", "")) for r in out.get("results") or [] if r.get("ok")])
+            if replaced:
+                n = None
+                try:
+                    n = self.executor.selection_count() if hasattr(self.executor, "selection_count") else None
+                except Exception:  # noqa: BLE001
+                    n = None
+                first, second = replaced[0]
+                out["selection_note"] = (
+                    "`select %s` was replaced by `select %s` before anything used it: a plain `select` replaces the "
+                    "selection.%s If both sets were meant, `select add %s`; if the first without the second, `select %s` "
+                    "then `select subtract %s`." % (first, second, (" The selection now holds %d atoms." % n) if n is not None else "",
+                                                     second, first, second))
+                out["fixups"] = list(out.get("fixups") or []) + ["select_replaced"]
         if tags:
             out["fixups"] = list(out.get("fixups") or []) + tags
         if notes:
@@ -1523,9 +1624,9 @@ class Agent:
                 tags.extend(next((t for k, t in self._REWRITE_TAGS if w.startswith(k)),
                                  "mpl_palette" if "not a ChimeraX palette" in w else "rewrite") for w in why)
             out.append(new)
-        for step in (self._select_union, self._key_for_coloring, self._show_before_style, self._surface_before_style, self._scope_guard, self._ligand_with_ions,
-                     self._compact_submodels, self._unasked_atoms, self._label_cap, self._structure_targets,
-                     self._show_hidden_model):
+        for step in (
+                self._key_for_coloring, self._show_before_style, self._surface_before_style, self._scope_guard, self._ligand_with_ions,
+                self._compact_submodels, self._unasked_atoms, self._label_cap, self._structure_targets, self._show_hidden_model):
             try:
                 out, n, tag = step(out, text)
             except Exception:  # noqa: BLE001  (a correction must never break the batch)
@@ -1535,57 +1636,24 @@ class Agent:
                 tags.extend([tag] * len(n))
         return out, notes, tags
 
-    _EXCLUDE_RE = re.compile(r"\b(exclud\w*|except|but not|without|apart from|other than|leav\w* out|omit\w*|minus|"
-                             r"not including|skip\w*|drop\w*|bar|save for)\b", re.I)
-
-    def _subset_of(self, inner: str, outer: str) -> Optional[bool]:
-        """Are the residues of spec `inner` a non-empty subset of spec `outer`? None when the state cannot tell."""
-        if not hasattr(self.executor, "spec_residue_keys"):
-            return None
-        try:
-            a, b = self.executor.spec_residue_keys(inner), self.executor.spec_residue_keys(outer)
-        except Exception:  # noqa: BLE001
-            return None
-        if not a or b is None:
-            return None
-        return set(a) <= set(b) and len(a) < len(b)
-
-    def _select_union(self, commands: List[str], text: str):
-        """`select A` then `select B` in one batch: the second replaces the first, which nobody writes on purpose
-        (asked for the residues of chain A near B and of B near A, a model selected one side only). -> select add B.
-        When the request excludes something ("10 through 20, excluding 15") the second set is subtracted instead,
-        and a `select ~sel` the model adds to "exclude" is dropped: it would invert the whole selection."""
-        out, notes, last_plain = list(commands), [], None
+    @staticmethod
+    def _replaced_selects(commands: List[str]) -> List[Tuple[str, str]]:
+        """Pairs of plain `select A` ... `select B` in one batch where nothing used the first selection before the
+        second replaced it."""
         subs = ("add", "subtract", "intersect", "clear", "up", "down", "zone", "~sel", "sel", "all")
-        worded = bool(self._EXCLUDE_RE.search(text or ""))
-        exclude = worded
-        for i, c in enumerate(out):
+        pairs: List[Tuple[str, str]] = []
+        last = None
+        for c in commands:
             if first_word(c) == "select" and not c.lstrip().startswith("~"):
                 rest = c.split(None, 1)[1].strip() if len(c.split(None, 1)) > 1 else ""
                 if rest and rest.split()[0].lower() not in subs:
-                    if last_plain is not None and rest != last_plain[1] and not any(
-                            re.search(r"\bsel\b", out[k]) for k in range(last_plain[0] + 1, i)):
-                        # the second set inside the first, with an inversion to follow or exclusion wording: an
-                        # exclusion, whatever the words (structure decides when it can)
-                        inside = self._subset_of(rest, last_plain[1])
-                        inverts_next = i + 1 < len(out) and re.match(r"^\s*select\s+~\s*sel\s*$", out[i + 1], re.I) is not None
-                        exclude = worded if inside is None else (inside and (worded or inverts_next))
-                        if exclude:
-                            out[i] = "select subtract " + rest
-                            notes.append("`%s` -> `%s` (the request excludes this set from the first)" % (c, out[i]))
-                        else:
-                            out[i] = "select add " + rest
-                            notes.append("`%s` -> `%s` (a second select replaces the first; both sets were meant)" % (c, out[i]))
-                    last_plain = (i, rest)
-                    continue
-                if exclude and rest.lower() in ("~sel", "~ sel") and i > 0 and first_word(out[i - 1]) == "select" and "subtract" in out[i - 1]:
-                    notes.append("`%s` dropped (it inverts the whole selection; the excluded set was subtracted instead)" % c)
-                    out[i] = ""
+                    if last is not None and rest != last:
+                        pairs.append((last, rest))
+                    last = rest
                     continue
             if re.search(r"\bsel\b", c):
-                last_plain = None
-        out = [c for c in out if c]
-        return out, notes, "select_add"
+                last = None
+        return pairs
 
     _SURFACE_STYLE_RE = re.compile(r"^\s*surface\s+style\s+(\S+)(?:\s+(mesh|dot|solid))?\s*$", re.I)
     _KIND_ONLY_RE = re.compile(r"\b(surface|cartoon|ribbon|sticks?|atoms?|spheres?|balls?)\b[^.;]{0,30}\bonly\b|\bonly\b[^.;]{0,30}\b(surface|cartoon|ribbon|sticks?|atoms?|spheres?|balls?)\b", re.I)
@@ -1772,12 +1840,15 @@ class Agent:
             out.append(c)
         return out, notes, "show_before_style"
 
-    _SUBMODEL_CMD_RE = re.compile(r"^(\w+)\s+#(\d+)\.(\d+)\b(.*)$")
+    _SUBMODEL_CMD_RE = re.compile(r"^(\w+)\s+#(\d+)\.(\d+)((?:[/:@]\S*)?)(\s.*)?$")
     _SUBMODEL_WORDS = ("surface", "color", "colour", "show", "hide", "style", "cartoon", "transparency", "rainbow", "size")
 
     def _compact_submodels(self, commands: List[str], text: str):
         """`surface #2.1 ...` repeated for #2.2 ... #2.60 (an assembly's copies) is one command on the parent: 60 separate
-        surface calculations take minutes and fill the log; `surface #2 ...` does the same thing."""
+        surface calculations take minutes and fill the log; `surface #2 ...` does the same thing. Merged only when
+        the parent matches exactly what the submodels together match (no other copy, no other kind of child)."""
+        if not hasattr(self.executor, "same_targets"):
+            return commands, [], "compact_submodels"
         out, notes, i = [], [], 0
         while i < len(commands):
             m = self._SUBMODEL_CMD_RE.match(commands[i].strip())
@@ -1785,11 +1856,17 @@ class Agent:
                 j = i
                 while j < len(commands):
                     mj = self._SUBMODEL_CMD_RE.match(commands[j].strip())
-                    if not (mj and mj.group(1) == m.group(1) and mj.group(2) == m.group(2) and mj.group(4) == m.group(4)):
+                    if not (mj and mj.group(1) == m.group(1) and mj.group(2) == m.group(2) and mj.group(4) == m.group(4)
+                            and (mj.group(5) or "") == (m.group(5) or "")):
                         break
                     j += 1
-                if j - i >= 4:
-                    merged = "%s #%s%s" % (m.group(1), m.group(2), m.group(4))
+                specs = ["#%s.%s%s" % (m.group(2), self._SUBMODEL_CMD_RE.match(commands[k].strip()).group(3), m.group(4)) for k in range(i, j)]
+                try:
+                    same = j - i >= 4 and self.executor.same_targets(specs, "#%s%s" % (m.group(2), m.group(4)))
+                except Exception:  # noqa: BLE001
+                    same = False
+                if same:
+                    merged = "%s #%s%s%s" % (m.group(1), m.group(2), m.group(4), m.group(5) or "")
                     out.append(merged)
                     notes.append("%d commands on submodels #%s.* merged into `%s`" % (j - i, m.group(2), merged))
                     i = j
@@ -2181,6 +2258,38 @@ class Agent:
                     label_notes.append(note)
                 styled.append(c2)
             commands = styled
+        key_notes = []
+        if self.config.readable_labels and self.config.edition == "chimerax" and hasattr(self.executor, "key_palette_stops"):
+            # a key in a palette's own colours whose middle labels were left empty gets the palette's stops there
+            from .labels import label_key, _key_parts
+            filled = []
+            for c in commands:
+                if first_word(c) == "key":
+                    try:
+                        parts = _key_parts(c)
+                        if parts and len(parts[0]) >= 3:
+                            stops = self.executor.key_palette_stops([col for col, _l in parts[0]]) or {}
+                            c, note = label_key(c, stops.get("values") or [])
+                            if note:
+                                key_notes.append(note)
+                    except Exception:  # noqa: BLE001
+                        pass
+                filled.append(c)
+            commands = filled
+        if self.config.readable_labels and self.config.edition == "chimerax" and hasattr(self.executor, "key_text_metrics"):
+            # a key's labels measured as ChimeraX draws them: a key too short for its labels is lengthened
+            from .labels import fit_key
+            fitted = []
+            for c in commands:
+                if first_word(c) == "key":
+                    try:
+                        c, note = fit_key(c, lambda *a, _c=c: self.executor.key_text_metrics(*a, command=_c))
+                    except Exception:  # noqa: BLE001
+                        note = ""
+                    if note:
+                        key_notes.append(note)
+                fitted.append(c)
+            commands = fitted
         repeats = [c for c in commands if c in self._failed_this_turn]
         if repeats:
             return {"ok": False, "results": [], "error": "You already ran exactly this command in this turn and it failed: %s. "
@@ -2205,6 +2314,7 @@ class Agent:
             except Exception:  # noqa: BLE001
                 sel_snap = None
         vis_before = self._visible_snapshot()
+        key_before = self._key_status() if any(first_word(c) in self._RECOLOR_WORDS for c in commands) else {}
         results = self.executor.run_commands(commands)
         self._windows_this_turn = list(getattr(self, "_windows_this_turn", [])) + [
             t for t in (getattr(self.executor, "last_new_tools", None) or []) if t not in _HARMLESS_TOOLS]
@@ -2236,6 +2346,8 @@ class Agent:
                 if eff.get("hint") and ok:
                     out["hint"] = eff["hint"]
                     out["fixups"] = list(out.get("fixups") or []) + ["blank_structure" if "now shows nothing" in eff["visible"] else "invisible_change"]
+        if key_before.get("entries"):
+            self._check_stale_key(key_before, out, results, origin, ok)
         if self.learned is not None and self.config.learn_fixes and self._failed_errors:
             # the first command of the same family that ran after a refusal this turn is its corrected form;
             # the refusal is then paired once, so a later batch of the same family adds nothing
@@ -2286,6 +2398,9 @@ class Agent:
                 out["not_run"] = remaining
         if label_notes:
             out["label_note"] = " ".join(label_notes)
+        if key_notes:
+            out["key_fit"] = " ".join(key_notes)
+            out["fixups"] = list(out.get("fixups") or []) + ["key_fit"] * len(key_notes)
         if open_notes or order_note:
             out["note"] = " ".join(open_notes + ([order_note] if order_note else []))
         for r in out.get("results", []):
@@ -2790,7 +2905,9 @@ class Agent:
                              "rows": ds["rows"], "guess": guess_columns(ds["columns"], ds["rows"]),
                              "delimiter": ds.get("delimiter", ","), "accession": ds.get("accession", "")}
         column = "am_mean" if src.startswith("alpha") else "consurf_grade"
-        payload = self._table_overlay(name, column, chain or None, ds.get("palette") or "blue-white-red", model,
+        # the target chain: one written into the model spec ('#1/A'), else the source chain
+        target = None if re.match(r"^\s*#[\d.]+\s*/\s*[A-Za-z0-9]+\s*$", model or "") else (chain or None)
+        payload = self._table_overlay(name, column, target, ds.get("palette") or "blue-white-red", model,
                                       ds.get("accession") or None, False)
         payload = dict(payload, source=ds["source"], dataset=name, n_positions=ds.get("n_positions"),
                        value_range=ds.get("value_range"))
@@ -2850,6 +2967,24 @@ class Agent:
             return "", "Could not find a UniProt entry for '%s'." % protein
         return str(r["accession"]), ""
 
+    def _map_positions(self, model: str, acc: str, positions: List[int], chain: Optional[str] = None) -> Dict[str, Any]:
+        """executor.map_positions with the UniProt sequence (cached after the first request), so the file's
+        offsets are checked against it and chains without a usable reference are aligned to it."""
+        kw: Dict[str, Any] = {"chain": chain} if chain else {}
+        seq = ""
+        if hasattr(self.executor, "protein_sequence"):
+            try:
+                seq = self.executor.protein_sequence(acc) or ""
+            except Exception:  # noqa: BLE001
+                seq = ""
+        if seq:
+            kw["sequence"] = seq
+        mapping = self.executor.map_positions(model, acc, positions, **kw)
+        if mapping.get("needs_sequence"):
+            mapping = dict(mapping, note=("The UniProt sequence of %s could not be fetched, so chains without a "
+                                          "usable UniProt reference in the file were not aligned." % acc))
+        return mapping
+
     def _map_numbering(self, model: str, protein: str, positions: List[int]) -> Dict[str, Any]:
         """UniProt positions -> this structure's residues, through the chain's own UniProt alignment.
 
@@ -2875,24 +3010,46 @@ class Agent:
                 return {"error": "Model %s has chains from several UniProt entries (%s): say which protein." % (model, ", ".join(ids))}
             else:
                 return {"error": "The structure file does not say which UniProt entry it is; give the accession or gene name."}
-        mapping = self.executor.map_positions(model, acc, sorted(set(positions)))
+        mapping = self._map_positions(model, acc, sorted(set(positions)))
+        if mapping.get("error") and mapping.get("unresolved"):
+            return dict({"model": model, "accession": acc}, **self._unresolved_choices(
+                "map_numbering", {"model": model, "protein": protein or acc, "positions": sorted(set(positions))},
+                {"error": mapping["error"], "mapping": "unresolved", "reason": "uniprot_unmapped",
+                 "candidates": mapping.get("candidates") or []}))
         if mapping.get("error"):
             return mapping
+        from .resid import entry_targets, target_id
         got = mapping.get("map") or {}
         rows = []
+        diffs = set()
         for p in sorted(set(positions)):
-            m = got.get(p) or got.get(str(p))
-            if m:
-                rows.append({"uniprot": p, "chain": m.get("chain"), "residue": m.get("number"), "name": m.get("resname"),
-                             "spec": "%s/%s:%s" % (mapping.get("model", model), m.get("chain"), m.get("number"))})
+            ts = [t for t in entry_targets(got.get(p) or got.get(str(p)), mapping.get("model", model)) if t.get("status") != "unresolved"]
+            if ts:
+                specs = [target_id(t).spec() for t in ts]
+                first = ts[0]
+                row = {"uniprot": p, "chain": first["chain"], "residue": first["number"], "name": first.get("resname"),
+                       "spec": " ".join(specs)}
+                if first.get("icode"):
+                    row["insertion_code"] = first["icode"]
+                if first.get("status"):
+                    row["status"] = first["status"]
+                    row["basis"] = first.get("basis", "")
+                if len(ts) > 1:
+                    row["chains"] = [t["chain"] for t in ts]
+                rows.append(row)
+                diffs.update(t["number"] - p for t in ts if t.get("status") in (None, "", "exact", "offset"))
             else:
                 rows.append({"uniprot": p, "missing": True})
         found = [r for r in rows if not r.get("missing")]
-        offsets = sorted({r["residue"] - r["uniprot"] for r in found if isinstance(r.get("residue"), int)})
+        offsets = sorted(diffs)
         out = {"model": mapping.get("model", model), "accession": mapping.get("accession", acc), "positions": rows,
                "found": len(found), "missing": [r["uniprot"] for r in rows if r.get("missing")],
                "note": mapping.get("note", "")}
-        if len(offsets) == 1:
+        if any(r.get("status") == "alignment" for r in found):
+            out["summary"] = ("Placed by aligning the chain to the UniProt sequence (%s): the file's numbering is not a "
+                              "constant offset of UniProt here, so use the per-position specs." % next(
+                                  r["basis"] for r in found if r.get("status") == "alignment"))
+        elif len(offsets) == 1:
             out["offset"] = offsets[0]
             out["summary"] = ("Structure numbering = UniProt %s %d for these positions." %
                               ("+" if offsets[0] >= 0 else "-", abs(offsets[0])) if offsets[0] else
@@ -3319,31 +3476,54 @@ class Agent:
         if ci is None or ci == g.get("position"):
             return {"error": "Table '%s' has no value column '%s'. Columns: %s" % (ds["name"], column, ", ".join(cols))}
         model = model or "#1"
+        spec_chain = re.match(r"^\s*(#[\d.]+)\s*/\s*([A-Za-z0-9]+)\s*$", model)
+        if spec_chain:   # '#1/A': the chain is part of the model spec
+            model, chain = spec_chain.group(1), chain or spec_chain.group(2)
         res = self.executor.list_residues(model)
         if res.get("error"):
             return res
-        resmap = {(k.split(":")[0], int(k.split(":")[1])): v for k, v in res["residues"].items()}
+        resmap = res["residues"]
         chain_col = None if chain else g.get("chain")
         rows = table_rows(ds, g, ci, chain_col)
         if not rows:
             return {"error": "Column '%s' has no usable values." % cols[ci]}
         numbering = "structure residue numbers"
         numbering_map = None
-        acc = (accession or ds.get("accession") or "").strip()
-        if not acc and g.get("accession") is not None:
+        own_numbers = str(accession or "").strip().lower() in ("none", "structure", "pdb")   # chosen: the structure's own numbers
+        acc = "" if own_numbers else (accession or ds.get("accession") or "").strip()
+        if not acc and not own_numbers and g.get("accession") is not None:
             acc = next((r[g["accession"]] for r in ds["rows"] if r[g["accession"]]), "")
+        args = {"dataset": ds["name"], "column": cols[ci], "model": res["model"], "palette": palette or "",
+                "accession": "none" if own_numbers else (accession or "")}
+        base = {"dataset": ds["name"], "column": cols[ci], "model": res["model"], "numbering": numbering}
+        have_chains = sorted({k.chain for k in (ResId.parse(x, res["model"]) for x in resmap) if k})
+        if chain and chain not in have_chains:
+            return dict(base, **self._unresolved_choices("table_overlay", args, {
+                "error": "Chain %s is not in %s (chains: %s). Nothing was coloured." % (chain, res["model"], ", ".join(have_chains)),
+                "mapping": "unresolved", "reason": "chain_missing", "chains_available": have_chains}))
         if acc:
-            mp = self.executor.map_positions(res["model"], acc, sorted({r["position"] for r in rows}))
+            mp = self._map_positions(res["model"], acc, sorted({r["position"] for r in rows}), chain=chain)
             if mp.get("error"):
-                numbering += " (UniProt %s could not be mapped: %s)" % (acc, mp["error"])
+                why = re.sub(r"^Model \S+: ", "", mp["error"]).rstrip(".")
+                return dict(base, numbering="UniProt %s numbering" % acc, **self._unresolved_choices("table_overlay", args, {
+                    "error": "The table is in UniProt %s numbering, which cannot be placed on %s: %s. Nothing was coloured." % (
+                        acc, res["model"], why),
+                    "mapping": "unresolved", "reason": "uniprot_unmapped", "chains_available": have_chains,
+                    "candidates": mp.get("candidates") or []}))
             else:
                 numbering_map = {int(k): v for k, v in (mp.get("map") or {}).items()}
                 offs = mp.get("offsets") or {}
-                numbering = "UniProt %s numbering, offsets %s" % (acc, ", ".join("%s:%+d" % (c, o) for c, o in sorted(offs.items())) or "0")
+                aligned = [c for c in (mp.get("chain_status") or []) if c.get("status") == "alignment"]
+                numbering = "UniProt %s numbering, %s" % (acc, "; ".join(
+                    (["offsets " + ", ".join("%s:%+d" % (c, o) for c, o in sorted(offs.items()))] if offs or not aligned else [])
+                    + ["%s aligned (%s%% identity)" % (c["chain"], c.get("identity")) for c in aligned]))
         attr = attr_name(ds["name"], cols[ci])
         plan = plan_overlay(rows, resmap, res["model"], attr, chains=[chain] if chain else None,
-                            palette=palette or "blue-white-red", numbering_map=numbering_map, edition=self.config.edition)
-        base = {"dataset": ds["name"], "column": cols[ci], "model": res["model"], "numbering": numbering}
+                            palette=palette or "blue-white-red", numbering_map=numbering_map, edition=self.config.edition,
+                            chain_groups=res.get("chain_groups"))
+        base["numbering"] = numbering
+        if plan.get("mapping") == "unresolved":
+            return dict(base, **self._unresolved_choices("table_overlay", args, plan))
         if plan.get("error"):
             return dict(base, **plan)
         if plan["numeric"]:
@@ -3352,22 +3532,54 @@ class Agent:
                 return dict(base, error=r["error"])
         cmds = list(plan["commands"])
         if label:
-            by_chain: Dict[str, List[int]] = {}
-            for k in list(plan["assignments"])[:60]:
-                c, n = k.split(":")
-                by_chain.setdefault(c, []).append(int(n))
-            cmds += ["label %s/%s:%s" % (res["model"], c, ",".join(str(n) for n in sorted(ns))) for c, ns in sorted(by_chain.items())]
+            from .resid import insertion_numbers, specs_by_chain
+            ids = [ResId.parse(k, res["model"]) for k in list(plan["assignments"])[:60]]
+            have = [ResId.parse(k, res["model"]) for k in resmap]
+            cmds += ["label %s" % s for s in specs_by_chain([i for i in ids if i], insertion_numbers([h for h in have if h]), res["model"])]
         run = self.execute_commands(cmds, origin="table")
         out = dict(base, attribute=attr, select_syntax="%s::%s>0.5  (residue attribute selector: TWO colons + the attribute name; works with <, >, =)" % (res["model"], attr),
                    mapped=plan["mapped"], chains=plan["chains"], n_missing=plan["n_missing"], missing=plan["missing"][:30],
                    n_mismatches=plan["n_mismatches"], mismatches=plan["mismatches"][:10], legend=plan["legend"],
-                   numeric=plan["numeric"], commands=run.get("results", []), colored=bool(run.get("ok")))
+                   numeric=plan["numeric"], commands=run.get("results", []), colored=bool(run.get("ok")),
+                   placed_by=plan.get("status") or {})
+        if plan.get("missing_chains"):
+            out["missing_chains"] = plan["missing_chains"]
+            out["rows_unresolved"] = plan.get("rows_unresolved", 0)
         if run.get("skipped"):
             out["note"] = "The user declined the coloring commands."
         elif run.get("ok"):
             layer = {"dataset": ds["name"], "column": cols[ci], "model": res["model"], "chain": chain or "", "palette": palette or "blue-white-red", "attr": attr,
                      "accession": acc, "legend": plan["legend"], "mapped": plan["mapped"]}
             self.layers = [l for l in self.layers if not (l["dataset"] == layer["dataset"] and l["column"] == layer["column"])] + [layer]
+        return out
+
+    def _unresolved_choices(self, tool: str, args: Dict[str, Any], why: Dict[str, Any]) -> Dict[str, Any]:
+        """An unresolved mapping as a result: what is missing, the explicit choices (each a call of `tool`), and what
+        to do next. Nothing was changed on screen. The panel shows the choices as buttons in the result card."""
+        out = {k: v for k, v in why.items() if k not in ("model",)}
+        choices: List[Dict[str, Any]] = []
+        chains = [c for c in (why.get("chains_available") or []) if c]
+        model = str(args.get("model") or "#1")
+        if why.get("reason") == "uniprot_unmapped":
+            for cand in why.get("candidates") or []:
+                if float(cand.get("identity") or 0) * 0.01 >= ALIGN_IDENTITY_CHOSEN and tool != "table_overlay":
+                    choices.append({"label": "%s (%s%% identical)" % (cand["chain"], cand["identity"]), "tool": tool,
+                                    "args": dict(args, model=cand["chain"])})
+            if tool == "table_overlay":
+                choices += [{"label": "chain %s, its own numbering" % c, "tool": tool, "args": dict(args, chain=c, accession="none")}
+                            for c in chains]
+        elif tool == "table_overlay":
+            choices = [{"label": "chain %s" % c, "tool": tool, "args": dict(args, chain=c)} for c in chains]
+        else:
+            choices = [{"label": "%s/%s" % (model, c), "tool": tool, "args": dict(args, model="%s/%s" % (model, c))} for c in chains]
+        out["choices"] = choices[:8]
+        if choices:
+            out["next"] = ("Nothing was changed. Tell the user why in one sentence and, unless their request already named "
+                           "the chain, ask which one they mean (ask_user with these choices); do not pick one yourself. "
+                           "Their answer is run as the matching choice, e.g. %s(%s)." % (tool, ", ".join(
+                               "%s=%r" % kv for kv in sorted(choices[0]["args"].items()))))
+        else:
+            out["next"] = "Nothing was changed. Tell the user why in one sentence; no chain of this structure fits."
         return out
 
     def _model_missing(self, spec: str) -> bool:
@@ -3436,7 +3648,16 @@ class Agent:
                 return {"error": "No model matches '%s'. Open the structure first, then annotate it." % model}
             return {"accession": acc, "kind": kind, "count": 0, "message": "No matching annotations (%s)." % source}
         positions = sorted({p for it in items for p in it["positions"]})
-        mapping = self.executor.map_positions(model, acc, positions)
+        mapping = self._map_positions(model, acc, positions)
+        if mapping.get("error") and mapping.get("unresolved"):
+            args = {"model": model, "accession": accession, "kind": kind, "color": color, "label": label}
+            return dict({"accession": acc, "kind": kind, "count": len(items), "source": source, "model": model},
+                        **self._unresolved_choices("annotate", args, {
+                            "error": "UniProt %s positions could not be placed on %s: %s Nothing was coloured." % (
+                                acc, model, mapping["error"]),
+                            "mapping": "unresolved", "reason": "uniprot_unmapped",
+                            "chains_available": [c.split("/")[-1] for c in mapping.get("chains_available") or []],
+                            "candidates": mapping.get("candidates") or []}))
         if mapping.get("error"):
             return mapping
         cmds, summary = build_annotation(items, mapping, color, label, edition=self.config.edition)

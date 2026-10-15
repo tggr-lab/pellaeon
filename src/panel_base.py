@@ -120,6 +120,7 @@ class PanelBase:
             self.push(obj)
         self._queued = []
         self.push({"type": "state", "state": self._safe_state()})
+        self._push_undo_state()
         if not first or (self.agent and self.agent.conversation):
             # a reloaded page: replay the transcript, busy state and any pending confirmation
             if self.agent and (self.agent.conversation or self.agent.archived):
@@ -199,6 +200,42 @@ class PanelBase:
             except Exception as e:  # noqa: BLE001
                 out = {"error": "Overlay failed: %s" % e}
             self.push_ts({"type": "table_result", "id": tid, "card": out, "results": out.get("commands", [])})
+            self.push_ts({"type": "layers", "layers": list(self.agent.layers)})
+            self._busy = False
+            self.push_ts({"type": "busy", "busy": False})
+        threading.Thread(target=work, daemon=True).start()
+
+    # the tools a result card's choice buttons may run again with the arguments the card offered
+    _CHOICE_TOOLS = ("table_overlay", "annotate", "map_numbering")
+
+    def _act_tool_apply(self, params, payload):
+        """A choice in a result card (e.g. which chain an unresolved table belongs to): run that tool with those
+        arguments, shown in the transcript like a tool call."""
+        name = params.get("name", "")
+        args = payload if isinstance(payload, dict) else {}
+        if name not in self._CHOICE_TOOLS or self._busy_guard():
+            return
+        if self.agent is None:
+            try:
+                self.agent = self._build_agent()
+            except Exception as e:  # noqa: BLE001
+                return self.push({"type": "toast", "kind": "error", "text": "Could not start: %s" % e})
+        self.agent.tables = self.tables
+        self._busy = True
+        self._turn_id += 1
+        self.push({"type": "busy", "busy": True})
+
+        def work():
+            try:
+                try:
+                    from .core.schema import ToolCall, new_id
+                except ImportError:
+                    from core.schema import ToolCall, new_id
+                self.agent._turn_text = ""          # the user chose this call, as with `pellaeon tool`
+                self.agent._coloring_sources = []
+                self.agent._dispatch(ToolCall(new_id(), name, dict(args)))
+            except Exception as e:  # noqa: BLE001
+                self.push_ts({"type": "toast", "kind": "error", "text": "%s failed: %s" % (name, e)})
             self.push_ts({"type": "layers", "layers": list(self.agent.layers)})
             self._busy = False
             self.push_ts({"type": "busy", "busy": False})
@@ -297,7 +334,50 @@ class PanelBase:
     def _act_send(self, params, payload):
         text = (params.get("text") or "").strip()
         if text:
-            self.submit(text)
+            self.submit(text, keep_selection=params.get("keep_selection") == "1")
+
+    def _undo_info(self) -> Dict[str, Any]:
+        """What the Undo button would restore, or that there is nothing to restore."""
+        fn = getattr(self.executor, "pending_undo", None)
+        if fn is None:
+            return {"available": False}
+        try:
+            info = fn(direct=True) or {}
+        except Exception:  # noqa: BLE001
+            return {"available": False}
+        if info.get("error"):
+            return {"available": False}
+        return {"available": True, "request": str(info.get("request", ""))[:160], "kind": info.get("kind", "")}
+
+    def _push_undo_state(self) -> None:
+        self.push(dict(self._undo_info(), type="undo_state"))
+
+    def _act_undo(self, params, payload):
+        """The Undo button: restore ChimeraX to how it was before the last request, with no model turn."""
+        if self._busy_guard():
+            return
+        fn = getattr(self.executor, "undo_last_request", None)
+        if fn is None:
+            self.push({"type": "toast", "kind": "warn", "text": "Undo is not available in this edition."})
+            return
+        try:
+            res = fn(direct=True) or {}
+        except Exception as e:  # noqa: BLE001
+            self.push({"type": "toast", "kind": "error", "text": "Undo failed: %s" % e})
+            return
+        if res.get("error"):
+            self.push({"type": "toast", "kind": "warn", "text": str(res["error"])[:200]})
+        else:
+            request = " ".join(str(res.get("request") or "").split())
+            if len(request) > 70:
+                request = request[:67].rstrip() + "..."
+            if res.get("restored") in ("session", "models") and request:
+                text = "Undone: \u201c%s\u201d" % request       # everything came back: say only what was undone
+            else:                                                # a partial restore: the reason is what the user needs
+                text = str(res.get("summary") or "Undid the last request.")[:200]
+            self.push({"type": "toast", "kind": "ok", "text": text})
+        self.push({"type": "state", "state": self._safe_state()})
+        self._push_undo_state()
 
     def _act_stop(self, params, payload):
         self._cancel.set()
@@ -642,8 +722,8 @@ class PanelBase:
         except Exception:
             pass
         directory = self.executor.knowledge.command_directory()
-        # Groq and OpenRouter meter input tokens per minute, and every failure we measured on their
-        # free tiers was a rate limit rather than a mistake: start compact there, which costs no accuracy.
+        # Groq and OpenRouter meter input tokens per minute and their free tiers fail on rate limits:
+        # start with the compact prompt there.
         compact = bool((preset_by_id(getattr(s, "preset", "")) or {}).get("compact_prompt"))
         cfg = AgentConfig(autonomy=getattr(self, "_runtime_autonomy", None) or s.autonomy, allow_python=bool(s.allow_python), vision=bool(s.vision),
                           docs_per_turn=int(s.docs_per_turn), edition=self.edition, readable_labels=bool(getattr(s, "readable_labels", True)),
@@ -693,21 +773,22 @@ class PanelBase:
         """Opt-in only, from the button on the Learned page: open a prefilled GitHub discussion in the user's
         browser with the stored pairs (commands and error text, paths and URLs already replaced). Nothing is
         sent by Pellaeon itself; the user reads the whole text on GitHub and posts it, or closes the tab."""
-        import urllib.parse
-        import webbrowser
         data = self.learned.export()
         if not data["entries"]:
             self.push({"type": "toast", "kind": "warn", "text": "Nothing learned yet."})
             return
         body = ("Fixes Pellaeon learned on my machine (a command ChimeraX refused, and the one that ran instead). "
                 "Shared so the next version can avoid the mistake up front.\n\n```json\n%s\n```\n" % json.dumps(data, indent=1))
-        q = {"category": self.SHARE_CATEGORY, "title": "Learned fixes (%d)" % len(data["entries"]), "body": body}
-        url = self.SHARE_URL + "?" + urllib.parse.urlencode(q)
-        if len(url) > 7000:   # too long for a URL: the text goes to the clipboard, the page opens empty
-            self._act_copy({"text": body}, None)
-            url = self.SHARE_URL + "?" + urllib.parse.urlencode({"category": q["category"], "title": q["title"],
-                                                                 "body": "(paste the copied text here)"})
-        webbrowser.open(url)
+        self._hand_over(self.SHARE_URL, {"category": self.SHARE_CATEGORY, "title": "Learned fixes"}, body)
+
+    def _hand_over(self, url_base: str, params: Dict[str, str], text: str) -> None:
+        """Text for a GitHub page goes to the clipboard and the page opens empty. Nothing from the chat is put in the
+        address, so nothing leaves this computer until the user pastes it and posts it."""
+        import urllib.parse
+        import webbrowser
+        self._act_copy({"text": text}, None)
+        self.push({"type": "toast", "kind": "info", "text": "Copied. Paste it into the page that opens, read it, then post."})
+        webbrowser.open(url_base + "?" + urllib.parse.urlencode(params))
 
     ISSUES_URL = "https://github.com/tggr-lab/pellaeon/issues/new"
     DOCS_URL = "https://tggr-lab.github.io/pellaeon/"
@@ -735,27 +816,14 @@ class PanelBase:
         self._act_copy({"text": self._report_text()}, None)
 
     def _act_report_problem(self, params, payload):
-        """Open a GitHub issue in the browser, prefilled with the report; nothing is sent until the user posts it there.
-        A report too long for a URL goes to the clipboard and the issue opens with a note to paste it."""
-        import webbrowser
-        body = self._report_text()
-        last = ""
-        if self.agent and self.agent.conversation:
-            last = next((m.text().strip() for m in reversed(self.agent.conversation)
-                         if m.role == "user" and not m.text().startswith("(system)")), "")
-        try:
-            from .core.learned import _scrub
-        except ImportError:
-            from core.learned import _scrub
-        title = ("Problem: " + _scrub(last)[:70]) if last else "Problem report"
-        url = self.ISSUES_URL + "?" + urllib.parse.urlencode({"title": title, "body": body})
-        if len(url) > 7000:
-            self._act_copy({"text": body}, None)
-            url = self.ISSUES_URL + "?" + urllib.parse.urlencode({"title": title, "body": "(paste the copied report here)"})
-        webbrowser.open(url)
+        """Copy the report and open a new GitHub issue in the browser, empty. The report is in the clipboard,
+        not in the address; nothing is sent until the user pastes and posts it there."""
+        self._hand_over(self.ISSUES_URL, {"title": "Problem report"}, self._report_text())
 
-    def submit(self, text: str) -> None:
-        """Start a turn (main thread)."""
+    def submit(self, text: str, keep_selection: bool = False) -> None:
+        """Start a turn (main thread). A quick action about a clicked residue passes keep_selection: whatever the
+        request selects along the way (the neighbourhood, say) is put back when the turn ends, so the next quick
+        action still means the residue the user clicked."""
         if self._busy:
             self.push({"type": "toast", "kind": "warn", "text": "Still working on the previous request. Press Stop to interrupt."})
             return
@@ -769,6 +837,12 @@ class PanelBase:
             except Exception as e:  # noqa: BLE001
                 self.push({"type": "toast", "kind": "error", "text": "Could not start: %s" % e})
                 return
+        self._keep_sel = None
+        if keep_selection:
+            try:
+                self._keep_sel = self.executor.selection_snapshot()
+            except Exception:  # noqa: BLE001
+                self._keep_sel = None
         self._busy = True
         self._cancel = threading.Event()
         self._turn_id += 1
@@ -809,9 +883,16 @@ class PanelBase:
         self.call_soon(self._turn_finished)
 
     def _turn_finished(self):
+        snap, self._keep_sel = getattr(self, "_keep_sel", None), None
+        if snap is not None:
+            try:
+                self.executor.selection_restore(snap)
+            except Exception:  # noqa: BLE001
+                pass
         self._busy = False
         self.push({"type": "busy", "busy": False})
         self.push({"type": "state", "state": self._safe_state()})
+        self._push_undo_state()
         self._save_conversation()
 
     def _on_delta(self, text: str):
@@ -848,7 +929,8 @@ class PanelBase:
             msg["not_run"] = payload.get("not_run", [])
         else:
             msg["summary"] = _summarize_tool(call, result, payload)
-            if call.name in ("compare_structures", "annotate", "table_overlay", "tidy_labels", "save_figure") and isinstance(payload, dict):
+            if call.name in ("compare_structures", "annotate", "table_overlay", "fetch_annotation", "map_numbering", "tidy_labels",
+                             "save_figure") and isinstance(payload, dict):
                 msg["card"] = {k: v for k, v in payload.items() if k != "commands"}
                 msg["results"] = payload.get("commands", [])
         self.push_ts(msg)

@@ -217,6 +217,8 @@
     let h = "";
     if (c.error) {
       h = '<div class="rrow err">' + esc(c.error) + "</div>";
+      // an unresolved mapping: nothing was placed; each button runs the tool for one explicit choice
+      if ((c.choices || []).length) h += '<div class="rrow">Choose: ' + c.choices.map((ch, i) => '<button class="secondary small" data-choice="' + i + '">' + esc(ch.label) + "</button>").join(" ") + "</div>";
     } else if (name === "compare_structures") {
       h += '<div class="rrow"><b>' + esc(c.compared) + "</b> superposed on <b>" + esc(c.reference) + "</b>" + (c.chain && c.chain !== "all" ? " (chain " + esc(c.chain) + ")" : "") + "</div>";
       if (c.paired_residues != null) {
@@ -239,12 +241,14 @@
       h += '<div class="rrow"><b>Labels tidied</b>: ' + c.labels + " on screen · " + c.kept + " kept · " + c.moved + " nudged · " + c.removed + " removed</div>";
       if ((c.removed_labels || []).length) h += '<div class="rrow muted">Removed: ' + esc(c.removed_labels.join(", ")) + "</div>";
       if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
-    } else if (name === "table_overlay") {
+    } else if (name === "table_overlay" || name === "fetch_annotation") {
       h += '<div class="rrow"><b>' + esc(c.column) + "</b> from table <b>" + esc(c.dataset) + "</b> on " + esc(c.model) + " · " + esc(c.numbering || "") + "</div>";
       if (c.mapped != null) h += '<div class="rrow">' + c.mapped + " residues placed (chains " + esc((c.chains || []).join(", ")) + ") · " + (c.n_missing || 0) + " table positions not in the structure" + (c.n_mismatches ? " · <b>" + c.n_mismatches + " reference-residue mismatches skipped</b>" : "") + "</div>";
       if (c.legend) h += '<div class="rrow muted">' + esc(c.legend) + "</div>";
       if ((c.missing || []).length) h += '<div class="rrow muted">Not found: ' + esc(c.missing.slice(0, 30).join(", ")) + (c.n_missing > 30 ? " …" : "") + "</div>";
       if ((c.mismatches || []).length) h += '<div class="rrow warn">' + esc(c.mismatches.slice(0, 6).join("; ")) + (c.n_mismatches > 6 ? " …" : "") + "</div>";
+      if ((c.missing_chains || []).length) h += '<div class="rrow warn">' + c.rows_unresolved + " rows name chain " + esc(c.missing_chains.join(", ")) + ", which " + esc(c.model) + " does not have: not placed</div>";
+      if (c.placed_by && Object.keys(c.placed_by).length) h += '<div class="rrow muted">Placed by: ' + esc(Object.entries(c.placed_by).map(([k, v]) => v + " " + (PLACED[k] || k)).join(", ")) + "</div>";
       if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
     } else if (name === "annotate") {
       h += '<div class="rrow"><b>' + esc(c.kind || "") + "</b> · " + esc(c.source || "") + "</div>";
@@ -252,6 +256,7 @@
       if (c.mapped != null) h += '<div class="rrow">' + c.mapped + " mapped, " + c.unmapped + " unmapped" + (c.reference_mismatch ? ", <b>" + c.reference_mismatch + " reference-residue mismatches skipped</b>" : "") + " · chains " + esc((c.chains || []).join(", ")) + (c.labeled ? " · " + c.labeled + " labels" : "") + "</div>";
       if (c.legend) h += '<div class="rrow muted">' + esc(c.legend) + "</div>";
       if (c.mapping_note) h += '<div class="rrow warn">' + esc(c.mapping_note) + "</div>";
+      if (c.status && Object.keys(c.status).length) h += '<div class="rrow muted">Placed by: ' + esc(Object.entries(c.status).map(([k, v]) => v + " " + (PLACED[k] || k)).join(", ")) + "</div>";
       if ((c.pathogenic || []).length) h += '<div class="rrow">Pathogenic: ' + c.pathogenic.slice(0, 20).map((p) => { const m = String(p).match(/(\d+)/); return m ? viewLink((c.model || "#1") + ":" + m[1], p) : esc(p); }).join(", ") + (c.pathogenic.length > 20 ? " …" : "") + "</div>";
       if ((c.annotations || []).length && !(c.pathogenic || []).length) h += '<div class="rrow muted">' + c.annotations.slice(0, 8).map((a) => esc(a.type + " " + a.residues + (a.description ? ": " + a.description.slice(0, 40) : ""))).join(" · ") + (c.annotations.length > 8 ? " …" : "") + "</div>";
       if (c.commands_failed) h += '<div class="rrow err">' + c.commands_failed + " command(s) failed</div>";
@@ -262,8 +267,14 @@
         results.map((r) => cmdRow(r.command, r.ok ? "ok" : "err", r.ok ? "" : r.error, [])).join("") + "</div></details>";
     }
     box.innerHTML = h;
+    box.querySelectorAll("button[data-choice]").forEach((b) => {
+      const ch = c.choices[+b.dataset.choice];
+      b.onclick = () => send("tool_apply", {name: ch.tool}, ch.args);
+    });
     return box;
   }
+  const PLACED = {exact: "UniProt numbering as in the file", offset: "the file's UniProt offset", alignment: "sequence alignment",
+                  structure: "the structure's own numbers"};
   function confirmCard(msg) {
     const t = turn(msg.id);
     const card = document.createElement("div");
@@ -558,13 +569,13 @@
   }
 
   // ---------------------------------------------------------------- input
-  function submit(text) {
+  function submit(text, keepSel) {
     text = (text || "").trim();
     if (!text) return;
     if (/artistically done/i.test(text)) { toast("Thrawn would approve.", "ok"); $("input").value = ""; return; }
     if (state.busy) { toast("Still working — press Stop first", "warn"); return; }
     if (!state.configured) { showPage("settings"); toast("Choose an AI provider first", "warn"); return; }
-    send("send", {text: text});
+    send("send", keepSel ? {text: text, keep_selection: "1"} : {text: text});
     $("input").value = "";
     autosize();
   }
@@ -652,6 +663,12 @@
     question(m) { questionCard(m); },
     status(m) { $("status").textContent = m.text || ""; },
     busy(m) { setBusy(!!m.busy); },
+    undo_state(m) {
+      const b = $("btn-undo");
+      if (!b) return;
+      b.disabled = !m.available;
+      b.title = m.available ? "Undo: restore ChimeraX to before \u201c" + (m.request || "the last request") + "\u201d" : "Nothing to undo yet";
+    },
     toast(m) { toast(m.text, m.kind); },
     clear() { $("transcript").innerHTML = WELCOME_HTML; wireWelcome(); Object.keys(state.turns).forEach((k) => delete state.turns[k]); $("usage").textContent = ""; showPage("chat"); },
     rerun_result(m) { rerunResult(m); },
@@ -737,6 +754,8 @@
     wireWelcome();
     $("btn-settings").onclick = () => showPage("settings");
     $("btn-history").onclick = () => showPage("history");
+    $("btn-undo").onclick = () => send("undo");
+    $("chip-undo").onclick = () => send("undo");
     $("btn-help").onclick = () => showPage("help");
     $("btn-cancel-help").onclick = () => showPage("chat");
     $("btn-report").onclick = () => send("report_problem");
@@ -747,9 +766,9 @@
     $("btn-new").onclick = () => send("new_chat");
     $("btn-export").onclick = () => send("export_cxc");
     $("sel-ask").onclick = () => submit("Tell me about " + describeSel() + ": what is it, what does UniProt say about it, and what is it interacting with?");
-    $("sel-near").onclick = () => submit("What residues and ligands are within 5 A of " + describeSel() + "? Show them as sticks and label them.");
+    $("sel-near").onclick = () => submit("What residues and ligands are within 5 A of " + describeSel() + "? Show them as sticks and label them.", true);
     $("sel-color").onclick = () => submit("Highlight " + describeSel() + ": show its atoms as sticks in yellow and focus the view on it.");
-    $("sel-why").onclick = () => submit("Why is " + describeSel() + " this color?");
+    $("sel-why").onclick = () => submit("Why is " + describeSel() + " this color?", true);
     $("chip-bind").onclick = () => send("bind_click");
     $("btn-cancel-settings").onclick = () => showPage("chat");
     $("btn-cancel-history").onclick = () => showPage("chat");

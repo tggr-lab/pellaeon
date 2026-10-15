@@ -4,6 +4,8 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from .resid import ResId, STATUS_UNRESOLVED, entry_targets, number_text, specs_by_chain, target_id
+
 KINDS = {
     "variant": ["Natural variant"], "variants": ["Natural variant"], "disease": ["Natural variant"],
     "domain": ["Domain"], "domains": ["Domain"], "transmembrane": ["Transmembrane"], "tm": ["Transmembrane"],
@@ -55,77 +57,76 @@ def clinvar_items(data: Dict[str, Any]) -> List[Dict[str, Any]]:
             for v in data.get("variants", [])]
 
 
-def _ranges(nums: List[int]) -> str:
-    nums = sorted(set(nums))
-    out, start, prev = [], nums[0], nums[0]
-    for n in nums[1:]:
-        if n == prev + 1:
-            prev = n
-            continue
-        out.append("%d-%d" % (start, prev) if start != prev else str(start))
-        start = prev = n
-    out.append("%d-%d" % (start, prev) if start != prev else str(start))
-    return ",".join(out)
-
-
 def build_annotation(items: List[Dict[str, Any]], mapping: Dict[str, Any], color: str = "orange",
                      label: bool = True, max_labels: int = 40, edition: str = "chimerax") -> Tuple[List[str], Dict[str, Any]]:
-    """mapping: {"map": {pos: {"chain": "A", "number": 87, "resname": "LYS"}}, "model": "#1", ...}"""
-    pmap = {int(k): v for k, v in (mapping.get("map") or {}).items()}
+    """mapping: {"map": {pos: [{"model": "#1", "chain": "A", "number": 87, "icode": "", "resname": "LYS",
+    "status": "offset", "basis": ...}, ...]}, "model": "#1", "insertion_numbers": {"#1/A": [82]}, ...}.
+    Older mappings with one {"chain", "number", "resname"} dict per position are read too."""
     model = mapping.get("model", "#1")
+    pmap = {int(k): entry_targets(v, model) for k, v in (mapping.get("map") or {}).items()}
+    ins: Dict[Tuple[str, str], List[int]] = {}
+    for k, nums in (mapping.get("insertion_numbers") or {}).items():
+        m, _, c = str(k).rpartition("/")
+        ins[(m or model, c)] = list(nums)
     cmds: List[str] = []
     mapped = unmapped = mismatched = labeled = 0
     listing = []
-    color_groups: Dict[Tuple[str, str], List[Tuple[str, int]]] = {}   # (color, chain) -> numbers
-    singles: List[Tuple[str, int]] = []
+    color_groups: Dict[str, List[ResId]] = {}   # color -> residues
+    singles: List[ResId] = []
+    statuses: Dict[str, int] = {}
     for it in items:
         col = it.get("color") or color
-        hits = [(pmap[p]["chain"], pmap[p]["number"], pmap[p].get("resname", "")) for p in it["positions"] if p in pmap]
+        hits = [(target_id(t, model), t.get("resname", ""), t.get("status") or "") for p in it["positions"] for t in pmap.get(p, [])
+                if t.get("status") != STATUS_UNRESOLVED]
         if not hits:
             unmapped += 1
             continue
         if it.get("ref") and it["single"]:
-            resname = hits[0][2]
+            resname = hits[0][1]
             if resname and AA3.get(resname.upper()) and AA3[resname.upper()] != it["ref"]:
                 mismatched += 1
                 continue  # the model residue is not the reference amino acid: numbering does not correspond
         mapped += 1
-        for ch, num, _rn in hits:
-            color_groups.setdefault((col, ch), []).append(num)
+        for rid, _rn, st in hits:
+            color_groups.setdefault(col, []).append(rid)
+            if st:
+                statuses[st] = statuses.get(st, 0) + 1
         if it["single"]:
-            singles.append((hits[0][0], hits[0][1]))
+            singles.extend(rid for rid, _rn, _st in hits)
         if label and labeled < max_labels and (it["single"] or it.get("type") in ("Domain", "Transmembrane", "Topological domain", "Region", "Motif")) \
                 and (it.get("pathogenic", True)):
-            ch, num, _rn = hits[0]
+            rid = hits[0][0]
             text = it["label"].replace('"', "")
             if edition == "chimera":
-                cmds.append('rlabel %s:%d.%s text "%s"' % (model, num, ch, text))
+                cmds.append('rlabel %s:%s.%s text "%s"' % (rid.model, number_text(rid.number, rid.icode), rid.chain, text))
             else:
-                cmds.append('label %s/%s:%d text "%s"' % (model, ch, num, text))
+                cmds.append('label %s text "%s"' % (rid.spec(), text))
             labeled += 1
-        listing.append({"type": it["type"], "residues": ",".join("%s:%d" % (c, n) for c, n, _ in hits[:6]) + ("…" if len(hits) > 6 else ""),
+        listing.append({"type": it["type"], "residues": ",".join(r.short() for r, _, _ in hits[:6]) + ("…" if len(hits) > 6 else ""),
                         "description": it["description"][:120]})
     # coloring first (labels were appended above; keep colors before labels)
     color_cmds = []
-    for (col, ch), nums in color_groups.items():
-        spec = _ranges(nums)
-        if edition == "chimera":
-            color_cmds.append("color %s,a,r %s:%s.%s" % (col, model, spec, ch))
-        else:
-            color_cmds.append("color %s/%s:%s %s target ac" % (model, ch, spec, col))
-    if singles:
-        by_chain: Dict[str, List[int]] = {}
-        for ch, num in singles:
-            by_chain.setdefault(ch, []).append(num)
-        for ch, nums in by_chain.items():
+    for col, rids in color_groups.items():
+        for spec in specs_by_chain(rids, ins, model):
             if edition == "chimera":
-                color_cmds.append("display %s:%s.%s" % (model, _ranges(nums), ch))
-                color_cmds.append("represent stick %s:%s.%s" % (model, _ranges(nums), ch))
+                m, _, rest = spec.partition("/")
+                ch, _, nums = rest.partition(":")
+                color_cmds.append("color %s,a,r %s:%s.%s" % (col, m, nums, ch))
             else:
-                color_cmds.append("show %s/%s:%s atoms" % (model, ch, _ranges(nums)))
-                color_cmds.append("style %s/%s:%s stick" % (model, ch, _ranges(nums)))
+                color_cmds.append("color %s %s target ac" % (spec, col))
+    for spec in specs_by_chain(singles, ins, model):
+        if edition == "chimera":
+            m, _, rest = spec.partition("/")
+            ch, _, nums = rest.partition(":")
+            color_cmds.append("display %s:%s.%s" % (m, nums, ch))
+            color_cmds.append("represent stick %s:%s.%s" % (m, nums, ch))
+        else:
+            color_cmds.append("show %s atoms" % spec)
+            color_cmds.append("style %s stick" % spec)
     cmds = color_cmds + cmds
     summary = {"mapped": mapped, "unmapped": unmapped, "reference_mismatch": mismatched, "labeled": labeled,
-               "chains": sorted({ch for (_c, ch) in color_groups}), "model": model,
+               "chains": sorted({r.chain for rids in color_groups.values() for r in rids}), "model": model,
                "mapping_note": mapping.get("note", ""), "annotations": listing[:40]}
+    if statuses:
+        summary["status"] = statuses
     return cmds, summary

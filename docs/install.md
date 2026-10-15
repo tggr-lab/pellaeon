@@ -86,9 +86,11 @@ With a local Ollama server, model requests are processed on your computer. Fetch
 
 The free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished work, use a local model through Ollama, or check the provider's data-handling terms before you paste a key: [Mistral](https://mistral.ai/terms), [Google](https://ai.google.dev/gemini-api/terms).
 
+This website counts page visits with [GoatCounter](https://www.goatcounter.com/), which sets no cookies and keeps no profile of visitors. The Pellaeon program does not contact it.
+
 ## Reporting a problem
 
-The **?** button in the panel has *Report a problem…*: it opens a new [GitHub issue](https://github.com/tggr-lab/pellaeon/issues) in your browser, prefilled with the Pellaeon and ChimeraX versions, the provider and model, and the last two turns of the chat with the commands that ran and their errors. Paths and web addresses are replaced; keys from Settings are not part of the report. Read the text on GitHub before you post it, since the chat itself may contain things you typed. *Copy report* puts the same text on the clipboard for an email, and *Copy chat* copies the whole conversation.
+The **?** button in the panel has *Report a problem…*: it copies a report to the clipboard and opens a new [GitHub issue](https://github.com/tggr-lab/pellaeon/issues), empty, in your browser. The report has the Pellaeon and ChimeraX versions, the provider and model, and the last two turns of the chat with the commands that ran and their errors. Paths and web addresses are replaced; keys from Settings are not part of the report. Nothing is in the address of the page: paste the report, read it, and post it only if you are happy with it, since the chat itself may contain things you typed. *Copy report* puts the same text on the clipboard for an email, and *Copy chat* copies the whole conversation.
 
 ## Updating
 

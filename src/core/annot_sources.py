@@ -246,9 +246,9 @@ def consurf_msa_depth(text: str) -> int:
 def _parse_consurf_grades(text: str, chain: str) -> List[List[str]]:
     """ConSurf grades table -> rows in the structure's own numbering.
 
-    The ATOM column ("MET:1:A") holds the author residue number; the leading POS column is the
-    alignment index and is not what the structure uses. Positions with no ATOM record are skipped:
-    they cannot be coloured.
+    The ATOM column ("MET:1:A", "GLY:184A:E") holds the author residue number with its insertion code;
+    the leading POS column is the alignment index and is not what the structure uses. Positions with
+    no ATOM record are skipped: they cannot be coloured.
     """
     rows: List[List[str]] = []
     seen = set()
@@ -256,14 +256,14 @@ def _parse_consurf_grades(text: str, chain: str) -> List[List[str]]:
         m = _GRADE_RE.match(line)
         if not m:
             continue
-        num = re.match(r"-?\d+", m.group(4))
+        num = re.match(r"(-?\d+)([A-Za-z]?)$", m.group(4))
         if not num:
             continue
-        pos = int(num.group(0))
+        pos = "%d%s" % (int(num.group(1)), num.group(2).upper())
         if pos in seen:
             continue
         seen.add(pos)
         insufficient = bool(m.group(8))   # ConSurf marks a grade with * when too few sequences cover the position
-        rows.append([str(pos), chain, _AA3_TO_1.get(m.group(3), ""), "0" if insufficient else m.group(7), m.group(6),
+        rows.append([pos, chain, _AA3_TO_1.get(m.group(3), ""), "0" if insufficient else m.group(7), m.group(6),
                      "1" if insufficient else "0"])
     return rows

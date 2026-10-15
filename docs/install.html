@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Installation - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=7951b716">
-<meta name="description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first.">
-<meta property="og:title" content="Installation - Pellaeon"><meta property="og:description" content="Pellaeon: talk to UCSF ChimeraX (and classic Chimera) in plain English. Local or cloud AI, every command shown, risky ones ask first."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/hero_poster.png"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/install.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<title>Installation - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=f7f78c10">
+<meta name="description" content="Install Pellaeon, an AI assistant plugin for UCSF ChimeraX. Connect Ollama or a cloud model and learn what data leaves your computer."><link rel="canonical" href="https://tggr-lab.github.io/pellaeon/install.html">
+<meta property="og:title" content="Installation - Pellaeon"><meta property="og:description" content="Install Pellaeon, an AI assistant plugin for UCSF ChimeraX. Connect Ollama or a cloud model and learn what data leaves your computer."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/gui/hero_poster.jpg"><meta property="og:image:width" content="1920"><meta property="og:image:height" content="1080"><meta property="og:image:alt" content="A request typed into Pellaeon above the erythrocruorin assembly, its globin surfaces see-through and its hemes white"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/install.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
 <body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link active" href="install.html">Install</a><a class="link" href="tutorial.html">Tutorial</a><a class="link" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
 <script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
 <script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
@@ -149,8 +149,9 @@ release before it reaches the Toolshed.</p>
 <h2 id="privacy">Privacy</h2>
 <p>With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection, the commands you ran by hand in ChimeraX since your previous request (with their output) and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings.</p>
 <p>The free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished work, use a local model through Ollama, or check the provider's data-handling terms before you paste a key: <a href="https://mistral.ai/terms">Mistral</a>, <a href="https://ai.google.dev/gemini-api/terms">Google</a>.</p>
+<p>This website counts page visits with <a href="https://www.goatcounter.com/">GoatCounter</a>, which sets no cookies and keeps no profile of visitors. The Pellaeon program does not contact it.</p>
 <h2 id="reporting-a-problem">Reporting a problem</h2>
-<p>The <strong>?</strong> button in the panel has <em>Report a problem…</em>: it opens a new <a href="https://github.com/tggr-lab/pellaeon/issues">GitHub issue</a> in your browser, prefilled with the Pellaeon and ChimeraX versions, the provider and model, and the last two turns of the chat with the commands that ran and their errors. Paths and web addresses are replaced; keys from Settings are not part of the report. Read the text on GitHub before you post it, since the chat itself may contain things you typed. <em>Copy report</em> puts the same text on the clipboard for an email, and <em>Copy chat</em> copies the whole conversation.</p>
+<p>The <strong>?</strong> button in the panel has <em>Report a problem…</em>: it copies a report to the clipboard and opens a new <a href="https://github.com/tggr-lab/pellaeon/issues">GitHub issue</a>, empty, in your browser. The report has the Pellaeon and ChimeraX versions, the provider and model, and the last two turns of the chat with the commands that ran and their errors. Paths and web addresses are replaced; keys from Settings are not part of the report. Nothing is in the address of the page: paste the report, read it, and post it only if you are happy with it, since the chat itself may contain things you typed. <em>Copy report</em> puts the same text on the clipboard for an email, and <em>Copy chat</em> copies the whole conversation.</p>
 <h2 id="updating">Updating</h2>
 <p>ChimeraX edition: ChimeraX notes available bundle updates in <strong>Tools ▸ More Tools…</strong>; <code>toolshed update ChimeraX-Pellaeon</code> on the command line does the same thing. If you installed from GitHub, run that install line again and it fetches the newest release. Classic edition: unzip the new zip over the old folder; your settings and chats live elsewhere and are kept.</p>
 <h2 id="where-things-are-stored">Where things are stored</h2>
@@ -180,12 +181,13 @@ release before it reaches the Toolshed.</p>
 </table></div>
 <p>Chats are saved there as JSON, and <code>learned.json</code> holds the command corrections Pellaeon learns (Settings ▸ <em>Remember command fixes</em>; <em>view</em> lists them). Delete the folder to start clean.</p></article></div></main>
 <script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
-<footer><div class="in">Pellaeon v0.2.12 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<footer><div class="in">Pellaeon v0.2.13 · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
 <script>
 (function(){
   document.querySelectorAll(".demo-panel").forEach(function(panel){
-    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl"),
-        img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl");
+    if (!btn || !ctl) return;
+    var img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
     btn.dataset.playing = "0";
     function toggle(){
       var playing = btn.dataset.playing !== "1";
@@ -210,6 +212,8 @@ release before it reaches the Toolshed.</p>
       if (!show) {
         var b = p.querySelector(".demo-play");
         if (b && b.dataset.playing === "1") b.click();
+        var v = p.querySelector("video");
+        if (v && !v.paused) v.pause();
       }
       p.hidden = !show;
     });

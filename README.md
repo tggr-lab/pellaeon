@@ -54,7 +54,13 @@ Membrane proteins get OPM's orientation on request, receptors their GPCRdb struc
 - [Install guide](https://tggr-lab.github.io/pellaeon/install.html) (providers, privacy, where things are stored)
 - [Pellaeon and ChimeraX's mcp command](https://tggr-lab.github.io/pellaeon/mcp.html): how they differ, and the `pellaeon tool ...` commands that work from either
 - [Classic edition](classic/README.md) for UCSF Chimera 1.x
-- Problems: the **?** button in the panel opens a prefilled [GitHub issue](https://github.com/tggr-lab/pellaeon/issues) with the versions, the model and the last turns of the chat (paths removed) for you to review and post; **Copy chat** gives the whole conversation as text
+- Problems: the **?** button in the panel copies a report (versions, model, the last turns of the chat, paths removed) and opens an empty [GitHub issue](https://github.com/tggr-lab/pellaeon/issues) for you to paste, review and post; **Copy chat** gives the whole conversation as text
+
+## Citing
+
+The repository has a [CITATION.cff](CITATION.cff), so GitHub shows **Cite this repository** with the reference. Each release is archived on Zenodo.
+
+Pellaeon is developed at the Translational Genetics and Genomics Research Laboratory (TGGR), Tel Aviv Sourasky Medical Center.
 
 ## Development
 

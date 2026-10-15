@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use Pellaeon, please cite it as below."
+type: software
+title: Pellaeon
+authors:
+  - given-names: Yam
+    family-names: Amir
+    orcid: "https://orcid.org/0000-0002-4900-6345"
+    affiliation: "Translational Genetics and Genomics Research Laboratory (TGGR), Tel Aviv Sourasky Medical Center; Gray Faculty of Medical and Health Sciences, Tel Aviv University"
+version: 0.2.13
+date-released: "2026-10-15"
+license: MIT
+repository-code: "https://github.com/tggr-lab/pellaeon"
+url: "https://tggr-lab.github.io/pellaeon/"
+abstract: "Pellaeon is an AI assistant inside UCSF ChimeraX that turns plain-English requests into ChimeraX commands and structure analyses, using local or cloud language models."
+keywords:
+  - ChimeraX
+  - structural biology
+  - molecular visualization
+  - LLM
+  - AI assistant
+  - protein structure

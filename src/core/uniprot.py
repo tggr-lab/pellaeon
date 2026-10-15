@@ -237,8 +237,8 @@ class UniProtClient:
             return {"error": "UniProt request failed: %s" % last_err}
         return {"error": "No UniProt entry found for '%s' (%s). Try another name or organism." % (query, organism)}
 
-    def features(self, accession: str, kinds: Optional[List[str]] = None) -> Dict[str, Any]:
-        acc = accession.strip().upper()
+    def _entry(self, acc: str) -> Dict[str, Any]:
+        """The UniProt entry (cached), or {'error': ...}."""
         key = "features_%s" % acc
         entry = self._cached(key)
         if entry is None:
@@ -248,6 +248,18 @@ class UniProtClient:
             except Exception as e:
                 return {"error": "UniProt request failed: %s" % e}
             self._store(key, entry)
+        return entry
+
+    def sequence(self, accession: str) -> str:
+        """The canonical sequence of an entry ('' when it cannot be fetched)."""
+        entry = self._entry(accession.strip().upper())
+        return str(((entry.get("sequence") or {}) if isinstance(entry, dict) else {}).get("value") or "")
+
+    def features(self, accession: str, kinds: Optional[List[str]] = None) -> Dict[str, Any]:
+        acc = accession.strip().upper()
+        entry = self._entry(acc)
+        if "error" in entry and "features" not in entry:
+            return entry
         wanted = set(k.lower() for k in (kinds or FEATURE_KINDS_DEFAULT))
         feats = []
         for f in entry.get("features", []):

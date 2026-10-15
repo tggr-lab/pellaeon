@@ -8,6 +8,9 @@ import io
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from .resid import (ResId, STATUS_STRUCTURE, STATUS_UNRESOLVED, entry_targets, insertion_numbers, parse_number,
+                    specs_by_chain, target_id)
+
 AA1 = {"ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C", "GLN": "Q", "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I",
        "LEU": "L", "LYS": "K", "MET": "M", "PHE": "F", "PRO": "P", "SER": "S", "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V"}
 AA3 = {v: k for k, v in AA1.items()}
@@ -88,11 +91,15 @@ def guess_columns(columns: List[str], rows: List[List[str]]) -> Dict[str, Any]:
             kinds.append("empty")
         elif all(_is_number(v) for v in vals):
             kinds.append("int" if all(re.fullmatch(r"[-+]?\d+", v) for v in vals) else "float")
+        elif all(re.fullmatch(r"-?\d+[A-Za-z]?", v) for v in vals):
+            kinds.append("resnum")   # residue numbers, some with an insertion code (82, 82A, 82B)
         else:
             kinds.append("text")
     names = [_norm(c) for c in columns]
     pick = lambda cands, allowed: next((i for i, nm in enumerate(names) if nm in cands and kinds[i] in allowed), None)
-    pos = pick(_POS_NAMES, ("int",))
+    pos = pick(_POS_NAMES, ("int", "resnum"))
+    if pos is None:
+        pos = next((i for i, k in enumerate(kinds) if k == "resnum"), None)
     if pos is None:
         pos = next((i for i, k in enumerate(kinds) if k == "int"), None)   # first integer column
     chain = pick(_CHAIN_NAMES, ("text", "int"))
@@ -111,14 +118,15 @@ def guess_columns(columns: List[str], rows: List[List[str]]) -> Dict[str, Any]:
 
 
 def table_rows(table: Dict[str, Any], guess: Dict[str, Any], value_col: int, chain_col: Optional[int] = None) -> List[Dict[str, Any]]:
-    """Normalized rows: position (int), value (float or str), chain (str or None), ref (1-letter or None)."""
+    """Normalized rows: position (int), icode (insertion code or ''), value (float or str), chain (str or None),
+    ref (1-letter or None)."""
     out = []
     pos_i, ref_i = guess["position"], guess.get("reference")
     for r in table["rows"]:
-        try:
-            pos = int(float(r[pos_i]))
-        except (ValueError, TypeError, IndexError):
+        num = parse_number(r[pos_i]) if pos_i is not None and pos_i < len(r) else None
+        if num is None:
             continue
+        pos, icode = num
         raw = r[value_col] if value_col < len(r) else ""
         if raw == "":
             continue
@@ -128,42 +136,123 @@ def table_rows(table: Dict[str, Any], guess: Dict[str, Any], value_col: int, cha
             v = r[ref_i].upper()
             ref = AA1.get(v, v if len(v) == 1 else None)
         chain = r[chain_col].strip() if chain_col is not None and chain_col < len(r) and r[chain_col] else None
-        out.append({"position": pos, "value": val, "chain": chain, "ref": ref})
+        out.append({"position": pos, "icode": icode, "value": val, "chain": chain, "ref": ref})
     return out
 
 
-def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str], model: str, attr: str,
+# More reference residues differing than this, among the placed rows that name one, means the numbering
+# does not correspond (an off-by-one or another chain): nothing is placed. Engineered mutations in a
+# structure stay well below it; a shifted or wrong chain is far above it.
+MISMATCH_LIMIT = 0.2
+MISMATCH_MIN_CHECKED = 5
+
+
+def _residue_index(residues: Dict[Any, str], model: str) -> Dict[ResId, str]:
+    """{ResId: resname} from list_residues keys ('A:82A', '#1.2/A:10') or older (chain, number) tuples."""
+    out: Dict[ResId, str] = {}
+    for k, v in residues.items():
+        rid = ResId.parse(k, model)
+        if rid is not None:
+            out[rid if rid.model else rid._replace(model=model)] = v
+    return out
+
+
+def _unresolved(model: str, reason: str, text: str, **extra: Any) -> Dict[str, Any]:
+    return dict({"error": text, "mapping": STATUS_UNRESOLVED, "reason": reason, "model": model}, **extra)
+
+
+def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Any, str], model: str, attr: str,
                  chains: Optional[List[str]] = None, palette: str = "blue-white-red",
-                 numbering_map: Optional[Dict[int, Dict[str, Any]]] = None, edition: str = "chimerax") -> Dict[str, Any]:
+                 numbering_map: Optional[Dict[int, Any]] = None, edition: str = "chimerax",
+                 chain_groups: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """rows -> per-residue assignments and the commands that color them.
-    residues: {(chain_id, number): resname} of the target model (what exists).
-    numbering_map: optional {table_position: {"chain","number","resname"}} from a UniProt mapping; when absent the
-    table positions are structure residue numbers applied to `chains` (or the row's own chain column, or every chain)."""
-    all_chains = sorted({c for c, _ in residues})
-    assign: Dict[Tuple[str, int], Any] = {}
-    missing: List[int] = []
+
+    residues: what exists, keyed 'A:82A' or '#1.2/A:10' (older (chain, number) tuples are read too).
+    numbering_map: {table_position: [target, ...]} from a UniProt mapping, each target with chain, number, icode,
+    status and basis (one dict per position in older mappings). Without it the positions are the structure's own
+    residue numbers, placed on `chains` when given, else on the chain the row names, else on every chain when the
+    chains are one molecule (chain_groups: chain -> molecule key).
+
+    Nothing is placed, and the result says why (mapping 'unresolved'), when a chain asked for or named by the rows
+    is not in the model, when rows without a chain meet chains of several molecules, or when the reference residues
+    of the placed rows disagree with the structure too often for the numbering to correspond.
+    """
+    index = _residue_index(residues, model)
+    models = sorted({r.model for r in index})
+    all_chains = sorted({r.chain for r in index})
+    by_number: Dict[Tuple[str, int, str], List[ResId]] = {}
+    for r in index:
+        by_number.setdefault((r.chain, r.number, r.icode), []).append(r)
+    asked = [c for c in (chains or []) if c]
+    if asked and not any(c in all_chains for c in asked):
+        return _unresolved(model, "chain_missing", "Chain %s is not in %s (chains: %s). Nothing was placed." % (
+            ", ".join(asked), model, ", ".join(all_chains)), missing_chains=asked, chains_available=all_chains)
+    groups = chain_groups or {}
+    if numbering_map is None and not asked and any(not row.get("chain") for row in rows):
+        kinds = sorted({groups.get(c, c) for c in all_chains}) if groups else []
+        if len(kinds) > 1:
+            return _unresolved(model, "several_proteins",
+                               "The table names no chain and %s has chains of %d different molecules (%s). "
+                               "Nothing was placed." % (model, len(kinds), "; ".join(
+                                   ",".join(c for c in all_chains if groups.get(c, c) == k) for k in kinds)),
+                               chains_available=all_chains)
+    assign: Dict[ResId, Any] = {}
+    status: Dict[ResId, str] = {}
+    missing: List[str] = []
     mismatches: List[str] = []
+    absent_chains: List[str] = []
+    rows_unresolved = 0
+    checked = 0
     for row in rows:
-        targets: List[Tuple[str, int]] = []
+        pos, icode = row["position"], (row.get("icode") or "")
+        label: Any = pos if not icode else "%d%s" % (pos, icode)
+        targets: List[Tuple[ResId, str]] = []
         if numbering_map is not None:
-            m = numbering_map.get(row["position"])
-            if m and (m["chain"], int(m["number"])) in residues:
-                targets = [(m["chain"], int(m["number"]))]
+            entry = numbering_map.get(pos, numbering_map.get(str(pos)))
+            for t in entry_targets(entry, model):
+                rid = target_id(t, model)
+                if t.get("status") == STATUS_UNRESOLVED or (asked and rid.chain not in asked):
+                    continue
+                if rid in index:
+                    targets.append((rid, t.get("status") or "offset"))
         else:
-            # a chain letter the model lacks (ConSurf grades for 8XOR chain R placed on a one-chain model whose
-            # chain is A) falls back to the only chain, or to every chain
-            wanted = [c for c in (chains or []) if c in all_chains] or all_chains   # an asked-for chain the model lacks: every chain
-            cs = [row["chain"]] if row.get("chain") and row["chain"] in all_chains else wanted
-            targets = [(c, row["position"]) for c in cs if (c, row["position"]) in residues]
+            if asked:
+                cs = [c for c in asked if c in all_chains]
+            elif row.get("chain"):
+                if row["chain"] not in all_chains:
+                    rows_unresolved += 1
+                    if row["chain"] not in absent_chains:
+                        absent_chains.append(row["chain"])
+                    continue
+                cs = [row["chain"]]
+            else:
+                cs = all_chains
+            for c in cs:
+                for rid in by_number.get((c, pos, icode), []):
+                    targets.append((rid, STATUS_STRUCTURE))
         if not targets:
-            missing.append(row["position"])
+            missing.append(label)
             continue
-        for key in targets:
-            resname = residues.get(key, "")
-            if row.get("ref") and AA1.get(resname.upper()) and AA1[resname.upper()] != row["ref"]:
-                mismatches.append("%s:%d is %s, table says %s" % (key[0], key[1], AA1[resname.upper()], row["ref"]))
-                continue
-            assign[key] = row["value"]
+        for rid, st in targets:
+            resname = index.get(rid, "")
+            one = AA1.get(resname.upper())
+            if row.get("ref") and one:
+                checked += 1
+                if one != row["ref"]:
+                    mismatches.append("%s is %s, table says %s" % (rid.short(), one, row["ref"]))
+                    continue
+            assign[rid] = row["value"]
+            status[rid] = st
+    single = len(models) <= 1
+    keyname = (lambda r: r.short()) if single else (lambda r: r.spec())
+    if absent_chains and not assign:
+        return _unresolved(model, "chain_missing", "The table's chain %s is not in %s (chains: %s). Nothing was placed." % (
+            ", ".join(absent_chains), model, ", ".join(all_chains)), missing_chains=absent_chains, chains_available=all_chains)
+    if checked >= MISMATCH_MIN_CHECKED and len(mismatches) > MISMATCH_LIMIT * checked:
+        return _unresolved(model, "reference_mismatch",
+                           "%d of %d reference residues in the table differ from %s, so the table's numbering does not "
+                           "correspond to this structure. Nothing was placed." % (len(mismatches), checked, model),
+                           mismatches=mismatches[:20], n_mismatches=len(mismatches), chains_available=all_chains)
     numeric = all(isinstance(v, float) for v in assign.values()) and bool(assign)
     cmds: List[str] = []
     legend = ""
@@ -212,18 +301,24 @@ def plan_overlay(rows: List[Dict[str, Any]], residues: Dict[Tuple[str, int], str
         cats = sorted({str(v) for v in assign.values()})
         colors = {c: CATEGORY_COLORS[i % len(CATEGORY_COLORS)] for i, c in enumerate(cats)}
         cmds.append("color %s lightgray target ac" % model)
+        ins = insertion_numbers(index)
         for c in cats:
-            by_chain: Dict[str, List[int]] = {}
-            for (cid, num), v in assign.items():
-                if str(v) == c:
-                    by_chain.setdefault(cid, []).append(num)
-            spec = " ".join("%s/%s:%s" % (model, cid, ",".join(str(n) for n in sorted(nums))) for cid, nums in sorted(by_chain.items()))
+            spec = " ".join(specs_by_chain([r for r, v in assign.items() if str(v) == c], ins, model))
             cmds.append("color %s %s target ac" % (spec, colors[c]))
         legend = "; ".join("%s = %s" % (c, colors[c]) for c in cats)
-    return {"assignments": {"%s:%d" % k: v for k, v in assign.items()}, "numeric": numeric, "commands": cmds, "legend": legend,
-            "mapped": len(assign), "missing": missing[:200], "n_missing": len(missing),
-            "mismatches": mismatches[:50], "n_mismatches": len(mismatches),
-            "chains": sorted({k[0] for k in assign}), "attr": attr}
+    counts: Dict[str, int] = {}
+    for st in status.values():
+        counts[st] = counts.get(st, 0) + 1
+    out = {"assignments": {keyname(k): v for k, v in assign.items()}, "numeric": numeric, "commands": cmds, "legend": legend,
+           "mapped": len(assign), "missing": missing[:200], "n_missing": len(missing),
+           "mismatches": mismatches[:50], "n_mismatches": len(mismatches),
+           "chains": sorted({k.chain for k in assign}), "attr": attr, "status": counts}
+    if absent_chains:
+        out["missing_chains"] = absent_chains
+        out["rows_unresolved"] = rows_unresolved
+    if not single:
+        out["models"] = sorted({k.model for k in assign})
+    return out
 
 
 def attr_name(dataset: str, column: str) -> str:

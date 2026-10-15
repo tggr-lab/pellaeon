@@ -667,6 +667,9 @@ class ChimeraXExecutor:
     def protein_features(self, accession: str, kinds: Optional[List[str]] = None) -> Dict[str, Any]:
         return self.uniprot.features(accession, kinds)
 
+    def protein_sequence(self, accession: str) -> str:
+        return self.uniprot.sequence(accession)
+
     def find_structures(self, accession: str, method: str = "", ligand: str = "", limit: int = 10) -> Dict[str, Any]:
         if not hasattr(self, "_beacons"):
             from .core.beacons import BeaconsClient
@@ -720,13 +723,17 @@ class ChimeraXExecutor:
         cache_dir = os.path.join(pellaeon_dir("cache"), "checkpoints")
         _run_on_main_thread(self.session, lambda: _checkpoint(self.session, request_text, cache_dir))
 
-    def pending_undo(self) -> Dict[str, Any]:
+    def pending_undo(self, direct: bool = False) -> Dict[str, Any]:
         from .analysis import pending_undo
-        return _run_on_main_thread(self.session, lambda: pending_undo(self.session))
+        return _run_on_main_thread(self.session, lambda: pending_undo(self.session, direct))
 
-    def undo_last_request(self) -> Dict[str, Any]:
+    def undo_last_request(self, direct: bool = False) -> Dict[str, Any]:
         from .analysis import undo_last_request
-        return _run_on_main_thread(self.session, lambda: undo_last_request(self.session))
+        return _run_on_main_thread(self.session, lambda: undo_last_request(self.session, direct))
+
+    def key_palette_stops(self, colors: List[str]) -> Dict[str, Any]:
+        from .analysis import key_palette_stops
+        return _run_on_main_thread(self.session, lambda: key_palette_stops(self.session, colors))
 
     def label_layout(self) -> Dict[str, Any]:
         from .analysis import label_layout
@@ -739,6 +746,21 @@ class ChimeraXExecutor:
     def visible_snapshot(self) -> Dict[str, Any]:
         from .analysis import visible_snapshot
         return _run_on_main_thread(self.session, lambda: visible_snapshot(self.session))
+
+    def key_text_metrics(self, labels: List[str], font_size: int, font: str = "Arial", bold: bool = False,
+                         italic: bool = False, command: str = "") -> Dict[str, Any]:
+        """Key label sizes (analysis.key_text_metrics); {} for a `command` ChimeraX would refuse."""
+        from .analysis import key_text_metrics
+
+        def measure():
+            if command and parse_error(self.session, command):
+                return {}
+            return key_text_metrics(self.session, labels, font_size, font, bold, italic)
+        return _run_on_main_thread(self.session, measure)
+
+    def key_status(self) -> Dict[str, Any]:
+        from .analysis import key_status
+        return _run_on_main_thread(self.session, lambda: key_status(self.session))
 
     def selection_snapshot(self) -> Dict[str, Any]:
         from .analysis import selection_snapshot
@@ -763,6 +785,10 @@ class ChimeraXExecutor:
     def spec_residue_keys(self, spec: str):
         from .analysis import spec_residue_keys
         return _run_on_main_thread(self.session, lambda: spec_residue_keys(self.session, spec))
+
+    def same_targets(self, specs: List[str], spec: str) -> Optional[bool]:
+        from .analysis import same_targets
+        return _run_on_main_thread(self.session, lambda: same_targets(self.session, specs, spec))
 
     def residues_named(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         from .analysis import residues_named
@@ -800,9 +826,10 @@ class ChimeraXExecutor:
         from .mutation import mutation_effect_spec
         return _run_on_main_thread(self.session, lambda: mutation_effect_spec(self.session, model, variant, residue, to, chain))
 
-    def map_positions(self, model: str, accession: str, positions: List[int]) -> Dict[str, Any]:
+    def map_positions(self, model: str, accession: str, positions: List[int], chain: Optional[str] = None,
+                      sequence: Optional[str] = None) -> Dict[str, Any]:
         from .analysis import map_positions
-        return _run_on_main_thread(self.session, lambda: map_positions(self.session, model, accession, positions))
+        return _run_on_main_thread(self.session, lambda: map_positions(self.session, model, accession, positions, chain, sequence))
 
     def chain_uniprot(self, model: str) -> Dict[str, Any]:
         from .analysis import chain_uniprot

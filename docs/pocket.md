@@ -1,6 +1,8 @@
 # A ligand in its pocket
 
-HIV-1 protease with the inhibitor indinavir (PDB 1HSG), in four requests.
+HIV-1 protease with the inhibitor indinavir (PDB 1HSG), in four requests, recorded in ChimeraX with the Pellaeon panel.
+
+<!--VIDEO gui/short_pocket | The four requests in one video (78 s). | A ligand in its pocket, 78 seconds-->
 
 ### 1. Open the structure
 
@@ -8,37 +10,35 @@ HIV-1 protease with the inhibitor indinavir (PDB 1HSG), in four requests.
 
 ```
 open 1hsg
-show #1:MK1 atoms; style #1:MK1 stick; color #1:MK1 orange
+show :MK1 atoms; style :MK1 stick; color :MK1 orange
 ```
 
 MK1 is the residue name of indinavir in this entry.
 
-![Indinavir as orange sticks in the middle of the protease dimer](img/tut/pocket/01_open.png)
+<!--STEP short_pocket_open | Indinavir as orange sticks in the middle of the protease dimer, and the reply | Indinavir in the protease.-->
 
 ### 2. The pocket as a surface
 
 > show the binding pocket: a white surface of the residues within 5 Å of indinavir, 70% transparent
 
 ```
-surface (#1:MK1 :<5) & protein color white transparency 70
+surface (protein & (:MK1 :<5)) color white transparency 70
 ```
 
 `:<5` selects the residues with any atom within 5 Å of the ligand.
 
-![Transparent surface of the pocket residues around the inhibitor](img/tut/pocket/02_pocket.png)
+<!--STEP short_pocket_pocket | A transparent white surface over the residues around the inhibitor | The pocket surface.-->
 
 ### 3. Hydrogen bonds
 
 > show the hydrogen bonds between indinavir and the protein, and label the residues it binds
 
 ```
-hbonds #1:MK1 restrict protein reveal true select true
-select sel & protein; label sel
+hbonds :MK1 restrict protein reveal true select true
+label (sel & protein) residues
 ```
 
-Nine hydrogen bonds to five residues: Arg 8, Asp 25 of both chains, Gly 27 and Asp 29. The catalytic aspartates (Asp 25) bind the inhibitor's central hydroxyl.
-
-![Hydrogen bonds drawn as dashes, with the bonded residues labelled](img/tut/pocket/03_hbonds.png)
+<!--STEP short_pocket_hbonds | Hydrogen bonds as dashes, the bonded residues labelled | Hydrogen bonds and the residues they reach.-->
 
 ### 4. A close-up
 
@@ -46,12 +46,10 @@ Nine hydrogen bonds to five residues: Arg 8, Asp 25 of both chains, Gly 27 and A
 
 ```
 hide #1 target c
-cartoon (#1:MK1 :<5) & protein
-view #1:MK1
+cartoon (#1 & protein & (:MK1 :<5))
+view (#1 & (:MK1 :<5))
 ```
 
-![Indinavir, its pocket surface and the hydrogen bonds](img/tut/pocket/04_closeup.png)
-
-![The same view, rotating](img/tut/pocket/04_closeup_spin.gif)
+<!--STEP short_pocket_closeup | Close-up of indinavir in its pocket with the surface and hydrogen bonds | The close-up.-->
 
 **Save figure** writes the image, the session and the commands to a folder ([tutorial, step 5b](tutorial.md#step-5b-save-a-figure-you-can-reproduce)).

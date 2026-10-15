@@ -1,6 +1,8 @@
 # Electrostatics and hydrophobicity
 
-The p53 core domain bound to DNA (PDB 1TSR), in four requests.
+The p53 core domain bound to DNA (PDB 1TSR), in four requests, recorded in ChimeraX with the Pellaeon panel.
+
+<!--VIDEO gui/short_surfaces | The four requests in one video (66 s). | Electrostatics and hydrophobicity, 66 seconds-->
 
 ### 1. Open the structure
 
@@ -8,49 +10,46 @@ The p53 core domain bound to DNA (PDB 1TSR), in four requests.
 
 ```
 open 1tsr
-hide #1 target acs; cartoon #1/B,E,F
+hide #1 target acs; cartoon #1/B; cartoon #1/E-F
 ```
 
 The entry has three copies of the domain (chains A, B, C); chain B is the one on the DNA (chains E and F).
 
-![The p53 core domain as a cartoon on the DNA double helix](img/tut/surfaces/01_open.png)
+<!--STEP short_surfaces_open | The p53 core domain as a cartoon on the DNA double helix | Chain B on the DNA.-->
 
 ### 2. Electrostatic potential
 
 > show the protein as a surface colored by electrostatic potential
 
 ```
-cartoon hide #1/B
 coulombic #1/B
 ```
 
-Red is negative, white neutral, blue positive. ChimeraX warns that Ser 96 lacks an atom, so the potential near it is approximate.
+Red is negative, white neutral, blue positive.
 
-![The domain as a surface coloured red to blue by Coulombic potential](img/tut/surfaces/02_coulombic.png)
+<!--STEP short_surfaces_coulombic | The domain as a surface colored red to blue by Coulombic potential | Coulombic potential.-->
 
 ### 3. Hydrophobicity
 
 > color the surface by hydrophobicity instead
 
 ```
-mlp #1/B surfaces #1.3
+mlp #1/B
 ```
 
-Molecular lipophilic potential on the same surface: hydrophobic patches orange, polar ones teal.
+Molecular lipophilic potential on the same surface: hydrophobic patches gold, polar ones teal.
 
-![The same surface coloured teal to orange by hydrophobicity](img/tut/surfaces/03_hydrophobic.png)
+<!--STEP short_surfaces_hydrophobic | The same surface colored teal to gold by hydrophobicity | Hydrophobicity.-->
 
 ### 4. Which face binds the DNA
 
 > back to electrostatics, and make the DNA gray so the positive face it binds stands out
 
 ```
-coulombic #1/B surfaces #1.3
-color #1/E,F gray
+coulombic #1/B
+color #1/E-F gray target c
 ```
 
 The positively charged face of the domain lies against the phosphate backbone.
 
-![Electrostatic surface with the DNA in gray against its positive face](img/tut/surfaces/04_dna.png)
-
-![The same view, rotating](img/tut/surfaces/04_dna_spin.gif)
+<!--STEP short_surfaces_dna | Electrostatic surface with the DNA in gray against its positive face | The positive face on the DNA.-->

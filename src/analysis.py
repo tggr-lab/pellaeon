@@ -115,28 +115,42 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
         d = float(np.linalg.norm(x.scene_coord - y.scene_coord))
         oth_r.pellaeon_disp = d
         disps.append(d)
-        rows.append((oth_r.chain_id, int(oth_r.number), oth_r.name, d, ref_r.chain_id, int(ref_r.number)))
+        rows.append((oth_r, d, ref_r))
     if not rows:
         return {"error": "Paired residues have no CA atoms."}
     arr = np.array(disps)
-    top = sorted(rows, key=lambda r: -r[3])[:12]
+    top = sorted(rows, key=lambda r: -r[1])[:12]
+    # moving segments run along the chain's own residue order, so 82, 82A, 82B, 83 are consecutive
+    order = {}
+    for r, _d, _ref in rows:
+        if r.chain is not None and r.chain not in order:
+            order[r.chain] = {res: i for i, res in enumerate(r.chain.residues) if res is not None}
+    def seq_pos(r):
+        return order.get(r.chain, {}).get(r, int(r.number))
     regions = []
     cur = None
-    for cid, num, name, d, rcid, rnum in sorted(rows, key=lambda r: (r[0], r[1])):
+    for r, d, _ref in sorted(rows, key=lambda x: (x[0].chain_id, seq_pos(x[0]))):
         if d > 2.0:
-            if cur and cur[0] == cid and num == cur[2] + 1:
-                cur[2] = num
+            if cur and cur[0] == r.chain_id and seq_pos(r) == cur[4] + 1:
+                cur[2] = r
                 cur[3] = max(cur[3], d)
+                cur[4] = seq_pos(r)
             else:
                 if cur:
                     regions.append(cur)
-                cur = [cid, num, num, d]
+                cur = [r.chain_id, r, r, d, seq_pos(r)]
         else:
             if cur:
                 regions.append(cur)
                 cur = None
     if cur:
         regions.append(cur)
+
+    def num(r):
+        return int(r.number) if not r.insertion_code else _res_key(r, False).split(":", 1)[1]
+
+    def span(a, b):
+        return _res_key(a, False).split(":", 1)[1] + ("" if a is b else "-" + _res_key(b, False).split(":", 1)[1])
     total_other = sum(1 for r in b.residues if (not prep.get("chain") or r.chain_id == prep["chain"]) and r.find_atom("CA") is not None)
     color_cmds = ["color byattribute r:pellaeon_disp %s palette 0,#bdbdbd:1,gold:3,orange:6,#b2182b range 0,6 target ac novalue #d9c6f0" % prep["other_spec"],
                   "color %s #b8c4d6 target ac" % prep["ref_spec"], "transparency %s 60 target c" % prep["ref_spec"],
@@ -154,62 +168,225 @@ def compute_displacement(session, prep: Dict[str, Any], matchmaker_returns=None)
         "rms_displacement": round(float((arr ** 2).mean() ** 0.5), 2), "not_compared": int(total_other - len(rows)),
         "ref_spec": prep["ref_spec"], "other_spec": prep["other_spec"],
         "residues_over_2A": int((arr > 2.0).sum()),
-        "top_shifted": [{"chain": c, "residue": n, "name": nm, "displacement": round(d, 2), "reference_residue": "%s:%d" % (rc, rn)}
-                        for c, n, nm, d, rc, rn in top],
-        "moving_regions": [{"chain": r[0], "range": "%d-%d" % (r[1], r[2]), "max": round(r[3], 2),
-                            "spec": "#%s/%s:%d-%d" % (prep["other_id"], r[0], r[1], r[2])} for r in regions[:15]],
+        "top_shifted": [{"chain": r.chain_id, "residue": num(r), "name": r.name, "displacement": round(d, 2),
+                         "spec": _res_key(r, True), "reference_residue": _res_key(ref, False)}
+                        for r, d, ref in top],
+        "moving_regions": [{"chain": g[0], "range": span(g[1], g[2]), "max": round(g[3], 2),
+                            "spec": "#%s/%s:%s" % (prep["other_id"], g[0], span(g[1], g[2]))} for g in regions[:15]],
         "coloring": "%s shown alone, colored by C-alpha displacement after the fit (gray < 1 A, gold, orange, dark red 6 A or more; lavender = not compared); reference %s hidden, can be shown as a pale ghost" % (prep["other_spec"], prep["ref_spec"]),
         "color_commands": color_cmds,
     }
 
 
-def map_positions(session, model: str, accession: str, positions: List[int]) -> Dict[str, Any]:
-    """Read-only: map UniProt positions of `accession` onto residues of `model`, chain by chain,
-    using the mmCIF/PDB struct_ref mapping (numbering offsets) when the file has it."""
-    m = _find_structure(session, model)
-    if m is None:
-        return {"error": _no_structure(session, model)}
-    acc = (accession or "").upper()
-    targets: List[Tuple[str, int, Tuple[int, int]]] = []   # (chain_id, offset, (db_start, db_end))
-    note = ""
+def _find_structures(session, spec: str):
+    """The structures a model spec names and the chains it names: '#1' (with an ensemble's members when #1
+    groups them), '#1.2', '#1/A', '#1/A,C', a model name. -> (structures, chain ids or None)."""
+    from chimerax.atomic import AtomicStructure
+    text = (spec or "").strip()
+    chains = None
+    m = re.match(r"^(.*?)\s*/\s*([A-Za-z0-9]+(?:\s*,\s*[A-Za-z0-9]+)*)\s*$", text)
+    if m and not re.search(r"[:@]", text):
+        text, chains = m.group(1).strip(), [c.strip() for c in m.group(2).split(",")]
+    st = _find_structure(session, text)
+    if st is not None:
+        return [st], chains
+    ident = re.match(r"^#?(\d+(?:\.\d+)*)$", text)
+    if ident:
+        members = [x for x in session.models.list() if isinstance(x, AtomicStructure)
+                   and x.id_string.startswith(ident.group(1) + ".")]
+        return sorted(members, key=lambda x: x.id), chains
+    return [], chains
+
+
+class _Seq:
+    """The two methods NeedlemanWunsch.nw asks of a sequence, for a plain string."""
+
+    def __init__(self, characters: str):
+        self.characters = characters
+
+    def __len__(self):
+        return len(self.characters)
+
+    def ss_type(self, i):
+        return None
+
+
+def _align_chain(session, chain, sequence: str):
+    """Chain sequence (SEQRES where the file has it) aligned to `sequence` with Needleman-Wunsch and
+    BLOSUM-62, as matchmaker does. -> ([(chain index, sequence index)], identity over aligned pairs)."""
+    from chimerax.alignment_algs import NeedlemanWunsch
+    from chimerax import sim_matrices
+    matrix = sim_matrices.matrix("BLOSUM-62", session.logger)
+    score, pairs = NeedlemanWunsch.nw(chain, _Seq(sequence), score_gap=-1, score_gap_open=-10,
+                                      similarity_matrix=matrix, ss_fraction=None)
+    chars = chain.characters
+    same = sum(1 for i, j in pairs if chars[i] == sequence[j])
+    return sorted(pairs), (same / float(len(pairs)) if pairs else 0.0)
+
+
+# A file's UniProt reference whose offset puts fewer matching residues than this on the current UniProt
+# sequence is out of date (the entry's sequence was renumbered), and the chain is aligned instead.
+REFERENCE_AGREEMENT = 0.8
+
+
+def _one_letter(name: str) -> str:
+    from chimerax.atomic import Sequence
     try:
-        from chimerax.atomic import uniprot_ids
-        entries = uniprot_ids(m)
-    except Exception:
-        entries = []
-    for e in entries:
-        if (getattr(e, "uniprot_id", "") or "").upper() == acc and e.database_sequence_range and e.chain_sequence_range:
-            targets.append((e.chain_id, e.chain_sequence_range[0] - e.database_sequence_range[0], tuple(e.database_sequence_range)))
-    if not targets:
-        if "alphafold" in m.name.lower() or acc in m.name.upper() or len(m.chains) == 1:
-            targets = [(c.chain_id, 0, (1, 10 ** 6)) for c in m.chains]
-            note = "" if ("alphafold" in m.name.lower() or acc in m.name.upper()) else \
-                "The structure file does not say which UniProt entry its chain is; positions were applied 1:1 to the single chain."
-        elif entries:
-            return {"error": "Model %s has UniProt mappings for %s but not for %s." % (
-                model, ", ".join(sorted({getattr(e, "uniprot_id", "?") for e in entries})), acc)}
-        else:
-            return {"error": "Model %s has several chains and no UniProt mapping; say which chain corresponds to %s." % (model, acc)}
-    by_chain = {}
-    for c in m.chains:
-        by_chain[c.chain_id] = {int(r.number): r for r in c.existing_residues}
-    out_map: Dict[int, Dict[str, Any]] = {}
-    for pos in positions:
-        for cid, offset, (dstart, dend) in targets:
-            if not (dstart <= pos <= dend):
+        c = Sequence.rname3to1(name)
+    except Exception:  # noqa: BLE001
+        return ""
+    return c if c and c != "X" else ""
+
+
+
+
+def map_positions(session, model: str, accession: str, positions: List[int], chain: Optional[str] = None,
+                  sequence: Optional[str] = None) -> Dict[str, Any]:
+    """Read-only: map UniProt positions of `accession` onto residues of `model`, every chain that is that protein.
+
+    Each position maps to a list of targets {model, chain, number, icode, resname, status, basis}. The status says
+    how: 'exact' or 'offset' from the file's UniProt reference (struct_ref) when its numbering is a constant
+    offset, 'alignment' when the chain was aligned to `sequence` (the UniProt sequence): the reference spans a
+    numbering with gaps or insertion codes, or the file has no reference for this accession. Without `sequence`
+    those chains are left out and the result says needs_sequence. Chains the file assigns to another UniProt
+    entry are not targets unless named (`chain`, or a chain in the model spec)."""
+    from chimerax.atomic import Residue
+    from .core.resid import ALIGN_IDENTITY, ALIGN_IDENTITY_CHOSEN
+    structs, spec_chains = _find_structures(session, model)
+    if not structs:
+        return {"error": _no_structure(session, model)}
+    named = [chain] if chain else spec_chains
+    acc = (accession or "").upper()
+    want = sorted({int(p) for p in positions})
+    out_map: Dict[int, List[Dict[str, Any]]] = {}
+    chain_status: List[Dict[str, Any]] = []
+    candidates: List[Dict[str, Any]] = []
+    needs_sequence = False
+    others: List[str] = []
+    ins_numbers: Dict[str, List[int]] = {}
+    seen_align: Dict[Tuple[str, str], Any] = {}
+
+    def add(pos, st, r, status, basis):
+        out_map.setdefault(pos, []).append({"model": "#" + st.id_string, "chain": r.chain_id, "number": int(r.number),
+                                            "icode": (r.insertion_code or "").upper(), "resname": r.name,
+                                            "status": status, "basis": basis})
+
+    for st in structs:
+        try:
+            from chimerax.atomic import uniprot_ids
+            entries = uniprot_ids(st)
+        except Exception:  # noqa: BLE001
+            entries = []
+        af_named = "alphafold" in (st.name or "").lower() and acc and acc in (st.name or "").upper()
+        for c in st.chains:
+            if named and c.chain_id not in named:
                 continue
-            r = by_chain.get(cid, {}).get(pos + offset)
-            if r is not None and pos not in out_map:
-                out_map[pos] = {"chain": cid, "number": int(r.number), "resname": r.name}
-    return {"model": "#" + m.id_string, "map": out_map, "chains": sorted({t[0] for t in targets}),
-            "offsets": {t[0]: t[1] for t in targets}, "unmapped": [p for p in positions if p not in out_map], "note": note}
+            if not named and c.polymer_type != Residue.PT_AMINO:
+                continue
+            existing = [r for r in c.residues if r is not None]
+            icodes = sorted({int(r.number) for r in existing if r.insertion_code})
+            if icodes:
+                ins_numbers["#%s/%s" % (st.id_string, c.chain_id)] = icodes
+            segs = [e for e in entries if e.chain_id == c.chain_id and (getattr(e, "uniprot_id", "") or "").upper() == acc
+                    and e.database_sequence_range and e.chain_sequence_range]
+            other = sorted({(getattr(e, "uniprot_id", "") or "?") for e in entries if e.chain_id == c.chain_id
+                            and (getattr(e, "uniprot_id", "") or "").upper() != acc})
+            by_num = {(int(r.number), (r.insertion_code or "")): r for r in existing}
+            label = "#%s/%s" % (st.id_string, c.chain_id)
+            constant = []
+            agree = total = 0
+            for e in segs:
+                (ds, de), (cs, ce) = e.database_sequence_range, e.chain_sequence_range
+                gapless = (ce - cs) == (de - ds) and not any(cs <= int(r.number) <= ce and r.insertion_code for r in existing)
+                constant.append(gapless)
+                if gapless and sequence:   # does the file's reference still match the UniProt sequence?
+                    for r in existing:
+                        p = int(r.number) - (cs - ds)
+                        if cs <= int(r.number) <= ce and 1 <= p <= len(sequence) and _one_letter(r.name):
+                            total += 1
+                            agree += _one_letter(r.name) == sequence[p - 1]
+            stale = bool(total) and agree < REFERENCE_AGREEMENT * total
+            if segs and all(constant) and not stale:
+                offs = []
+                for e in segs:
+                    (ds, de), (cs, ce) = e.database_sequence_range, e.chain_sequence_range
+                    off = cs - ds
+                    offs.append(off)
+                    basis = "UniProt %d-%d = %s %d-%d in the file" % (ds, de, c.chain_id, cs, ce)
+                    for pos in want:
+                        if ds <= pos <= de:
+                            r = by_num.get((pos + off, ""))
+                            if r is not None:
+                                add(pos, st, r, "exact" if off == 0 else "offset", basis)
+                chain_status.append({"chain": label, "status": "exact" if set(offs) == {0} else "offset",
+                                     "offset": offs[0] if len(set(offs)) == 1 else None})
+                continue
+            if not segs and af_named and not other:
+                for pos in want:
+                    r = by_num.get((pos, ""))
+                    if r is not None:
+                        add(pos, st, r, "exact", "AlphaFold model of %s (UniProt numbering)" % acc)
+                chain_status.append({"chain": label, "status": "exact"})
+                continue
+            if not segs and other and not named:
+                others.extend(o for o in other if o not in others)
+                continue   # the file says this chain is another protein
+            if not sequence:
+                needs_sequence = True
+                chain_status.append({"chain": label, "status": "unresolved", "reason": "needs_sequence"})
+                continue
+            key = (c.characters, sequence)
+            if key not in seen_align:
+                seen_align[key] = _align_chain(session, c, sequence)
+            pairs, ident = seen_align[key]
+            limit = ALIGN_IDENTITY_CHOSEN if named else ALIGN_IDENTITY
+            if not pairs or ident < limit:
+                candidates.append({"chain": label, "identity": round(100 * ident, 1), "aligned": len(pairs)})
+                continue
+            basis = "chain aligned to UniProt %s, %d%% identity over %d residues" % (acc, round(100 * ident), len(pairs))
+            if segs and stale:
+                basis += " (the file's UniProt reference does not match the current UniProt sequence)"
+            elif segs:
+                basis += " (the file's reference spans a numbering with gaps or insertion codes)"
+            wanted = set(want)
+            for i, j in pairs:
+                r = c.residues[i]
+                if r is not None and (j + 1) in wanted:
+                    add(j + 1, st, r, "alignment", basis)
+            chain_status.append({"chain": label, "status": "alignment", "identity": round(100 * ident, 1)})
+    mapped_chains = sorted({t["chain"] for ts in out_map.values() for t in ts})
+    offsets = {}
+    for cs in chain_status:
+        if cs.get("offset") is not None:
+            offsets[cs["chain"].split("/")[-1]] = cs["offset"]
+    spec_model = "#" + structs[0].id_string if len(structs) == 1 else "#" + structs[0].id_string.rsplit(".", 1)[0]
+    out = {"model": spec_model, "accession": acc, "map": out_map, "chains": mapped_chains, "offsets": offsets,
+           "unmapped": [p for p in want if p not in out_map], "note": "", "chain_status": chain_status,
+           "insertion_numbers": ins_numbers}
+    if needs_sequence:
+        out["needs_sequence"] = True
+    if candidates:
+        out["candidates"] = candidates
+    matched = any(x.get("status") in ("exact", "offset", "alignment") for x in chain_status)
+    if not matched and not needs_sequence:
+        have = sorted({"#%s/%s" % (st.id_string, c.chain_id) for st in structs for c in st.chains})
+        if candidates:
+            why = "no chain of %s is UniProt %s: %s" % (model, acc, "; ".join(
+                "%s %s%% identical" % (x["chain"], x["identity"]) for x in candidates))
+        elif others:
+            why = "%s has UniProt references for %s but not for %s" % (model, ", ".join(others), acc)
+        else:
+            why = "no chain of %s could be matched to UniProt %s" % (model, acc)
+        out.update(error="Model %s: %s." % (model, why), unresolved=True, chains_available=have)
+    return out
 
 
 def chain_uniprot(session, model: str) -> Dict[str, Any]:
     """Read-only: the UniProt accessions the structure file associates with `model`'s chains."""
-    m = _find_structure(session, model)
-    if m is None:
+    found, _chains = _find_structures(session, model)
+    if not found:
         return {"error": _no_structure(session, model), "accessions": []}
+    m = found[0]
     accs: List[str] = []
     try:
         from chimerax.atomic import uniprot_ids
@@ -319,8 +496,8 @@ def residue_provenance(session, res_spec: str, journal: List[Dict[str, Any]], wi
         return {"error": "No residue matches '%s'." % res_spec}
     r = res[0]
     m = r.structure
-    out: Dict[str, Any] = {"residue": "%s %d" % (r.name, int(r.number)), "chain": r.chain_id, "model": "#" + m.id_string,
-                           "model_name": m.name, "spec": "#%s/%s:%d" % (m.id_string, r.chain_id, int(r.number))}
+    out: Dict[str, Any] = {"residue": "%s %s" % (r.name, _res_key(r, False).split(":", 1)[1]), "chain": r.chain_id,
+                           "model": "#" + m.id_string, "model_name": m.name, "spec": _res_key(r, True)}
     def hexc(c):
         return "#%02x%02x%02x" % tuple(int(v) for v in c[:3])
     out["ribbon_color"] = hexc(r.ribbon_color) if r.ribbon_display else None
@@ -449,7 +626,8 @@ def residue_colors(session) -> List[List[Any]]:
                 for a in shown:
                     h = "#%02x%02x%02x" % tuple(int(c) for c in a.color[:3]); counts[h] = counts.get(h, 0) + 1
                 atom = max(counts.items(), key=lambda kv: kv[1])[0]
-            rows.append(["#" + m.id_string, r.chain_id, int(r.number), r.name, rib, atom])
+            num = int(r.number) if not r.insertion_code else _res_key(r, False).split(":", 1)[1]   # 82, 82A
+            rows.append(["#" + m.id_string, r.chain_id, num, r.name, rib, atom])
     return rows
 
 
@@ -463,26 +641,51 @@ def count_residues(session, spec: str) -> int:
         return 0
 
 
+def _res_key(r, with_model: bool) -> str:
+    """'A:82A', or '#1.2/A:82A' when several structures are involved (core/resid.py spells it the same way)."""
+    num = "%d%s" % (int(r.number), (r.insertion_code or "").upper())
+    return ("#%s/%s:%s" % (r.structure.id_string, r.chain_id, num)) if with_model else ("%s:%s" % (r.chain_id, num))
+
+
 def list_residues(session, model: str) -> Dict[str, Any]:
-    """Read-only: {'model': '#1', 'residues': {'A:10': 'ALA', ...}} for polymer residues with a CA atom."""
-    m = _find_structure(session, model)
-    if m is None:
+    """Read-only: {'model': '#1', 'residues': {'A:10': 'ALA', 'B:82A': 'SER', ...}} for polymer residues with a CA
+    atom; an ensemble ('#1' grouping #1.1-#1.10) keys them '#1.1/A:10'. chain_groups: chain id -> what molecule it
+    is (its UniProt entry from the file, else its sequence), so chains of one protein can be told from others."""
+    structs, _chains = _find_structures(session, model)
+    if not structs:
         return {"error": _no_structure(session, model)}
+    several = len(structs) > 1
     out = {}
-    for r in m.residues:
-        if r.polymer_type != 0 or r.find_atom("CA") is not None:
-            out["%s:%d" % (r.chain_id, int(r.number))] = r.name
-    return {"model": "#" + m.id_string, "residues": out}
+    groups: Dict[str, str] = {}
+    for m in structs:
+        for r in m.residues:
+            if r.polymer_type != 0 or r.find_atom("CA") is not None:
+                out[_res_key(r, several)] = r.name
+    try:
+        from chimerax.atomic import uniprot_ids
+        refs: Dict[str, List[str]] = {}
+        for e in uniprot_ids(structs[0]):
+            refs.setdefault(e.chain_id, []).append((getattr(e, "uniprot_id", "") or "").upper())
+    except Exception:  # noqa: BLE001
+        refs = {}
+    for c in structs[0].chains:
+        groups[c.chain_id] = ("uniprot:" + ",".join(sorted(set(refs[c.chain_id])))) if refs.get(c.chain_id) else ("sequence:" + c.characters)
+    spec_model = "#" + structs[0].id_string if not several else "#" + structs[0].id_string.rsplit(".", 1)[0]
+    res = {"model": spec_model, "residues": out, "chain_groups": groups}
+    if several:
+        res["models"] = ["#" + m.id_string for m in structs]
+    return res
 
 
 def set_residue_attr(session, model: str, attr: str, values: Dict[str, Any]) -> Dict[str, Any]:
-    """Store per-residue numbers as a registered residue attribute (so `color byattribute r:<attr>` and `key` can use it)."""
+    """Store per-residue numbers as a registered residue attribute (so `color byattribute r:<attr>` and `key` can use it).
+    values: {'A:82A': 1.5} for one structure, {'#1.2/A:10': 0.3} for the members of an ensemble."""
     import re as _re
     from chimerax.atomic import Residue
     if not _re.match(r"^[A-Za-z_][A-Za-z0-9_]{0,60}$", attr or ""):
         return {"error": "Bad attribute name %r" % attr}
-    m = _find_structure(session, model)
-    if m is None:
+    structs, _chains = _find_structures(session, model)
+    if not structs:
         return {"error": _no_structure(session, model)}
     warning = None
     try:
@@ -490,10 +693,14 @@ def set_residue_attr(session, model: str, attr: str, values: Dict[str, Any]) -> 
     except Exception as e:  # an earlier registration with another type: values still color, tests like ::attr>3 will not
         warning = "attribute %s could not be registered as a number (%s); 'select ::%s>value' will not work, coloring will" % (attr, e, attr)
         session.logger.warning("Pellaeon: " + warning)
-    by_key = {"%s:%d" % (r.chain_id, int(r.number)): r for r in m.residues}
+    from .core.resid import ResId
+    by_key = {("#" + m.id_string, r.chain_id, int(r.number), (r.insertion_code or "").upper()): r
+              for m in structs for r in m.residues}
+    only = "#" + structs[0].id_string if len(structs) == 1 else ""
     n = 0
     for k, v in values.items():
-        r = by_key.get(k)
+        rid = ResId.parse(k, only)
+        r = by_key.get(tuple(rid)) if rid is not None else None
         if r is not None:
             try:
                 setattr(r, attr, float(v)); n += 1
@@ -526,8 +733,9 @@ class AskMouseMode:
                     res = atom.residue
                 if res is None:
                     return
-                on_pick({"spec": "#%s/%s:%d" % (res.structure.id_string, res.chain_id, res.number),
-                         "name": res.name, "number": int(res.number), "chain": res.chain_id,
+                on_pick({"spec": "#%s/%s" % (res.structure.id_string, _res_key(res, False)),
+                         "name": res.name, "number": int(res.number), "insertion_code": (res.insertion_code or "").upper(),
+                         "chain": res.chain_id,
                          "model": res.structure.name, "atom": atom.name if atom is not None else ""})
         return _Mode(session)
 
@@ -1255,6 +1463,42 @@ def _open_model_ids(session) -> List[str]:
     return sorted(m.id_string for m in session.models.list() if m.id)
 
 
+def key_palette_stops(session, colors: List[str]) -> Dict[str, Any]:
+    """The ChimeraX palette whose colours are exactly `colors`, in that order, when it has numeric stops of its own
+    (alphafold: 0 50 70 90 100). The 0-1 palettes of the colour-brewer family have no stops worth printing."""
+    try:
+        import numpy as np
+        from chimerax.core.colors import BuiltinColormaps, BuiltinColors
+    except Exception:  # noqa: BLE001
+        return {}
+    want = []
+    for name in colors:
+        name = name.strip().strip("\"'").lower()
+        if name.startswith("#") and len(name) in (7, 9):
+            try:
+                want.append([int(name[i:i + 2], 16) / 255.0 for i in (1, 3, 5)])
+                continue
+            except ValueError:
+                return {}
+        col = BuiltinColors.get(name)
+        if col is None:
+            return {}
+        want.append([float(x) for x in col.rgba[:3]])
+    for pname, cmap in BuiltinColormaps.items():
+        vals = getattr(cmap, "data_values", None)
+        if vals is None or len(vals) != len(want) or float(np.max(vals)) <= 1.0:
+            continue
+        have = np.asarray(cmap.colors, dtype=float)[:, :3]
+        if np.allclose(have, np.asarray(want, dtype=float), atol=0.01):
+            return {"palette": pname, "values": [float(v) for v in vals]}
+    return {}
+
+
+def _top_level(ids: List[str]) -> List[str]:
+    """Model ids as a user counts them: #1, not its submodels #1.1 and #1.2."""
+    return [i for i in ids if "." not in i]
+
+
 def _atom_count(session) -> int:
     try:
         from chimerax.atomic import all_atomic_structures
@@ -1337,18 +1581,20 @@ def mark_checkpoint_dirty(session) -> None:
         cps[-1]["any_activity"] = True
 
 
-def _undo_target(session):
-    """The checkpoint to restore to (the one recorded before the last real request), or None
-    when there is nothing earlier than the checkpoint just recorded for THIS request."""
+def _undo_target(session, direct: bool = False):
+    """The checkpoint to restore to. When the model asks for the undo, that ask is itself a request with a
+    checkpoint of its own on top, so the target is the one below it. The Undo button makes no request:
+    the last checkpoint is the state before the last real request. None when there is nothing to restore."""
     cps = _checkpoints(session)
-    if len(cps) < 2:
+    need = 1 if direct else 2
+    if len(cps) < need:
         return None, cps
-    return cps[-2], cps
+    return cps[-need], cps
 
 
-def pending_undo(session) -> Dict[str, Any]:
+def pending_undo(session, direct: bool = False) -> Dict[str, Any]:
     """What undo_last_request would do, without doing it: used to word the confirmation card."""
-    target, _cps = _undo_target(session)
+    target, _cps = _undo_target(session, direct)
     if target is None:
         return {"error": "There is no earlier request to undo yet."}
     if target["only_opens"] and target["new_model_ids"]:
@@ -1360,11 +1606,11 @@ def pending_undo(session) -> Dict[str, Any]:
     return {"request": target["request"], "kind": "session"}
 
 
-def undo_last_request(session) -> Dict[str, Any]:
+def undo_last_request(session, direct: bool = False) -> Dict[str, Any]:
     """Restore ChimeraX to how it was immediately before the last request ran. `run` is imported lazily
     at each use (not at the top) so the no-op/error branches below stay callable without ChimeraX, for
     plain-Python testing of the fast-path-vs-full-restore decision."""
-    target, cps = _undo_target(session)
+    target, cps = _undo_target(session, direct)
     if target is None:
         return {"error": "There is no earlier request to undo yet."}
     models_before = _open_model_ids(session)
@@ -1372,7 +1618,7 @@ def undo_last_request(session) -> Dict[str, Any]:
 
     if target["only_opens"] and target["new_model_ids"]:
         ids = sorted(set(target["new_model_ids"]) & open_now)
-        cps.pop()
+        cps.pop()  # direct: the target is the last entry, so it is spent; otherwise the undo request's own entry
         if not ids:
             return {"error": "The model(s) that request opened are already closed; nothing to undo.",
                     "request": target["request"]}
@@ -1382,11 +1628,11 @@ def undo_last_request(session) -> Dict[str, Any]:
         return {"restored": "models", "request": target["request"], "models_before": models_before,
                 "models_after": models_after,
                 "summary": "Undid the last request (\"%s\"): closed the model(s) it opened (%s). Models now open: %s."
-                           % (target["request"], ", ".join("#" + i for i in ids), ", ".join("#" + i for i in models_after) or "none")}
+                           % (target["request"], ", ".join("#" + i for i in ids), ", ".join("#" + i for i in _top_level(models_after)) or "none")}
 
     if target.get("capped"):
         ids = sorted(set(target["new_model_ids"]) & open_now)
-        cps.pop()
+        cps.pop()  # direct: the target is the last entry, so it is spent; otherwise the undo request's own entry
         if ids:
             from chimerax.core.commands import run
             run(session, "close " + " ".join("#" + i for i in ids), log=False)
@@ -1403,18 +1649,18 @@ def undo_last_request(session) -> Dict[str, Any]:
 
     path = target.get("cxs_path")
     if not path or not os.path.exists(path):
-        cps.pop()
+        cps.pop()  # direct: the target is the last entry, so it is spent; otherwise the undo request's own entry
         return {"error": "The saved checkpoint for that request is missing (%s), so it cannot be restored."
                          % (target.get("save_error") or "file not found"), "request": target["request"]}
     from chimerax.core.commands import run
     run(session, "close", log=False)
     run(session, "open %s" % _quote_path(path), log=False)
-    cps.pop()
+    cps.pop()  # direct: the target is the last entry, so it is spent; otherwise the undo request's own entry
     models_after = _open_model_ids(session)
     return {"restored": "session", "request": target["request"], "models_before": models_before,
             "models_after": models_after,
             "summary": "Undid the last request (\"%s\"): restored the session to how it was before it ran. "
-                       "Models now open: %s." % (target["request"], ", ".join("#" + i for i in models_after) or "none")}
+                       "Models now open: %s." % (target["request"], ", ".join("#" + i for i in _top_level(models_after)) or "none")}
 
 
 # ---------------------------------------------------------------- state helpers for the guards (2026-10-01)
@@ -1524,14 +1770,43 @@ def spec_residue_keys(session, spec: str) -> Optional[List[Tuple[str, str, int, 
     return sorted({(r.structure.id_string, r.chain_id, int(r.number), r.insertion_code or "") for r in res})
 
 
+def same_targets(session, specs: List[str], spec: str) -> Optional[bool]:
+    """Do the specs together match exactly what `spec` matches: the same atoms and the same models (a grouping
+    model without content of its own aside)? None when a spec cannot be read."""
+    import numpy as np
+    from chimerax.core.commands import atomspec
+
+    def objects(text):
+        parsed, used, rest = atomspec.AtomSpecArg.parse(text, session)
+        if not used or not used.strip() or (rest or "").strip():
+            raise ValueError(text)
+        return parsed.evaluate(session)
+    try:
+        parts = [objects(x) for x in specs]
+        whole = objects(spec)
+    except Exception:  # noqa: BLE001
+        return None
+
+    def content(models):
+        return {m for m in models if type(m).__name__ != "Model"}
+    atoms_a = np.unique(np.concatenate([np.asarray(p.atoms.pointers) for p in parts])) if parts else np.array([])
+    atoms_b = np.unique(np.asarray(whole.atoms.pointers))
+    models_a = set().union(*[content(p.models) for p in parts]) if parts else set()
+    return bool(np.array_equal(atoms_a, atoms_b)) and models_a == content(whole.models)
+
+
 def visible_snapshot(session) -> Dict[str, Any]:
     """What is on screen, compact enough to compare before and after a batch (core.effects.describe does the
-    comparison): per structure the displayed atom and cartoon counts and digests of their colours (displayed
-    and all), styles, positions and coordinates; per surface its visibility, style, colours and transparency;
-    other models by a digest of their display state; the selection size; the camera."""
+    comparison). Every model carries its own display flag and its effective visibility (itself and every parent
+    displayed). Per structure: which atoms and cartoon residues are displayed (count and identity), digests of
+    their colours (displayed and all), styles and radii, position, coordinates, and its residue labels (text,
+    colour, size). Per surface: visibility, style, colours, transparency. 2D labels: text, colour, size,
+    position. Pseudobonds: which are displayed, colours, radii. Volumes: levels, colours, style. Other models:
+    colour, geometry size, mask and position. Also which atoms are selected and the camera (position and field
+    of view)."""
     import hashlib
     import numpy as np
-    from chimerax.atomic import AtomicStructure, selected_atoms
+    from chimerax.atomic import Structure, PseudobondGroup
 
     def dg(arr) -> str:
         try:
@@ -1540,42 +1815,156 @@ def visible_snapshot(session) -> Dict[str, Any]:
         except Exception:  # noqa: BLE001
             return str(arr)
 
+    def dgs(items) -> str:
+        return hashlib.blake2b(repr(items).encode(), digest_size=8).hexdigest() + ":" + str(len(items))
+
     models: Dict[str, Any] = {}
+    sel_parts = []
+    nsel = 0
     for m in session.models.list():
         name = m.__class__.__name__
-        e: Dict[str, Any] = {"display": bool(m.display)}
+        parent = getattr(m, "parent", None)
+        if name == "ObjectLabels" and isinstance(parent, Structure):
+            continue                         # reported with its structure
+        e: Dict[str, Any] = {"display": bool(m.display), "visible": bool(getattr(m, "visible", m.display))}
         try:
-            if isinstance(m, AtomicStructure):
+            if isinstance(m, Structure):
                 atoms, res = m.atoms, m.residues
-                shown = atoms.displays
+                shown = atoms.visibles
                 rib = res.ribbon_displays
-                e.update(kind="structure", atoms_shown=int(shown.sum()), atom_colors=dg(atoms.colors),
+                sel = atoms.selected
+                if sel.any():
+                    nsel += int(sel.sum())
+                    sel_parts.append(m.id_string + ":" + dg(sel))
+                e.update(kind="structure", atoms_shown=int(shown.sum()), atoms_shown_id=dg(shown), atom_colors=dg(atoms.colors),
                          atom_colors_shown=dg(atoms.colors[shown]), atom_styles=dg(atoms.draw_modes[shown]),
-                         ribbons_shown=int(rib.sum()), ribbon_colors=dg(res.ribbon_colors),
+                         atom_radii_shown=dg(np.round(atoms.radii[shown], 2)),
+                         ribbons_shown=int(rib.sum()), ribbons_shown_id=dg(rib), ribbon_colors=dg(res.ribbon_colors),
                          ribbon_colors_shown=dg(res.ribbon_colors[rib]),
                          position=dg(np.round(m.position.matrix, 3)), coords=dg(np.round(atoms.coords, 3)))
-                labels = [c for c in m.all_models() if "Label" in c.__class__.__name__ and c.display]
+                labels = []
+                subs = m.all_models()
+                for c in subs:
+                    if c.__class__.__name__ == "ObjectLabels" and c.display:
+                        for lab in c.labels():
+                            if getattr(lab, "visible", True):
+                                labels.append((getattr(lab.object, "cpp_pointer", 0), lab.text, tuple(lab.color), lab.size, lab.height))
                 e["labels"] = len(labels)
+                e["labels_id"] = dgs(sorted(labels))
                 e["surface_shown"] = any(c.__class__.__name__ == "MolecularSurface" and c.display and
-                                         (getattr(c, "triangle_mask", None) is None or int(c.triangle_mask.sum()) > 0) for c in m.all_models())
+                                         (getattr(c, "triangle_mask", None) is None or int(c.triangle_mask.sum()) > 0) for c in subs)
             elif name == "MolecularSurface":
                 mask = getattr(m, "triangle_mask", None)
                 vis = bool(m.display) and (mask is None or int(mask.sum()) > 0)
                 vc = getattr(m, "vertex_colors", None)
-                e.update(kind="surface", visible=vis, style=str(getattr(m, "display_style", "")),
+                e.update(kind="surface", visible=vis and e["visible"], style=str(getattr(m, "display_style", "")),
                          colors=dg(vc) if vc is not None else dg(np.array(m.color)),
-                         transparency=int(m.color[3]) if vc is None else int(np.asarray(vc)[:, 3].min()))
+                         transparency=int(m.color[3]) if vc is None else int(np.asarray(vc)[:, 3].min()),
+                         mask=dg(mask) if mask is not None else "")
+            elif name == "LabelModel" and hasattr(m, "label"):
+                lab = m.label
+                e.update(kind="2dlabel", digest=dgs([getattr(lab, k, None) for k in
+                                                     ("text", "color", "background", "size", "xpos", "ypos", "bold", "italic", "font")]))
+            elif isinstance(m, PseudobondGroup):
+                pb = m.pseudobonds
+                shown = pb.displays
+                e.update(kind="pseudobonds", shown=int(shown.sum()), shown_id=dg(shown), colors=dg(pb.colors[shown]),
+                         radii=dg(np.round(pb.radii[shown], 2)), dashes=int(getattr(m, "dashes", 0)))
+            elif hasattr(m, "surfaces") and hasattr(m, "matrix_value_statistics"):      # a volume
+                e.update(kind="volume", digest=dgs([(round(float(s.level), 4), tuple(int(x) for x in s.color), bool(s.display),
+                                                     str(getattr(s, "style", ""))) for s in m.surfaces]
+                                                   + [str(getattr(m, "image_shown", "")), str(m.region)]))
             else:
-                e.update(kind=name, digest=dg(np.array([int(m.display)] + list(np.asarray(getattr(m, "color", (0, 0, 0, 0)))))))
+                vc = getattr(m, "vertex_colors", None)
+                va = getattr(m, "vertices", None)
+                ta = getattr(m, "triangles", None)
+                mask = getattr(m, "triangle_mask", None)
+                e.update(kind=name, digest=dgs([list(np.asarray(getattr(m, "color", (0, 0, 0, 0))).tolist()),
+                                                dg(vc) if vc is not None else "", 0 if va is None else len(va),
+                                                0 if ta is None else len(ta), dg(mask) if mask is not None else "",
+                                                str(getattr(m, "display_style", "")), dg(np.round(m.position.matrix, 3))]))
         except Exception:  # noqa: BLE001
             e["kind"] = name
+            e["unmeasured"] = True
         models["#" + m.id_string] = e
     try:
-        cam = dg(np.round(session.main_view.camera.position.matrix, 2))
+        cam = session.main_view.camera
+        cam_d = dg(np.round(cam.position.matrix, 2)) + "/" + str(round(float(getattr(cam, "field_of_view", 0) or 0), 2)) + \
+            "/" + str(round(float(getattr(cam, "field_width", 0) or 0), 2))
     except Exception:  # noqa: BLE001
-        cam = ""
+        cam_d = ""
+    return {"v": 2, "models": models, "selection": nsel, "selection_id": dgs(sel_parts), "camera": cam_d}
+
+
+def key_status(session) -> Dict[str, Any]:
+    """The colour key on screen and which of its colours are still on screen: per entry its colour, label and
+    whether a displayed atom, cartoon residue or surface of a displayed model shows that colour (within 24 of 255
+    per channel). {} when no key is shown."""
+    import numpy as np
     try:
-        nsel = len(selected_atoms(session))
+        from chimerax.color_key.model import get_model
+        key = get_model(session, create=False)
     except Exception:  # noqa: BLE001
-        nsel = 0
-    return {"models": models, "selection": nsel, "camera": cam}
+        return {}
+    if key is None or key.deleted or not key.display:
+        return {}
+    from chimerax.atomic import Structure
+    shown = []
+    for m in session.models.list():
+        if not getattr(m, "visible", m.display):
+            continue
+        if isinstance(m, Structure):
+            atoms, res = m.atoms, m.residues
+            vis, rib = atoms.visibles, res.ribbon_displays
+            if vis.any():
+                shown.append(atoms.colors[vis][:, :3])
+            if rib.any():
+                shown.append(res.ribbon_colors[rib][:, :3])
+        elif m.__class__.__name__ == "MolecularSurface":
+            vc = getattr(m, "vertex_colors", None)
+            shown.append(np.asarray(vc)[:, :3] if vc is not None else np.asarray([m.color[:3]]))
+    if shown:
+        # distinct colours, packed into one integer each (a row-wise unique is far slower on large surfaces)
+        packed = np.unique(np.concatenate([(a[:, 0].astype(np.int32) << 16) | (a[:, 1].astype(np.int32) << 8) | a[:, 2]
+                                           for a in shown]))
+        cols = np.stack([(packed >> 16) & 255, (packed >> 8) & 255, packed & 255], axis=1).astype(np.int16)
+    else:
+        cols = np.zeros((0, 3), np.int16)
+    entries = []
+    for rgba, label in key.rgbas_and_labels:
+        c = np.array([int(round(float(x) * 255)) for x in rgba[:3]], np.int16)
+        present = bool(len(cols)) and bool((np.abs(cols - c).max(axis=1) <= 24).any())
+        entries.append({"color": "#%02x%02x%02x" % tuple(int(x) for x in c), "label": str(label or ""), "present": present})
+    title = ""                     # Pellaeon's legend title, which goes with the key: its model spec
+    try:
+        from chimerax.label.label2d import session_labels
+        lm = session_labels(session, create=False)
+        lbl = lm.named_label("pellaeon_title") if lm is not None else None
+        d = getattr(lbl, "drawing", None)
+        if d is not None and not d.deleted:
+            title = "#" + d.id_string
+    except Exception:  # noqa: BLE001
+        pass
+    return {"id": "#" + key.id_string, "entries": entries, "title": title}
+
+
+def key_text_metrics(session, labels: List[str], font_size: int, font: str = "Arial", bold: bool = False,
+                     italic: bool = False) -> Dict[str, Any]:
+    """Label widths and height in pixels as a colour key draws them (the font at font_size times the pixel scale,
+    as color_key does), and the window size in the same pixels. {} without a Qt application: nothing is drawn then,
+    and Qt fonts cannot be used."""
+    try:
+        from Qt.QtGui import QFont, QFontMetrics, QGuiApplication
+        if QGuiApplication.instance() is None:
+            return {}
+        v = session.main_view
+        try:
+            scale = float(v.render.pixel_scale()) if getattr(v, "render", None) is not None else 1.0
+        except Exception:  # noqa: BLE001
+            scale = 1.0
+        w, h = v.window_size
+        fm = QFontMetrics(QFont(font, int(font_size * scale), QFont.Bold if bold else QFont.Normal, italic))
+        return {"widths": [fm.boundingRect(t).width() + 6 if t else 0 for t in labels], "height": fm.ascent(),
+                "window": [w * scale, h * scale]}
+    except Exception:  # noqa: BLE001
+        return {}

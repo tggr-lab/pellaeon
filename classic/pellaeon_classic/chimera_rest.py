@@ -198,7 +198,8 @@ class ChimeraRestExecutor:
     def set_residue_attr(self, model: str, attr: str, values: Dict[str, Any]) -> Dict[str, Any]:
         return {"error": "Table overlays need the ChimeraX edition."}
 
-    def map_positions(self, model: str, accession: str, positions: List[int]) -> Dict[str, Any]:
+    def map_positions(self, model: str, accession: str, positions: List[int], chain: Optional[str] = None,
+                      sequence: Optional[str] = None) -> Dict[str, Any]:
         mid = model.strip() if re.match(r"^#\d+(\.\d+)*$", model.strip()) else "#0"
         chains = []
         try:
