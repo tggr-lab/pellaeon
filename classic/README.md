@@ -43,3 +43,5 @@ These are ChimeraX-edition only:
 - screenshot review (the model looks at the view and fixes framing, clutter and colors)
 
 Tested with Chimera 1.20.
+
+To cite Pellaeon (both editions): Amir, Y. Pellaeon: an AI assistant for UCSF ChimeraX. Zenodo. https://doi.org/10.5281/zenodo.23395411
