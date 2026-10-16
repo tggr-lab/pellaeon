@@ -50,7 +50,7 @@ Membrane proteins get OPM's orientation on request, receptors their GPCRdb struc
 
 ## Learn more
 
-- [Website](https://tggr-lab.github.io/pellaeon/) and [illustrated tutorial](https://tggr-lab.github.io/pellaeon/tutorial.html)
+- [Website](https://tggr-lab.github.io/pellaeon/) and [tutorials](https://tggr-lab.github.io/pellaeon/tutorials.html)
 - [Install guide](https://tggr-lab.github.io/pellaeon/install.html) (providers, privacy, where things are stored)
 - [Pellaeon and ChimeraX's mcp command](https://tggr-lab.github.io/pellaeon/mcp.html): how they differ, and the `pellaeon tool ...` commands that work from either
 - [Classic edition](classic/README.md) for UCSF Chimera 1.x
@@ -58,7 +58,11 @@ Membrane proteins get OPM's orientation on request, receptors their GPCRdb struc
 
 ## Citing
 
-The repository has a [CITATION.cff](CITATION.cff), so GitHub shows **Cite this repository** with the reference. Each release is archived on Zenodo.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23395411.svg)](https://doi.org/10.5281/zenodo.23395411)
+
+Amir, Y. Pellaeon: an AI assistant for UCSF ChimeraX. Zenodo. https://doi.org/10.5281/zenodo.23395411
+
+This DOI covers all versions; each release also has its own DOI on Zenodo. GitHub shows **Cite this repository** from [CITATION.cff](CITATION.cff).
 
 Pellaeon is developed at the Translational Genetics and Genomics Research Laboratory (TGGR), Tel Aviv Sourasky Medical Center.
 

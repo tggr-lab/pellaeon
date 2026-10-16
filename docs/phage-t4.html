@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phage T4, built in ChimeraX - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=c98d7796">
+<meta name="description" content="Bacteriophage T4 from cryo-EM structures in ChimeraX: a film of tail contraction, annotated close-ups, and how to build the virion with Pellaeon."><link rel="canonical" href="https://tggr-lab.github.io/pellaeon/phage-t4.html"><link rel="preload" as="image" href="img/phage/hero_poster.webp" type="image/webp" fetchpriority="high">
+<meta property="og:title" content="Phage T4, built in ChimeraX - Pellaeon"><meta property="og:description" content="Bacteriophage T4 from cryo-EM structures in ChimeraX: a film of tail contraction, annotated close-ups, and how to build the virion with Pellaeon."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/phage/og_phage_t4.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="The phage T4 tail contracting on a simulated outer membrane, rendered in ChimeraX"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/phage-t4.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link active" href="tutorials.html">Tutorials</a><a class="link" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><div class="doc"><nav class="toc"><details open><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#the-film">The film</a></li>
+<li><a href="#close-ups">Close-ups</a></li>
+<li><a href="#what-you-are-looking-at">What you are looking at</a><ul>
+<li><a href="#infection-in-six-steps">Infection in six steps</a></li>
+<li><a href="#schematic-or-not-shown">Schematic or not shown</a></li>
+</ul>
+</li>
+<li><a href="#build-it-with-pellaeon">Build it with Pellaeon</a><ul>
+<li><a href="#tried-on">Tried on</a></li>
+<li><a href="#1-open-the-tail">1. Open the tail</a></li>
+<li><a href="#2-add-the-head-as-instances">2. Add the head as instances</a></li>
+<li><a href="#3-put-the-tail-on-the-head">3. Put the tail on the head</a></li>
+<li><a href="#4-name-the-parts">4. Name the parts</a></li>
+<li><a href="#5-remove-the-duplicate-capsomers">5. Remove the duplicate capsomers</a></li>
+<li><a href="#6-color-by-part">6. Color by part</a></li>
+<li><a href="#7-show-the-whole-virion">7. Show the whole virion</a></li>
+<li><a href="#8-the-baseplate-from-below">8. The baseplate from below</a></li>
+<li><a href="#9-the-neck">9. The neck</a></li>
+<li><a href="#10-the-cell-puncturing-spike">10. The cell-puncturing spike</a></li>
+<li><a href="#11-save-an-image">11. Save an image</a></li>
+<li><a href="#12-back-to-the-virion">12. Back to the virion</a></li>
+<li><a href="#13-add-the-trigger-and-contraction">13. Add the trigger and contraction</a></li>
+<li><a href="#14-play-it">14. Play it</a></li>
+<li><a href="#cost">Cost</a></li>
+<li><a href="#the-membrane">The membrane</a></li>
+</ul>
+</li>
+<li><a href="#credits">Credits</a></li>
+</ul>
+</div>
+</details></nav><article><h1 id="phage-t4-built-in-chimerax">Phage T4, built in ChimeraX</h1><nav class="subnav" aria-label="Tutorials"><a class="tn-all" href="tutorials.html">&larr; All tutorials</a><a href="surfaces.html">Previous: Electrostatics and hydrophobicity</a></nav>
+<p class="ph-lead">Inspired by Tom Goddard's <a href="https://www.rbvi.ucsf.edu/chimerax/data/phage-T4-sep2022/phageT4.html">2022 ChimeraX animation of phage T4 tail contraction</a> (RBVI, UCSF). This version uses T4's own tail, head and baseplate structures released since then. It adds simulated host membranes and close-ups, with a build you can repeat by asking Pellaeon.</p>
+
+<figure class="phage-hero"><video id="phage-loop" muted loop playsinline preload="none" poster="img/phage/hero_poster.webp" width="1280" height="720" aria-label="The T4 sheath contracts from baseplate to neck, driving the tube through a simulated outer membrane. 8 seconds, no sound."><source src="img/phage/hero_loop.webm" type="video/webm; codecs=av01.0.05M.08"><source src="img/phage/hero_loop.mp4" type="video/mp4"></video><figcaption>Tail contraction, slowed down. The real motion takes under a millisecond.</figcaption></figure>
+
+<h2 id="the-film">The film</h2>
+<div class="ph-film"><div class="ph-yt" id="ph-yt" data-id="Hyk6doMOPwk"><button type="button" class="ph-yt-play" aria-label="Play the film (loads YouTube)"><img src="img/phage/film_poster_1200.webp" srcset="img/phage/film_poster_1200.webp 1200w, img/phage/film_poster_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="Phage T4 from the side, with the head on the left" loading="lazy"><span class="ph-yt-btn" aria-hidden="true"></span></button></div><p class="small ph-yt-note">The player loads from youtube-nocookie.com only when you press play. <a href="https://youtu.be/Hyk6doMOPwk">Watch on YouTube</a>.</p><ol class="ph-chapters" aria-label="Chapters"><li><button type="button" class="ph-ch" data-t="0"><span>0:00</span> Bacteriophage T4</button></li><li><button type="button" class="ph-ch" data-t="17"><span>0:17</span> Tail and baseplate</button></li><li><button type="button" class="ph-ch" data-t="30"><span>0:30</span> Baseplate trigger</button></li><li><button type="button" class="ph-ch" data-t="43"><span>0:43</span> Contraction</button></li><li><button type="button" class="ph-ch" data-t="56"><span>0:56</span> Between the membranes</button></li><li><button type="button" class="ph-ch" data-t="67"><span>1:07</span> Structures and credits</button></li></ol></div>
+
+<p>85 seconds, rendered in ChimeraX by a movie script from the same models: 5,094 frames at 3840 × 2160, about 9 hours on one GPU. The proteins use deposited models; the membranes are simulations. See <a href="#schematic-or-not-shown">what is schematic or not shown</a>.</p>
+<h2 id="close-ups">Close-ups</h2>
+<p>Twelve views of the same models. Select a numbered dot to name a part. Drag a slider to compare two states; ⤢ opens a larger view.</p>
+<div class="pg-grid"><figure class="pg-card" id="g-C2b"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C2b_neck_from_below_1200.webp" srcset="img/phage/C2b_neck_from_below_1200.webp 1200w, img/phage/C2b_neck_from_below_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="A peach ring of gp3 with a dark channel in its centre, green gp15 crescents around it, the head lattice behind" loading="lazy"><button class="pg-spot" type="button" style="left:62.1%;top:41.8%" data-label="gp3, tube terminator" data-fact="Six copies cap the top of the tail tube." aria-label="1: gp3, tube terminator">1</button><button class="pg-spot" type="button" style="left:34.0%;top:19.1%" data-label="gp15, tail terminator" data-fact="Six copies form the tail terminator. Its contact with gp14 buries about 27,000 Å²." aria-label="2: gp15, tail terminator">2</button><button class="pg-spot" type="button" style="left:49.5%;top:42.9%" data-label="Portal, gp20" data-fact="Twelve gp20 copies surround a channel about 4 nm wide, enough for one DNA duplex." aria-label="3: Portal, gp20">3</button><button class="pg-spot" type="button" style="left:12.9%;top:30.0%" data-label="Head shell, gp23*" data-fact="The elongated head is about 120 by 86 nm." aria-label="4: Head shell, gp23*">4</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C2b_neck_from_below_2400.webp" aria-label="Open Looking toward the head larger">&#x2922;</button></div><figcaption><b>Looking toward the head</b> Looking from the tail toward the head. Six-fold rings of gp3 and gp15 sit below the twelve-fold portal. <span class="pg-ids">PDB 9MKB, 7VS5</span></figcaption></figure><figure class="pg-card" id="g-C5a"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C5a_needle_tip_ecu_1200.webp" srcset="img/phage/C5a_needle_tip_ecu_1200.webp 1200w, img/phage/C5a_needle_tip_ecu_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="A red ribbon β-helix pointing right, ending in a thin tip, purple baseplate out of focus on the left" loading="lazy"><button class="pg-spot" type="button" style="left:79.5%;top:50.0%" data-label="gp5.4" data-fact="The tip protein. Tails seen on cells after contraction lack about 16 nm of the spike." aria-label="1: gp5.4">1</button><button class="pg-spot" type="button" style="left:57.6%;top:49.7%" data-label="gp5 β-helix" data-fact="Three gp5 chains wound into one β-helix, about 11 nm long." aria-label="2: gp5 β-helix">2</button><button class="pg-spot" type="button" style="left:15.1%;top:51.9%" data-label="Baseplate hub" data-fact="gp27 and the inner baseplate, out of focus." aria-label="3: Baseplate hub">3</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C5a_needle_tip_ecu_2400.webp" aria-label="Open The spike tip larger">&#x2922;</button></div><figcaption><b>The spike tip</b> The gp5 β-helix ends in gp5.4, the small protein at the spike tip. <span class="pg-ids">PDB 9MKB</span></figcaption></figure><figure class="pg-card" id="g-C3b"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C3b_tube_cutaway_coulombic_1200.webp" srcset="img/phage/C3b_tube_cutaway_coulombic_1200.webp 1200w, img/phage/C3b_tube_cutaway_coulombic_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="A vertical tube cut lengthwise: yellow cut faces, a pink and white lining, blue sheath behind" loading="lazy"><button class="pg-spot" type="button" style="left:53.8%;top:50.9%" data-label="Channel" data-fact="4 nm wide, inside a tube 9 nm across." aria-label="1: Channel">1</button><button class="pg-spot" type="button" style="left:42.7%;top:49.8%" data-label="Cut face" data-fact="Yellow marks where the cut passes through the gp19 rings." aria-label="2: Cut face">2</button><button class="pg-spot" type="button" style="left:64.7%;top:50.5%" data-label="Sheath, gp18" data-fact="The back half of the sheath around the tube." aria-label="3: Sheath, gp18">3</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C3b_tube_cutaway_coulombic_2400.webp" aria-label="Open Inside the tube larger">&#x2922;</button></div><figcaption><b>Inside the tube</b> The tail tube, cut lengthwise. ChimeraX colors the lining by computed electrostatic potential: red negative, blue positive (-10 to +10 kcal/mol·e). <span class="pg-ids">PDB 9MKB</span></figcaption></figure><figure class="pg-card" id="g-C6b"><div class="pg-frame"><div class="pg-slider" style="--pos:50%"><img src="img/phage/C6b_pre_1200.webp" srcset="img/phage/C6b_pre_1200.webp 1200w, img/phage/C6b_pre_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="The baseplate seen from below, a compact hexagon before and an open six-pointed star after the trigger: Before the trigger, 9MKB" loading="lazy"><div class="pg-after"><img src="img/phage/C6b_post_1200.webp" srcset="img/phage/C6b_post_1200.webp 1200w, img/phage/C6b_post_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="The baseplate seen from below, a compact hexagon before and an open six-pointed star after the trigger: After, 9X3Q + 9X3R" loading="lazy"></div><div class="pg-bar" aria-hidden="true"><span></span></div><input class="pg-range" type="range" min="0" max="100" value="50" step="1" aria-label="Compare Before the trigger, 9MKB (left) with After, 9X3Q + 9X3R (right)"></div><div class="pg-states"><span>&#9664; Before the trigger, 9MKB</span><span>After, 9X3Q + 9X3R &#9654;</span></div><button class="pg-zoom" type="button" data-full="img/phage/C6b_pre_2400.webp" data-full2="img/phage/C6b_post_2400.webp" aria-label="Open Hexagon to star larger">&#x2922;</button></div><figcaption><b>Hexagon to star</b> The baseplate from below: a hexagon about 52 nm across opens to a star about 61 nm across. A hint of Demogorgon. The gp12 fibers stay folded; their swing is schematic. <span class="pg-ids">PDB 9MKB, 9X3Q, 9X3R, 5IV7</span></figcaption></figure><figure class="pg-card" id="g-C7b"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C7b_ompc_lps_macro_1200.webp" srcset="img/phage/C7b_ompc_lps_macro_1200.webp 1200w, img/phage/C7b_ompc_lps_macro_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="A white and lilac β-barrel trimer standing in a membrane of blue and gray spheres" loading="lazy"><button class="pg-spot" type="button" style="left:49.7%;top:40.4%" data-label="OmpC trimer" data-fact="Three 16-stranded β-barrels. The long tail fibers bind it." aria-label="1: OmpC trimer">1</button><button class="pg-spot" type="button" style="left:90.4%;top:25.2%" data-label="Outer leaflet" data-fact="Rough E. coli K-12 lipopolysaccharide, with no O-antigen. The membrane comes from a tiled simulation." aria-label="2: Outer leaflet">2</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C7b_ompc_lps_macro_2400.webp" aria-label="Open Where the fibers bind larger">&#x2922;</button></div><figcaption><b>Where the fibers bind</b> OmpC, a receptor for T4 on E. coli K-12, in a simulated outer membrane. The cut passes through the trimer. <span class="pg-ids">PDB 2J1N; membrane: Gutishvili 2025</span></figcaption></figure><figure class="pg-card" id="g-C1a"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C1a_capsid_lattice_raking_1200.webp" srcset="img/phage/C1a_capsid_lattice_raking_1200.webp 1200w, img/phage/C1a_capsid_lattice_raking_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="The capsid surface in low light, rounded hexagonal bumps outlined in pink" loading="lazy"><button class="pg-spot" type="button" style="left:50.3%;top:54.7%" data-label="gp23* hexamer" data-fact="One of 155 capsomers in the head." aria-label="1: gp23* hexamer">1</button><button class="pg-spot" type="button" style="left:62.1%;top:41.9%" data-label="Soc" data-fact="860 copies sit between the capsomers in this model." aria-label="2: Soc">2</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C1a_capsid_lattice_raking_2400.webp" aria-label="Open The head lattice larger">&#x2922;</button></div><figcaption><b>The head lattice</b> gp23* hexamers form the head lattice, with Soc between them. <span class="pg-ids">PDB 7VS5</span></figcaption></figure><figure class="pg-card" id="g-C8a"><div class="pg-frame"><div class="pg-slider" style="--pos:50%"><img src="img/phage/C8a_map_1200.webp" srcset="img/phage/C8a_map_1200.webp 1200w, img/phage/C8a_map_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="A slab of the sheath as a gray density surface and as blue atoms: Cryo-EM map, EMD-48324" loading="lazy"><div class="pg-after"><img src="img/phage/C8a_model_1200.webp" srcset="img/phage/C8a_model_1200.webp 1200w, img/phage/C8a_model_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="A slab of the sheath as a gray density surface and as blue atoms: Atomic model, 9MKB" loading="lazy"></div><div class="pg-bar" aria-hidden="true"><span></span></div><input class="pg-range" type="range" min="0" max="100" value="50" step="1" aria-label="Compare Cryo-EM map, EMD-48324 (left) with Atomic model, 9MKB (right)"></div><div class="pg-states"><span>&#9664; Cryo-EM map, EMD-48324</span><span>Atomic model, 9MKB &#9654;</span></div><button class="pg-zoom" type="button" data-full="img/phage/C8a_map_2400.webp" data-full2="img/phage/C8a_model_2400.webp" aria-label="Open Map and model larger">&#x2922;</button></div><figcaption><b>Map and model</b> The same section of tail as cryo-EM density (contour 0.012) and as the atomic model built into it. 84 % of the atoms of one gp18 subunit lie inside the contour. <span class="pg-ids">EMD-48324, PDB 9MKB</span></figcaption></figure><figure class="pg-card" id="g-C5b"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C5b_hub_torch_1200.webp" srcset="img/phage/C5b_hub_torch_1200.webp 1200w, img/phage/C5b_hub_torch_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="Ribbon model of a spike hanging under purple baseplate proteins" loading="lazy"><button class="pg-spot" type="button" style="left:49.6%;top:9.6%" data-label="gp27 trimer" data-fact="The gp27 trimer holds the spike in the baseplate. Its channel is 2.5 nm wide." aria-label="1: gp27 trimer">1</button><button class="pg-spot" type="button" style="left:39.6%;top:45.3%" data-label="gp5 lysozyme domain" data-fact="Released in the periplasm, where it digests the cell wall." aria-label="2: gp5 lysozyme domain">2</button><button class="pg-spot" type="button" style="left:49.6%;top:61.0%" data-label="gp5 β-helix" data-fact="About 11 nm long." aria-label="3: gp5 β-helix">3</button><button class="pg-spot" type="button" style="left:50.2%;top:88.9%" data-label="gp5.4" data-fact="The small protein at the end of the spike." aria-label="4: gp5.4">4</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C5b_hub_torch_2400.webp" aria-label="Open The spike larger">&#x2922;</button></div><figcaption><b>The spike</b> gp27, three gp5 chains and the gp5.4 tip: a spike about 19 nm long under the baseplate. <span class="pg-ids">PDB 9MKB</span></figcaption></figure><figure class="pg-card" id="g-C4a"><div class="pg-frame"><div class="pg-slider" style="--pos:50%"><img src="img/phage/C4a_extended_1200.webp" srcset="img/phage/C4a_extended_1200.webp 1200w, img/phage/C4a_extended_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="One sheath subunit as a blue ribbon with a green arm and a peach arm that swings up in the contracted state: Extended, 9MKB" loading="lazy"><div class="pg-after"><img src="img/phage/C4a_contracted_1200.webp" srcset="img/phage/C4a_contracted_1200.webp 1200w, img/phage/C4a_contracted_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="One sheath subunit as a blue ribbon with a green arm and a peach arm that swings up in the contracted state: Contracted, 9X3P" loading="lazy"></div><div class="pg-bar" aria-hidden="true"><span></span></div><input class="pg-range" type="range" min="0" max="100" value="50" step="1" aria-label="Compare Extended, 9MKB (left) with Contracted, 9X3P (right)"></div><div class="pg-states"><span>&#9664; Extended, 9MKB</span><span>Contracted, 9X3P &#9654;</span></div><button class="pg-zoom" type="button" data-full="img/phage/C4a_extended_2400.webp" data-full2="img/phage/C4a_contracted_2400.webp" aria-label="Open A sheath subunit in two states larger">&#x2922;</button></div><figcaption><b>A sheath subunit in two states</b> The same gp18 subunit from the extended and contracted sheath, aligned on its core. Its core matches within 1.6 Å over 611 Cα pairs; the two arms that grip neighboring subunits move. <span class="pg-ids">PDB 9MKB, 9X3P</span></figcaption></figure><figure class="pg-card" id="g-C3a"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C3a_tube_lumen_1200.webp" srcset="img/phage/C3a_tube_lumen_1200.webp 1200w, img/phage/C3a_tube_lumen_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="A tunnel of pink and blue surface rings receding to a dark centre" loading="lazy"><button class="pg-spot" type="button" style="left:47.7%;top:49.3%" data-label="Channel" data-fact="4 nm wide." aria-label="1: Channel">1</button><button class="pg-spot" type="button" style="left:81.0%;top:32.6%" data-label="Lining" data-fact="Computed electrostatic potential: red negative, blue positive." aria-label="2: Lining">2</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C3a_tube_lumen_2400.webp" aria-label="Open Along the tail tube larger">&#x2922;</button></div><figcaption><b>Along the tail tube</b> Looking along 50 nm of gp19 rings. Red marks negative and blue positive computed electrostatic potential. <span class="pg-ids">PDB 9MKB</span></figcaption></figure><figure class="pg-card" id="g-C8b"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C8b_map_mesh_ecu_1200.webp" srcset="img/phage/C8b_map_mesh_ecu_1200.webp 1200w, img/phage/C8b_map_mesh_ecu_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="Stick model of a short stretch of protein inside a translucent gray density" loading="lazy"><button class="pg-spot" type="button" style="left:48.4%;top:51.5%" data-label="Cryo-EM map" data-fact="The composite map has a reported resolution of 3.8 Å." aria-label="1: Cryo-EM map">1</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C8b_map_mesh_ecu_2400.webp" aria-label="Open Side chains in density larger">&#x2922;</button></div><figcaption><b>Side chains in density</b> gp18 residues 200 to 232 in the cryo-EM map EMD-48324. Only density within 2.6 Å of the model is shown. <span class="pg-ids">EMD-48324, PDB 9MKB</span></figcaption></figure><figure class="pg-card" id="g-C2a"><div class="pg-frame"><div class="pg-media"><img src="img/phage/C2a_neck_cutaway_1200.webp" srcset="img/phage/C2a_neck_cutaway_1200.webp 1200w, img/phage/C2a_neck_cutaway_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" width="1200" height="675" alt="A side cutaway of the neck: purple portal, blue and teal rings, green and peach rings below, the head shell above" loading="lazy"><button class="pg-spot" type="button" style="left:50.5%;top:24.0%" data-label="Portal, gp20" data-fact="Twelve copies." aria-label="1: Portal, gp20">1</button><button class="pg-spot" type="button" style="left:52.3%;top:47.3%" data-label="gp13" data-fact="Twelve copies form a ring where the fibritin whiskers attach." aria-label="2: gp13">2</button><button class="pg-spot" type="button" style="left:48.8%;top:63.0%" data-label="gp14" data-fact="Six copies sit below twelve-fold rings, at the change in symmetry." aria-label="3: gp14">3</button><button class="pg-spot" type="button" style="left:47.8%;top:75.5%" data-label="gp15" data-fact="Six copies form the tail terminator. Its contact with gp14 buries about 27,000 Å²." aria-label="4: gp15">4</button><button class="pg-spot" type="button" style="left:50.8%;top:85.3%" data-label="gp3" data-fact="Six copies cap the tail tube." aria-label="5: gp3">5</button><button class="pg-spot" type="button" style="left:32.9%;top:51.9%" data-label="Fibritin" data-fact="The model includes 79 of 487 residues. The full whiskers are 53 nm long." aria-label="6: Fibritin">6</button></div><p class="pg-note" aria-live="polite">Select a number to name the part.</p><button class="pg-zoom" type="button" data-full="img/phage/C2a_neck_cutaway_2400.webp" aria-label="Open Inside the neck larger">&#x2922;</button></div><figcaption><b>Inside the neck</b> The front half of the neck is removed to show where twelve-fold rings meet six-fold rings. <span class="pg-ids">PDB 9MKB, 7VS5</span></figcaption></figure></div><dialog class="pg-box" id="pg-box" aria-label="Image viewer"><button class="pg-close" type="button" aria-label="Close">&times;</button><button class="pg-prev" type="button" aria-label="Previous image">&#8249;</button><button class="pg-next" type="button" aria-label="Next image">&#8250;</button><div class="pg-box-media"></div><p class="pg-box-cap"></p></dialog>
+
+<h2 id="what-you-are-looking-at">What you are looking at</h2>
+<figure class="vd"><div class="vd-wrap" style="aspect-ratio:3840/2120"><img src="img/phage/virion_side_1200.webp" srcset="img/phage/virion_side_1200.webp 1200w, img/phage/virion_side_2400.webp 2400w" sizes="(max-width: 760px) 100vw, 760px" style="top:14.151%;height:71.698%" alt="The whole T4 virion from the side: a prolate head on the left, the neck, a striped sheath and the baseplate on the right" loading="lazy"><svg viewBox="0 0 3840 2120" preserveAspectRatio="none" aria-hidden="true"><path d="M768,258 L768,298 L1151,680"/><circle cx="1151" cy="680" r="9"/><path d="M1805,258 L1805,298 L1996,1015"/><circle cx="1996" cy="1015" r="9"/><path d="M2726,258 L2726,298 L2688,954"/><circle cx="2688" cy="954" r="9"/><path d="M3533,258 L3533,298 L3491,816"/><circle cx="3491" cy="816" r="9"/><path d="M2918,1862 L2918,1822 L3494,1122"/><circle cx="3494" cy="1122" r="9"/><path d="M3456,1862 L3456,1822 L3597,1341"/><circle cx="3597" cy="1341" r="9"/><path class="vd-scale" d="M115,1970 L782,1970"/></svg><span class="vd-lab vd-top" style="left:20.00%;top:12.17%"><i>1</i><b>Head</b> 120 × 86 nm</span><span class="vd-lab vd-top" style="left:47.00%;top:12.17%"><i>2</i><b>Neck</b> portal, gp13, gp14, gp15</span><span class="vd-lab vd-top" style="left:71.00%;top:12.17%"><i>3</i><b>Sheath, gp18</b> 23 rings, 92.5 nm</span><span class="vd-lab vd-top" style="left:92.00%;top:12.17%"><i>4</i><b>Baseplate</b> 52 nm across</span><span class="vd-lab vd-bottom" style="left:76.00%;top:87.83%"><i>5</i><b>Spike</b> gp5, gp5.4</span><span class="vd-lab vd-bottom" style="left:90.00%;top:87.83%"><i>6</i><b>Short fibers</b> gp12, folded</span><span class="vd-lab vd-scalelab" style="left:20.36%;top:92.92%">50 nm</span></div><ol class="vd-legend"><li><b>Head</b> 120 × 86 nm</li><li><b>Neck</b> portal, gp13, gp14, gp15</li><li><b>Sheath, gp18</b> 23 rings, 92.5 nm</li><li><b>Baseplate</b> 52 nm across</li><li><b>Spike</b> gp5, gp5.4</li><li><b>Short fibers</b> gp12, folded</li></ol><figcaption>T4 assembled from 9MKB and 7VS5, shown from the side without perspective. The scale bar applies to this view. Published dimensions: Leiman et al. 2010; Fang et al. 2022. The model measures 243 nm from baseplate to head tip.</figcaption></figure>
+
+<h3 id="infection-in-six-steps">Infection in six steps</h3>
+<ol class="ph-beats">
+<li><b>Search</b>Long tail fibers, 144 to 160 nm, bind OmpC or lipopolysaccharide (LPS). Binding by three fibers commits the phage to infection. <span class="ph-tag">not shown</span></li>
+<li><b>Trigger</b>The baseplate opens from a 52 nm hexagon to a 61 nm star; in the model gp11 turns 95°. The short fibers unfold onto the LPS core. <span class="ph-tag">fiber swing schematic</span></li>
+<li><b>Contraction</b>A wave runs from the baseplate to the neck through all 23 sheath rings: rise 39.7 to 16.2 Å, twist 17.2 to 32.9° per ring. The sheath shortens from 925 to 420 Å, the head moves about 50 nm and the tube turns about 345°. In reality this takes under a millisecond.</li>
+<li><b>Outer membrane</b>The tube pierces the outer membrane. About 16 nm of the spike, comprising gp5 and gp5.4, is lost on the way.</li>
+<li><b>Periplasm</b>The gp5 lysozyme digests peptidoglycan, the cell-wall mesh. The inner membrane, about 30 nm away, bulges about 16 nm to meet the tube tip and fuses with it. <span class="ph-tag">bulge not shown</span></li>
+<li><b>Genome</b>168,903 base pairs packed at about 500 mg/ml enter the cell at up to 3 to 4 kbp per second. <span class="ph-tag">not shown</span></li>
+</ol>
+
+<h3 id="schematic-or-not-shown">Schematic or not shown</h3>
+<ul>
+<li><strong>Long tail fibers and the fibritin whiskers</strong>: not shown. Deposited structures contain only short pieces.</li>
+<li><strong>Short tail fibers (gp12)</strong>: no extended structure exists. Here they stay folded and swing as rigid bodies with their gp11 trimers.</li>
+<li><strong>Contraction wave</strong>: the sheath is interpolated between deposited end states (9MKB, 9X3P). The wave's shape and speed are modeled, not imaged.</li>
+<li><strong>Membranes</strong>: tiled snapshots of all-atom simulations, not experimental structures. LPS covers about 67 % of the outer leaflet; the tile seams are unrelaxed.</li>
+<li><strong>Inner-membrane bulge and DNA entry</strong>: not shown.</li>
+<li><strong>Time</strong>: stretched. The real contraction takes under a millisecond.</li>
+</ul>
+<h2 id="build-it-with-pellaeon">Build it with Pellaeon</h2>
+<p>Type these fourteen requests into Pellaeon in order. Each step shows the request, the commands it ran and the resulting view. By default, running scripts, deleting atoms and saving files wait for your OK.</p>
+<p>Use ChimeraX 1.9 or newer. Allow about 6 GB of free memory and 64 MB of downloads (<a href="#cost">cost notes</a>). Download <code>t4_parts.py</code>, <code>t4_trigger.py</code> and <code>t4_wave.py</code> from <a href="examples/phage-t4/">examples/phage-t4</a> (MIT license), and put them together in <code>~/phage-t4</code>. Start with an empty ChimeraX session so the model numbers match the requests.</p>
+<h3 id="tried-on">Tried on</h3>
+<p>One desktop PC: Ubuntu Linux, 32 CPU threads, about 120 GB of RAM and an NVIDIA RTX 4070 SUPER (12 GB). Software: UCSF ChimeraX 1.12 and Pellaeon 0.2.13.</p>
+<p>The recorded run used GPT-6 Luna through a ChatGPT sign-in. Steps 5, 6, 8, 9 and 10 used GPT-6 Sol, a stronger model, because Luna did not handle them reliably.</p>
+<p>With an earlier wording of these requests, local gemma4:12b on Ollama handled about half the steps, including opening structures, running scripts, saving and playing. It got the rest wrong, including wrong model numbers, chain IDs in the wrong case and selections that matched nothing.</p>
+<p>The whole build peaks at about 6 GB of memory in the window. Drawing 5.3 million atoms is the heavy part. Different models, versions and machines will behave differently. Your mileage may vary.</p>
+<figure class="vid"><video controls muted playsinline preload="none" poster="img/phage/phage_t4_tutorial.jpg" aria-label="Building phage T4 with Pellaeon, 5 minutes 18 seconds"><source src="img/phage/phage_t4_tutorial.mp4" type="video/mp4"><track kind="captions" srclang="en" label="English" src="img/phage/phage_t4_tutorial.vtt"></video><figcaption>Fourteen requests in 5 min 18 s. Model waits and animation playback are sped up and marked. One request where the model asked a question instead of acting is cut.</figcaption></figure>
+
+<h3 id="1-open-the-tail">1. Open the tail</h3>
+<blockquote>
+<p>open 9mkb, the phage T4 tail with its neck and baseplate</p>
+</blockquote>
+<pre><code>open 9mkb
+</code></pre>
+<p>9MKB contains the mature virion's tail, neck and baseplate, plus the five capsomers around the portal: 1,533,268 atoms in 541 chains.</p>
+<figure><img loading="lazy" alt="The 9MKB baseplate seen end-on in ChimeraX, the request and reply in the Pellaeon panel" src="img/phage/shots/phage_01_open.webp" /><figcaption>The 9MKB baseplate seen end-on in ChimeraX, the request and reply in the Pellaeon panel</figcaption></figure>
+<h3 id="2-add-the-head-as-instances">2. Add the head as instances</h3>
+<blockquote>
+<p>open 7vs5, the T4 head, and show its assembly 1 as graphical instances, not copies (copies false, newModel false), then fit both models in the view</p>
+</blockquote>
+<pre><code>open 7vs5
+sym #2 assembly 1 copies false newModel false
+view
+</code></pre>
+<p>7VS5 contains one fifth of the head (781,038 atoms). Assembly 1 displays it five times: 3.9 million atoms on screen, with one copy in memory. Keep the head as graphical instances to keep memory low.</p>
+<figure><img loading="lazy" alt="The head and the tail side by side, both still in their deposited positions" src="img/phage/shots/phage_02_head.webp" /><figcaption>The head and the tail side by side, both still in their deposited positions</figcaption></figure>
+<h3 id="3-put-the-tail-on-the-head">3. Put the tail on the head</h3>
+<blockquote>
+<p>put the tail on the head: run matchmaker #1/Ae,Ai,Am,BJ to #2/dt,du,dv,dw pairing ss computeSS false</p>
+</blockquote>
+<pre><code>matchmaker #1/Ae,Ai,Am,BJ to #2/dt,du,dv,dw pairing ss computeSS false
+</code></pre>
+<p>Both entries contain capsomers beside the portal. Matching four corresponding gp23 chains places the tail on the head. Three details matter:</p>
+<ul>
+<li><strong>Move the tail, not the head.</strong> Moving the instanced head would place only its first copy; moving the tail keeps all five together.</li>
+<li><strong>Give the chain IDs.</strong> With 541 chains in 9MKB, the model does not find them on its own.</li>
+<li><strong><code>computeSS false</code></strong> skips recalculating secondary structure for 2.3 million atoms: 11 s and 3 GB instead of 120 s and 46 GB.</li>
+</ul>
+<p>One capsomer places the head within about 15 Å of a fit on all five, close enough at this scale.</p>
+<figure><img loading="lazy" alt="The tail seated in the head, seen end-on from the baseplate" src="img/phage/shots/phage_03_place.webp" /><figcaption>The tail seated in the head, seen end-on from the baseplate</figcaption></figure>
+<h3 id="4-name-the-parts">4. Name the parts</h3>
+<blockquote>
+<p>run the script ~/phage-t4/t4_parts.py</p>
+</blockquote>
+<pre><code>open ~/phage-t4/t4_parts.py
+</code></pre>
+<p><a href="examples/phage-t4/t4_parts.py"><code>t4_parts.py</code></a> gives groups of chains names such as <code>head</code>, <code>neck</code>, <code>sheath</code> and <code>hub</code>. Later requests can use these names instead of chain IDs.</p>
+<figure><img loading="lazy" alt="The OK card for the script, and the reply listing the named parts" src="img/phage/shots/phage_04_parts.webp" /><figcaption>The OK card for the script, and the reply listing the named parts</figcaption></figure>
+<h3 id="5-remove-the-duplicate-capsomers">5. Remove the duplicate capsomers</h3>
+<blockquote>
+<p>delete capsid9mkb: those gp23 and Soc chains of #1 are already in the head model</p>
+</blockquote>
+<pre><code>delete #1 &amp; capsid9mkb
+</code></pre>
+<p>The head model already supplies these parts. Remove the overlapping 30 gp23 and 10 Soc chains from 9MKB.</p>
+<figure><img loading="lazy" alt="The delete card and the reply" src="img/phage/shots/phage_05_dedup.webp" /><figcaption>The delete card and the reply</figcaption></figure>
+<h3 id="6-color-by-part">6. Color by part</h3>
+<blockquote>
+<p>color the named parts as they are, with the Catppuccin Mocha palette: color head #F5E0DC, soc #F5C2E7, neck #B4BEFE, sheath #89B4FA, tube #F9E2AF, inner #CBA6F7, outer #94E2D5, socket #FAB387, stf #A6E3A1, hub #F38BA8, other #BAC2DE</p>
+</blockquote>
+<pre><code>color head #F5E0DC
+color soc #F5C2E7
+color neck #B4BEFE
+color sheath #89B4FA
+color tube #F9E2AF
+color inner #CBA6F7
+color outer #94E2D5
+color socket #FAB387
+color stf #A6E3A1
+color hub #F38BA8
+color other #BAC2DE
+</code></pre>
+<figure><img loading="lazy" alt="The baseplate in teal and green, the head behind it in rose with pink Soc" src="img/phage/shots/phage_06_color.webp" /><figcaption>The baseplate in teal and green, the head behind it in rose with pink Soc</figcaption></figure>
+<h3 id="7-show-the-whole-virion">7. Show the whole virion</h3>
+<blockquote>
+<p>show #1 and #2 as spheres, background #1E1E2E, lighting full, silhouettes on in #0E0F18, and show the whole virion from the side</p>
+</blockquote>
+<pre><code>show #1 atoms
+show #2 atoms
+style #1 sphere
+style #2 sphere
+set bgColor #1E1E2E
+lighting full
+graphics silhouettes true color #0E0F18
+view
+</code></pre>
+<p>The sphere view shows the packed atoms. Shadows and outlines separate the parts.</p>
+<figure><img loading="lazy" alt="The whole virion from the side as spheres with shadows and outlines" src="img/phage/shots/phage_07_look.webp" /><figcaption>The whole virion from the side as spheres with shadows and outlines</figcaption></figure>
+<h3 id="8-the-baseplate-from-below">8. The baseplate from below</h3>
+<blockquote>
+<p>look at the baseplate from below, straight up the tail axis</p>
+</blockquote>
+<pre><code>turn y 180
+view hub
+view outer
+</code></pre>
+<figure><img loading="lazy" alt="The six-fold baseplate seen from below" src="img/phage/shots/phage_08_below.webp" /><figcaption>The six-fold baseplate seen from below</figcaption></figure>
+<h3 id="9-the-neck">9. The neck</h3>
+<blockquote>
+<p>turn back to a side view of the whole virion, then zoom in on the neck part, where the tail joins the head</p>
+</blockquote>
+<pre><code>view neck
+</code></pre>
+<figure><img loading="lazy" alt="Close-up of the neck between the head and the sheath" src="img/phage/shots/phage_09_neck.webp" /><figcaption>Close-up of the neck between the head and the sheath</figcaption></figure>
+<h3 id="10-the-cell-puncturing-spike">10. The cell-puncturing spike</h3>
+<blockquote>
+<p>hide everything except hub, show hub as cartoon and give me a side-view close-up of the needle</p>
+</blockquote>
+<pre><code>hide #1,2 target acs
+cartoon hub
+view hub
+zoom 1.7
+</code></pre>
+<figure><img loading="lazy" alt="The hub as a cartoon: gp27, gp5 and the gp5.4 tip" src="img/phage/shots/phage_10_needle.webp" /><figcaption>The hub as a cartoon: gp27, gp5 and the gp5.4 tip</figcaption></figure>
+<h3 id="11-save-an-image">11. Save an image</h3>
+<blockquote>
+<p>save this view with the save command as ~/phage-t4/needle.png, 1920 by 1080, supersample 3</p>
+</blockquote>
+<pre><code>save ~/phage-t4/needle.png width 1920 height 1080 supersample 3
+</code></pre>
+<figure><img loading="lazy" alt="The save card and the reply" src="img/phage/shots/phage_11_save.webp" /><figcaption>The save card and the reply</figcaption></figure>
+<h3 id="12-back-to-the-virion">12. Back to the virion</h3>
+<blockquote>
+<p>show #1 and #2 again as spheres without the cartoon and show the whole virion from the side</p>
+</blockquote>
+<pre><code>show #1,2 atoms
+hide #1,2 cartoons
+style #1,2 sphere
+view
+</code></pre>
+<figure><img loading="lazy" alt="The whole virion again from the side" src="img/phage/shots/phage_12_reset.webp" /><figcaption>The whole virion again from the side</figcaption></figure>
+<h3 id="13-add-the-trigger-and-contraction">13. Add the trigger and contraction</h3>
+<blockquote>
+<p>run the script ~/phage-t4/t4_trigger.py</p>
+</blockquote>
+<pre><code>open ~/phage-t4/t4_trigger.py
+</code></pre>
+<p><a href="examples/phage-t4/t4_trigger.py"><code>t4_trigger.py</code></a> needs <a href="examples/phage-t4/t4_wave.py"><code>t4_wave.py</code></a> beside it. It fetches 9X3P, 9X3Q, 9X3R and 5IV7, fits them to the open tail and adds <code>t4motion</code>.</p>
+<p>Values from 0 to 1 open the baseplate; 1 to 2 contract the sheath. Atoms matched between structures use deposited coordinates at both ends. The motion between them is modeled.</p>
+<figure><img loading="lazy" alt="The OK card for the second script and its reply" src="img/phage/shots/phage_13_motion.webp" /><figcaption>The OK card for the second script and its reply</figcaption></figure>
+<h3 id="14-play-it">14. Play it</h3>
+<blockquote>
+<p>switch to simple lighting so it plays smoothly, then play the baseplate trigger and the contraction over 120 frames with the t4motion command</p>
+</blockquote>
+<pre><code>lighting simple
+t4motion play 120
+</code></pre>
+<p>Each frame moves 1.4 million atoms and the five head copies. Simple lighting avoids recalculating shadows at each frame. Playback reached about 1.5 frames per second on this PC. To record a movie, use <code>movie record</code> before playback and <code>movie encode</code> afterwards.</p>
+<figure><img loading="lazy" alt="The contracted tail: head moved down, tube out past the star-shaped baseplate" src="img/phage/shots/phage_14_play.webp" /><figcaption>The contracted tail: head moved down, tube out past the star-shaped baseplate</figcaption></figure>
+<h3 id="cost">Cost</h3>
+<p>Allow 64 MB of structure downloads and about 6 GB of free memory for the virion build. The membrane is separate.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Download or task</th>
+<th>Download size</th>
+<th>Time</th>
+<th>Memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tail: 9MKB</td>
+<td>34.5 MB</td>
+<td>5 s</td>
+<td>1.5 GB</td>
+</tr>
+<tr>
+<td>Head: 7VS5, 5 instances</td>
+<td>18.9 MB</td>
+<td>5 s</td>
+<td>+0.4 GB</td>
+</tr>
+<tr>
+<td>Fit, <code>computeSS false</code></td>
+<td></td>
+<td>11 s</td>
+<td>3.0 GB</td>
+</tr>
+<tr>
+<td>Fit, secondary structure recalculated (avoid)</td>
+<td></td>
+<td>120 s</td>
+<td>46 GB</td>
+</tr>
+<tr>
+<td>Motion: 9X3P, 9X3Q, 9X3R, 5IV7</td>
+<td>11 MB</td>
+<td>9 s</td>
+<td>+0.4 GB</td>
+</tr>
+<tr>
+<td>Whole build</td>
+<td>64 MB</td>
+<td>10 min</td>
+<td>5.4 GB</td>
+</tr>
+</tbody>
+</table></div>
+<p>These measurements use the PC described above. Individual steps used cached downloads and ChimeraX without a window. The whole build includes the graphics window. Memory figures are peaks; + marks an increase.</p>
+<h3 id="the-membrane">The membrane</h3>
+<p>The film includes a simulated E. coli K-12 cell envelope. Its 300 × 300 nm patch contains 32 million heavy atoms. The patch is separate from the fourteen-step build and is not available for download.</p>
+<p>The outer membrane uses tiled all-atom snapshots, with rough LPS outside and phospholipids inside (Gutishvili 2025). OmpC trimers sit at one per 200 nm² (PDB 2J1N, oriented as in OPM). The envelope also contains one peptidoglycan layer (Boags et al. 2018) and an inner membrane (Nygaard and Nesterenko 2025). The inner membrane sits 30 nm below the outer one, as measured at T4 infection sites (Hu et al. 2015).</p>
+<p>For your own patch, tile deposited bilayer snapshots or use CHARMM-GUI Membrane Builder (Jo et al. <em>J Comput Chem</em> 29:1859, 2008; Lee et al. <em>J Chem Theory Comput</em> 15:775, 2019). Remove molecules that overlap at tile seams and around proteins. The seams here are unrelaxed; LPS covers about 67 % of the outer leaflet.</p>
+<h2 id="credits">Credits</h2>
+<p><strong>Inspiration.</strong> Tom Goddard's <a href="https://www.rbvi.ucsf.edu/chimerax/data/phage-T4-sep2022/phageT4.html">ChimeraX phage T4 injection animation</a> (RBVI, UCSF, 2022) inspired this page and its contraction-wave approach. The wave here uses separate code with T4 values.</p>
+<p><strong>Structures and maps</strong> (PDB and EMDB data are CC0):</p>
+<ul>
+<li>9MKB, EMD-48324: Fokine A, et al. In situ structures of the portal-neck-tail complex of bacteriophage T4 inform a viral genome positioning mechanism. <em>Nat Commun</em> 2026. <a href="https://doi.org/10.1038/s41467-026-69106-8">doi:10.1038/s41467-026-69106-8</a></li>
+<li>7VS5: Fang Q, et al. <em>PNAS</em> 2022. <a href="https://doi.org/10.1073/pnas.2203272119">doi:10.1073/pnas.2203272119</a></li>
+<li>9X3P, 9X3Q, 9X3R: Shao Q, et al. Cryo-EM structures of phage T4 infection intermediate. <em>J Mol Biol</em> 438:169938 (2026). <a href="https://doi.org/10.1016/j.jmb.2026.169938">doi:10.1016/j.jmb.2026.169938</a></li>
+<li>5IV7 (used only to place 9X3R): Taylor NMI, et al. <em>Nature</em> 2016. <a href="https://doi.org/10.1038/nature17971">doi:10.1038/nature17971</a></li>
+<li>2J1N: Baslé A, Rummel G, Storici P, Rosenbusch JP, Schirmer T. <em>J Mol Biol</em> 362:933 (2006); orientation from OPM (Lomize et al. <em>Nucleic Acids Res</em> 40:D370, 2012).</li>
+<li>wwPDB consortium. <em>Nat Struct Biol</em> 10:980 (2003).</li>
+</ul>
+<p><strong>Dimensions and the infection sequence:</strong> Leiman PG, et al. <em>Virol J</em> 7:355 (2010), <a href="https://doi.org/10.1186/1743-422X-7-355">doi:10.1186/1743-422X-7-355</a>; Hu B, et al. <em>PNAS</em> 2015, <a href="https://doi.org/10.1073/pnas.1501064112">doi:10.1073/pnas.1501064112</a>.</p>
+<p><strong>Membranes</strong> (CC BY 4.0, tiled): Gutishvili G. Martini 3 SI data, Zenodo 2025, <a href="https://doi.org/10.5281/zenodo.18009953">doi:10.5281/zenodo.18009953</a>; Nygaard OL, Nesterenko A. Simulation of model inner bacterial membrane (CHARMM36), Zenodo 2025, <a href="https://doi.org/10.5281/zenodo.16842791">doi:10.5281/zenodo.16842791</a>; Boags A, Samsudin F, Khalid S. Zenodo 2018, <a href="https://doi.org/10.5281/zenodo.1636577">doi:10.5281/zenodo.1636577</a> (Boags et al. <em>Structure</em> 27:713, 2019).</p>
+<p><strong>UCSF ChimeraX.</strong> Molecular graphics and analyses performed with UCSF ChimeraX, developed by the Resource for Biocomputing, Visualization, and Informatics at the University of California, San Francisco, with support from National Institutes of Health. Meng EC, et al. <em>Protein Sci</em> 32:e4792 (2023).</p>
+<p>Made with Pellaeon (<a href="https://doi.org/10.5281/zenodo.23395411">doi:10.5281/zenodo.23395411</a>). To cite it: Amir, Y. Pellaeon: an AI assistant for UCSF ChimeraX. Zenodo. https://doi.org/10.5281/zenodo.23395411</p>
+<script src="phage-t4.js" defer></script></article></div></main>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
+<footer><div class="in">Pellaeon v0.2.13 · <a href="https://doi.org/10.5281/zenodo.23395411" title="Amir, Y. Pellaeon: an AI assistant for UCSF ChimeraX. Zenodo. https://doi.org/10.5281/zenodo.23395411">Cite: doi:10.5281/zenodo.23395411</a> · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl");
+    if (!btn || !ctl) return;
+    var img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    btn.dataset.playing = "0";
+    function toggle(){
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      lbl.textContent = playing ? "Stop" : "Play recording";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+        var v = p.querySelector("video");
+        if (v && !v.paused) v.pause();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
+</body></html>

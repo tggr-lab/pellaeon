@@ -15,12 +15,9 @@ The full walkthrough takes about twenty minutes: hemoglobin, a residue and its n
 
 5. Press ↶ in the panel's top bar to take the last request back.
 
-## Short tutorials
+## More tutorials
 
-Four requests each, recorded in ChimeraX, with the commands and the result after every step:
-
-- [A ligand in its pocket](pocket.md): HIV protease and indinavir; pocket surface, hydrogen bonds, close-up.
-- [Electrostatics and hydrophobicity](surfaces.md): p53 on DNA; surface colored by potential and by hydrophobicity.
+Shorter recorded examples and the phage T4 build are on the [tutorials page](tutorials.md).
 
 The rest of this page is the full walkthrough.
 

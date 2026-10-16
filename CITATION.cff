@@ -9,6 +9,14 @@ authors:
     affiliation: "Translational Genetics and Genomics Research Laboratory (TGGR), Tel Aviv Sourasky Medical Center; Gray Faculty of Medical and Health Sciences, Tel Aviv University"
 version: 0.2.13
 date-released: "2026-10-15"
+doi: 10.5281/zenodo.23395411
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23395411
+    description: "All versions (concept DOI)"
+  - type: doi
+    value: 10.5281/zenodo.23395412
+    description: "Version 0.2.13"
 license: MIT
 repository-code: "https://github.com/tggr-lab/pellaeon"
 url: "https://tggr-lab.github.io/pellaeon/"

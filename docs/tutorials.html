@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorials - Pellaeon</title><link rel="icon" href="logo.png" type="image/png"><link rel="stylesheet" href="site.css?v=c98d7796">
+<meta name="description" content="Pellaeon tutorials for ChimeraX: a full walkthrough, two short recorded examples, and building the phage T4 virion from cryo-EM structures."><link rel="canonical" href="https://tggr-lab.github.io/pellaeon/tutorials.html">
+<meta property="og:title" content="Tutorials - Pellaeon"><meta property="og:description" content="Pellaeon tutorials for ChimeraX: a full walkthrough, two short recorded examples, and building the phage T4 virion from cryo-EM structures."><meta property="og:image" content="https://tggr-lab.github.io/pellaeon/img/gui/hero_poster.jpg"><meta property="og:image:width" content="1920"><meta property="og:image:height" content="1080"><meta property="og:image:alt" content="A request typed into Pellaeon above the erythrocruorin assembly, its globin surfaces see-through and its hemes white"><meta property="og:url" content="https://tggr-lab.github.io/pellaeon/tutorials.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"></head>
+<body><div class="nav"><div class="in"><a class="brand" href="index.html"><img src="logo.png" alt="">Pellaeon</a><a class="link" href="index.html">Home</a><a class="link" href="install.html">Install</a><a class="link active" href="tutorials.html">Tutorials</a><a class="link" href="models.html">Tested models</a><a class="link" href="mcp.html">Pellaeon and MCP</a><a class="link" href="classic.html">Classic edition</a><span class="spacer"></span><a class="link gh" href="https://github.com/tggr-lab/pellaeon">GitHub</a><button class="theme" id="theme-btn" type="button" title="Theme: follows your system. Click to switch" aria-label="Switch theme">&#9680;</button></div></div>
+<script>(function(){var k="pellaeon-theme",r=document.documentElement;function ap(v){if(v)r.setAttribute("data-theme",v);else r.removeAttribute("data-theme");}var v=null;try{v=localStorage.getItem(k);}catch(e){}ap(v);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-btn");if(!b)return;var names={"":"system","light":"light","dark":"dark"};function lab(){b.title="Theme: "+names[r.getAttribute("data-theme")||""]+". Click to switch";}lab();b.onclick=function(){var cur=r.getAttribute("data-theme")||"";var nxt=cur===""?"light":cur==="light"?"dark":"";ap(nxt||null);try{nxt?localStorage.setItem(k,nxt):localStorage.removeItem(k);}catch(e){}lab();};});})();</script>
+<script data-goatcounter="https://pellaeon.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<main><h1 id="tutorials">Tutorials</h1>
+<p>Type each request into Pellaeon, then compare the commands and the result. Start with the walkthrough; the other tutorials stand on their own.</p>
+<div class="tcards"><a class="tc" href="tutorial.html"><span class="tc-img"><img src="img/gui/shots/part1_first_color.webp" alt="The Pellaeon panel beside hemoglobin in ChimeraX" width="1280" height="720" loading="lazy"></span><span class="tc-body"><span class="tc-meta"><span class="tc-lvl tc-start-here">Start here</span> 19 requests</span><b>Full walkthrough</b><span class="tc-line">Hemoglobin, a residue and its neighbors, a figure, an AlphaFold model by gene name, variants, two conformations and your own data.</span></span></a><a class="tc" href="pocket.html"><span class="tc-img"><img src="img/gui/shots/short_pocket_closeup.webp" alt="Indinavir in the HIV-1 protease pocket with the Pellaeon panel" width="1280" height="720" loading="lazy"></span><span class="tc-body"><span class="tc-meta"><span class="tc-lvl tc-intermediate">Intermediate</span> 4 requests</span><b>A ligand in its pocket</b><span class="tc-line">HIV-1 protease and indinavir: pocket surface, hydrogen bonds, close-up.</span></span></a><a class="tc" href="surfaces.html"><span class="tc-img"><img src="img/gui/shots/short_surfaces_coulombic.webp" alt="The p53 core domain surface colored by electrostatic potential on DNA" width="1280" height="720" loading="lazy"></span><span class="tc-body"><span class="tc-meta"><span class="tc-lvl tc-intermediate">Intermediate</span> 4 requests</span><b>Electrostatics and hydrophobicity</b><span class="tc-line">p53 on DNA: the surface colored by potential, then by hydrophobicity.</span></span></a><a class="tc tc-special" href="phage-t4.html"><span class="tc-img"><img src="img/phage/hero_poster.webp" alt="The phage T4 tail contracting on a simulated outer membrane" width="1280" height="720" loading="lazy"><span class="tc-film">Film</span></span><span class="tc-body"><span class="tc-meta"><span class="tc-lvl tc-advanced">Advanced</span> 14 requests</span><b>Phage T4</b><span class="tc-line">T4 tail contraction in an 85 s film, with twelve close-ups. Build the virion in 14 requests.</span></span></a></div></main>
+<script>(function(){function sync(){var open=window.innerWidth>=820;document.querySelectorAll(".toc details").forEach(function(d){if(open)d.setAttribute("open","");else d.removeAttribute("open");});}sync();window.addEventListener("resize",sync);})();</script>
+<footer><div class="in">Pellaeon v0.2.13 · <a href="https://doi.org/10.5281/zenodo.23395411" title="Amir, Y. Pellaeon: an AI assistant for UCSF ChimeraX. Zenodo. https://doi.org/10.5281/zenodo.23395411">Cite: doi:10.5281/zenodo.23395411</a> · MIT license · Named after Gilad Pellaeon, captain of the <i>Chimaera</i>. Not affiliated with UCSF. · <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon">ChimeraX Toolshed</a> · <a href="https://github.com/tggr-lab/pellaeon/releases">Releases</a><br><span class="credits"><a href="https://github.com/tggr-lab" title="Translational Genetics and Genomics Research Lab"><img class="lab" src="img/tggr.png" alt="TGGR Lab"></a><span>Made by <a href="https://github.com/YAMIR-1138">Yam Amir</a> at the <a href="https://github.com/tggr-lab">TGGR Lab</a>.</span></span></div></footer>
+<script>
+(function(){
+  document.querySelectorAll(".demo-panel").forEach(function(panel){
+    var btn = panel.querySelector(".demo-play"), ctl = panel.querySelector(".demo-ctl");
+    if (!btn || !ctl) return;
+    var img = btn.querySelector("img"), lbl = ctl.querySelector(".lbl");
+    btn.dataset.playing = "0";
+    function toggle(){
+      var playing = btn.dataset.playing !== "1";
+      btn.dataset.playing = playing ? "1" : "0";
+      ctl.dataset.playing = btn.dataset.playing;
+      img.setAttribute("src", playing ? img.dataset.gif + "?t=" + Date.now() : img.dataset.poster);
+      lbl.textContent = playing ? "Stop" : "Play recording";
+      btn.setAttribute("aria-label", playing ? "Stop the recording" : "Play the recording");
+    }
+    btn.addEventListener("click", toggle);
+    ctl.addEventListener("click", toggle);
+  });
+  var tabs = document.querySelectorAll(".demo-tab");
+  function selectDemo(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.classList.toggle("active", on);
+    });
+    document.querySelectorAll(".demo-panel").forEach(function(p){
+      var show = p.id === tab.dataset.target;
+      if (!show) {
+        var b = p.querySelector(".demo-play");
+        if (b && b.dataset.playing === "1") b.click();
+        var v = p.querySelector("video");
+        if (v && !v.paused) v.pause();
+      }
+      p.hidden = !show;
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener("click", function(){ selectDemo(tab); });
+    tab.addEventListener("keydown", function(e){
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+      next.focus();
+      selectDemo(next);
+      e.preventDefault();
+    });
+  });
+  var hint = document.getElementById("cmd-hint"), base = hint ? hint.textContent : "";
+  document.querySelectorAll("#cmd span[data-t]").forEach(function(sp){
+    sp.tabIndex = 0;
+    ["mouseenter","focus","click"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = sp.dataset.t; }); });
+    ["mouseleave","blur"].forEach(function(ev){ sp.addEventListener(ev, function(){ hint.textContent = base; }); });
+  });
+})();
+</script>
+</body></html>

@@ -2,6 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://tggr-lab.github.io/pellaeon/</loc></url>
   <url><loc>https://tggr-lab.github.io/pellaeon/install.html</loc></url>
+  <url><loc>https://tggr-lab.github.io/pellaeon/tutorials.html</loc></url>
   <url><loc>https://tggr-lab.github.io/pellaeon/tutorial.html</loc></url>
   <url><loc>https://tggr-lab.github.io/pellaeon/models.html</loc></url>
   <url><loc>https://tggr-lab.github.io/pellaeon/mcp.html</loc></url>
@@ -9,4 +10,5 @@
   <url><loc>https://tggr-lab.github.io/pellaeon/classic.html</loc></url>
   <url><loc>https://tggr-lab.github.io/pellaeon/pocket.html</loc></url>
   <url><loc>https://tggr-lab.github.io/pellaeon/surfaces.html</loc></url>
+  <url><loc>https://tggr-lab.github.io/pellaeon/phage-t4.html</loc></url>
 </urlset>
