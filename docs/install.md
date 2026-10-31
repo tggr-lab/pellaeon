@@ -60,14 +60,14 @@ toolshed install "C:\Users\you\Downloads\chimerax_pellaeon-<version>-py3-none-an
 
 The first time the panel opens it shows provider cards. There is one decision to make: **local or cloud**. Local (Ollama) needs no account and no key, but needs a machine with a reasonable GPU and a one-time model download of a few GB. Cloud needs a key, or a ChatGPT Plus/Pro account.
 
-If you have a ChatGPT Plus or Pro account, press **Sign in with ChatGPT**: no key, and its `gpt-6-sol` has the highest score in the feature comparison on [Tested models](models.md). Otherwise start with Mistral: the free key takes two minutes at [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys), needs no credit card, and Pellaeon uses `ministral-8b-latest` on it. If you would rather not send anything to a provider, install Ollama and pull `qwen3:8b` instead.
+If you have a ChatGPT Plus or Pro account, press **Sign in with ChatGPT**: no key, and its `gpt-6-sol` has the highest score in the feature comparison on [Tested models](models.md). Otherwise start with Google Gemini: the free key takes two minutes at [aistudio.google.com/apikey](https://aistudio.google.com/apikey), needs a Google account but no credit card, and Pellaeon uses `gemini-flash-lite-latest` on it. In the EEA, the UK or Switzerland, read [Google's terms](https://ai.google.dev/gemini-api/terms) first, because they limit the free tier there; Mistral is the other free route. If you would rather not send anything to a provider, install Ollama and pull `qwen3:8b` instead.
 
 | Option | How to get a key | Free allowance (September 2026, new account) |
 |---|---|---|
 | **ChatGPT** (recommended with a Plus/Pro account) | no key: press **Sign in with ChatGPT** and sign in in the browser; the plan's usage limits apply | included in the subscription |
 | **Ollama** (local) | no key: install [Ollama](https://ollama.com/download), then press **Pull** next to `gemma4:12b` in Pellaeon's settings (needs a 12 GB GPU; `qwen3:8b` on 8 GB, `qwen3:4b` on a machine without a GPU) | free, no limit |
-| **Mistral** (recommended) | [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys), no credit card | free tier, about 190 requests a minute |
-| **Google Gemini** | [aistudio.google.com/apikey](https://aistudio.google.com/apikey), no credit card | free tier, 15 requests a minute on Flash-Lite plus a daily cap |
+| **Google Gemini** (recommended) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey), Google account, no credit card | free tier, 15 requests a minute on Flash-Lite plus a daily cap |
+| **Mistral** | [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys), phone verification, no credit card | free tier, about 190 requests a minute |
 | **Anthropic Claude** | [console.anthropic.com](https://console.anthropic.com/settings/keys); Claude Pro/Max subscriptions cannot be used by third-party tools | none, pay per use |
 | **OpenAI** | [platform.openai.com](https://platform.openai.com/api-keys) | none, pay per use |
 | **OpenRouter** | one key, many models | 50 requests a day in total |

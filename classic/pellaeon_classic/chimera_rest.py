@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from core.knowledge import BM25Index, Chunk, Knowledge, cheatsheet_chunks, load_json
 from core.uniprot import UniProtClient
 
-_ERROR_RE = re.compile(r"^\s*(Error|Traceback|Invalid|Unrecognized|Unknown command|No such|Illegal|Bad |Cannot|Could not|Usage: )", re.I | re.M)
+_ERROR_RE = re.compile(r"^\s*(Error|Traceback|Invalid|Unrecognized|Unknown command|No such|Illegal|Bad |Cannot|Could not|Usage: |No value provided)", re.I | re.M)
 
 
 class ChimeraKnowledge(Knowledge):
@@ -107,7 +107,10 @@ class ChimeraRestExecutor:
             if errs:
                 entry["ok"] = False
                 entry["error"] = " | ".join(errs)[:600]
-            entry["info"] = [l[:500] for l in lines if l not in errs][:20]
+            info = [l[:500] for l in lines if l not in errs]
+            entry["info"] = info[:400]
+            if len(info) > 400:     # a silent cut made the model count only what it was shown
+                entry["info"].append("(%d more lines not shown)" % (len(info) - 400))
             results.append(entry)
             if not entry["ok"]:
                 self.last_error = "%s -> %s" % (cmd, entry["error"])

@@ -8,8 +8,8 @@ Scores are from Pellaeon's own request sets, run through the real panel and chec
 |---|---|---|
 | Highest score in the feature comparison | ChatGPT `gpt-6-sol` | Plus/Pro subscription, sign in from Settings; about 10 s a request |
 | Faster, same account | ChatGPT `gpt-6-luna` | about 7 s a request |
-| Free, nothing to install | Mistral `ministral-8b-latest` | free key, about 3 s a request; vision |
-| Free, alternative | Gemini `gemini-flash-lite-latest` | free key, 15 requests a minute; vision; 32/32 on the precise-request set below |
+| Free, nothing to install | Gemini `gemini-flash-lite-latest` | free key, 15 requests a minute; vision; 32/32 on the precise-request set below |
+| Free, alternative | Mistral `ministral-8b-latest` | free key (phone verification), about 3 s a request; vision |
 | Private, on a 12 GB GPU | Ollama `gemma4:12b` | runs on your computer |
 | Private, faster | Ollama `qwen3.5:9b` | about 2.5 s a request; a few more mistakes on display and ligand requests |
 

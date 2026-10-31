@@ -86,7 +86,7 @@ release before it reaches the Toolshed.</p>
 </ol>
 <h2 id="choosing-an-ai">Choosing an AI</h2>
 <p>The first time the panel opens it shows provider cards. There is one decision to make: <strong>local or cloud</strong>. Local (Ollama) needs no account and no key, but needs a machine with a reasonable GPU and a one-time model download of a few GB. Cloud needs a key, or a ChatGPT Plus/Pro account.</p>
-<p>If you have a ChatGPT Plus or Pro account, press <strong>Sign in with ChatGPT</strong>: no key, and its <code>gpt-6-sol</code> has the highest score in the feature comparison on <a href="models.html">Tested models</a>. Otherwise start with Mistral: the free key takes two minutes at <a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, needs no credit card, and Pellaeon uses <code>ministral-8b-latest</code> on it. If you would rather not send anything to a provider, install Ollama and pull <code>qwen3:8b</code> instead.</p>
+<p>If you have a ChatGPT Plus or Pro account, press <strong>Sign in with ChatGPT</strong>: no key, and its <code>gpt-6-sol</code> has the highest score in the feature comparison on <a href="models.html">Tested models</a>. Otherwise start with Google Gemini: the free key takes two minutes at <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>, needs a Google account but no credit card, and Pellaeon uses <code>gemini-flash-lite-latest</code> on it. In the EEA, the UK or Switzerland, read <a href="https://ai.google.dev/gemini-api/terms">Google's terms</a> first, because they limit the free tier there; Mistral is the other free route. If you would rather not send anything to a provider, install Ollama and pull <code>qwen3:8b</code> instead.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -107,14 +107,14 @@ release before it reaches the Toolshed.</p>
 <td>free, no limit</td>
 </tr>
 <tr>
-<td><strong>Mistral</strong> (recommended)</td>
-<td><a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, no credit card</td>
-<td>free tier, about 190 requests a minute</td>
+<td><strong>Google Gemini</strong> (recommended)</td>
+<td><a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>, Google account, no credit card</td>
+<td>free tier, 15 requests a minute on Flash-Lite plus a daily cap</td>
 </tr>
 <tr>
-<td><strong>Google Gemini</strong></td>
-<td><a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>, no credit card</td>
-<td>free tier, 15 requests a minute on Flash-Lite plus a daily cap</td>
+<td><strong>Mistral</strong></td>
+<td><a href="https://console.mistral.ai/api-keys">console.mistral.ai/api-keys</a>, phone verification, no credit card</td>
+<td>free tier, about 190 requests a minute</td>
 </tr>
 <tr>
 <td><strong>Anthropic Claude</strong></td>

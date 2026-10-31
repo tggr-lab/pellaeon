@@ -13,6 +13,6 @@ Classic Chimera command gotchas (Midas syntax; this is NOT ChimeraX):
 - Align two models: `matchmaker #1 #0` (or `mm #1 #0`); RMSD only: `rmsd #0:1-100@CA #1:1-100@CA`.
 - Ligands and water: `display ligand; represent sphere ligand`, `~display solvent`, `delete solvent` (asks first).
 - Images: `copy file image.png png supersample 3` (asks first). Sessions: `save session.py` (asks first). Close: `close #0`, `close all` (asks first).
-- Info: `list models`, `list chains #0`, `list residues sel`, `list selection level residue`.
+- Info: `list models`, `list chains spec #0`, `list residues spec :.A`, `list selection level residue`. The atom spec needs the word `spec`.
 - "Only X": hide everything then show the part: `~display #0; ~ribbon #0; ribbon :.B; display :.B`.
 - There is no `undo` in Chimera; reopen the structure or reverse the change explicitly.

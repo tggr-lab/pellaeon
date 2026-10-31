@@ -2,6 +2,12 @@
 
 Notes for earlier versions are on the [releases page](https://github.com/tggr-lab/pellaeon/releases).
 
+## Unreleased
+
+- Classic: `pellaeon-classic.zip` is now on the releases page, with the license and third-party notice inside.
+- Classic: long command output no longer stops at 20 lines, which gave wrong counts, and a command Chimera rejects for a missing `spec` now shows as failed.
+- Site: Gemini is the suggested free start; the Mistral entry says a key needs phone verification. Two screenshots no longer show a home path.
+
 ## 0.2.14 (2026-10-31)
 
 - The prompt is about half as long: the command notes moved from the prompt into the documentation search, and the tool descriptions are shorter. Every request costs about 50% fewer input tokens. The three models it was compared on, Gemini Flash-Lite, ChatGPT `gpt-6-luna` and Ollama `gemma4:12b`, showed no loss in one run each of Pellaeon's request set; Mistral was only partly re-run. `PELLAEON_PROMPT=a` brings back the long prompt. Pellaeon Classic keeps it.

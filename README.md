@@ -25,7 +25,7 @@ Offline: download the `.whl` from [Releases](https://github.com/tggr-lab/pellaeo
 ## Models
 
 - **ChatGPT Plus/Pro account (recommended if you have one):** sign in from Settings, no API key. gpt-6-sol has the highest score in the feature comparison (Tested models); gpt-6.1 Sol and Terra are listed too, with a reasoning-level choice in Settings.
-- **Free, no card:** Mistral's free tier (fast) or Google Gemini.
+- **Free, no card:** Google Gemini, or Mistral's free tier (fast, needs phone verification).
 - **Local, private:** Ollama on your own computer (`gemma4:12b` on a 12 GB GPU, `qwen3:8b` on 8 GB).
 - **Paid:** Anthropic Claude, OpenAI, Mistral Medium, or any OpenAI-compatible server (OpenRouter, Groq, LM Studio).
 
