@@ -2,7 +2,7 @@
 
 # Pellaeon
 
-**Talk to UCSF ChimeraX in plain English.** A chat panel inside ChimeraX that turns what you type into ChimeraX commands, shows you every command it ran, and asks before anything destructive.
+**Talk to UCSF ChimeraX in plain English.** A chat panel inside ChimeraX that turns what you type into ChimeraX commands, shows every command it ran, and asks before anything destructive.
 
 <br clear="left">
 
@@ -10,7 +10,7 @@
 
 ## Install
 
-Pellaeon is on the [ChimeraX Toolshed](https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon). In ChimeraX, open **Tools > More Tools...** and press **Install** next to Pellaeon, or paste this into the command line (bottom of the window):
+Pellaeon is on the [ChimeraX Toolshed](https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxpellaeon). In ChimeraX, open **Tools > More Tools...** and press **Install** next to Pellaeon, or paste this into the command line:
 
 ```
 toolshed install ChimeraX-Pellaeon
@@ -18,13 +18,13 @@ toolshed install ChimeraX-Pellaeon
 
 Open it from **Tools > General > Pellaeon**. Pick a model provider, paste a key if it needs one, press **Test connection**, then **Save & use**. Needs ChimeraX 1.9 or newer. `toolshed update ChimeraX-Pellaeon` gets later versions.
 
-Newest release before it reaches the Toolshed: paste `open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py` into the same command line; it installs that release and opens the panel.
+Newest release before it reaches the Toolshed: paste `open https://github.com/tggr-lab/pellaeon/releases/latest/download/install_pellaeon.py` into the same command line.
 
 Offline: download the `.whl` from [Releases](https://github.com/tggr-lab/pellaeon/releases) and run `toolshed install /path/to/the/file.whl`.
 
 ## Models
 
-- **ChatGPT Plus/Pro account (recommended if you have one):** sign in from Settings, no API key; gpt-6-sol has the highest score in the feature comparison (Tested models).
+- **ChatGPT Plus/Pro account (recommended if you have one):** sign in from Settings, no API key. gpt-6-sol has the highest score in the feature comparison (Tested models); gpt-6.1 Sol and Terra are listed too, with a reasoning-level choice in Settings.
 - **Free, no card:** Mistral's free tier (fast) or Google Gemini.
 - **Local, private:** Ollama on your own computer (`gemma4:12b` on a 12 GB GPU, `qwen3:8b` on 8 GB).
 - **Paid:** Anthropic Claude, OpenAI, Mistral Medium, or any OpenAI-compatible server (OpenRouter, Groq, LM Studio).
@@ -42,11 +42,11 @@ Keys stay on your computer. How to get a key, and how each model did on our test
 - **Explore a structure:** select, inspect neighbours, measure, label. "it" and "the selected" refer to what is open.
 - **Compare conformations:** superpose, residue displacements, lost and gained contacts drawn on the structure.
 - **Map your data:** a residue table, UniProt features, ClinVar variants, ConSurf conservation or AlphaMissense scores, placed in the structure's own numbering with a color key.
-- **Make figures:** publication look, tidy overlapping labels, save the image with a replayable `.cxc` script and the sources of everything shown.
+- **Make figures:** publication look, tidy overlapping labels, save the image with a replayable `.cxc` script and a report: legend, Methods paragraph, sources with release and retrieval date, commands, citations.
 
-Every reply lists the commands it ran with copy, re-run and a link to the ChimeraX docs. Closing, deleting, saving and scripts wait for your OK. "Undo last request" restores the session to how it was before the previous request.
+Every reply lists the commands it ran, with copy, re-run and a docs link. Closing, deleting, saving and scripts wait for your OK; Stop ends a batch after the running command. Undo (↶) puts ChimeraX back to how it was before the last request.
 
-Membrane proteins get OPM's orientation on request, receptors their GPCRdb structures and inactive/active AlphaFold models, and ConSurf coloring uses ConSurf's nine grades.
+Membrane proteins get OPM's orientation on request, receptors their GPCRdb structures and inactive/active models, and ConSurf coloring uses its nine grades.
 
 ## Learn more
 
@@ -54,7 +54,7 @@ Membrane proteins get OPM's orientation on request, receptors their GPCRdb struc
 - [Install guide](https://tggr-lab.github.io/pellaeon/install.html) (providers, privacy, where things are stored)
 - [Pellaeon and ChimeraX's mcp command](https://tggr-lab.github.io/pellaeon/mcp.html): how they differ, and the `pellaeon tool ...` commands that work from either
 - [Classic edition](classic/README.md) for UCSF Chimera 1.x
-- Problems: the **?** button in the panel copies a report (versions, model, the last turns of the chat, paths removed) and opens an empty [GitHub issue](https://github.com/tggr-lab/pellaeon/issues) for you to paste, review and post; **Copy chat** gives the whole conversation as text
+- Problems: the **?** button copies a report (versions, model, the last turns, paths removed) and opens an empty [GitHub issue](https://github.com/tggr-lab/pellaeon/issues) for you to paste and post; **Copy chat** copies the whole conversation
 
 ## Citing
 
@@ -62,7 +62,7 @@ Membrane proteins get OPM's orientation on request, receptors their GPCRdb struc
 
 Amir, Y. Pellaeon: an AI assistant for UCSF ChimeraX. Zenodo. https://doi.org/10.5281/zenodo.23395411
 
-This DOI covers all versions; each release also has its own DOI on Zenodo. GitHub shows **Cite this repository** from [CITATION.cff](CITATION.cff).
+This DOI covers all versions; each release has its own. GitHub shows **Cite this repository** from [CITATION.cff](CITATION.cff).
 
 Pellaeon is developed at the Translational Genetics and Genomics Research Laboratory (TGGR), Tel Aviv Sourasky Medical Center.
 
@@ -74,7 +74,7 @@ cd pellaeon
 chimerax --nogui --exit --cmd "devel install \"$(pwd)\""      # install into your ChimeraX
 ```
 
-Pure Python, no extra packages. MIT license.
+Pure Python, no extra packages. MIT license; bundled ChimeraX and Chimera documentation material stays with its owners, see [NOTICE](src/data/NOTICE.md).
 
 ---
 <a href="https://github.com/tggr-lab"><img src="docs/img/tggr.png" width="96" align="left" alt="TGGR Lab"></a>

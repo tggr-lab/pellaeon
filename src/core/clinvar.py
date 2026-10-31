@@ -106,7 +106,7 @@ class ClinVarClient:
                 time.sleep(0.34)  # NCBI: max 3 requests/second without an API key
             variants = [per_pos[k] for k in sorted(per_pos)]
             out = {"gene": gene, "count": len(variants), "searched": len(ids), "variants": variants,
-                   "colors": COLORS, "source": "ClinVar (NCBI E-utilities)"}
+                   "colors": COLORS, "source": "ClinVar (NCBI E-utilities)", "fetched": time.strftime("%Y-%m-%d")}
         except Exception as e:  # noqa: BLE001
             return {"error": "ClinVar request failed: %s" % e}
         if p:

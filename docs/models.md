@@ -13,6 +13,8 @@ Scores are from Pellaeon's own request sets, run through the real panel and chec
 | Private, on a 12 GB GPU | Ollama `gemma4:12b` | runs on your computer |
 | Private, faster | Ollama `qwen3.5:9b` | about 2.5 s a request; a few more mistakes on display and ligand requests |
 
+The ChatGPT sign-in also lists the gpt-6.1 models (`gpt-6.1-sol`, `gpt-6.1-terra`), not scored here. ChatGPT sometimes refuses a request as "possible biological risk" on ordinary structural biology, seen with SARS-CoV-2 spike and nanobody structures. That refusal comes from the provider; another model or provider handles the same request.
+
 ## Scores
 
 | Model | Everyday requests (152 × 3) | ChimeraX features (31 × 3) | Feature comparison (19 × 2) | Time per request |

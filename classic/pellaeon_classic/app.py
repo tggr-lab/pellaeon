@@ -170,6 +170,7 @@ class ClassicPanel(panel_base.PanelBase):
     def _build_agent(self):
         agent = super()._build_agent()
         agent.config.edition = "chimera"
+        agent.config.prompt_variant = "a"     # the short prompt and tool descriptions were tested on ChimeraX only
         return agent
 
 
@@ -248,7 +249,17 @@ class Handler(BaseHTTPRequestHandler):
         action = parsed.path[len("/act/"):]
         params = dict(urllib.parse.parse_qsl(parsed.query, keep_blank_values=True))
         payload = None
-        if "payload" in params:
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        body = self.rfile.read(length) if 0 < length <= 16 * 1024 * 1024 else b""
+        if body:            # the page sends the payload in the body (pictures do not fit in the request line)
+            try:
+                payload = json.loads(body.decode("utf-8"))
+            except Exception:
+                payload = None
+        elif "payload" in params:
             try:
                 payload = json.loads(params["payload"])
             except Exception:

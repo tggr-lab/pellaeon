@@ -443,13 +443,16 @@
    "requests": [
     "open the sequence viewer for chain B and show whats missing",
     "select residues 62 to 65 of chain A",
-    "pull up chain A in the sequence panel"
+    "pull up chain A in the sequence panel",
+    "what is the sequence of chain B",
+    "print the sequence of this chain"
    ],
    "commands": [
+    "sequence chain #1/A",
     "sequence chain /A",
     "select /A:62-65"
    ],
-   "notes": "Light blue boxes mark beta strands, yellow helices; black-outlined boxes are residues missing from the structure. Click-drag in the sequence selects residues in 3D and vice versa. Hover a residue for its number. Clicking a chain name in the Log chain table does the same.",
+   "notes": "`sequence chain #1/A` with the viewer is the answer to a request for a chain's sequence (`viewer false` prints it to the Log only). Never close the viewer by a command on the user's behalf: `close` closes models and 'close sequence viewer' is not a command; when the user asks for it to go, use the close_windows tool. Light blue boxes mark beta strands, yellow helices; black-outlined boxes are residues missing from the structure. Click-drag in the sequence selects residues in 3D and vice versa. Hover a residue for its number. Clicking a chain name in the Log chain table does the same.",
    "topic": "selection",
    "source": "https://www.rbvi.ucsf.edu/chimerax/data/nanobody-feb2021/nanobody.html"
   },
@@ -2706,12 +2709,14 @@
    "goal": "Offset a residue label in x,y,z.",
    "requests": [
     "nudge the label forward so it is in front",
-    "shift a label along z"
+    "shift a label along z",
+    "push the label out in front of the structure"
    ],
    "commands": [
-    "label #1:50 offset 0,0,10"
+    "label #1:50 offset 0,0,10",
+    "label #1:50 offset 1,0,5"
    ],
-   "notes": "offset takes x,y,z with commas and no spaces.",
+   "notes": "offset is x,y,z in screen axes (x right, y up, z toward the viewer) in Å, from the labelled atom to the label's lower left corner; commas and no spaces. It replaces the default offset (atom radius + 0.2, 0, 0.5), so keep an x shift. With a label already on screen, run it rather than describe it. The mouse alternative is the 'move label' mouse mode (Right Mouse toolbar tab); no modifier-drag is bound to it.",
    "topic": "labels/2D",
    "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/label.html"
   },
@@ -2749,12 +2754,15 @@
    "goal": "Open a small molecule by its 3-letter PDB code.",
    "requests": [
     "load just the small molecule by its three letter code",
-    "open a ligand on its own, no protein"
+    "open a ligand on its own, no protein",
+    "open a chemical component cif I downloaded from rcsb",
+    "just the small molecule GDP, no protein"
    ],
    "commands": [
-    "open ccd:CIR"
+    "open ccd:CIR",
+    "open ccd:GDP"
    ],
-   "notes": "ccd:<code> fetches the ideal coordinates of that component; no file needed.",
+   "notes": "ccd:<code> fetches the ideal coordinates of that component; the code is the three-letter PDB residue name (citrulline is CIR, citric acid is CIT), not the compound name. A component CIF downloaded from RCSB does not open from disk (`open CIR.cif` finds no mmCIF models and no format reads it): fetch the code instead.",
    "topic": "open",
    "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/open.html"
   },
@@ -2837,6 +2845,126 @@
    "notes": "Pellaeon keeps a restore point from immediately before each request. undo_last_request closes the model(s) that request opened when opening models was all it did, or restores the whole saved session when it also colored, styled, moved the view, labeled or deleted something. It reaches back one request only and asks for confirmation before restoring. For a single reversible change (e.g. a color just applied), the plain undo command is still the right tool.",
    "topic": "other",
    "source": "https://www.rbvi.ucsf.edu/chimerax/docs/user/commands/undo.html"
+  },
+  {
+   "name": "Crystal neighbours within a distance (symmetry mates)",
+   "goal": "Build the symmetry-related copies that touch the molecule in the crystal, or the whole unit cell, as distinct from the biological assembly.",
+   "requests": [
+    "generate the crystal neighbours within 8 Å of my molecule",
+    "which copies touch the asymmetric unit in the lattice",
+    "pymol symexp equivalent, the mates around the protein"
+   ],
+   "commands": [
+    "crystalcontacts #1 distance 10 copies true",
+    "crystalcontacts #1 distance 5 copies true residueInfo true",
+    "crystalcontacts delete #1",
+    "unitcell #1",
+    "unitcell #1 cells 2,2,2",
+    "unitcell delete #1"
+   ],
+   "notes": "Three different things: `sym` builds the biological assembly from the mmCIF assembly records; `crystalcontacts` builds the lattice copies within the distance (one line per contacting pair in the Log, the copies as submodels #2.1, #2.2 ...; `residueInfo true` lists the residue pairs); `unitcell` fills the cell (`cells` repeats it). All need the file's crystal symmetry (CRYST1, space group): an AlphaFold or NMR model has none. Color the copies afterwards (`rainbow #2 structures`).",
+   "topic": "analysis",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/crystalcontacts.html"
+  },
+  {
+   "name": "Superpose an NMR ensemble and report each model's RMSD",
+   "goal": "Fit every conformer of a multi-model entry onto the first and get one RMSD per model.",
+   "requests": [
+    "fit every conformer of the ensemble onto the first one and give me the RMSDs",
+    "overlay the 20 nmr models and tell me how much they differ from model 1",
+    "per-model rmsd of the solution structure"
+   ],
+   "commands": [
+    "matchmaker #1.2-20 to #1.1",
+    "align #1.2-20@CA toAtoms #1.1@CA each structure",
+    "rmsd #1.2@CA to #1.1@CA"
+   ],
+   "notes": "An NMR entry opens as one model whose submodels #1.1 ... #1.N are the conformers (the state lists them; a range past N is fine). `matchmaker` writes one 'RMSD between ... pruned atom pairs' line per model (pruned and all-pairs values); `align ... each structure` is a plain CA least-squares fit with one RMSD per model and no sequence alignment; `rmsd` measures without moving anything. Read the Log values back to the user. The Structure Comparison toolbar tab runs these same commands.",
+   "topic": "analysis",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/matchmaker.html"
+  },
+  {
+   "name": "Mutate several residues to one amino acid in a single command",
+   "goal": "Replace the side chains of a range or list of residues with one residue type at once.",
+   "requests": [
+    "turn residues 20 through 24 into alanines",
+    "alanine scan these five positions",
+    "replace every residue of the loop with glycine"
+   ],
+   "commands": [
+    "swapaa #1/A:1-4 leu",
+    "swapaa #1/A:10,25,40 ala",
+    "swapaa #1/A:3-5,12 ala"
+   ],
+   "notes": "One residue type applies to every residue in the spec; a rotamer is chosen per residue from the Dunbrack library (a second or two each) and the Log names each swap. Three-letter codes, any case. The state afterwards shows the new residue names. When the user names the residues, run it and report; a question whether it can be done is answered by doing it.",
+   "topic": "modeling",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/swapaa.html"
+  },
+  {
+   "name": "Select the first and last residue of a chain (the termini)",
+   "goal": "Select the N- and C-terminal residues when their numbers are not known.",
+   "requests": [
+    "select the N- and C-terminal residues of chain B",
+    "pick the two end residues of this chain",
+    "highlight the termini of chain A"
+   ],
+   "commands": [
+    "info polymers #1",
+    "select #1/A:1,76"
+   ],
+   "notes": "There is no terminus keyword in the atom spec: `:start` and `:end` only extend a range (`:start-20`, `:50-end`) and on their own select nothing. The chain's residue range is in the state block, and `info polymers #1` prints each chain as `/A:1 /A:76`: take the two numbers and select them. Several chains: `select #1/A:1,76 | #1/B:3,120`.",
+   "topic": "selection",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/atomspec.html"
+  },
+  {
+   "name": "Alpha-carbon trace: a thin line through the CA atoms",
+   "goal": "Show the backbone as a simple wire through the alpha carbons instead of ribbons.",
+   "requests": [
+    "draw the backbone as a thin wire through the alpha carbons",
+    "c-alpha trace instead of the ribbon",
+    "skinny tube along the CA positions"
+   ],
+   "commands": [
+    "hide #1 atoms",
+    "cartoon #1 smooth 0",
+    "cartoon style #1 xsection round width 0.4 thickness 0.4 arrows false modeHelix default"
+   ],
+   "notes": "ChimeraX has no CA-trace mode. The cartoon path runs through the alpha carbons (only strands are smoothed, which `smooth 0` turns off), so a thin round cartoon is the trace. Back to ribbons: `cartoon #1 smooth default; cartoon style #1 width 2 thickness 0.4 arrows true`. Showing only the CA atoms (`show #1@CA atoms`) gives unconnected beads: ChimeraX draws no bond between consecutive alpha carbons.",
+   "topic": "display",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/cartoon.html"
+  },
+  {
+   "name": "Orient the camera along the reference model's axes after superposition",
+   "goal": "Look down the coordinate axes of the reference model while the superposed models stay in place.",
+   "requests": [
+    "look down the z axis of the reference with the others still superimposed",
+    "reset the viewing direction to the first model's coordinate frame",
+    "camera along xyz of model 1 after matchmaker"
+   ],
+   "commands": [
+    "view orient",
+    "view"
+   ],
+   "notes": "`view orient` turns the camera to the scene axes (x right, y up, looking down z) and recentres; a reference model that was never moved has its own axes equal to the scene axes, and the models superposed onto it keep their fit. Only the camera moves. `view position #2 sameAsModels #1` is NOT this: it copies the reference's placement onto #2 and undoes the superposition; `view initial` likewise moves the models back.",
+   "topic": "display",
+   "source": "https://www.cgl.ucsf.edu/chimerax/docs/user/commands/view.html"
+  },
+  {
+   "name": "Color residues by evolutionary conservation (with or without an alignment file)",
+   "goal": "Conservation colours on a PDB entry from ConSurf-DB, or from the user's own alignment of homologues.",
+   "requests": [
+    "paint the residues by how conserved they are across homologs",
+    "evolutionary conservation colouring on this structure",
+    "which parts of the protein are variable, show it in colour"
+   ],
+   "commands": [
+    "fetch_annotation",
+    "color byattribute seq_conservation #1 palette cyanmaroon noValueColor yellow",
+    "color byattribute seq_conservation #1 palette cyanmaroon range -1.4,1.4 key true"
+   ],
+   "notes": "No alignment at hand and a PDB entry open: the fetch_annotation tool (source conservation, the PDB id and chain) colours by ConSurf-DB grade in one call; call it rather than announce it. With the user's own alignment of homologues (.aln, .fasta, .sto; ask for the path, never invent one): opening it associates it with the matching chain and creates the `seq_conservation` residue attribute, which `color byattribute` colours; residues in gappy columns, ligands and unassociated chains have no value and keep their colour unless `noValueColor` is given. ConSurf-DB covers PDB entries only, nothing for an AlphaFold model.",
+   "topic": "coloring",
+   "source": "https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
   }
  ],
  "tips": [

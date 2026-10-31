@@ -71,11 +71,30 @@ class Classification:
 
 
 def first_word(cmd: str) -> str:
+    """The command word, lower-cased; '' for a line that starts with a spec or a number. A leading digit is
+    part of the word only when a letter follows it (`2dlabels`), so `#1` and `123` stay ''."""
     cmd = cmd.strip()
     if cmd.startswith("~"):
         cmd = cmd[1:]
-    m = re.match(r"[A-Za-z][A-Za-z0-9_]*", cmd)
+    m = re.match(r"(?:[A-Za-z]|[0-9](?=[A-Za-z]))[A-Za-z0-9_]*", cmd)
     return m.group(0).lower() if m else ""
+
+
+# Commands that change nothing in the session: they report, measure or print. A request made only of these
+# needs no restore point for undo. `measure` creates models or sets attributes except for these subcommands:
+# by default `rotation` and `contactarea` make a model, `symmetry` sets the map's symmetries, `sasa` and
+# `mapvalues` set an atom attribute.
+_READS_ONLY_WORDS = {"info", "log", "help", "usage", "echo", "version", "wait", "toolshed", "getcrd"}
+_READS_ONLY_MEASURE = {"buriedarea", "length", "volume", "area", "correlation", "mapstats", "weight"}
+
+
+def reads_only(cmd: str) -> bool:
+    """True when the command only reports or measures, so running it changes nothing to undo."""
+    word = first_word(cmd)
+    if word in _READS_ONLY_WORDS:
+        return True
+    toks = cmd.strip().split()
+    return word == "measure" and len(toks) > 1 and toks[1].lower() in _READS_ONLY_MEASURE
 
 
 def _open_targets(cmd: str) -> List[str]:

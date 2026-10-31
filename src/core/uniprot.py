@@ -5,6 +5,7 @@ and work offline afterwards.
 """
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import re
@@ -12,7 +13,7 @@ import time
 import urllib.parse
 from typing import Any, Dict, List, Optional
 
-from .http import request_json
+from .http import request_json, request_json_headers
 
 _BASE = "https://rest.uniprot.org/uniprotkb"
 _TAXON = {
@@ -244,11 +245,22 @@ class UniProtClient:
         if entry is None:
             url = "%s/%s.json" % (_BASE, acc)
             try:
-                entry = request_json("GET", url, timeout=self.timeout)
+                entry, headers = request_json_headers("GET", url, timeout=self.timeout)
             except Exception as e:
                 return {"error": "UniProt request failed: %s" % e}
+            if isinstance(entry, dict):
+                # the release the entry came from and the day it was fetched: a figure report states both
+                entry["_pellaeon"] = {"release": headers.get("x-uniprot-release", ""),
+                                      "release_date": headers.get("x-uniprot-release-date", ""),
+                                      "fetched": datetime.date.today().isoformat()}
             self._store(key, entry)
         return entry
+
+    def provenance(self, accession: str) -> Dict[str, str]:
+        """{'release', 'release_date', 'fetched'} of a cached entry; empty strings when an older cache has none."""
+        entry = self._entry(accession.strip().upper())
+        meta = entry.get("_pellaeon") if isinstance(entry, dict) else None
+        return {k: str((meta or {}).get(k) or "") for k in ("release", "release_date", "fetched")}
 
     def sequence(self, accession: str) -> str:
         """The canonical sequence of an entry ('' when it cannot be fetched)."""
@@ -283,10 +295,13 @@ class UniProtClient:
                 "spec": spec,
             })
         seq = entry.get("sequence", {})
+        meta = entry.get("_pellaeon") or {}
         return {
             "accession": acc,
             "gene": ((entry.get("genes") or [{}])[0].get("geneName") or {}).get("value", ""),
             "length": seq.get("length"),
             "features": feats,
             "count": len(feats),
+            "release": str(meta.get("release") or ""),
+            "fetched": str(meta.get("fetched") or ""),
         }

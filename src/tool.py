@@ -67,6 +67,7 @@ class PellaeonTool(HtmlToolInstance, PanelBase):
         settings = PellaeonSettings(session, "Pellaeon")
         _default_undockable(session, settings, tool_name)
         super().__init__(session, tool_name, size_hint=(520, 760), log_errors=True)
+        self.html_view.setAcceptDrops(True)   # ChimeraX's HtmlView refuses drops; the page takes pictures
         self.display_name = "Pellaeon"
         _INSTANCES[id(session)] = self
         self._init_panel_state()

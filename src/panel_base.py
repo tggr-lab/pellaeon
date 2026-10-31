@@ -6,9 +6,12 @@ self.secrets, self.dirs {"data","config","cache"}, and the ChimeraX/Chimera-spec
 """
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import os
 import re
+import shutil
 import threading
 import time
 import urllib.parse
@@ -24,7 +27,7 @@ try:  # inside the ChimeraX bundle (package chimerax.pellaeon)
     from .core.providers import chatgpt_auth
     from .core.safety import AUTONOMY_MODES
     from .core.prompt import INITIATIVE_MODES
-    from .core.schema import conversation_to_json, conversation_from_json
+    from .core.schema import ImagePart, conversation_to_json, conversation_from_json
     from .core.secrets import masked
     from . import __version__
 except ImportError:  # classic edition: src/ is on sys.path
@@ -37,7 +40,7 @@ except ImportError:  # classic edition: src/ is on sys.path
     from core.providers import chatgpt_auth
     from core.safety import AUTONOMY_MODES
     from core.prompt import INITIATIVE_MODES
-    from core.schema import conversation_to_json, conversation_from_json
+    from core.schema import ImagePart, conversation_to_json, conversation_from_json
     from core.secrets import masked
     __version__ = "0.1.0"
 
@@ -194,15 +197,17 @@ class PanelBase:
         self.push({"type": "status", "text": "Placing the table on the structure…"})
 
         def work():
-            try:
-                out = self.agent._table_overlay(args["dataset"], args["column"], args["chain"] or None, args["palette"],
-                                                args["model"], args["accession"] or None, label)
+            try:   # a request of its own: it records a restore point like a typed one
+                out = self.agent.run_direct("table %s on %s" % (args["column"] or args["dataset"], args["model"] or "the structure"),
+                                            lambda: self.agent._table_overlay(args["dataset"], args["column"], args["chain"] or None,
+                                                                              args["palette"], args["model"], args["accession"] or None, label))
             except Exception as e:  # noqa: BLE001
                 out = {"error": "Overlay failed: %s" % e}
             self.push_ts({"type": "table_result", "id": tid, "card": out, "results": out.get("commands", [])})
             self.push_ts({"type": "layers", "layers": list(self.agent.layers)})
             self._busy = False
             self.push_ts({"type": "busy", "busy": False})
+            self.call_soon(self._push_undo_state)
         threading.Thread(target=work, daemon=True).start()
 
     # the tools a result card's choice buttons may run again with the arguments the card offered
@@ -231,14 +236,15 @@ class PanelBase:
                     from .core.schema import ToolCall, new_id
                 except ImportError:
                     from core.schema import ToolCall, new_id
-                self.agent._turn_text = ""          # the user chose this call, as with `pellaeon tool`
                 self.agent._coloring_sources = []
-                self.agent._dispatch(ToolCall(new_id(), name, dict(args)))
+                # the user chose this call, as with `pellaeon tool`: no request text, but a restore point of its own
+                self.agent.run_direct("%s (chosen on a card)" % name, lambda: self.agent._dispatch(ToolCall(new_id(), name, dict(args))))
             except Exception as e:  # noqa: BLE001
                 self.push_ts({"type": "toast", "kind": "error", "text": "%s failed: %s" % (name, e)})
             self.push_ts({"type": "layers", "layers": list(self.agent.layers)})
             self._busy = False
             self.push_ts({"type": "busy", "busy": False})
+            self.call_soon(self._push_undo_state)
         threading.Thread(target=work, daemon=True).start()
 
     def _act_table_remove(self, params, payload):
@@ -333,8 +339,43 @@ class PanelBase:
 
     def _act_send(self, params, payload):
         text = (params.get("text") or "").strip()
-        if text:
-            self.submit(text, keep_selection=params.get("keep_selection") == "1")
+        images = self._image_parts((payload or {}).get("images") if isinstance(payload, dict) else None)
+        if text or images:
+            self.submit(text or "Look at the attached image.", keep_selection=params.get("keep_selection") == "1", images=images)
+
+    MAX_IMAGES = 4                      # per request
+    MAX_IMAGE_CHARS = 1_600_000         # base64 characters per image (the page sends a long side of 1024 px)
+    IMAGE_MIMES = ("image/jpeg", "image/png", "image/webp", "image/gif")
+    _B64_RE = re.compile(r"^[A-Za-z0-9+/]+={0,2}$")
+
+    @classmethod
+    def _image_parts(cls, raw) -> List[ImagePart]:
+        """The pictures the page attached, checked: base64 data of a known image type, a few at most."""
+        out: List[ImagePart] = []
+        for d in (raw if isinstance(raw, list) else [])[:cls.MAX_IMAGES]:
+            if not isinstance(d, dict):
+                continue
+            b64 = str(d.get("b64") or "")
+            mime = str(d.get("mime") or "image/jpeg").lower()
+            if not b64 or len(b64) > cls.MAX_IMAGE_CHARS or not cls._B64_RE.match(b64) or mime not in cls.IMAGE_MIMES:
+                continue
+            thumb = str(d.get("thumb") or "")
+            if not cls._B64_RE.match(thumb) or len(thumb) > 200_000:
+                thumb = ""
+
+            def num(v):
+                try:
+                    return max(0, int(v))
+                except (TypeError, ValueError):
+                    return 0
+            out.append(ImagePart(b64, mime, name=str(d.get("name") or "")[:120], width=num(d.get("width")),
+                                 height=num(d.get("height")), thumb_b64=thumb))
+        return out
+
+    @staticmethod
+    def _thumbs(parts: List[ImagePart]) -> List[str]:
+        """Data URLs for the transcript: the thumbnail, or the picture itself when the page sent none."""
+        return ["data:image/jpeg;base64," + p.thumb_b64 if p.thumb_b64 else p.data_url() for p in parts if p.thumb_b64 or p.b64]
 
     def _undo_info(self) -> Dict[str, Any]:
         """What the Undo button would restore, or that there is nothing to restore."""
@@ -347,7 +388,8 @@ class PanelBase:
             return {"available": False}
         if info.get("error"):
             return {"available": False}
-        return {"available": True, "request": str(info.get("request", ""))[:160], "kind": info.get("kind", "")}
+        return {"available": True, "request": str(info.get("request", ""))[:160], "kind": info.get("kind", ""),
+                "detail": str(info.get("detail", ""))[:300], "warning": str(info.get("warning", ""))[:300]}
 
     def _push_undo_state(self) -> None:
         self.push(dict(self._undo_info(), type="undo_state"))
@@ -360,6 +402,15 @@ class PanelBase:
         if fn is None:
             self.push({"type": "toast", "kind": "warn", "text": "Undo is not available in this edition."})
             return
+        info = self._undo_info()
+        armed = getattr(self, "_undo_armed", None)
+        if info.get("warning") and not (armed and armed[0] == info.get("request") and time.time() - armed[1] < 20):
+            # undoing would also take back something done since: say what, and undo on the second press
+            self._undo_armed = (info.get("request"), time.time())
+            self.push({"type": "toast", "kind": "warn", "text": ("Undo \u201c%s\u201d: %s. Press Undo again to go ahead."
+                                                                % (info.get("request", ""), info["warning"]))[:400]})
+            return
+        self._undo_armed = None
         try:
             res = fn(direct=True) or {}
         except Exception as e:  # noqa: BLE001
@@ -414,10 +465,13 @@ class PanelBase:
                 return self.push({"type": "toast", "kind": "error", "text": "Could not start: %s" % e})
 
         def work():
-            out = self.agent.execute_commands(cmds, origin="rerun")   # same policy, confirmation and journal
+            # same policy, confirmation and journal as a model's batch, and a restore point of its own
+            label = cmds[0] if len(cmds) == 1 else "%d commands run again" % len(cmds)
+            out = self.agent.run_direct(label, lambda: self.agent.execute_commands(cmds, origin="rerun"))
             self.push_ts({"type": "rerun_result", "results": out.get("results", []), "skipped": bool(out.get("skipped")),
                           "error": out.get("error", "")})
             self.call_soon(lambda: self.push({"type": "state", "state": self._safe_state()}))
+            self.call_soon(self._push_undo_state)
         threading.Thread(target=work, daemon=True).start()
 
     def _busy_guard(self) -> bool:
@@ -585,6 +639,7 @@ class PanelBase:
         path = os.path.join(self.dirs["data"], "conversations", cid + ".json")
         if cid and os.path.exists(path):
             os.remove(path)
+        shutil.rmtree(self._images_dir(cid), ignore_errors=True)
         self.push({"type": "history", "conversations": self._list_conversations()})
 
     def _act_log(self, params, payload):
@@ -609,7 +664,8 @@ class PanelBase:
                 models = prov.list_models()
             except Exception:
                 pass
-            self.push_ts({"type": "test_result", "ok": True, "text": text, "models": models[:300]})
+            self.push_ts({"type": "test_result", "ok": True, "text": text, "models": models[:300],
+                          "reasoning": self._reasoning_levels(prov)})
         except ProviderError as e:
             self.push_ts({"type": "test_result", "ok": False, "text": str(e)})
         except Exception as e:  # noqa: BLE001
@@ -619,9 +675,21 @@ class PanelBase:
         try:
             prov = self._provider_from_payload(payload)
             models = prov.list_models()
-            self.push_ts({"type": "models_list", "models": models[:300]})
+            self.push_ts({"type": "models_list", "models": models[:300], "reasoning": self._reasoning_levels(prov)})
         except Exception as e:  # noqa: BLE001
             self.push_ts({"type": "models_list", "models": [], "error": str(e)})
+
+    @staticmethod
+    def _reasoning_levels(prov) -> Dict[str, Dict[str, Any]]:
+        """{model: {"levels": [...], "default": ...}} for providers whose catalog says which reasoning levels a
+        model takes (ChatGPT); {} otherwise, and the UI keeps its fixed list."""
+        fn = getattr(prov, "reasoning_levels", None)
+        if fn is None:
+            return {}
+        try:
+            return fn() or {}
+        except Exception:  # noqa: BLE001
+            return {}
 
     def _pull_model(self, model: str, base_url: str):
         try:
@@ -733,10 +801,12 @@ class PanelBase:
             cfg.compact_after_tokens = max(8000, int(options.get("num_ctx", 32768) * 0.55))
         cb = Callbacks(on_text_delta=self._on_delta, on_tool_start=self._on_tool_start,
                        on_tool_result=self._on_tool_result, on_confirm=self._on_confirm,
-                       on_ask_user=self._on_ask_user, on_status=self._on_status)
+                       on_ask_user=self._on_ask_user, on_status=self._on_status, on_recovery=self._on_recovery)
         cfg.learn_fixes = bool(getattr(s, "learn_fixes", True))
-        return Agent(provider, self.executor, config=cfg, callbacks=cb,
-                     directory=directory, gotchas=gotchas, recipes=recipes, learned=self.learned)
+        agent = Agent(provider, self.executor, config=cfg, callbacks=cb,
+                      directory=directory, gotchas=gotchas, recipes=recipes, learned=self.learned)
+        agent.version = __version__       # the figure report cites it
+        return agent
 
     # ---- learned fixes: refused -> accepted command pairs kept across sessions (core.learned)
     @property
@@ -745,6 +815,13 @@ class PanelBase:
             data_dir = (getattr(self, "dirs", None) or {}).get("data")
             self._learned_store = LearnedFixes(os.path.join(data_dir, "learned.json") if data_dir else None,
                                                enabled=bool(getattr(self.settings, "learn_fixes", True)))
+        if not getattr(self, "_learned_bound", False):
+            ex = getattr(self, "executor", None)
+            version = getattr(ex, "app_version", None)
+            if version is not None:
+                # entries hold for one ChimeraX and one registration of their command
+                self._learned_store.bind(version(), getattr(ex, "command_usage", None))
+                self._learned_bound = True
         return self._learned_store
 
     def _learned_message(self) -> Dict[str, Any]:
@@ -820,10 +897,10 @@ class PanelBase:
         not in the address; nothing is sent until the user pastes and posts it there."""
         self._hand_over(self.ISSUES_URL, {"title": "Problem report"}, self._report_text())
 
-    def submit(self, text: str, keep_selection: bool = False) -> None:
+    def submit(self, text: str, keep_selection: bool = False, images: Optional[List[ImagePart]] = None) -> None:
         """Start a turn (main thread). A quick action about a clicked residue passes keep_selection: whatever the
         request selects along the way (the neighbourhood, say) is put back when the turn ends, so the next quick
-        action still means the residue the user clicked."""
+        action still means the residue the user clicked. ``images`` are the pictures attached to the request."""
         if self._busy:
             self.push({"type": "toast", "kind": "warn", "text": "Still working on the previous request. Press Stop to interrupt."})
             return
@@ -847,17 +924,21 @@ class PanelBase:
         self._cancel = threading.Event()
         self._turn_id += 1
         tid = "t%d" % self._turn_id
-        self.push({"type": "user_message", "id": tid, "text": text})
+        images = list(images or [])
+        msg: Dict[str, Any] = {"type": "user_message", "id": tid, "text": text}
+        if images:
+            msg["images"] = self._thumbs(images)
+        self.push(msg)
         self.push({"type": "assistant_start", "id": tid})
         self.push({"type": "busy", "busy": True})
-        self._worker = threading.Thread(target=self._run_turn, args=(tid, text), daemon=True)
+        self._worker = threading.Thread(target=self._run_turn, args=(tid, text, images), daemon=True)
         self._worker.start()
 
-    def _run_turn(self, tid: str, text: str):
+    def _run_turn(self, tid: str, text: str, images: Optional[List[ImagePart]] = None):
         agent = self.agent
         cancel = self._cancel
         try:
-            result = agent.run_turn(text, cancel)
+            result = agent.run_turn(text, cancel, images=images) if images else agent.run_turn(text, cancel)
             switched = getattr(agent.provider, "switched_to", "")
             if switched and switched != self.settings.model:
                 # the provider retired the configured model and named a replacement: keep it
@@ -871,16 +952,18 @@ class PanelBase:
         except Exception as e:  # noqa: BLE001
             result = None
             self.push_ts({"type": "toast", "kind": "error", "text": "Pellaeon crashed: %s" % e})
-        self._flush_deltas_ts()
-        if result is not None:
-            html = render_markdown(result.reply) if result.reply else ""
-            self.push_ts({"type": "assistant_done", "id": tid, "html": html, "error": result.error,
-                          "asked_user": result.asked_user,
-                          "usage": {"input": result.usage.input_tokens, "output": result.usage.output_tokens,
-                                    "cached": result.usage.cache_read_tokens,
-                                    "total_input": agent.total_usage.input_tokens,
-                                    "total_output": agent.total_usage.output_tokens}})
-        self.call_soon(self._turn_finished)
+        try:
+            self._flush_deltas_ts()
+            if result is not None:
+                html = render_markdown(result.reply) if result.reply else ""
+                self.push_ts({"type": "assistant_done", "id": tid, "html": html, "error": result.error,
+                              "asked_user": result.asked_user,
+                              "usage": {"input": result.usage.input_tokens, "output": result.usage.output_tokens,
+                                        "cached": result.usage.cache_read_tokens,
+                                        "total_input": agent.total_usage.input_tokens,
+                                        "total_output": agent.total_usage.output_tokens}})
+        finally:
+            self.call_soon(self._turn_finished)    # whatever the rendering did, the panel is free again
 
     def _turn_finished(self):
         snap, self._keep_sel = getattr(self, "_keep_sel", None), None
@@ -956,6 +1039,11 @@ class PanelBase:
     def _on_status(self, text: str):
         self.push_ts({"type": "status", "text": text})
 
+    def _on_recovery(self, info: Dict[str, Any]):
+        """No copy of the session before this request's first change: say now what Undo will be able to do."""
+        self.push_ts({"type": "toast", "kind": "warn", "text": ("Undo for this request can only close the models it opens: %s."
+                                                                % str(info.get("reason") or "no copy of the session was saved"))[:300]})
+
     def _conv_dir(self) -> str:
         d = os.path.join(self.dirs["data"], "conversations")
         os.makedirs(d, exist_ok=True)
@@ -971,13 +1059,52 @@ class PanelBase:
                            if m.role == "user" and not m.text().startswith("(system)")), first_user)
         doc = {"id": self._conv_id, "title": first_user[:80], "updated": time.time(),
                "summary": self.agent.summary, "journal": self.agent.journal[-2000:],
-               "archived": json.loads(conversation_to_json(self.agent.archived)),
-               "messages": json.loads(conversation_to_json(self.agent.conversation))}
+               "archived": self._images_to_files(json.loads(conversation_to_json(self.agent.archived))),
+               "messages": self._images_to_files(json.loads(conversation_to_json(self.agent.conversation)))}
         try:
             with open(os.path.join(self._conv_dir(), self._conv_id + ".json"), "w", encoding="utf-8") as f:
                 json.dump(doc, f, ensure_ascii=False)
         except Exception as e:  # noqa: BLE001
             self.log("Pellaeon: could not save conversation: %s" % e)
+
+    # Attached pictures are a few hundred kB each; the conversation file keeps their thumbnails and a
+    # file name, and the picture itself goes next to it in <id>_images/, named by its content.
+    def _images_dir(self, cid: str) -> str:
+        return os.path.join(self._conv_dir(), cid + "_images")
+
+    def _images_to_files(self, msgs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        for m in msgs:
+            for p in m.get("parts") or []:
+                if p.get("kind") != "image" or not p.get("b64"):
+                    continue
+                ext = {"image/png": "png", "image/webp": "webp", "image/gif": "gif"}.get(p.get("mime", ""), "jpg")
+                name = hashlib.sha1(p["b64"].encode("ascii")).hexdigest()[:16] + "." + ext
+                try:
+                    d = self._images_dir(self._conv_id)
+                    os.makedirs(d, exist_ok=True)
+                    path = os.path.join(d, name)
+                    if not os.path.exists(path):
+                        with open(path, "wb") as f:
+                            f.write(base64.b64decode(p["b64"]))
+                    p["ref"] = name
+                except Exception as e:  # noqa: BLE001  (the thumbnail still shows; the model saw the picture already)
+                    self.log("Pellaeon: could not keep an attached image: %s" % e)
+                p["b64"] = ""
+        return msgs
+
+    def _images_from_files(self, msgs: List[Dict[str, Any]], cid: str) -> List[Dict[str, Any]]:
+        for m in msgs:
+            for p in m.get("parts") or []:
+                if p.get("kind") != "image":
+                    continue
+                ref = str(p.pop("ref", "") or "")
+                if ref and re.match(r"^[0-9a-f]{16}\.(jpg|png|webp|gif)$", ref):
+                    try:
+                        with open(os.path.join(self._images_dir(cid), ref), "rb") as f:
+                            p["b64"] = base64.b64encode(f.read()).decode("ascii")
+                    except Exception:  # noqa: BLE001  (gone: the thumbnail remains, nothing is sent)
+                        pass
+        return msgs
 
     def _list_conversations(self) -> List[Dict[str, Any]]:
         out = []
@@ -1012,8 +1139,8 @@ class PanelBase:
                 self.push({"type": "toast", "kind": "error", "text": "Could not start: %s" % e})
                 return
         self._save_conversation()
-        self.agent.conversation = conversation_from_json(json.dumps(doc.get("messages", [])))
-        self.agent.archived = conversation_from_json(json.dumps(doc.get("archived", [])))
+        self.agent.conversation = conversation_from_json(json.dumps(self._images_from_files(doc.get("messages", []), cid)))
+        self.agent.archived = conversation_from_json(json.dumps(self._images_from_files(doc.get("archived", []), cid)))
         self.agent.summary = doc.get("summary", "")
         self.agent.journal = list(doc.get("journal", []))
         self._conv_id = cid
@@ -1030,7 +1157,11 @@ class PanelBase:
         rendered: List[Dict[str, Any]] = []
         for m in msgs:
             if m.role == "user" and not m.text().startswith("(system)"):
-                rendered.append({"role": "user", "text": m.text()})
+                entry = {"role": "user", "text": m.text()}
+                thumbs = self._thumbs([p for p in m.parts if isinstance(p, ImagePart)])
+                if thumbs:
+                    entry["images"] = thumbs
+                rendered.append(entry)
             elif m.role == "assistant":
                 calls = []
                 for c in m.tool_calls():

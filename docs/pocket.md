@@ -52,4 +52,4 @@ view (#1 & (:MK1 :<5))
 
 <!--STEP short_pocket_closeup | Close-up of indinavir in its pocket with the surface and hydrogen bonds | The close-up.-->
 
-**Save figure** writes the image, the session and the commands to a folder ([tutorial, step 5b](tutorial.md#step-5b-save-a-figure-you-can-reproduce)).
+**Save figure** writes the image, the session, the commands and a report to a folder ([tutorial, step 5b](tutorial.md#step-5b-save-a-figure-you-can-reproduce)).

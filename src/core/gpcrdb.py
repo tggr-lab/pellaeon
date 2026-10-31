@@ -54,6 +54,46 @@ def structures(entry: str, timeout: float = 30) -> Dict[str, Any]:
                       "the field says (GPCRdb lists 3VW7, PAR1 with the antagonist vorapaxar, as Active). Judge by the ligand's function."}
 
 
+def opm_order(rows: List[Dict[str, Any]]) -> List[str]:
+    """PDB entries of a receptor in the order to try them on OPM. OPM lags new PDB releases by months to years:
+    the newest entries (ADRB2's 2023 cryo-EM structures) are all missing there, while 2RH1 is present. Older
+    entries first, best resolution first among them."""
+    import datetime
+    this_year = datetime.date.today().year
+
+    def key(r):
+        date = str(r.get("date") or "")
+        recent = date[:4].isdigit() and int(date[:4]) >= this_year - 1
+        try:
+            res = float(r.get("resolution") or 99)
+        except (TypeError, ValueError):
+            res = 99.0
+        return (recent, res)
+    return [str(r["pdb"]).lower() for r in sorted((r for r in rows if r.get("pdb")), key=key)][:10]
+
+
+def lookup(protein: str, open_states: Optional[List[str]] = None, cache_dir: Optional[str] = None) -> Dict[str, Any]:
+    """Everything the gpcr_states tool needs from the network, and nothing from ChimeraX: the entry name, the
+    structure list and, per state asked for, the multistate model downloaded to `cache_dir` (in `models`)."""
+    try:
+        entry = entry_for_accession(protein)
+    except Exception as e:  # noqa: BLE001
+        return {"error": "Could not turn %r into a GPCRdb entry name: %s (give a UniProt accession or entry name such as PAR1_HUMAN)." % (protein, e)}
+    if not entry:
+        return {"error": "No GPCRdb entry name for %r." % protein}
+    out = structures(entry)
+    if out.get("error"):
+        return out
+    out["models"] = []
+    for state in (open_states or []):
+        got = fetch_model(entry, state, cache_dir)
+        if got.get("error"):
+            out.setdefault("model_errors", []).append(got["error"])
+            continue
+        out["models"].append({"state": state, "path": got["path"], "version": got.get("version", "")})
+    return out
+
+
 def model_urls(entry: str, state: str) -> List[str]:
     """Where GPCRdb serves a model: the current address first, the earlier one as a fallback."""
     return ["%s/structure/structure_models/receptor/%s_%s_full/download_pdb" % (GPCRDB, entry, state),

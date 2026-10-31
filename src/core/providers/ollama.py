@@ -41,7 +41,10 @@ class OllamaProvider(Provider):
         for i, m in enumerate(messages):
             if m.role == "user":
                 content = self.user_text(m) if i == last_user else m.text()
-                out.append({"role": "user", "content": content})
+                d = {"role": "user", "content": content}
+                if m.images():      # Ollama takes bare base64 whatever the format
+                    d["images"] = [p.b64 for p in m.images()]
+                out.append(d)
             elif m.role == "assistant":
                 d: Dict[str, Any] = {"role": "assistant", "content": m.text()}
                 calls = m.tool_calls()

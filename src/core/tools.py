@@ -222,9 +222,9 @@ EXPLAIN_RESIDUE = ToolSpec(
 SAVE_FIGURE = ToolSpec(
     "save_figure",
     "Save the current view as a figure BUNDLE, not just a picture: a folder with the image, a ChimeraX session, the "
-    "replayable command script, a per-residue color table, the sources of every model and a draft legend written only "
-    "from what actually ran. Use it whenever the user wants to save/export a figure or picture. The image save asks for the "
-    "user's OK. Optional close-up: a second image of an atom spec.",
+    "replayable command script, a per-residue color table, the sources of every model and a report with the legend, Methods "
+    "and sources, written only from what actually ran. Use it whenever the user wants to save/export a figure or picture. "
+    "The image save asks for the user's OK. Optional close-up: a second image of an atom spec.",
     {"type": "object", "properties": {
         "name": {"type": "string", "description": "figure name (folder and file prefix), e.g. 'hemoglobin_pocket'"},
         "width": {"type": "integer", "description": "pixels, default 2400"},
@@ -392,7 +392,95 @@ MUTATION_EFFECT = ToolSpec(
 
 ALL_TOOLS = [RUN_COMMANDS, COMPARE, COMPARE_CONTACTS, ANNOTATE, FETCH_ANNOTATION, TABLE_OVERLAY, TIDY_LABELS, EXPLAIN_RESIDUE, SAVE_FIGURE, MAP_NUMBERING, APPLY_FIGURE_STYLE, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, ASK_USER, RUN_PYTHON, LOOK_AT_VIEW, SEQUENCE_IDENTITY, CLOSE_WINDOWS, MEMBRANE_VIEW, GPCR_STATES, VIEW_AXIS, UNDO_LAST_REQUEST,
-             MUTATION_EFFECT]
+             MUTATION_EFFECT, FIND_STRUCTURES]
+
+
+# Prompt variant "d" (PELLAEON_PROMPT=d): the same tools with one- or two-sentence descriptions. The full
+# descriptions above stay as they are, so variant "a" is byte-identical; the parameter schemas are shared.
+# Every description costs input tokens on every call, and small models react to the bytes.
+SHORT_DESCRIPTIONS = {
+    "run_commands": "Run ChimeraX commands in order, the related commands of one request in ONE call; stops at the first failure "
+                    "and returns each command's output and the exact error.",
+    "get_state": "What is open in ChimeraX: models, chains with residue counts, selection, background. Call it after opening "
+                 "something or when the user says 'it', 'this', 'the selected', 'the other one'.",
+    "command_usage": "Exact usage line and options of a ChimeraX command; use it after a syntax or keyword error or when unsure of an option.",
+    "search_docs": "Search the ChimeraX documentation (commands, atom specifiers, color names); returns the most relevant passages.",
+    "resolve_protein": "UniProt lookup of a gene or protein name: accession (for 'open alphafold:ACCESSION'), gene, name, organism, "
+                       "length. Always call it first for a named gene or protein and NEVER guess accessions; an \"ambiguous\" list in "
+                       "the result means ask_user which protein before opening anything.",
+    "protein_features": "UniProt annotations of an accession as residue ranges (domains, transmembrane and topological regions, "
+                        "binding sites, disulfides, glycosylation, variants), for coloring or selecting those regions.",
+    "ask_user": "Ask the user one short clarifying question when the request is genuinely ambiguous (e.g. which of two open models), "
+                "with options when possible; ends your turn.",
+    "run_python": "Run Python inside ChimeraX (`session`, `run(session, cmd)`) for what commands cannot do; the user must approve it. "
+                  "Print what you want returned.",
+    "look_at_view": "Screenshot the current 3D view and look at it (framing, clipping, label overlap, colors, background), then FIX "
+                    "what you saw with commands and look again. Use it whenever the user asks how it looks or to review or adjust the view.",
+    "compare_structures": "Superpose one model on another (matchmaker), color the moved one by per-residue CA displacement (gray "
+                          "unchanged -> red 6 A) and return RMSD, mean/max displacement, the most shifted residues and moving "
+                          "regions. For 'what changed between these two structures'.",
+    "annotate": "Color and label a model's residues from UniProt annotations (needs the accession from resolve_protein). kind: "
+                "variant, disease, domain, transmembrane, topology, binding, active, site, glycosylation, disulfide, modified, "
+                "ptm, region, motif, or clinvar (ClinVar missense variants, red pathogenic / yellow uncertain / blue benign: the "
+                "kind for known, pathogenic or disease mutations of a human protein; AlphaMissense is a prediction, fetch_annotation).",
+    "table_overlay": "Color a structure by a column of a table the user loaded (see 'Loaded tables' in the state): a color ramp for "
+                     "numbers, one color per category for text, gray for residues not in the table; reports placed and unfound "
+                     "positions. Never invent values; with no table loaded, say the user can load one with the Import table button.",
+    "tidy_labels": "Make the 3D labels readable: move overlapping labels apart, remove those that cannot fit, restyle them (fixed "
+                   "size, on top, white background). Call it when the user says labels overlap, are unreadable, too small or too "
+                   "many, or asks to tidy them.",
+    "explain_residue": "Why a residue looks the way it does and what surrounds it: colors, labels, attributes, the recorded commands "
+                       "that colored, styled or labeled it, and its measured surroundings (secondary structure, burial, neighbours, "
+                       "hydrogen bonds, salt bridges, nearest ligand, chains it touches). For 'why is this red?', 'what colored "
+                       "residue 87?', 'is it buried?'; answer from what it returns, never guess.",
+    "save_figure": "Save the current view as a figure bundle: image, ChimeraX session, replayable script, per-residue colors, "
+                   "sources and a report with legend and Methods from what actually ran (the image save asks the user's OK). Use "
+                   "it whenever the user wants to save or export a figure or picture.",
+    "compare_contacts": "Compare the INTERACTIONS of two conformations: superpose them and report the residue-residue contacts "
+                        "(salt bridges, hydrogen-bond-capable pairs, van der Waals) lost, gained and kept, drawn as red (lost) and "
+                        "green (gained) dashes. For 'which contacts or salt bridges are lost', 'what does the ligand touch in one "
+                        "form but not the other'; compare_structures is for how far things MOVED; call it ONCE per request.",
+    "fetch_annotation": "Fetch a published per-residue annotation and color the structure by it: source 'alphamissense' is predicted "
+                        "pathogenicity of a HUMAN protein (0 benign to 1 pathogenic; needs a UniProt accession), source "
+                        "'conservation' is ConSurf-DB grades 1 (variable) to 9 (conserved), indexed by PDB entry and chain ONLY "
+                        "(give a 4-character PDB ID; none for an AlphaFold model without one). Reports the residues colored and the "
+                        "value range; never invent these numbers.",
+    "map_numbering": "Translate UniProt positions into this structure's residue numbers, or say which are missing. Use it before "
+                     "coloring positions quoted from a paper, a database or the user's notes: structure numbering often differs "
+                     "from UniProt numbering.",
+    "apply_figure_style": "Replay the styling commands of a saved figure bundle (colors, styles, lighting, background, silhouettes; "
+                          "not its open/close/save steps) on what is open now. For 'make this look like my pocket figure', 'use the lab style'.",
+    "sequence_identity": "Percent sequence identity between the chains of several open structures, every pair, as a table, aligned "
+                         "in the background with NO windows opened. For 'sequence identity', 'how similar are the sequences', "
+                         "'percent identity'; never `sequence align`/`sequence chain`, which open viewer windows.",
+    "close_windows": "Close tool windows ChimeraX has no command for: which='sequence' closes every sequence viewer and its "
+                     "alignment, which='opened' the tool windows your own commands opened.",
+    "membrane_view": "Orient a membrane protein in the membrane from the OPM coordinates of a PDB entry: superposes the model, looks "
+                     "from the side with the EXTRACELLULAR side up and draws the two membrane boundaries. For 'extracellular on "
+                     "top', 'in the membrane', 'membrane view'; the model needs a PDB id (its own or a homologue's via pdb).",
+    "view_axis": "Look straight down a principal axis of an assembly: axis='short' (default) is the symmetry axis of a ring, disc, "
+                 "bilayer or capsid face ('down the sixfold axis', 'top view'), 'long' a rod end-on, 'side' a rod broadside. Use "
+                 "it for any view along a symmetry axis; plain `view` cannot.",
+    "gpcr_states": "GPCRdb for a G-protein-coupled receptor: its experimental structures (activation state, ligand, method, "
+                   "resolution) and optionally its AlphaFold-Multistate models, open_states=['inactive','active'] opening both "
+                   "superposed for a morph. For 'active and inactive', 'what structures exist for this receptor', 'animate the "
+                   "state change'; protein is a UniProt accession or entry name (resolve_protein for a gene).",
+    "undo_last_request": "Undo the LAST user request: restore ChimeraX to how it was just before it ran (closes what it opened, or "
+                         "restores the saved session), after the user confirms. ChimeraX has no general undo command: use this "
+                         "whenever the user says undo, revert, go back or take a change back; no arguments.",
+    "find_structures": "Which structures exist for a protein (3D-Beacons): PDB entries with method, resolution, coverage, chains, "
+                       "bound ligands, partners and year, plus the AlphaFold model, sorted by coverage then resolution; needs the "
+                       "UniProt accession (resolve_protein first). For which/what structures exist, the best or highest-resolution "
+                       "one, or one bound to a ligand or partner; then `open <id>`.",
+    "mutation_effect": "Structural effect of a substitution (L99A, Arg175His) in an open structure, wild type checked first: the new "
+                       "side chain's likely rotamers, clashes, contacts and partners lost or gained, size and charge change. "
+                       "place=true also makes the mutation, only when asked; not a stability or pathogenicity prediction.",
+}
+
+
+def short_descriptions(specs: List[ToolSpec]) -> List[ToolSpec]:
+    """The same tools with their SHORT_DESCRIPTIONS (a tool without one keeps its description); the parameter schemas are shared."""
+    return [ToolSpec(t.name, SHORT_DESCRIPTIONS.get(t.name, t.description), t.parameters) for t in specs]
 
 
 import re as _re
@@ -413,7 +501,8 @@ _GATES = {
     "fetch_annotation": r"alphamissense|missense|pathogen|conserv|consurf|evolution|variab|predict",
     "annotate": r"variant|mutation|mutant|disease|domain|transmembrane|topolog|binding|active site|\bsites?\b|glycos|disulfide|modif|\bptm|phospho|region|motif|clinvar|pathogen|annotat|feature|uniprot|signal|propeptide|helices|strands",
     "protein_features": r"variant|mutation|disease|domain|transmembrane|topolog|binding|active site|\bsites?\b|glycos|disulfide|modif|\bptm|phospho|region|motif|annotat|feature|uniprot|signal|propeptide",
-    "save_figure": r"\bsave|export|figure|picture|\bimage|\bpng|\bjpe?g|\btiff?|render|publication|snapshot|screenshot|\bpic\b|bundle",
+    "save_figure": r"\bsave|export|figure|picture|\bimage|\bpng|\bjpe?g|\btiff?|render|publication|snapshot|screenshot|\bpic\b|bundle|"
+                   r"\bpaper\b|manuscript|methods",
 }
 _GATE_RE = {k: _re.compile(v, _re.I) for k, v in _GATES.items()}
 
@@ -426,13 +515,14 @@ def shortlist(specs: List[ToolSpec], text: str, used: Optional[set] = None) -> L
 
 def tool_specs(allow_python: bool = False, vision: bool = False,
                tables: bool = False, compact: bool = False, edition: str = "chimerax", mutation: bool = False,
-               structures: bool = False) -> List[ToolSpec]:
+               structures: bool = False, variant: str = "a") -> List[ToolSpec]:
     """The tools offered to the model this turn.
 
     Every tool costs input tokens on each request, so the ones that only apply in a
     particular situation are offered only in that situation: table_overlay once the user
     has loaded a table, and tidy_labels / explain_residue whenever there is room (the
     panel's chips reach both of those directly if the model is not told about them).
+    variants "d" and "e" (prompt.prompt_variant) offer the same tools with SHORT_DESCRIPTIONS.
     """
     specs = [RUN_COMMANDS, GET_STATE, COMMAND_USAGE, SEARCH_DOCS, RESOLVE_PROTEIN,
              PROTEIN_FEATURES, COMPARE, COMPARE_CONTACTS, ANNOTATE, FETCH_ANNOTATION, ASK_USER, SAVE_FIGURE]
@@ -453,4 +543,4 @@ def tool_specs(allow_python: bool = False, vision: bool = False,
         specs.append(RUN_PYTHON)
     if vision:
         specs.append(LOOK_AT_VIEW)
-    return specs
+    return short_descriptions(specs) if variant in ("d", "e", "e2") else specs

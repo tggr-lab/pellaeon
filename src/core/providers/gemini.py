@@ -36,13 +36,17 @@ class GeminiProvider(Provider):
     def _headers(self) -> Dict[str, str]:
         return {"Content-Type": "application/json", "x-goog-api-key": self.api_key}
 
+    @staticmethod
+    def _image(mime: str, b64: str) -> Dict[str, Any]:
+        return {"inlineData": {"mimeType": mime, "data": b64}}
+
     def _to_contents(self, messages: List[Message]) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
         last_user = max((i for i, m in enumerate(messages) if m.role == "user"), default=-1)
         for i, m in enumerate(messages):
             if m.role == "user":
                 text = self.user_text(m) if i == last_user else m.text()
-                out.append({"role": "user", "parts": [{"text": text or "(empty)"}]})
+                out.append({"role": "user", "parts": [{"text": text or "(empty)"}] + [self._image(p.mime, p.b64) for p in m.images()]})
             elif m.role == "assistant":
                 parts: List[Dict[str, Any]] = []
                 for p in m.parts:
@@ -63,7 +67,7 @@ class GeminiProvider(Provider):
                                                        "response": {"result": self.result_text(r),
                                                                     "error": bool(r.is_error)}}})
                     if r.image_png_b64:
-                        parts.append({"inlineData": {"mimeType": "image/png", "data": r.image_png_b64}})
+                        parts.append(self._image("image/png", r.image_png_b64))
                 out.append({"role": "user", "parts": parts})
         return out
 

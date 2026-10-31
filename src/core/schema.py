@@ -1,9 +1,9 @@
 """Provider-neutral message schema.
 
 A conversation is a list of ``Message`` objects. Each message holds ``parts``:
-plain text, tool calls made by the assistant, tool results supplied back, or
-opaque provider-specific blocks (for example Anthropic thinking blocks) that
-must be echoed back verbatim to the provider that produced them.
+plain text, images the user attached, tool calls made by the assistant, tool
+results supplied back, or opaque provider-specific blocks (for example Anthropic
+thinking blocks) that must be echoed back verbatim to the provider that produced them.
 
 Everything here is a plain dataclass so it can be serialised to JSON for
 conversation persistence and used in tests without ChimeraX or any SDK.
@@ -50,7 +50,27 @@ class OpaquePart:
     kind: str = "opaque"
 
 
-Part = Union[TextPart, ToolCall, ToolResult, OpaquePart]
+@dataclass
+class ImagePart:
+    """An image the user attached to a message.
+
+    ``b64`` is what the model gets (already downscaled by the page); ``thumb_b64`` a small JPEG for the
+    transcript; ``width``/``height`` the original's size. A saved conversation keeps the thumbnail in the
+    JSON and the image in a side file, so ``b64`` may be empty after a restore: adapters then send nothing.
+    """
+    b64: str
+    mime: str = "image/jpeg"
+    name: str = ""
+    width: int = 0
+    height: int = 0
+    thumb_b64: str = ""
+    kind: str = "image"
+
+    def data_url(self) -> str:
+        return "data:%s;base64,%s" % (self.mime, self.b64)
+
+
+Part = Union[TextPart, ToolCall, ToolResult, OpaquePart, ImagePart]
 
 
 @dataclass
@@ -62,8 +82,8 @@ class Message:
 
     # ----- convenience -----
     @classmethod
-    def user(cls, text: str, context: Optional[str] = None) -> "Message":
-        m = cls("user", [TextPart(text)])
+    def user(cls, text: str, context: Optional[str] = None, images: Optional[List[ImagePart]] = None) -> "Message":
+        m = cls("user", [TextPart(text)] + list(images or []))
         if context:
             m.meta["context"] = context
         return m
@@ -88,6 +108,10 @@ class Message:
     def has_tool_calls(self) -> bool:
         return any(isinstance(p, ToolCall) for p in self.parts)
 
+    def images(self) -> List[ImagePart]:
+        """The attached images that still carry their data (a restored conversation keeps thumbnails only)."""
+        return [p for p in self.parts if isinstance(p, ImagePart) and p.b64]
+
     # ----- serialisation -----
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -111,6 +135,8 @@ class Message:
                 parts.append(ToolResult(**q))
             elif kind == "opaque":
                 parts.append(OpaquePart(**q))
+            elif kind == "image":
+                parts.append(ImagePart(**q))
         return cls(d["role"], parts, dict(d.get("meta", {})), d.get("ts", time.time()))
 
 

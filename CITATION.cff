@@ -7,8 +7,8 @@ authors:
     family-names: Amir
     orcid: "https://orcid.org/0000-0002-4900-6345"
     affiliation: "Translational Genetics and Genomics Research Laboratory (TGGR), Tel Aviv Sourasky Medical Center; Gray Faculty of Medical and Health Sciences, Tel Aviv University"
-version: 0.2.13
-date-released: "2026-10-15"
+version: 0.2.14
+date-released: "2026-10-31"
 doi: 10.5281/zenodo.23395411
 identifiers:
   - type: doi

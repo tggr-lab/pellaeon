@@ -33,12 +33,21 @@ class OpenAICompatProvider(Provider):
             h["X-Title"] = "Pellaeon for ChimeraX"
         return h
 
+    @staticmethod
+    def _image(mime: str, b64: str) -> Dict[str, Any]:
+        return {"type": "image_url", "image_url": {"url": "data:%s;base64,%s" % (mime, b64)}}
+
     def _to_messages(self, system: str, messages: List[Message]) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = [{"role": "system", "content": system}]
         last_user = max((i for i, m in enumerate(messages) if m.role == "user"), default=-1)
         for i, m in enumerate(messages):
             if m.role == "user":
-                out.append({"role": "user", "content": self.user_text(m) if i == last_user else m.text()})
+                text = self.user_text(m) if i == last_user else m.text()
+                images = m.images()
+                # a plain string unless there is an image: some servers reject the list form for text alone
+                content: Any = ([{"type": "text", "text": text or "(empty)"}] + [self._image(p.mime, p.b64) for p in images]
+                                if images else text)
+                out.append({"role": "user", "content": content})
             elif m.role == "assistant":
                 calls = m.tool_calls()
                 d: Dict[str, Any] = {"role": "assistant", "content": m.text() if (m.text() or not calls) else None}
@@ -55,8 +64,7 @@ class OpenAICompatProvider(Provider):
                         images.append((r.name, r.image_png_b64))
                 for name, b64 in images:  # images go after ALL tool messages (tool_calls -> tool adjacency)
                     out.append({"role": "user", "content": [
-                        {"type": "text", "text": "Screenshot from tool %s:" % name},
-                        {"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}}]})
+                        {"type": "text", "text": "Screenshot from tool %s:" % name}, self._image("image/png", b64)]})
         return out
 
     def stream(self, system, messages, tools, on_delta: Optional[OnDelta] = None,

@@ -68,6 +68,21 @@ def request_json(method: str, url: str, headers: Optional[Dict[str, str]] = None
         raise HttpError(getattr(resp, "status", 200), "Non-JSON response: " + raw[:300], url)
 
 
+def request_json_headers(method: str, url: str, headers: Optional[Dict[str, str]] = None,
+                         timeout: float = 60) -> Tuple[Any, Dict[str, str]]:
+    """Like request_json, with the response headers (lower-cased names): UniProt states its release there."""
+    req = _build_request(method, url, headers, None)
+    with _open(req, timeout) as resp:
+        raw = resp.read().decode("utf-8", "replace")
+        got = {str(k).lower(): str(v) for k, v in resp.headers.items()}
+    if not raw.strip():
+        return {}, got
+    try:
+        return json.loads(raw), got
+    except json.JSONDecodeError:
+        raise HttpError(getattr(resp, "status", 200), "Non-JSON response: " + raw[:300], url)
+
+
 def request_bytes(method: str, url: str, headers: Optional[Dict[str, str]] = None, timeout: float = 60) -> bytes:
     req = _build_request(method, url, headers, None)
     with _open(req, timeout) as resp:

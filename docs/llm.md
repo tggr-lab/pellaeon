@@ -46,7 +46,7 @@ Yes. You can use local models through Ollama without an account or API key, or c
 
 ### Does my data leave my machine?
 
-With a local Ollama server, model requests stay on your computer, though structure and annotation fetches still contact external databases. With a cloud provider, Pellaeon sends your request, open-model list, selection, recent manual commands and their output, and loaded tables to that provider. It shares screenshots only when you enable the review-the-view option.
+With a local Ollama server, model requests stay on your computer, though structure and annotation fetches still contact external databases. With a cloud provider, Pellaeon sends your request, open-model list, selection, recent manual commands and their output, and loaded tables to that provider. It shares screenshots of the 3D view only when you enable the review-the-view option, and sends any picture you attach to a request.
 
 ### Does Pellaeon work with classic UCSF Chimera?
 

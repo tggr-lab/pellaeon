@@ -21,8 +21,9 @@ from . import chatgpt_auth as auth
 
 DEFAULT_MODEL = "gpt-6-luna"
 # The model catalog is filtered by client version: with 0.0.0 (or 0.153) the gpt-6 Sol and Luna models are not
-# listed at all. Keep this at a current Codex CLI release (github.com/openai/codex/releases).
-CLIENT_VERSION = "0.157.1"
+# listed at all, and below 0.165 the gpt-6.1 models are not. Keep this at a current Codex CLI release
+# (github.com/openai/codex/releases).
+CLIENT_VERSION = "0.165.0"
 USER_AGENT = "codex_cli_rs/%s (Pellaeon; ChimeraX)" % CLIENT_VERSION     # the backend accepts first-party originators only
 LITE_HEADER = "x-openai-internal-codex-responses-lite"
 # models the catalog marks use_responses_lite; used only when the catalog cannot be read
@@ -108,6 +109,23 @@ class ChatGPTProvider(Provider):
                 self._catalog = {}
         return (self._catalog or {}).get(self.model) or {}
 
+    def reasoning_levels(self) -> Dict[str, Dict[str, Any]]:
+        """Per model: the reasoning levels the catalog lists for it and the one it uses when none is asked,
+        {slug: {"levels": ["low", ...], "default": "low"}}. Models without a list in the catalog are left out,
+        so the UI falls back to its fixed list for them."""
+        out: Dict[str, Dict[str, Any]] = {}
+        if self._catalog is None:
+            self._model_info()
+        for slug, info in (self._catalog or {}).items():
+            levels = []
+            for x in info.get("supported_reasoning_levels") or []:
+                effort = x.get("effort") if isinstance(x, dict) else x
+                if effort:
+                    levels.append(str(effort))
+            if levels:
+                out[slug] = {"levels": levels, "default": str(info.get("default_reasoning_level") or levels[0])}
+        return out
+
     def _is_lite(self) -> bool:
         """Responses Lite (Codex's request form for the gpt-6 and gpt-5.6 models): instructions and tools travel
         as the first input items instead of top-level fields."""
@@ -117,13 +135,18 @@ class ChatGPTProvider(Provider):
         return self.model.startswith(_LITE_PREFIXES)
 
     # ---- request body ----
+    @staticmethod
+    def _image(mime: str, b64: str) -> Dict[str, Any]:
+        return {"type": "input_image", "image_url": "data:%s;base64,%s" % (mime, b64)}
+
     def _to_input(self, messages: List[Message], lite: bool = False) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
         last_user = max((i for i, m in enumerate(messages) if m.role == "user"), default=-1)
         for i, m in enumerate(messages):
             if m.role == "user":
                 text = self.user_text(m) if i == last_user else m.text()
-                out.append({"type": "message", "role": "user", "content": [{"type": "input_text", "text": text or "(empty)"}]})
+                out.append({"type": "message", "role": "user", "content": [{"type": "input_text", "text": text or "(empty)"}]
+                            + [self._image(p.mime, p.b64) for p in m.images()]})
             elif m.role == "assistant":
                 for p in m.parts:
                     if isinstance(p, OpaquePart) and p.provider == self.name:
@@ -148,8 +171,7 @@ class ChatGPTProvider(Provider):
                         images.append((r.name, r.image_png_b64))
                 for name, b64 in images:
                     out.append({"type": "message", "role": "user", "content": [
-                        {"type": "input_text", "text": "Screenshot from tool %s:" % name},
-                        {"type": "input_image", "image_url": "data:image/png;base64," + b64}]})
+                        {"type": "input_text", "text": "Screenshot from tool %s:" % name}, self._image("image/png", b64)]})
         return out
 
     def _body(self, system: str, messages: List[Message], tools: List[ToolSpec], lite: Optional[bool] = None) -> Dict[str, Any]:
@@ -157,12 +179,15 @@ class ChatGPTProvider(Provider):
         info = self._model_info() if self._catalog is not None else {}
         functions = [{"type": "function", "name": t.name, "description": t.description,
                       "parameters": t.parameters, "strict": False} for t in tools or []]
+        # the reasoning level: the Settings choice, else the catalog's default for the model; with neither the
+        # field is left out and the server applies its own default (a guessed "medium" is wrong for some models)
+        effort = self.options.get("effort") or info.get("default_reasoning_level")
         body: Dict[str, Any] = {
             "model": self.model,
             "input": self._to_input(messages, lite),
             "tool_choice": "auto",
             "parallel_tool_calls": False,
-            "reasoning": {"effort": self.options.get("effort") or info.get("default_reasoning_level") or "medium"},
+            "reasoning": {"effort": effort} if effort else {},
             "store": False,
             "stream": True,
             "include": ["reasoning.encrypted_content"],

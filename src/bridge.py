@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from chimerax.core.logger import StringPlainTextLog
 
 from .core.knowledge import Knowledge, load_json
+from .core.prompt import gotchas_for_index, prompt_variant
 from .core.uniprot import UniProtClient
 
 
@@ -501,9 +502,21 @@ class ChimeraXExecutor:
                                 guides.append((name[:-4].replace("_", " "), f.read()))
                         except Exception:
                             pass
+            gotchas = None
+            tool_names: List[str] = []
+            if prompt_variant() in ("e", "e2"):
+                # variants e and e2 serve the command gotchas as passages instead of carrying them in the static prompt
+                try:
+                    with open(data_path("gotchas.md"), "r", encoding="utf-8") as f:
+                        gotchas = gotchas_for_index(f.read(), prompt_variant())
+                    from .core.tools import ALL_TOOLS
+                    tool_names = [t.name for t in ALL_TOOLS]
+                except Exception:
+                    gotchas = None
             self._knowledge = Knowledge(pellaeon_dir("cache"), chimerax_version(), docs_dirs(),
                                         cheatsheet=cheat, registry_entries=entries,
-                                        workflows=workflows, recipe_library=recipe_library, guides=guides, log=self._log)
+                                        workflows=workflows, recipe_library=recipe_library, guides=guides, log=self._log,
+                                        gotchas=gotchas, tool_names=tool_names)
         return self._knowledge
 
     def ensure_index(self, progress=None):
@@ -525,27 +538,25 @@ class ChimeraXExecutor:
             return False
 
     def run_commands(self, commands: List[str], cancel=None) -> List[Dict[str, Any]]:
-        return _run_on_main_thread(self.session, lambda: self._run_commands_main(commands, cancel))
-
-    def _run_commands_main(self, commands: List[str], cancel=None) -> List[Dict[str, Any]]:
-        from chimerax.core.commands import run
-        from chimerax.core.errors import UserError, NotABug
+        """Run a batch, one main-thread hop per command: the window stays live between commands, and a Stop
+        pressed while one runs is seen before the next starts. A download for `open <url>` happens on the
+        calling thread, before the hop, so the main thread never waits on the network."""
+        batch = _run_on_main_thread(self.session, lambda: self._batch_begin(commands))
         results: List[Dict[str, Any]] = []
-        before = set(id(t) for t in self.session.tools.list())
-        alns_before = set(id(a) for a in _alignments(self.session))
-        self.last_returns: Dict[str, Any] = {}   # values returned by commands (e.g. matchmaker's atom pairs)
+        finished = True
+        self.last_error = None       # a batch stopped before its end keeps no error from an earlier one
         for cmd in commands:
             if cancel is not None and cancel.is_set():
+                finished = False
                 break
             entry: Dict[str, Any] = {"command": cmd, "ok": False, "info": [], "warnings": [], "error": ""}
-            models_before = set(id(m) for m in self.session.models.list())
             rm = _REMOTE_FILE_RE.match(cmd)
             if rm:
                 # `open https://.../flip.py` makes ChimeraX save a copy in ~/Downloads every time; fetch it into
                 # Pellaeon's cache and run the local copy instead
                 try:
-                    from .analysis import fetch_to_cache
-                    local = fetch_to_cache(rm.group(2), "recipes" if rm.group(2).lower().endswith((".py", ".cxc")) else "downloads")
+                    from . import analysis
+                    local = analysis.fetch_to_cache(rm.group(2), "recipes" if rm.group(2).lower().endswith((".py", ".cxc")) else "downloads")
                     cmd = "%s %s%s" % ("runscript" if local.lower().endswith(".py") else "open",
                                        ('"%s"' % local) if " " in local else local, rm.group(3) or "")
                     entry["command"] = cmd
@@ -554,80 +565,102 @@ class ChimeraXExecutor:
                     entry["error"] = "Could not download %s: %s" % (rm.group(2), e)
                     results.append(entry)
                     self.last_error = entry["error"]
+                    finished = False
                     break
-            hm = _HELP_RE.match(cmd)
-            if hm:
-                # `help X` opens a browser (the system browser in a headless run); answer with the usage text instead
-                entry["ok"] = True
-                entry["not_run"] = True
-                entry["info"] = [self.command_usage(hm.group(1)) if hm.group(1) else
-                                 "help opens the documentation browser; ask for a command's usage instead."]
-                results.append(entry)
-                continue
-            perr, phint = parse_error_and_hint(self.session, cmd)
-            if perr:
-                entry["error"] = perr
-                if phint:
-                    entry["parse_hint"] = phint
-                entry["not_run"] = True     # refused by the parser; nothing changed
-                results.append(entry)
-                self.last_error = "%s -> %s" % (cmd, perr)
-                break
-            with _CapturingLog(self.session.logger, echo=True) as cap:
-                try:
-                    self.last_returns[cmd] = run(self.session, cmd, log=True, return_list=True)
-                    entry["ok"] = True
-                except (UserError, NotABug) as e:
-                    if "No displayed objects" in str(e) and self._update_graphics():
-                        # `view #1/B` right after `cartoon #1/B` in the same batch: the ribbon exists only after
-                        # the next redraw, so the view found nothing to look at. Build it and try once more.
-                        try:
-                            self.last_returns[cmd] = run(self.session, cmd, log=True, return_list=True)
-                            entry["ok"] = True
-                        except (UserError, NotABug) as e2:
-                            entry["error"] = str(e2)
-                    else:
-                        entry["error"] = str(e)
-                except Exception as e:  # noqa: BLE001
-                    entry["error"] = "%s: %s" % (e.__class__.__name__, e)
-                    entry["traceback"] = traceback.format_exc()[-1500:]
-            # ChimeraX calls the info level "note"; drop the command echo line
-            infos = cap.by_level.get("note", []) + cap.by_level.get("info", [])
-            entry["info"] = [m.strip() for m in infos
-                             if m.strip() and not m.startswith("Executing:") and m.strip() != cmd.strip()][:20]
-            entry["warnings"] = [m.strip() for m in cap.by_level.get("warning", []) if m.strip()][:10]
-            errs = [m.strip() for m in cap.by_level.get("error", []) + cap.by_level.get("bug", []) if m.strip()]
-            if errs and not entry["error"]:
-                entry["error"] = errs[0]
-                entry["ok"] = False
-            elif errs:
-                entry["error_log"] = errs[:3]
-            # trim very long info dumps. Read-only reports keep more: `log metadata` of an entry with many authors
-            # was cut before its resolution line and a model then invented one; a long `info residues` list is
-            # also summarized as ranges before it is cut (the first dozen residues were reported as the answer)
-            reading = cmd.split()[0].lower() in ("log", "info", "measure") if cmd.split() else False
-            if reading:
-                from .core.fixups import residue_ranges_summary
-                summary = residue_ranges_summary("\n".join(entry["info"]))
-                if summary:
-                    entry["summary"] = summary
-            entry["info"] = [m[:3000 if reading else 500] for m in entry["info"]]
-            try:   # e.g. `define centroid` makes #1.2 and says nothing about its number
-                made = [m for m in self.session.models.list() if id(m) not in models_before]
-                if made:
-                    entry["new_models"] = ["#%s %s" % (m.id_string, m.name) for m in made][:8]
-            except Exception:  # noqa: BLE001
-                pass
+            _run_on_main_thread(self.session, lambda: self._run_one_main(cmd, entry))
             results.append(entry)
             if not entry["ok"]:
                 self.last_error = "%s -> %s" % (cmd, entry["error"])
+                finished = False
                 break
-        else:
+        if finished:
             self.last_error = None
-        new = [t for t in self.session.tools.list() if id(t) not in before and t.tool_name != "Pellaeon"]
+        _run_on_main_thread(self.session, lambda: self._batch_end(commands, results, batch))
+        return results
+
+    def _batch_begin(self, commands: List[str]) -> Dict[str, Any]:
+        """Main thread: what is open before the batch, for the report of what it opened."""
+        self.last_returns: Dict[str, Any] = {}   # values returned by commands (e.g. matchmaker's atom pairs)
+        try:
+            from .analysis import before_batch
+            before_batch(self.session, commands)
+        except Exception:  # noqa: BLE001  (bookkeeping must never fail a command batch)
+            pass
+        return {"tools": set(id(t) for t in self.session.tools.list()),
+                "alignments": set(id(a) for a in _alignments(self.session))}
+
+    def _run_one_main(self, cmd: str, entry: Dict[str, Any]) -> None:
+        """Main thread: run one command and fill in its result entry."""
+        from chimerax.core.commands import run
+        from chimerax.core.errors import UserError, NotABug
+        models_before = set(id(m) for m in self.session.models.list())
+        hm = _HELP_RE.match(cmd)
+        if hm:
+            # `help X` opens a browser (the system browser in a headless run); answer with the usage text instead
+            entry["ok"] = True
+            entry["not_run"] = True
+            entry["info"] = [self.command_usage(hm.group(1)) if hm.group(1) else
+                             "help opens the documentation browser; ask for a command's usage instead."]
+            return
+        perr, phint = parse_error_and_hint(self.session, cmd)
+        if perr:
+            entry["error"] = perr
+            if phint:
+                entry["parse_hint"] = phint
+            entry["not_run"] = True     # refused by the parser; nothing changed
+            return
+        with _CapturingLog(self.session.logger, echo=True) as cap:
+            try:
+                self.last_returns[cmd] = run(self.session, cmd, log=True, return_list=True)
+                entry["ok"] = True
+            except (UserError, NotABug) as e:
+                if "No displayed objects" in str(e) and self._update_graphics():
+                    # `view #1/B` right after `cartoon #1/B` in the same batch: the ribbon exists only after
+                    # the next redraw, so the view found nothing to look at. Build it and try once more.
+                    try:
+                        self.last_returns[cmd] = run(self.session, cmd, log=True, return_list=True)
+                        entry["ok"] = True
+                    except (UserError, NotABug) as e2:
+                        entry["error"] = str(e2)
+                else:
+                    entry["error"] = str(e)
+            except Exception as e:  # noqa: BLE001
+                entry["error"] = "%s: %s" % (e.__class__.__name__, e)
+                entry["traceback"] = traceback.format_exc()[-1500:]
+        # ChimeraX calls the info level "note"; drop the command echo line
+        infos = cap.by_level.get("note", []) + cap.by_level.get("info", [])
+        entry["info"] = [m.strip() for m in infos
+                         if m.strip() and not m.startswith("Executing:") and m.strip() != cmd.strip()][:20]
+        entry["warnings"] = [m.strip() for m in cap.by_level.get("warning", []) if m.strip()][:10]
+        errs = [m.strip() for m in cap.by_level.get("error", []) + cap.by_level.get("bug", []) if m.strip()]
+        if errs and not entry["error"]:
+            entry["error"] = errs[0]
+            entry["ok"] = False
+        elif errs:
+            entry["error_log"] = errs[:3]
+        # trim very long info dumps. Read-only reports keep more: `log metadata` of an entry with many authors
+        # was cut before its resolution line and a model then invented one; a long `info residues` list is
+        # also summarized as ranges before it is cut (the first dozen residues were reported as the answer)
+        reading = cmd.split()[0].lower() in ("log", "info", "measure") if cmd.split() else False
+        if reading:
+            from .core.fixups import residue_ranges_summary
+            summary = residue_ranges_summary("\n".join(entry["info"]))
+            if summary:
+                entry["summary"] = summary
+        entry["info"] = [m[:3000 if reading else 500] for m in entry["info"]]
+        try:   # e.g. `define centroid` makes #1.2 and says nothing about its number
+            made = [m for m in self.session.models.list() if id(m) not in models_before]
+            if made:
+                entry["new_models"] = ["#%s %s" % (m.id_string, m.name) for m in made][:8]
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _batch_end(self, commands: List[str], results: List[Dict[str, Any]], batch: Dict[str, Any]) -> None:
+        """Main thread: the windows the batch opened, and the bookkeeping for overlays and undo."""
+        new = [t for t in self.session.tools.list() if id(t) not in batch["tools"] and t.tool_name != "Pellaeon"]
         self.last_new_tools = [t.tool_name for t in new]
         if not getattr(self.session.ui, "is_gui", False):   # headless: an alignment is the window it would have opened
-            self.last_new_tools += ["Sequence Viewer" for a in _alignments(self.session) if id(a) not in alns_before]
+            self.last_new_tools += ["Sequence Viewer" for a in _alignments(self.session) if id(a) not in batch["alignments"]]
         self.session._pellaeon_opened_tools = [t for t in getattr(self.session, "_pellaeon_opened_tools", [])
                                                if t in self.session.tools.list()] + new
         try:
@@ -642,7 +675,9 @@ class ChimeraXExecutor:
         w = getattr(self.session, "_pellaeon_watcher", None)
         if w is not None:
             w.absorb()     # commands run outside a request (panel re-run, chips) are Pellaeon's, not the user's
-        return results
+
+    def app_version(self) -> str:
+        return chimerax_version()
 
     def command_usage(self, name: str) -> str:
         def f():
@@ -695,18 +730,43 @@ class ChimeraXExecutor:
                 flatten(val)
         return _run_on_main_thread(self.session, lambda: compute_displacement(self.session, prep, returns))
 
-    def membrane_orient(self, model: str, pdb: Optional[str] = None, slabs: bool = True) -> Dict[str, Any]:
-        from .analysis import membrane_orient
-        return _run_on_main_thread(self.session, lambda: membrane_orient(self.session, model, pdb, slabs))
+    # the membrane view and the GPCRdb models are put together by the agent (core/agent.py): the lookups below
+    # run on its thread, the scene is read in short hops, and every command goes through execute_commands
+    def membrane_target(self, model: str, pdb: Optional[str] = None) -> Dict[str, Any]:
+        from .analysis import membrane_target
+        return _run_on_main_thread(self.session, lambda: membrane_target(self.session, model, pdb))
+
+    def opm_candidates(self, accession: str) -> Dict[str, Any]:
+        """PDB entries of a receptor to try on OPM, from GPCRdb (network only)."""
+        from .core import gpcrdb
+        entry = gpcrdb.entry_for_accession(accession)
+        return {"entry": entry, "pdb": gpcrdb.opm_order(gpcrdb.structures(entry).get("structures") or [])}
+
+    def opm_fetch(self, pdb_id: str) -> str:
+        """OPM's oriented coordinates for a PDB entry, downloaded into the cache (network only)."""
+        from . import analysis
+        return analysis.fetch_to_cache("https://opm-assets.storage.googleapis.com/pdb/%s.pdb" % pdb_id.lower())
+
+    def membrane_frame(self, ref: str) -> Dict[str, Any]:
+        from .analysis import membrane_frame
+        return _run_on_main_thread(self.session, lambda: membrane_frame(self.session, ref))
+
+    def membrane_geometry(self, model: str) -> Dict[str, Any]:
+        from .analysis import membrane_geometry
+        return _run_on_main_thread(self.session, lambda: membrane_geometry(self.session, model))
+
+    def membrane_from_topology(self, model: str, accession: str, slabs: bool, why: str, feats: Dict[str, Any]) -> Dict[str, Any]:
+        from .analysis import membrane_from_topology
+        return _run_on_main_thread(self.session, lambda: membrane_from_topology(self.session, model, accession, slabs, why, feats))
 
     def view_axis(self, model: str = "", axis: str = "short") -> Dict[str, Any]:
         from .analysis import view_axis
         return _run_on_main_thread(self.session, lambda: view_axis(self.session, model or "", axis or "short"))
 
-    def gpcr_states(self, protein: str, open_states: Optional[List[str]] = None) -> Dict[str, Any]:
-        from .analysis import gpcr_states
-        cache = os.path.join(pellaeon_dir("cache"), "gpcrdb")
-        return _run_on_main_thread(self.session, lambda: gpcr_states(self.session, protein, open_states, cache))
+    def gpcr_lookup(self, protein: str, open_states: Optional[List[str]] = None) -> Dict[str, Any]:
+        """GPCRdb's structure list and multistate models for a receptor (network only)."""
+        from .core import gpcrdb
+        return gpcrdb.lookup(protein, open_states, os.path.join(pellaeon_dir("cache"), "gpcrdb"))
 
     def sequence_identity(self, spec: str = "", chain: Optional[str] = None) -> Dict[str, Any]:
         from .analysis import sequence_identity
@@ -717,11 +777,17 @@ class ChimeraXExecutor:
         return _run_on_main_thread(self.session, lambda: close_windows(
             self.session, which, getattr(self.session, "_pellaeon_opened_tools", [])))
 
-    def checkpoint_request(self, request_text: str) -> None:
-        """Record a restore point before this request runs (see undo_last_request)."""
+    def checkpoint_request(self, request_text: str) -> Dict[str, Any]:
+        """Record a restore point before this request changes anything (see undo_last_request). The result says
+        whether a session file was saved (`cxs_path`) or why not (`save_error`, `cap_reason`)."""
         from .analysis import checkpoint_request as _checkpoint
         cache_dir = os.path.join(pellaeon_dir("cache"), "checkpoints")
-        _run_on_main_thread(self.session, lambda: _checkpoint(self.session, request_text, cache_dir))
+        return _run_on_main_thread(self.session, lambda: _checkpoint(self.session, request_text, cache_dir))
+
+    def finish_request(self) -> None:
+        """The request has ended: keep what it changed for undo_last_request."""
+        from .analysis import finish_request as _finish
+        _run_on_main_thread(self.session, lambda: _finish(self.session))
 
     def pending_undo(self, direct: bool = False) -> Dict[str, Any]:
         from .analysis import pending_undo
@@ -841,6 +907,11 @@ class ChimeraXExecutor:
             from chimerax.core.commands import run
             buf = io.StringIO()
             ns = {"session": self.session, "run": run}
+            try:
+                from .analysis import before_batch
+                before_batch(self.session, [], reason="can change anything")
+            except Exception:  # noqa: BLE001
+                pass
             try:
                 with contextlib.redirect_stdout(buf):
                     exec(compile(code, "<pellaeon>", "exec"), ns)

@@ -50,7 +50,7 @@ The panel opens on its settings page. The choices:
 - **Nothing to install, free:** pick **Mistral**, click "get a key", sign up at console.mistral.ai, press *Create new key*, and paste it into Pellaeon. Free, no credit card, takes two minutes. Pellaeon uses `ministral-8b-latest`, which the free tier serves at about 190 requests a minute. Google Gemini is an equally good choice at 15 requests a minute; its key comes from AI Studio the same way.
 - **The AI runs on your computer:** pick **Ollama**. Pellaeon checks whether Ollama is installed; if not, it offers the download link (ollama.com, a normal installer). After installing, press **Pull** next to `gemma4:12b` once (8 GB, needs a 12 GB GPU; on a smaller card pull `qwen3:8b`, on a laptop `qwen3:4b` and expect slower answers).
 
-One thing to know before you paste a cloud key. With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection, the commands you ran by hand in ChimeraX since your previous request (with their output) and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings. The free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models: for unpublished work use Ollama, or check the provider's data-handling terms first ([Mistral](https://mistral.ai/terms), [Google](https://ai.google.dev/gemini-api/terms)).
+One thing to know before you paste a cloud key. With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection, the commands you ran by hand in ChimeraX since your previous request (with their output) and any table you loaded are sent to that provider. Screenshots of the 3D view are shared only when the review-the-view option is enabled in Settings; a picture you attach to a request is sent with it. The free tiers of Mistral and Gemini are evaluation tiers, and both providers may use what you send to improve their models: for unpublished work use Ollama, or check the provider's data-handling terms first ([Mistral](https://mistral.ai/terms), [Google](https://ai.google.dev/gemini-api/terms)).
 
 Press **Test connection**, then **Save & use**, or **Run a first request**, which saves the settings and has the AI open ubiquitin and color it by chain. You can switch providers any time with the gear icon.
 
@@ -164,10 +164,52 @@ The folder contains more than the picture:
 | `<name>.cxs` | a ChimeraX session (when *include session* is ticked): reopen and keep working |
 | `<name>.cxc` | the commands Pellaeon recorded, replayable with `open <name>.cxc`; mouse rotations and commands typed outside Pellaeon are not in it, the session is |
 | `<name>_colors.csv` | ribbon and atom color of every residue |
-| `<name>_legend.md` | a draft legend written only from the recorded commands, annotations and tables |
-| `<name>.json` | structures and their sources (PDB id, AlphaFold accession or file), camera, background, sizes |
+| `<name>_report.md`, `<name>_report.html` | the figure report: legend, Methods paragraph, sources with release and retrieval date, the commands, citations (below) |
+| `figure.json` | the same facts as data |
 
 When the AI saves a figure on its own the image save asks for your OK first, like any other file write.
+
+#### Figure report
+
+**Figure report…** under **?** saves the current view at publication size with the same files. The report is written from what Pellaeon recorded (the structures open, the colour commands that ran, the annotations placed and where they came from, the key on screen), never from the model's prose; a fact that was not recorded says "(not recorded)". For hemoglobin coloured by chain with a key, it reads:
+
+````
+# hb
+
+![hb](hb.png)
+
+## Legend
+
+**hb.** Structure: PDB 4HHB (#1; chains A, B, C and D). Colours: #1 by chain. Key: cornflowerblue A, orange B, green C, red D. Background #ffffff.
+
+## Methods
+
+Structures were rendered in UCSF ChimeraX 1.9 [1] with Pellaeon 0.2.14 [2]. PDB entry 4HHB was opened in ChimeraX. #1 was coloured by chain. The image was saved at 2400 x 1800 pixels with 3x supersampling. The ChimeraX commands that produced the view are listed below.
+
+## Sources
+
+- #1: PDB 4HHB
+
+## Commands
+
+Every command that ran in this chat, in order (the same script is in the .cxc file).
+
+```
+open 4hhb
+color #1 bychain
+key delete
+key cornflowerblue:A orange:B green:C red:D
+```
+
+## References
+
+1. Meng EC, Goddard TD, Pettersen EF, Couch GS, Pearson ZJ, Morris JH, Ferrin TE. UCSF ChimeraX: tools for structure building and analysis. Protein Sci. 2023;32(11):e4792. doi:10.1002/pro.4792
+2. Amir Y. Pellaeon: an AI assistant for UCSF ChimeraX. Zenodo. doi:10.5281/zenodo.23395411
+
+_Written by Pellaeon from the recorded commands and sources on 2026-10-30. Check it before use._
+````
+
+An annotation adds its source to Sources and References, with the release and the day it was fetched, and says how its residues were placed on each chain (the file's UniProt reference, an offset, or an alignment).
 
 <!--CLIP part3_figure_saved | 0:13 | Step 5b, save a figure bundle-->
 
@@ -319,12 +361,14 @@ Every value is stored as a residue attribute named `pellaeon_<table>_<column>`, 
 
 ## Part 3: Good to know
 
-- **Undo:** the ↶ button in the panel's top bar (or the **Undo last request** chip, or "undo the last request") restores the session to its state before the previous request, from a checkpoint Pellaeon saves before each request. Its tooltip names the request it would undo. For sessions above 300,000 atoms the checkpoint holds only the list of open models, so their display is not restored. "Undo the last change" runs ChimeraX's own undo, which reverses supported actions only. Save a session (`.cxs`) before experimenting on something you care about.
+- **Undo:** the ↶ button in the panel's top bar (or the **Undo last request** chip, or "undo the last request") restores the session to how it was before the last request, from a restore point saved just before that request's first change. A question saves none, so Undo still reaches the last request that changed something. Its tooltip names the request it would undo. For sessions above 300,000 atoms the restore point holds only the list of open models, so their display is not restored; a slow or failed save is announced before the change, and Undo then only closes the models the request opened. "Undo the last change" runs ChimeraX's own undo, which reverses supported actions only. Save a session (`.cxs`) before experimenting on something you care about.
+- **Snapshot undo (preview):** start ChimeraX with the environment variable `PELLAEON_UNDO=snapshot` and each request records, in memory, the state it changes; Undo puts that back and keeps what you changed by hand since. A session file is saved only before a command that deletes, replaces or runs code. Several requests can be undone in turn. Off by default.
+- **Stop:** the Send button turns into **Stop** while a request runs (Escape does the same). It ends a batch after the command that is running, and the result says which commands did not run. Database lookups (GPCRdb, OPM, UniProt) run in the background, so the window stays live.
 - **Review the view:** the **Review the view** chip makes Pellaeon take a screenshot, judge framing, clutter, labels and colors, fix what it can and look again. Reviewing screenshots requires a vision-capable model and the review-the-view option enabled in Settings. Which models were tested for it is on the [Tested models](models.html) page.
 - **What changed on screen:** each result says what the commands changed in the 3D view. A command that ran but changed nothing is marked *changed nothing* in amber, and "why is this red?" tells you which command, table or annotation gave a residue its look.
 - **Labels** are drawn at a fixed size, on top of everything, with a white background, so they stay readable in screenshots; when more than twenty residues are labeled at once, one-letter codes (H87) are used. Color keys whose labels would overlap are drawn longer or with a smaller font. Ask for a specific size or color and Pellaeon uses that instead; the switch is in Settings ▸ Advanced.
 - **When it gets a command wrong**, it reads ChimeraX's error and the real syntax and retries once or twice. Explain what went wrong so Pellaeon can revise the request.
-- **Learned fixes:** Settings ▸ *view*, next to "Remember command fixes". When ChimeraX refuses a command and another one with the same first word runs instead, Pellaeon keeps the pair on this computer and offers it to the model when that command comes up again. **Share with the Pellaeon project…** copies the list and opens an empty GitHub page; nothing is sent unless you paste and post it.
+- **Learned fixes:** Settings ▸ *view*, next to "Remember command fixes". When ChimeraX refuses a command and a corrected form of the same command runs instead and changes something, Pellaeon keeps the pair on this computer, tied to your ChimeraX version, and offers it to the model when that refusal comes up again. Undoing or complaining about a turn removes what it taught. **Share with the Pellaeon project…** copies the list and opens an empty GitHub page; nothing is sent unless you paste and post it.
 - **Report a problem:** the **?** button opens Help. **Report a problem…** copies a report (versions, the model, the last two turns, with file paths and web addresses replaced) and opens an empty GitHub issue.
 - **Export a session as a script:** the ⇩ button saves every command that actually ran as a `.cxc` file; replay it with `open myscript.cxc`.
 - **Your own data:** ⊞ imports a per-residue CSV/TSV (Step 11).

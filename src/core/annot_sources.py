@@ -14,6 +14,7 @@ Numbering matters and the two sources differ, so every dataset says which it use
 from __future__ import annotations
 
 import csv
+import datetime
 import io
 import json
 import os
@@ -123,7 +124,7 @@ def alphamissense(accession: str, cache_dir: Optional[str] = None, timeout: floa
            "source": "AlphaMissense (Cheng et al. 2023) via AlphaFold DB",
            "source_url": csv_url, "palette": "blue-white-red",
            "gene": rec.get("gene") or "", "protein": rec.get("uniprotDescription") or "",
-           "n_positions": len(rows), "n_variants": n_variants,
+           "n_positions": len(rows), "n_variants": n_variants, "fetched": datetime.date.today().isoformat(),
            "value_range": [min(means), max(means)],
            "cutoffs": {"likely benign below": AM_BENIGN_MAX, "likely pathogenic above": AM_PATHOGENIC_MIN}}
     _store(path, out)
@@ -223,7 +224,7 @@ def conservation(accession_or_pdb: str, chain: str = "", cache_dir: Optional[str
            "name": "consurf_%s_%s" % (pdb, chain), "position_numbering": "pdb", "position_column": "position",
            "source": "ConSurf-DB (Ben Chorin et al.) grades for %s chain %s" % (rep_pdb, rep_chain),
            "source_url": score_url, "palette": "consurf", "pdb": pdb, "chain": chain,
-           "representative": "%s/%s" % (rep_pdb, rep_chain), "note": note,
+           "representative": "%s/%s" % (rep_pdb, rep_chain), "note": note, "fetched": datetime.date.today().isoformat(),
            "n_positions": len(rows), "value_range": [min(grades), max(grades)],
            "colors": {str(k): v for k, v in CONSURF_COLORS.items()}, "msa_depth": depth, "n_insufficient": n_insufficient, **extras}
     if depth and depth < 50:

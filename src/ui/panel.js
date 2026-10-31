@@ -6,20 +6,24 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
   let seq = 0;
-  const state = {presets: [], settings: {}, keyMasked: "", keySource: "", busy: false, turns: {}, configured: false, config: {}, chatgpt: {signed_in: false, plan: ""}};
+  const state = {presets: [], settings: {}, keyMasked: "", keySource: "", busy: false, turns: {}, configured: false, config: {}, chatgpt: {signed_in: false, plan: ""},
+                 reasoning: {},    // model -> {levels, default}, from the ChatGPT catalog
+                 attachments: []}; // pictures waiting to go with the next request
 
   // ---------------------------------------------------------------- bridge
   function send(action, params, payload) {
     const q = new URLSearchParams(params || {});
-    if (payload !== undefined) q.set("payload", JSON.stringify(payload));
     q.set("_", String(++seq));
     if (window.PELLAEON_HTTP) {
-      // classic edition: the panel runs in a normal browser and talks to a local server (token-authenticated)
-      fetch("/act/" + action + "?" + q.toString(), {method: "POST", headers: {"X-Pellaeon-Token": window.PELLAEON_TOKEN || ""}})
+      // classic edition: the panel runs in a normal browser and talks to a local server (token-authenticated);
+      // the payload travels in the body, where a picture fits (the request line is capped at 64 kB)
+      fetch("/act/" + action + "?" + q.toString(), {method: "POST", headers: {"X-Pellaeon-Token": window.PELLAEON_TOKEN || "", "Content-Type": "application/json"},
+                                                    body: payload !== undefined ? JSON.stringify(payload) : undefined})
         .then((r) => { if (!r.ok) toast("Pellaeon refused the request (" + r.status + ")", "error"); })
         .catch((e) => toast("Lost connection to Pellaeon: " + e.message, "error"));
       return;
     }
+    if (payload !== undefined) q.set("payload", JSON.stringify(payload));
     $("beacon").src = "pellaeon:" + action + "?" + q.toString();
   }
   if (window.PELLAEON_HTTP) {
@@ -65,12 +69,18 @@
   }
 
   // ---------------------------------------------------------------- transcript
-  function userMessage(id, text) {
+  function userMessage(id, text, images) {
     state.follow = true;
     $("welcome") && $("welcome").remove();
     const el = document.createElement("div");
     el.className = "msg user";
     el.textContent = text;
+    if (images && images.length) {
+      const row = document.createElement("div");
+      row.className = "pics";
+      images.forEach((u) => { const im = document.createElement("img"); im.src = u; im.alt = "attached picture"; row.appendChild(im); });
+      el.appendChild(row);
+    }
     $("transcript").appendChild(el);
     scrollDown(true);
   }
@@ -233,9 +243,10 @@
       if (c.ref_spec) h += '<div class="rrow"><button class="secondary small" data-rerun="show ' + esc(c.ref_spec) + ' models">Show reference</button> <button class="secondary small" data-rerun="hide ' + esc(c.ref_spec) + ' models">Hide reference</button> <button class="secondary small" data-rerun="view ' + esc(c.other_spec || c.compared) + '">Frame</button></div>';
       if (c.note) h += '<div class="rrow muted">' + esc(c.note) + "</div>";
     } else if (name === "save_figure") {
-      h += '<div class="rrow"><b>Figure bundle saved</b> to <code>' + esc(c.folder) + "</code> · " + c.width + "×" + c.height + "</div>";
+      h += '<div class="rrow"><b>Figure saved</b> to <code>' + esc(c.folder) + "</code> · " + c.width + "×" + c.height + (c.report ? " · report " + esc(c.report) : "") + "</div>";
       h += '<div class="rrow muted">' + esc((c.files || []).join(" · ")) + "</div>";
-      if (c.legend) h += '<details class="tool inner"><summary><span class="label">Draft legend</span></summary><div class="cmd-info">' + esc(c.legend) + "</div></details>";
+      if (c.legend) h += '<details class="tool inner"><summary><span class="label">Legend</span></summary><div class="cmd-info">' + esc(c.legend) + "</div></details>";
+      if (c.methods) h += '<details class="tool inner"><summary><span class="label">Methods</span></summary><div class="cmd-info">' + esc(c.methods) + "</div></details>";
       if (c.note) h += '<div class="rrow warn">' + esc(c.note) + "</div>";
     } else if (name === "tidy_labels") {
       h += '<div class="rrow"><b>Labels tidied</b>: ' + c.labels + " on screen · " + c.kept + " kept · " + c.moved + " nudged · " + c.removed + " removed</div>";
@@ -373,11 +384,33 @@
       $("s-key").dataset.unchanged = id === state.settings.preset && state.keyMasked ? "1" : "";
     }
     $("model-hints").innerHTML = (p.models_hint || []).map((m) => '<span class="pill" data-model="' + esc(m) + '">' + esc(m) + "</span>").join("");
-    $("model-hints").querySelectorAll(".pill").forEach((el) => (el.onclick = () => ($("s-model").value = el.dataset.model)));
+    $("model-hints").querySelectorAll(".pill").forEach((el) => (el.onclick = () => pickModel(el.dataset.model)));
     $("s-pull").value = p.model || "";
     $("test-result").textContent = "";
     $("test-result").className = "hints";
+    renderEffort();
     if (p.provider === "ollama") { $("test-result").textContent = "Checking for Ollama…"; send("settings_test", {}, settingsPayload()); }
+    // the catalog says which reasoning levels each model takes: read it once when the page opens signed in
+    if (p.provider === "chatgpt" && (state.chatgpt || {}).signed_in && !state.reasoningAsked) { state.reasoningAsked = true; send("list_models", {}, settingsPayload()); }
+  }
+  function pickModel(name) { $("s-model").value = name; renderEffort(); }
+  const EFFORT_FIXED = [["", "Default"], ["low", "Low (fast, cheap)"], ["medium", "Medium"], ["high", "High"], ["xhigh", "Extra high"]];
+  const EFFORT_NAMES = {low: "Low", medium: "Medium", high: "High", xhigh: "Extra high", max: "Max", ultra: "Ultra"};
+  function renderEffort(want) {
+    // the levels the chosen model takes, from the catalog, its default marked; the fixed list when the catalog has none
+    const sel = $("s-effort");
+    if (want == null) want = sel.value;
+    const info = $("presets").dataset.selected === "chatgpt" ? state.reasoning[$("s-model").value.trim()] : null;
+    let opts = EFFORT_FIXED;
+    if (info && (info.levels || []).length) {
+      // "" stays "the model's default", so a later model change follows that model's default; only the other levels are explicit
+      opts = info.levels.map((l) => (l === info.default ? ["", (EFFORT_NAMES[l] || l) + " (default)"] : [l, EFFORT_NAMES[l] || l]));
+      if (want === info.default) want = "";
+    } else if (want && !opts.some((o) => o[0] === want)) {
+      opts = opts.concat([[want, EFFORT_NAMES[want] || want]]);   // a saved level the fixed list lacks stays saved
+    }
+    sel.innerHTML = opts.map((o) => '<option value="' + esc(o[0]) + '">' + esc(o[1]) + "</option>").join("");
+    sel.value = opts.some((o) => o[0] === want) ? want : "";
   }
   function renderSignin() {
     const a = state.chatgpt || {};
@@ -406,7 +439,7 @@
     $("btn-learned").textContent = "view (" + (s.learned_count || 0) + ")";
     $("s-vision").checked = !!s.vision;
     $("s-think").checked = !!s.think;
-    $("s-effort").value = s.effort || "";
+    renderEffort(s.effort || "");
     $("s-temp").value = s.temperature != null ? s.temperature : 0.2;
   }
   function settingsPayload() {
@@ -457,7 +490,7 @@
     tr.innerHTML = "";
     Object.keys(state.turns).forEach((k) => delete state.turns[k]);
     (msg.messages || []).forEach((m, i) => {
-      if (m.role === "user") userMessage("h" + i, m.text);
+      if (m.role === "user") userMessage("h" + i, m.text, m.images);
       else {
         const el = document.createElement("div");
         el.className = "msg assistant";
@@ -522,7 +555,7 @@
   function figureForm(m) {
     const el = document.createElement("div"); el.className = "msg assistant";
     const box = document.createElement("div"); box.className = "rcard tcard";
-    box.innerHTML = '<div class="rrow"><b>Save a figure bundle</b>: image, ChimeraX session, replayable script, per-residue colors, model sources and a draft legend, in one folder.</div>' +
+    box.innerHTML = '<div class="rrow"><b>Save a figure with its report</b>: the image, a ChimeraX session, the replayable script, per-residue colors, and a report (Markdown, HTML, figure.json) with the legend, methods, sources and commands, in one folder.</div>' +
       '<div class="rrow form">Name <input data-figname value="' + esc(m.name) + '" size="18"> Folder <input data-figfolder value="' + esc(m.folder) + '" size="22"> <button class="secondary small" data-pick>Choose…</button></div>' +
       '<div class="rrow form">Size <select data-figsize><option value="1600x1200">1600 × 1200</option><option value="2400x1800" selected>2400 × 1800</option><option value="3600x2700">3600 × 2700</option><option value="1920x1080">1920 × 1080</option></select>' +
       ' <label class="check"><input type="checkbox" data-figtransp> transparent background</label> <label class="check"><input type="checkbox" data-figsession checked> include session</label></div>' +
@@ -568,14 +601,92 @@
     return currentSel.n === 1 ? "residue " + currentSel.number + " (" + currentSel.name + ") of chain " + currentSel.chain + " in " + currentSel.model : "the selected residues " + currentSel.spec;
   }
 
+  // ---------------------------------------------------------------- attached pictures
+  // Pictures go to Python as base64 in the request's address, which Chromium caps at 2 MB: each is drawn down
+  // to a long side of 1024 px (plenty for the model, a tenth of the tokens of a full screenshot) and all of
+  // them together must stay under MAX_SEND_CHARS. The original size travels in the message for the record.
+  const IMAGE_LONG_SIDE = 1024, THUMB_SIDE = 160, MAX_IMAGES = 4, MAX_SEND_CHARS = 1200000;
+  function drawImage(img, side, white) {
+    const w = img.naturalWidth, h = img.naturalHeight, s = Math.min(1, side / Math.max(w, h, 1));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s));
+    const ctx = c.getContext("2d");
+    if (white) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); }   // JPEG has no transparency
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  }
+  function encodeImage(img, file, budget) {
+    // screenshots and figures with text keep sharp edges as PNG when that stays small; otherwise JPEG
+    const tries = [];
+    if (file.type === "image/png") tries.push([IMAGE_LONG_SIDE, "image/png", undefined, 900000]);
+    tries.push([IMAGE_LONG_SIDE, "image/jpeg", 0.85, budget], [IMAGE_LONG_SIDE, "image/jpeg", 0.7, budget], [768, "image/jpeg", 0.6, budget]);
+    for (const [side, mime, q, cap] of tries) {
+      const url = drawImage(img, side, mime === "image/jpeg").toDataURL(mime, q);
+      if (url.length <= Math.min(cap, budget)) {
+        const thumb = drawImage(img, THUMB_SIDE, true).toDataURL("image/jpeg", 0.8);
+        return {b64: url.slice(url.indexOf(",") + 1), mime: mime, name: file.name || "pasted image", width: img.naturalWidth, height: img.naturalHeight,
+                thumb: thumb.slice(thumb.indexOf(",") + 1), thumbUrl: thumb};
+      }
+    }
+    return null;
+  }
+  // one at a time: the limit and the order must hold when several arrive in one paste or drop
+  let attachQueue = Promise.resolve();
+  function addImageFile(file) { attachQueue = attachQueue.then(() => readImageFile(file)); }
+  function readImageFile(file) {
+    if (!file || !/^image\//.test(file.type)) return;
+    if (state.attachments.length >= MAX_IMAGES) { toast("Up to " + MAX_IMAGES + " pictures per request", "warn"); return; }
+    return new Promise((done) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const used = state.attachments.reduce((n, a) => n + a.b64.length, 0);
+            const att = encodeImage(img, file, MAX_SEND_CHARS - used);
+            if (!att) { toast("No room for that picture in this request; send the others first", "warn"); return; }
+            state.attachments.push(att);
+            renderAttachments();
+            $("input").focus();
+          } finally { done(); }
+        };
+        img.onerror = () => { toast("Could not read that picture", "error"); done(); };
+        img.src = reader.result;
+      };
+      reader.onerror = () => { toast("Could not read that picture", "error"); done(); };
+      reader.readAsDataURL(file);
+    });
+  }
+  function renderAttachments() {
+    const box = $("attachments");
+    box.innerHTML = "";
+    state.attachments.forEach((a, i) => {
+      const el = document.createElement("div");
+      el.className = "att";
+      el.title = a.name + " · " + a.width + "×" + a.height;
+      el.innerHTML = '<img alt=""><button class="x" title="Remove">×</button>';
+      el.querySelector("img").src = a.thumbUrl;
+      el.querySelector(".x").onclick = () => { state.attachments.splice(i, 1); renderAttachments(); };
+      box.appendChild(el);
+    });
+    box.hidden = !state.attachments.length;
+  }
+  function imageFiles(dt) { return Array.from((dt && dt.files) || []).filter((f) => /^image\//.test(f.type)); }
+  function dragHasFiles(e) { return Array.from((e.dataTransfer || {}).types || []).includes("Files"); }
+
   // ---------------------------------------------------------------- input
   function submit(text, keepSel) {
     text = (text || "").trim();
-    if (!text) return;
+    const images = state.attachments;
+    if (!text && !images.length) return;
     if (/artistically done/i.test(text)) { toast("Thrawn would approve.", "ok"); $("input").value = ""; return; }
     if (state.busy) { toast("Still working — press Stop first", "warn"); return; }
     if (!state.configured) { showPage("settings"); toast("Choose an AI provider first", "warn"); return; }
-    send("send", keepSel ? {text: text, keep_selection: "1"} : {text: text});
+    const params = {text: text};
+    if (keepSel) params.keep_selection = "1";
+    send("send", params, images.length ? {images: images.map((a) => ({b64: a.b64, mime: a.mime, name: a.name, width: a.width, height: a.height, thumb: a.thumb}))} : undefined);
+    state.attachments = [];
+    renderAttachments();
     $("input").value = "";
     autosize();
   }
@@ -643,7 +754,7 @@
     config(m) { state.config = m.config || {}; state.configured = !!state.config.configured; updateConfigLine(); showPage("chat"); },
     show_page(m) { showPage(m.page); },
     state(m) { renderScene(m.state); },
-    user_message(m) { userMessage(m.id, m.text); },
+    user_message(m) { userMessage(m.id, m.text, m.images); },
     assistant_start(m) { assistantStart(m.id); },
     assistant_delta(m) { assistantDelta(m.id, m.text); },
     assistant_done(m) {
@@ -667,10 +778,14 @@
       const b = $("btn-undo");
       if (!b) return;
       b.disabled = !m.available;
-      b.title = m.available ? "Undo: restore ChimeraX to before \u201c" + (m.request || "the last request") + "\u201d" : "Nothing to undo yet";
+      const tip = m.available ? "Undo \u201c" + (m.request || "the last request") + "\u201d" + (m.detail ? ": " + m.detail : "")
+        + (m.warning ? ". " + m.warning.charAt(0).toUpperCase() + m.warning.slice(1) : "") : "Nothing to undo yet";
+      b.title = tip;
+      const chip = $("chip-undo");
+      if (chip) chip.title = m.available ? tip : "Restores ChimeraX to how it was before your last request";
     },
     toast(m) { toast(m.text, m.kind); },
-    clear() { $("transcript").innerHTML = WELCOME_HTML; wireWelcome(); Object.keys(state.turns).forEach((k) => delete state.turns[k]); $("usage").textContent = ""; showPage("chat"); },
+    clear() { $("transcript").innerHTML = WELCOME_HTML; wireWelcome(); Object.keys(state.turns).forEach((k) => delete state.turns[k]); $("usage").textContent = ""; state.attachments = []; renderAttachments(); showPage("chat"); },
     rerun_result(m) { rerunResult(m); },
     test_result(m) {
       const el = $("test-result");
@@ -689,8 +804,9 @@
       if (m.error) { $("test-result").textContent = m.error; $("test-result").className = "hints err"; }
       else if (m.models && m.models.length) {
         $("model-hints").innerHTML = m.models.slice(0, 12).map((x) => '<span class="pill" data-model="' + esc(x) + '">' + esc(x) + "</span>").join("") + (m.models.length > 12 ? '<span class="muted"> +' + (m.models.length - 12) + " more (type to search)</span>" : "");
-        $("model-hints").querySelectorAll(".pill").forEach((el) => (el.onclick = () => ($("s-model").value = el.dataset.model)));
+        $("model-hints").querySelectorAll(".pill").forEach((el) => (el.onclick = () => pickModel(el.dataset.model)));
       }
+      if (m.reasoning && Object.keys(m.reasoning).length) { state.reasoning = m.reasoning; renderEffort(); }
     },
     pull_progress(m) {
       const box = $("pull-progress");
@@ -745,11 +861,36 @@
     WELCOME_HTML = $("transcript").innerHTML;
     $("btn-clearkey").onclick = () => { $("s-key").value = ""; $("s-key").dataset.clear = "1"; $("key-note").textContent = "Key will be removed when you save."; };
     $("s-key").addEventListener("input", () => { $("s-key").dataset.clear = ""; });
+    $("s-model").addEventListener("input", () => renderEffort());
     $("send").onclick = () => (state.busy ? send("stop") : submit($("input").value));
     $("input").addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit($("input").value); }
     });
     $("input").addEventListener("input", autosize);
+    // pictures: pasted into the box, dropped anywhere on the panel, or picked with the button
+    $("input").addEventListener("paste", (e) => {
+      const files = Array.from((e.clipboardData || {}).items || []).filter((it) => it.kind === "file" && /^image\//.test(it.type)).map((it) => it.getAsFile()).filter(Boolean);
+      if (!files.length) return;
+      e.preventDefault();
+      files.forEach(addImageFile);
+    });
+    const composer = document.querySelector(".composer");
+    document.addEventListener("dragover", (e) => {
+      if (!dragHasFiles(e)) return;   // text dragged into the box stays the browser's
+      e.preventDefault();
+      if (imageFiles(e.dataTransfer).length || Array.from((e.dataTransfer || {}).items || []).some((it) => it.kind === "file" && /^image\//.test(it.type))) composer.classList.add("drop");
+    });
+    document.addEventListener("dragleave", (e) => { if (!e.relatedTarget) composer.classList.remove("drop"); });
+    document.addEventListener("drop", (e) => {
+      if (!dragHasFiles(e)) return;
+      e.preventDefault();
+      composer.classList.remove("drop");
+      const files = imageFiles(e.dataTransfer);
+      if (!files.length) { toast("Only pictures can be attached here; open structures with File > Open", "warn"); return; }
+      files.forEach(addImageFile);
+    });
+    $("btn-attach").onclick = () => $("file-attach").click();
+    $("file-attach").onchange = () => { Array.from($("file-attach").files).forEach(addImageFile); $("file-attach").value = ""; };
     $("chips").querySelectorAll("button").forEach((b) => (b.onclick = () => submit(b.dataset.text)));
     wireWelcome();
     $("btn-settings").onclick = () => showPage("settings");
@@ -762,6 +903,7 @@
     $("btn-copy-report").onclick = () => send("copy_report");
     $("btn-copy-chat").onclick = () => send("copy_chat");
     $("btn-export-2").onclick = () => send("export_cxc");
+    $("btn-figure-report").onclick = () => { showPage("chat"); send("figure_form"); };
     $("link-docs").onclick = (e) => { e.preventDefault(); send("open_url", { url: "https://tggr-lab.github.io/pellaeon/" }); };
     $("btn-new").onclick = () => send("new_chat");
     $("btn-export").onclick = () => send("export_cxc");

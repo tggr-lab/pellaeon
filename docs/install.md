@@ -78,11 +78,13 @@ Press **Test connection**, then **Save & use** or **Run a first request** (it sa
 
 Which model to run on the provider you picked, and how each one did on Pellaeon's own request sets, is on [Tested models](models.html).
 
+Signed in with ChatGPT, the model list includes the gpt-6.1 models (Sol, Terra). **Reasoning effort** (Settings ▸ Advanced) lists the levels the chosen ChatGPT model takes and marks the one it uses on its own; left on Default, it follows the model. For Claude the list is fixed.
+
 When a limit is hit Pellaeon waits and retries rather than failing, and on the tightest tiers it automatically shortens its prompt to fit. A quota that resets tomorrow is reported plainly instead of being retried.
 
 ## Privacy
 
-With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection, the commands you ran by hand in ChimeraX since your previous request (with their output) and any table you loaded are sent to that provider. Screenshots are shared only when the review-the-view option is enabled in Settings.
+With a local Ollama server, model requests are processed on your computer. Fetching structures and annotations still contacts external databases (PDB, AlphaFold DB, UniProt, ClinVar, ConSurf-DB). With a cloud provider, your request, the list of open models, the current selection, the commands you ran by hand in ChimeraX since your previous request (with their output) and any table you loaded are sent to that provider. Screenshots of the 3D view are shared only when the review-the-view option is enabled in Settings; a picture you attach to a request is sent with it.
 
 The free tiers of Mistral and Gemini are evaluation tiers, and both may use your requests to improve their models. For unpublished work, use a local model through Ollama, or check the provider's data-handling terms before you paste a key: [Mistral](https://mistral.ai/terms), [Google](https://ai.google.dev/gemini-api/terms).
 
@@ -103,4 +105,4 @@ ChimeraX edition: ChimeraX notes available bundle updates in **Tools ▸ More To
 | ChimeraX edition | `%LOCALAPPDATA%\UCSF\ChimeraX\Pellaeon\` | `~/Library/Application Support/ChimeraX/Pellaeon/` | `~/.local/share/ChimeraX/Pellaeon/` |
 | Classic edition | `%LOCALAPPDATA%\Pellaeon-Classic\` | `~/Library/Application Support/Pellaeon-Classic/` | `~/.local/share/pellaeon-classic/` |
 
-Chats are saved there as JSON, and `learned.json` holds the command corrections Pellaeon learns (Settings ▸ *Remember command fixes*; *view* lists them). Delete the folder to start clean.
+Chats are saved there as JSON, and `learned.json` holds the command corrections Pellaeon learns, each tied to the ChimeraX version it was learned under (Settings ▸ *Remember command fixes*; *view* lists them). Delete the folder to start clean.

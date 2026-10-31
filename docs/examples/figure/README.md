@@ -15,7 +15,7 @@ Open **4hhb** (hemoglobin), colored by chain, with residues 80-100 of chain A la
 
 ## Expected result
 
-The crowded label pile is nudged apart; labels that still overlap after nudging are removed (in the recorded run: 14 kept, 13 moved, 7 removed). A figure bundle (PNG, ChimeraX session, replay script, per-residue colors, draft legend) is written to a folder named after the figure, and the saved-files card lists all of them. See [`expected.png`](expected.png).
+The crowded label pile is nudged apart; labels that still overlap after nudging are removed (in the recorded run: 14 kept, 13 moved, 7 removed). A figure bundle (PNG, ChimeraX session, replay script, per-residue colors, a report with legend, methods, sources and commands) is written to a folder named after the figure, and the saved-files card lists all of them. See [`expected.png`](expected.png).
 
 ## About `commands.cxc`
 

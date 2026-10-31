@@ -17,8 +17,8 @@ from typing import Tuple, Any, Callable, Dict, List, Optional
 
 from . import prompt as prompt_mod
 from .fixups import suggest, rewrite as rewrite_command
-from .safety import AUTONOMY_AUTO, AUTONOMY_ALL, Classification, first_word, needs_confirmation, split_commands
-from .schema import (Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens, new_id)
+from .safety import AUTONOMY_AUTO, AUTONOMY_ALL, Classification, first_word, needs_confirmation, reads_only, split_commands
+from .schema import (ImagePart, Message, TextPart, ToolCall, ToolResult, Usage, estimate_tokens, new_id)
 from .recovery import split_joined, _looks_like_prose
 from .tools import shortlist, tool_specs
 from .beacons import mentions_structures
@@ -36,6 +36,21 @@ COMPACT_AFTER_TOKENS = 60000
 
 class TurnCancelled(Exception):
     pass
+
+
+def _quoted(path: str) -> str:
+    """A file path as a command argument: quoted when it has a space."""
+    return ('"%s"' % path) if " " in path else path
+
+
+def _opened_model(run: Dict[str, Any]) -> str:
+    """The top-level model an `open` batch made ('#3'), from its results; '' when none was."""
+    for r in run.get("results") or []:
+        for nm in r.get("new_models") or []:
+            mid = str(nm).split()[0] if str(nm).strip() else ""
+            if mid.startswith("#") and "." not in mid:
+                return mid
+    return ""
 
 
 _UNSET = object()      # "use the default callback" (None is a meaningful value: stream silently)
@@ -58,6 +73,10 @@ class AgentConfig:
     guards: bool = True                # deterministic guards (PELLAEON_GUARDS=off turns them off)
     shortlist_tools: bool = False      # offer specialised tools only when the request calls for them (tools.shortlist)
     learn_fixes: bool = True           # remember refused -> accepted command pairs across sessions (core.learned)
+    learned_by_family: bool = False    # offer learned fixes for every command family in the docs, not only on a matching refusal
+    # the static prompt variant (prompt.prompt_variant): "a" the long prompt of 0.2.13, "b" the merged identity, "c" b without the
+    # command directory, "d" c with the short tool descriptions, "e" and "e2" (default) the gotchas in the docs index; the default reads PELLAEON_PROMPT
+    prompt_variant: str = field(default_factory=prompt_mod.prompt_variant)
 
 
 NUDGE = ("(system) You did not call any tool, so NOTHING changed in ChimeraX. If the user asked you to change "
@@ -175,6 +194,7 @@ COMMANDS_ONLY = ("(system) You did not call the tool. Reply with ONLY the Chimer
 _LOOK_RE = re.compile(r"\b(look at|take a look|have a look|check|review|inspect|how does it look|does it look|what do you see|see the view|the screen|screenshot)\b", re.I)
 NUDGE_LOOK = ("(system) The user wants you to LOOK at the view. Call the tool look_at_view first (it returns a screenshot), "
               "describe what you see, then fix problems with commands and look again.")
+NO_VISION_NOTE = "This model cannot see images; the picture was not sent."
 # "email this to my boss", "print it out": ChimeraX cannot, and every model tested so far
 # tries to save a file as a first step anyway. Saving is still fine if the user also asked for it.
 _PLACEHOLDER_PATH_RE = re.compile(r"(path/to/|/path/|\byour[_-]?(own[_-]?)?(file|structure|map|data|model|channels?|results?)\b|"
@@ -227,7 +247,7 @@ _HARMLESS_TOOLS = {"Distances", "Log", "Help Viewer", "Command Line Interface", 
 
 # Opening what is already open. Asked to "open 4xt3 and color its surface by hydrophobicity" with 4xt3
 # loaded, or to split "this AlphaFold model" into PAE domains, models opened a second copy and then
-# worked on the wrong one (5 of 152 real-world requests).
+# worked on the wrong one.
 _OPEN_TARGET_RE = re.compile(r"^\s*(?:open\s+(?:pdb:)?([0-9][a-z0-9]{3})\s*$|open\s+alphafold:([a-z0-9_-]+)\b|"
                              r"alphafold\s+fetch\s+([a-z0-9_-]+)\b)", re.I)
 _OPEN_AGAIN_RE = re.compile(r"\b(again|another|second|copy|copies|twice|re-?open|re-?load|duplicate|fresh)\b", re.I)
@@ -493,6 +513,36 @@ def looks_like_complaint(text: str) -> bool:
     return bool(_COMPLAINT_RE.search((text or "").strip().lower()))
 
 
+_Q_SENTENCE_RE = re.compile(r"[^.!?\n]*\?(?=[\s\"')\]]|$)")
+_Q_TO_USER_RE = re.compile(r"\b(which|what|do you|did you|would you|could you|should i|shall i|you mean|you want|you like|"
+                           r"you prefer|you refer|are you|is it|or)\b", re.I)
+_OPTION_LINE_RE = re.compile(r"^\s*(?:[-*•]|\d+[.)]|[a-z][.)])\s+\S")
+_CHOICE_LEAD_RE = re.compile(r"\b(choose|pick|which|option|prefer|mean|specify|tell me|let me know)\b", re.I)
+
+
+def question_to_user(reply: str) -> str:
+    """The clarifying question a reply puts to the user, or "" when it asks none.
+
+    It counts as an ask when the model typed its question instead of calling ask_user. Conservative on purpose: a sentence ending in "?" counts only when it
+    addresses the user or offers alternatives (which/what, do you, would you, should I, you mean, X or Y),
+    or when a line ending in "?" (or in ":" and asking for a choice) is followed by two or more option lines
+    (- a / 1. b / a) c)."""
+    text = (reply or "").strip()
+    if not text or ("?" not in text and ":" not in text):
+        return ""
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        lead = line.rstrip()
+        if (lead.endswith("?") or (lead.endswith(":") and _CHOICE_LEAD_RE.search(lead))) \
+                and sum(1 for ln in lines[i + 1:i + 6] if _OPTION_LINE_RE.match(ln)) >= 2:
+            return line.strip()
+    for m in _Q_SENTENCE_RE.finditer(text):
+        s = m.group(0).strip()
+        if len(s) >= 8 and _Q_TO_USER_RE.search(s):
+            return s
+    return ""
+
+
 _QUESTION_STARTS = ("what", "why", "how", "which", "where", "when", "who", "is", "are", "do", "does", "did", "can",
                     "could", "should", "would", "explain", "tell", "describe", "list", "summarize", "summarise")
 _SMALL_TALK = {"thanks", "thank", "thx", "ok", "okay", "cool", "nice", "great", "hi", "hello", "hey", "bye", "good", "perfect"}
@@ -523,6 +573,9 @@ class Callbacks:
     on_confirm: Optional[Callable[..., Optional[List[str]]]] = None
     on_ask_user: Optional[Callable[[str, List[str]], None]] = None
     on_status: Optional[Callable[[str], None]] = None
+    # on_recovery({"covers": "models", "reason": ..., "request": ...}): said before a request changes anything
+    # when no copy of the session could be saved, so undo will only close the models it opens
+    on_recovery: Optional[Callable[[Dict[str, Any]], None]] = None
 
 
 @dataclass
@@ -563,6 +616,8 @@ class Agent:
         self.tables: Dict[str, Dict[str, Any]] = {}     # user-loaded tables (name -> dataset), shared with the panel
         self.layers: List[Dict[str, Any]] = []          # applied table overlays
         self.figure_notes: List[str] = []               # legend fragments from annotate / compare / table overlays
+        self.annotations: List[Dict[str, Any]] = []     # provenance of every annotation placed: source, version, retrieval date, mapping basis per chain
+        self.version: str = ""                          # Pellaeon's version, set by the host; the figure report cites it
         self.recovered_calls: int = 0                   # tool calls that arrived as text and were run anyway
         self.commands_only_turns: int = 0               # turns rescued by the commands-only fallback
         self.figures_dir: str = ""                      # where model-initiated figure bundles go (set by the host)
@@ -577,7 +632,8 @@ class Agent:
             recipes=self._prompt_parts["recipes"],
             allow_python=self.config.allow_python,
             vision=self.config.vision and getattr(self.provider, "supports_vision", False),
-            edition=self.config.edition, compact=self.compact, initiative=self.config.initiative)
+            edition=self.config.edition, compact=self.compact, initiative=self.config.initiative,
+            variant=self.config.prompt_variant)
 
     def go_compact(self) -> bool:
         """Switch to the short prompt and shrink what was already built. False if already compact."""
@@ -600,6 +656,15 @@ class Agent:
         return (bool(re.search(r"\b(?:http\s*)?413\b", t)) or "too large" in t or "too long" in t
                 or "reduce your message size" in t or "context length" in t or "maximum context" in t)
 
+    _IMAGE_REFUSED_RE = re.compile(r"image|vision|multimodal|input type|content type|must be a string", re.I)
+
+    def _drop_images(self) -> bool:
+        """Clear the attached pictures from the whole conversation (the thumbnails stay); True if any were there."""
+        parts = [p for m in self.conversation for p in m.parts if isinstance(p, ImagePart) and p.b64]
+        for p in parts:
+            p.b64 = ""
+        return bool(parts)
+
     def _stream(self, tools, cancel, on_delta=_UNSET):
         """Every model call goes through here, so one 'request too large' can retry compactly."""
         delta = self.cb.on_text_delta if on_delta is _UNSET else on_delta
@@ -610,6 +675,12 @@ class Agent:
                 self._status("The prompt was too large for this model; retrying with a shorter one…")
                 if tools:
                     tools = self._tools()
+                return self.provider.stream(self.system_prompt, self.conversation, tools, on_delta=delta, cancel=cancel)
+            if (self._IMAGE_REFUSED_RE.search(str(e)) and not getattr(e, "streamed", False) and self._drop_images()):
+                # an OpenAI-compatible server with a text-only model (Mistral's Ministral, Groq's gpt-oss) rejects
+                # the picture: the adapter cannot know the model, so the request goes again without it
+                self._images_refused = True
+                self._status("This model does not take pictures; sending the request without it…")
                 return self.provider.stream(self.system_prompt, self.conversation, tools, on_delta=delta, cancel=cancel)
             raise
 
@@ -622,7 +693,8 @@ class Agent:
                                      or "mutation_effect" in self._tools_used())
                            and os.environ.get("PELLAEON_MUTATION", "on") != "off",
                            structures=(mentions_structures(text) or "find_structures" in self._tools_used())
-                           and os.environ.get("PELLAEON_STRUCTURES", "on") != "off")
+                           and os.environ.get("PELLAEON_STRUCTURES", "on") != "off",
+                           variant=self.config.prompt_variant)
         env = os.environ.get("PELLAEON_SHORTLIST", "")
         if (self.config.shortlist_tools and env != "off") or env == "on":
             # the two previous requests count too (_prior_texts already ends with this one): "now for chain B"
@@ -651,8 +723,13 @@ class Agent:
         self._verified_accessions = set()
         self._user_text_upper = ""
 
-    def run_turn(self, user_text: str, cancel: Optional[threading.Event] = None) -> TurnResult:
+    def run_turn(self, user_text: str, cancel: Optional[threading.Event] = None,
+                 images: Optional[List[ImagePart]] = None) -> TurnResult:
         cancel = cancel or threading.Event()
+        images = [p for p in (images or []) if p.b64]
+        images_note = ""        # said in the reply when the pictures could not be sent
+        self._images_refused = False
+        self._cancel = cancel      # seen by the batches and lookups of this turn (a re-run from the panel has none)
         start_len = len(self.conversation)
         usage = Usage()
         try:
@@ -663,9 +740,9 @@ class Agent:
             self._nothing_to_run = False
             self._ran_this_turn = []
             if self.learned is not None:
+                self.learned.start_turn()
                 if looks_like_complaint(user_text):
                     self.learned.revoke_recent()   # what the previous turn "learned" led to this complaint
-                self.learned.start_turn()
             self._contacts_runs = {}
             self._turn_text = user_text
             self._coloring_sources = []
@@ -690,11 +767,7 @@ class Agent:
             self._turn_start_index = start_len
             self._user_text_upper += " " + user_text.upper()
             self._turn_text = user_text
-            if self.config.edition == "chimerax" and hasattr(self.executor, "checkpoint_request"):
-                try:   # a restore point for undo_last_request; bookkeeping must never break a turn
-                    self.executor.checkpoint_request(user_text)
-                except Exception:  # noqa: BLE001
-                    pass
+            self._checkpointed = False      # the restore point for undo is recorded before the first change (_ensure_checkpoint)
             self._manual = {}
             if hasattr(self.executor, "begin_turn"):
                 try:   # what the user did by hand since the last request (awareness.py)
@@ -703,9 +776,14 @@ class Agent:
                 except Exception:  # noqa: BLE001
                     self._manual = {}
                 now = time.time()
+                if self.learned is not None and any(first_word(str(t.get("command", ""))) == "undo" and t.get("ok", True)
+                                                    for t in self._manual.get("typed") or []):
+                    self.learned.revoke_recent()   # the user undid by hand what the last turn did
                 for t in self._manual.get("typed") or []:
                     self.journal.append({"ts": float(t.get("ts", now)), "origin": "typed", "command": t.get("command", ""),
                                          "ok": bool(t.get("ok", True)), "noop": False, "error": ""})
+                # what the user coloured by hand is part of what the colours mean (the legend and the colour note)
+                self._note_colorings([str(t.get("command", "")) for t in self._manual.get("typed") or [] if t.get("ok", True)])
                 prev_start = (list(getattr(self, "_turn_starts", [])) or [0.0])[-2:][0]
                 if any(j.get("origin") != "typed" and _ANIMATES_RE.match(str(j.get("command", "")))
                        and float(j.get("ts", 0)) >= prev_start for j in self.journal[-60:]):
@@ -714,7 +792,18 @@ class Agent:
                 if sel_now or any(self._manual.get(k) for k in ("opened", "shown", "hidden", "typed", "moved_models")):
                     self._no_recent_focus = False    # what the user just did by hand is the focus
             context = self._build_context(user_text)
-            self.conversation.append(Message.user(user_text, context))
+            if images:
+                # one line after the context blocks, before the request; nothing else in the prompt changes
+                what = "%d image%s" % (len(images), "" if len(images) == 1 else "s")
+                if getattr(self.provider, "supports_vision", False):
+                    context += "\n\nThe user attached %s." % what
+                else:
+                    context += "\n\nThe user attached %s, but this model cannot see images; %s not sent." % (
+                        what, "it was" if len(images) == 1 else "they were")
+                    images_note = NO_VISION_NOTE if len(images) == 1 else NO_VISION_NOTE.replace("the picture was", "the pictures were")
+                    for p in images:
+                        p.b64 = ""      # the thumbnail stays for the transcript; no adapter sends an empty image
+            self.conversation.append(Message.user(user_text, context, images))
             if self.config.edition == "chimerax" and _WHY_RE.search(user_text) and hasattr(self.executor, "residue_provenance"):
                 # "why is this red?": measured from the journal and the session, answered directly when the residue is unambiguous
                 target = self._why_target(user_text)
@@ -850,6 +939,10 @@ class Agent:
             self.total_usage.add(usage)
             self._maybe_compact()
             final = self._last_assistant_text()
+            if self._images_refused and not images_note:
+                images_note = NO_VISION_NOTE if len(images) <= 1 else NO_VISION_NOTE.replace("the picture was", "the pictures were")
+            if images_note:
+                final = images_note + "\n\n" + final if final else images_note
             return TurnResult(final, len(self.conversation) - start_len, usage)
         except (TurnCancelled, Cancelled):
             self._close_dangling_tool_calls("Cancelled by the user before this tool ran.")
@@ -865,12 +958,38 @@ class Agent:
             return TurnResult("Unexpected error: %s" % e, len(self.conversation) - start_len, usage, error=tb)
         finally:
             self._status("")
+            self._cancel = None
+            self._end_request()
             if getattr(self, "_in_turn", False):
                 self._in_turn = False
                 try:
                     self.executor.end_turn()
                 except Exception:  # noqa: BLE001
                     pass
+
+    def run_direct(self, label: str, fn, turn_text: str = ""):
+        """Run `fn` as a request of its own, outside a model turn: a tool chosen on a result card, a batch run again
+        from the transcript. It gets run_turn's checkpoint bookkeeping, so a restore point named `label` is recorded
+        before its first change and what it changed is kept for undo when it ends. `turn_text` is '' by default: the
+        user chose the call, nothing was asked for in words."""
+        self._turn_text = turn_text
+        self._checkpoint_label = label
+        self._checkpointed = False
+        try:
+            return fn()
+        finally:
+            self._end_request()
+
+    def _end_request(self) -> None:
+        """A request has ended: nothing records a restore point until the next one, and what this one changed is
+        kept for undo_last_request. Bookkeeping must never break a turn."""
+        self._checkpointed = True
+        self._checkpoint_label = ""
+        if self.config.edition == "chimerax" and hasattr(self.executor, "finish_request"):
+            try:
+                self.executor.finish_request()
+            except Exception:  # noqa: BLE001
+                pass
 
     def _loop(self, tools, cancel: threading.Event, usage: Usage) -> Dict[str, bool]:
         """Model -> tools -> model ... until a reply without tool calls. Returns flags."""
@@ -983,6 +1102,47 @@ class Agent:
         if self.cb.on_status:
             self.cb.on_status(msg)
 
+    def _check_cancel(self) -> None:
+        """Stop here when the user pressed Stop: called by a tool between its lookups and its first change."""
+        cancel = getattr(self, "_cancel", None)
+        if cancel is not None and cancel.is_set():
+            raise TurnCancelled()
+
+    def _ensure_checkpoint(self) -> None:
+        """A restore point for undo_last_request, recorded once per request, right before its first command or tool
+        that changes something; a question answered with `info` records none. When no copy of the session could be
+        saved, the panel is told before the change that undo will only close the models the request opens."""
+        if getattr(self, "_checkpointed", True) or self.config.edition != "chimerax" or not hasattr(self.executor, "checkpoint_request"):
+            return
+        self._checkpointed = True
+        try:   # bookkeeping must never break a turn
+            cp = self.executor.checkpoint_request(getattr(self, "_turn_text", "") or getattr(self, "_checkpoint_label", "") or "")
+        except Exception:  # noqa: BLE001
+            return
+        if not isinstance(cp, dict) or cp.get("quiet") or not self.cb.on_recovery:
+            return
+        reason = ("the session could not be saved (%s)" % cp["save_error"]) if cp.get("save_error") else \
+            (cp.get("cap_reason") if cp.get("capped") else "")
+        if reason:
+            self.cb.on_recovery({"covers": "models", "reason": reason, "request": cp.get("request", "")})
+
+    def _run_executor_commands(self, commands: List[str], ignore_stop: bool = False) -> List[Dict[str, Any]]:
+        """executor.run_commands with this turn's cancel event, so a batch stops after the command that is
+        running when Stop is pressed. Executors without a `cancel` parameter run the batch whole. `ignore_stop`:
+        the batch runs whole even after Stop (closing a helper model Pellaeon opened)."""
+        cancel = None if ignore_stop else getattr(self, "_cancel", None)
+        takes = getattr(self, "_executor_takes_cancel", None)
+        if takes is None:
+            import inspect
+            try:
+                takes = "cancel" in inspect.signature(self.executor.run_commands).parameters
+            except (TypeError, ValueError):
+                takes = False
+            self._executor_takes_cancel = takes
+        if cancel is not None and takes:
+            return self.executor.run_commands(commands, cancel=cancel)
+        return self.executor.run_commands(commands)
+
     _ABSENCE_WORDS_RE = re.compile(r"\b(absent|missing|not (present|found|exist|in)|does ?n[o']t exist|no such|no residue|is not part)\b", re.I)
     _CLAIMS_CHANGE_RE = re.compile(r"\b(I have|I've|I) (hidden|shown|displayed|isolated|colou?red|updated the (view|display)|changed the (view|display))\b", re.I)
 
@@ -1071,7 +1231,7 @@ class Agent:
         self._stale_key, self._stale_key_turn = stale, turn
         if ok and not self._KEY_WORD_RE.search(getattr(self, "_turn_text", "") or ""):
             cmds = ["key delete"] + (["2dlabels delete %s" % stale["title"]] if stale.get("title") else [])
-            done = self.executor.run_commands(cmds)
+            done = self._run_executor_commands(cmds)
             now = time.time()
             for r in done:
                 self.journal.append({"ts": now, "origin": origin, "command": r.get("command", ""), "ok": bool(r.get("ok")),
@@ -1099,7 +1259,7 @@ class Agent:
         return ("The color key %s on screen (%s) describes an earlier colouring: most of its colours are on no displayed "
                 "structure. `key delete` removes it." % (stale.get("id") or "", ", ".join(stale["names"][:8])))
 
-    _SIMPLE_COLOR_RE = re.compile(r"^colou?r\s+(?P<spec>\S.*?)\s+(?P<color>[A-Za-z]+(?: ?[A-Za-z]+)?|#[0-9A-Fa-f]{6,8})(?:\s+target\s+\w+)?\s*$", re.I)
+    _SIMPLE_COLOR_RE = re.compile(r"^colou?r\s+(?P<spec>\S.*?)\s+(?P<color>[A-Za-z]+(?: ?[A-Za-z]+)?|#[0-9A-Fa-f]{6,8})(?:\s+target\s+(?P<target>\w+))?\s*$", re.I)
     _SCHEME_COLOR_RE = re.compile(r"^(?:colou?r\s+(?P<spec>\S+)?\s*(?P<scheme>by\w+|bfactor|zone|sequential|single|fromatoms|fromribbons)\b|rainbow\b|coulombic\b|mlp\b|color\s+electrostatic)", re.I)
     _COLOR_WORD_RE = re.compile(r"^(white|black|red|green|blue|yellow|orange|purple|magenta|cyan|gray|grey|pink|brown|gold|salmon|tan|khaki|lime|navy|teal|violet|"
                                 r"indigo|maroon|olive|silver|coral|crimson|turquoise|plum|orchid|sienna|beige|ivory|lavender|aquamarine|chartreuse|"
@@ -1108,8 +1268,10 @@ class Agent:
     def _note_colorings(self, ran: List[str]) -> None:
         """Keep what the colours on screen mean, from the colour commands that ran: `color #1:ala,val white`
         records white = #1:ala,val; a scheme (`color bfactor`, `rainbow`) replaces the record of its model;
-        a whole-model colour resets it. The context block states this, so a key or a "what does green mean"
-        starts from the truth instead of from a documentation example."""
+        a whole-model colour resets it, unless it is on part of the look only (`color #1 white target s`): that is
+        kept with its target and resets nothing, the atoms and cartoons keep their colours. Typed colour commands
+        are fed in at the start of the next request (run_turn). The context block states this, so a key or a
+        "what does green mean" starts from the truth instead of from a documentation example."""
         store: Dict[str, List[Tuple[str, str]]] = getattr(self, "_colorings", None) or {}
         for cmd in ran:
             c = cmd.strip()
@@ -1128,8 +1290,12 @@ class Agent:
                 continue
             model = _model_of(spec)
             entries = store.get(model, [])
+            target = (m.group("target") or "").lower()
             if re.match(r"^(#\d+(?:\.\d+)*|all|protein|nucleic)$", spec, re.I):
-                entries = []            # a whole-model colour: everything before it is overwritten
+                if not target or {"a", "c"} <= set(target):
+                    entries = []        # a whole-model colour: everything before it is overwritten
+                else:
+                    spec = "%s target %s" % (spec, target)     # surfaces or cartoons alone: the rest keeps its colours
             entries = [(col, sp) for col, sp in entries if sp != spec]
             entries.append((color, spec))
             store[model] = entries[-10:]
@@ -1247,7 +1413,7 @@ class Agent:
             found = (found + "\n" if found else "") + colors
         if found:
             note = (note + "\n" if note else "") + found
-        if self.learned is not None and self.config.learn_fixes:
+        if self.learned is not None and self.config.learn_fixes and self.config.learned_by_family:
             words = [str(d.get("command", "")) for d in docs if isinstance(d, dict)]
             lines = self.learned.for_words(words)
             if lines:
@@ -1382,7 +1548,8 @@ class Agent:
                                               str(self._scalar(args.get("name"), "") or ""), int(args.get("width") or 2400),
                                               int(args.get("height") or 1800), 3, bool(args.get("transparent", False)),
                                               str(self._scalar(args.get("closeup"), "") or ""), True, preapproved=False)
-                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k not in ("commands", "legend")}, ensure_ascii=False),
+                # the legend and methods are for the files and the panel card, not for the model's context
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k not in ("commands", "legend", "methods")}, ensure_ascii=False),
                                     is_error="error" in payload)
             elif name == "tidy_labels":
                 payload = self._tidy_labels(str(self._scalar(args.get("keep"), "") or ""))
@@ -1413,6 +1580,7 @@ class Agent:
                 if approved is None:
                     result = ToolResult(call.id, name, "The user declined to run this code.", is_error=True)
                 else:
+                    self._ensure_checkpoint()       # the code can change anything
                     payload = self.executor.run_python(approved[0] if approved else code)
                     result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error=not payload.get("ok", False))
             elif name == "fetch_annotation":
@@ -1448,18 +1616,22 @@ class Agent:
                     elif self.config.autonomy == AUTONOMY_ALL:
                         payload = fn()
                     else:
+                        # the same words as the Undo button's tooltip (pending_undo's detail and warning)
+                        detail = preview.get("detail") or ("closes the model(s) it opened" if preview.get("kind") == "models"
+                                                           else "restores ChimeraX to before it; anything done since is lost")
+                        if preview.get("warning"):
+                            detail += "; " + preview["warning"]
                         classification = Classification(
                             "undo_last_request", True,
-                            "restores ChimeraX to before the last request (\"%s\")%s; anything done since is lost"
-                            % (preview.get("request", "the last request"),
-                               " by closing the model(s) it opened" if preview.get("kind") == "models" else ""))
+                            "undoes the last request (\"%s\"): %s" % (preview.get("request", "the last request"), detail))
                         approved = self._confirm([classification.command], [classification.reason])
                         payload = {"error": "The user chose not to undo.", "skipped": True} if approved is None else fn()
+                if self.learned is not None and not payload.get("error"):
+                    self.learned.revoke_recent()   # the request that taught it is undone
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False),
                                     is_error=bool(payload.get("error")) and not payload.get("skipped"))
             elif name in ("membrane_view", "gpcr_states"):
-                fn = getattr(self.executor, "membrane_orient" if name == "membrane_view" else "gpcr_states", None)
-                if fn is None:
+                if not hasattr(self.executor, "membrane_target" if name == "membrane_view" else "gpcr_lookup"):
                     payload = {"error": "%s is not available in this edition." % name}
                 elif name == "membrane_view":
                     # minimal scope: the membrane planes are drawn only when the request speaks of a membrane
@@ -1467,18 +1639,21 @@ class Agent:
                         slabs = bool(args.get("slabs"))
                     else:
                         slabs = bool(re.search(r"membrane|bilayer|lipid|slab|plane", getattr(self, "_turn_text", "") or "", re.I))
-                    payload = fn(str(self._scalar(args.get("model"), "#1") or "#1"), str(self._scalar(args.get("pdb"), "") or "") or None, slabs)
+                    payload = self._membrane_view(str(self._scalar(args.get("model"), "#1") or "#1"),
+                                                  str(self._scalar(args.get("pdb"), "") or "") or None, slabs)
                 else:
                     states = args.get("open_states") or []
                     if isinstance(states, str):
                         states = [x.strip() for x in re.split(r"[,\s]+", states) if x.strip()]
-                    payload = fn(str(self._scalar(args.get("protein"), "") or ""), [str(x).lower() for x in states])
-                result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
+                    payload = self._gpcr_states(str(self._scalar(args.get("protein"), "") or ""), [str(x).lower() for x in states])
+                result = ToolResult(call.id, name, json.dumps({k: v for k, v in payload.items() if k != "commands"}, ensure_ascii=False),
+                                    is_error="error" in payload)
             elif name == "view_axis":
                 fn = getattr(self.executor, "view_axis", None)
                 if fn is None:
                     payload = {"error": "view_axis is not available in this edition."}
                 else:
+                    self._ensure_checkpoint()       # moves the camera outside execute_commands
                     payload = fn(str(self._scalar(args.get("model"), "") or ""), str(self._scalar(args.get("axis"), "short") or "short").lower())
                 result = ToolResult(call.id, name, json.dumps(payload, ensure_ascii=False), is_error="error" in payload)
             elif name == "mutation_effect":
@@ -1525,6 +1700,8 @@ class Agent:
                                     image_png_b64=payload.get("png_b64"))
             else:
                 result = ToolResult(call.id, name, "Unknown tool: %s" % name, is_error=True)
+        except (TurnCancelled, Cancelled):
+            raise       # Stop pressed during a lookup: the turn ends, the loop closes the call
         except Exception as e:
             result = ToolResult(call.id, name, "Tool failed: %s" % e, is_error=True)
         if getattr(self, "_overlay_pending", "") and isinstance(payload, dict) and not payload.get("error") and payload.get("colored", True):
@@ -1555,8 +1732,10 @@ class Agent:
             commands.extend(split_commands(str(c)))
         return self.execute_commands(commands, origin="model")
 
-    def execute_commands(self, commands: List[str], origin: str = "model", preapproved: bool = False) -> Dict[str, Any]:
-        """The single path for running commands: rewrites, policy, repeat guard, execution, journal."""
+    def execute_commands(self, commands: List[str], origin: str = "model", preapproved: bool = False,
+                         ignore_stop: bool = False) -> Dict[str, Any]:
+        """The single path for running commands: rewrites, policy, repeat guard, execution, journal. `ignore_stop`:
+        run even after Stop was pressed (a clean-up that must not be left half done)."""
         commands = split_joined([c.strip() for c in commands if c and c.strip()])
         notes: List[str] = []
         tags: List[str] = []
@@ -1574,7 +1753,7 @@ class Agent:
                                  and not any(first_word(x) in ("select", "sel") for x in self._ran_this_turn) else
                                  "Nothing else is needed for this request. Reply to the user now with the outcome you already have "
                                  "(for example that a residue is absent and the selection is unchanged); do not try other commands.")}
-        out = self._execute_commands(commands, origin, preapproved)
+        out = self._execute_commands(commands, origin, preapproved, ignore_stop)
         if origin == "model" and self.config.guards and self.config.edition == "chimerax":
             # `select A` then `select B` with nothing using A in between: run as written (the request may mean either
             # a replacement or both sets) and say what the selection now is, with the command for each reading
@@ -2056,7 +2235,7 @@ class Agent:
                 out["note"] += " " + more["note"]
         return out
 
-    def _execute_commands(self, commands: List[str], origin: str = "model", preapproved: bool = False) -> Dict[str, Any]:
+    def _execute_commands(self, commands: List[str], origin: str = "model", preapproved: bool = False, ignore_stop: bool = False) -> Dict[str, Any]:
         if not commands:
             return {"ok": False, "results": [], "error": "No commands given."}
         blocked = None
@@ -2315,14 +2494,18 @@ class Agent:
                 sel_snap = None
         vis_before = self._visible_snapshot()
         key_before = self._key_status() if any(first_word(c) in self._RECOLOR_WORDS for c in commands) else {}
-        results = self.executor.run_commands(commands)
+        if not all(reads_only(c) for c in commands):
+            self._ensure_checkpoint()
+        results = self._run_executor_commands(commands, ignore_stop)
         self._windows_this_turn = list(getattr(self, "_windows_this_turn", [])) + [
             t for t in (getattr(self.executor, "last_new_tools", None) or []) if t not in _HARMLESS_TOOLS]
-        bad = next((r for r in results if not r.get("ok") and str(r.get("command", "")).startswith("2dlabels change pellaeon_title ")), None)
+        bad = next((i for i, r in enumerate(results) if not r.get("ok") and str(r.get("command", "")).startswith("2dlabels change pellaeon_title ")), None)
         if bad is not None:      # the title Pellaeon remembered was deleted by hand: make it afresh
-            commands = [("2dlabels create pellaeon_title " + c[len("2dlabels change pellaeon_title "):]) if c == bad["command"] else c
-                        for c in commands]
-            results = self.executor.run_commands(commands)
+            # the batch stopped there, so only the title and what follows it run again; the commands before it ran once
+            rest = [("2dlabels create pellaeon_title " + c[len("2dlabels change pellaeon_title "):]) if c == results[bad]["command"] else c
+                    for c in commands[bad:]]
+            commands = commands[:bad] + rest
+            results = results[:bad] + self._run_executor_commands(rest)
         self._legend_title = any(str(r.get("command", "")).startswith("2dlabels ") and "pellaeon_title" in str(r.get("command", "")) and r.get("ok")
                                  for r in results) or getattr(self, "_legend_title", False)
         now = time.time()
@@ -2335,10 +2518,19 @@ class Agent:
                 self._failed_opens = set(getattr(self, "_failed_opens", set())) | {mo.group(1).lower()}
         ok = all(r.get("ok") for r in results) and len(results) == len(commands)
         out: Dict[str, Any] = {"ok": ok, "results": results}
+        cancel = getattr(self, "_cancel", None)
+        if cancel is not None and cancel.is_set() and len(results) < len(commands) and all(r.get("ok") for r in results):
+            # Stop was pressed while a command ran: it finished, the rest did not start
+            out["not_run"] = commands[len(results):]
+            out["cancelled"] = True
+            out["error"] = ("Stopped by the user after %s; %d command(s) did not run." % (results[-1]["command"], len(out["not_run"]))
+                            if results else "Stopped by the user before any command ran.")
         self._ran_this_turn = list(getattr(self, "_ran_this_turn", [])) + [str(r.get("command", "")) for r in results if r.get("ok")]
         self._note_colorings([str(r.get("command", "")) for r in results if r.get("ok")])
+        batch_unchanged = False
         if vis_before is not None:
             eff = effects.summary([str(r.get("command", "")) for r in results if r.get("ok")], vis_before, self._visible_snapshot())
+            batch_unchanged = str((eff or {}).get("visible", "")).startswith("No visible change")
             if eff:
                 out["visible"] = eff["visible"]
                 self._last_visible = eff["visible"]
@@ -2348,17 +2540,7 @@ class Agent:
                     out["fixups"] = list(out.get("fixups") or []) + ["blank_structure" if "now shows nothing" in eff["visible"] else "invisible_change"]
         if key_before.get("entries"):
             self._check_stale_key(key_before, out, results, origin, ok)
-        if self.learned is not None and self.config.learn_fixes and self._failed_errors:
-            # the first command of the same family that ran after a refusal this turn is its corrected form;
-            # the refusal is then paired once, so a later batch of the same family adds nothing
-            for r in results:
-                if not r.get("ok"):
-                    continue
-                good = str(r.get("command", "")).strip()
-                for bad in list(self._failed_errors):
-                    if bad != good and first_word(bad) == first_word(good):
-                        self.learned.add(bad, good, self._failed_errors.pop(bad, ""))
-                        break
+        pending_refusals = dict(self._failed_errors)   # refused in earlier batches of this turn: candidates for a fix
         if not ok:
             failed = [r for r in results if not r.get("ok")]
             if failed:
@@ -2385,9 +2567,13 @@ class Agent:
                     phint = ("`sequence identity` takes alignment ids, not chains. For the identity between chains call the "
                              "sequence_identity tool (no window, nothing recolored). " + (phint or "")).strip()
                 if self.learned is not None and self.config.learn_fixes:
-                    learned = self.learned.for_failure(str(failed[0].get("command", "")))
+                    if self.config.learned_by_family:
+                        learned = self.learned.for_words([str(failed[0].get("command", ""))])
+                    else:
+                        learned = self.learned.for_failure(str(failed[0].get("command", "")), str(failed[0].get("error", "")))
                     if learned:
                         phint = ((phint + " ") if phint else "") + "Earlier: " + " ".join(learned)
+                        out["fixups"] = list(out.get("fixups") or []) + ["learned_fix"]
                 if tip or phint:
                     out["suggestion"] = " ".join(x for x in (tip, phint) if x)
                 out["hint"] = ("Run a corrected command now (follow the suggestion if there is one, else the usage). "
@@ -2471,7 +2657,30 @@ class Agent:
                     "If it is a wrong spec, check with get_state or use residue names / built-in selectors, then run corrected commands." % "; ".join(noops)
                 if not noops and not absent:
                     out.pop("no_effect", None)
+        self._learn_pairs(out.get("results", []), pending_refusals, batch_unchanged)
+        if self.learned is not None and any(r.get("ok") and first_word(str(r.get("command", ""))) == "undo" for r in out.get("results", [])):
+            self.learned.revoke_recent()   # what was just learned has been undone
         return out
+
+    def _learn_pairs(self, results: List[Dict[str, Any]], pending: Dict[str, str], unchanged: bool) -> None:
+        """A command that ran after a refusal earlier in the turn is the refusal's corrected form when it is the
+        same operation on the same target (core.learned.same_operation) and it had an effect: it matched atoms
+        and, when the screen check covers it, the batch changed something. Each refusal is paired once."""
+        if self.learned is None or not self.config.learn_fixes or not pending:
+            return
+        for r in results:
+            if not r.get("ok") or r.get("noop"):
+                continue
+            good = str(r.get("command", "")).strip()
+            if unchanged and effects.measured(good):
+                continue
+            for bad in list(pending):
+                if bad == good or first_word(bad) != first_word(good):
+                    continue
+                if self.learned.add(bad, good, pending[bad]) or self.learned.last_reason == "known":
+                    pending.pop(bad, None)
+                    self._failed_errors.pop(bad, None)
+                    break
 
     _CHAIN_RES_SPEC_RE = re.compile(r"^\s*(?:select|sel|color|colour|show|hide|style|label)\s+(?:(?:add|subtract|intersect)\s+)?#(\d+)/([A-Za-z0-9]+):(-?\d+)([A-Za-z]?)\s*(?:\S+)?\s*$", re.I)
 
@@ -2565,6 +2774,128 @@ class Agent:
             out["commands"] = out["commands"] + col.get("results", [])
             if col.get("skipped"):
                 out["note"] = "The user declined the coloring commands."
+        return out
+
+    # ------------------------------------------------------------ GPCRdb models / membrane view (the lookups run here,
+    # on the worker thread; the scene is read in short hops and every command goes through execute_commands)
+    def _gpcr_states(self, protein: str, states: List[str]) -> Dict[str, Any]:
+        """GPCRdb for a receptor: its experimental structures and, on request, its AlphaFold-Multistate models
+        opened, named and superposed on each other."""
+        out = self.executor.gpcr_lookup(protein, states)
+        if out.get("error"):
+            return out
+        models = out.pop("models", None) or []
+        self._check_cancel()       # Stop pressed while GPCRdb answered: nothing opens
+        entry = str(out.get("entry", ""))
+        opened = []
+        for m in models:
+            run = self.execute_commands(["open %s" % _quoted(m["path"])], origin="gpcrdb", preapproved=True)
+            mid = _opened_model(run)
+            if not run.get("ok") or not mid:
+                out.setdefault("model_errors", []).append("Could not open the %s model: %s" % (m["state"], run.get("error") or "no model was made"))
+                continue
+            name = "GPCRdb %s %s (AlphaFold-Multistate%s)" % (entry, m["state"], (" " + m["version"]) if m.get("version") else "")
+            self.execute_commands(['rename %s "%s"' % (mid, name)], origin="gpcrdb", preapproved=True)
+            opened.append({"model": mid, "state": m["state"], "name": name, "path": m["path"]})
+        if len(opened) >= 2:
+            self.execute_commands(["matchmaker %s to %s" % (opened[1]["model"], opened[0]["model"])], origin="gpcrdb", preapproved=True)
+            # no recording recipe here: given one, the model records a movie to the desktop unasked
+            out["animation"] = ("For a state-change animation: morph %s,%s frames 30 same true  (makes a new model; play it with "
+                                "coordset #N 1,30). Record or save only if the user asks."
+                                % (opened[0]["model"].lstrip("#"), opened[1]["model"].lstrip("#")))
+        if not states:
+            out["multistate_models"] = ("GPCRdb also has AlphaFold-Multistate models (inactive and active, full length) for this receptor; "
+                                        "call gpcr_states again with open_states=['inactive','active'] to open them.")
+        out["opened"] = opened
+        out["note"] = ("Experimental structures are listed with their state and ligand; open one with `open <pdb>`. The multistate "
+                       "models are full-length AlphaFold predictions from GPCRdb, one per state, superposed on each other.")
+        return out
+
+    def _membrane_view(self, model: str, pdb: Optional[str], slabs: bool) -> Dict[str, Any]:
+        """Put a membrane protein in the membrane frame from OPM (Orientations of Proteins in Membranes): fetch
+        OPM's oriented coordinates for a PDB entry, superpose the model onto them, look from the side with the
+        extracellular face up, and optionally draw the two membrane boundaries."""
+        target = self.executor.membrane_target(model, pdb)
+        if target.get("error"):
+            return target
+        st, acc = target["model"], target.get("accession") or ""
+        candidates, via = ([target["pdb"]] if target.get("pdb") else []), ""
+        if not candidates and acc:
+            # an AlphaFold/UniProt model: for a GPCR, GPCRdb knows its experimental structures; try those on OPM
+            try:
+                found = self.executor.opm_candidates(acc)
+                candidates, via = list(found.get("pdb") or []), "GPCRdb (%s)" % found.get("entry", "")
+            except Exception:  # noqa: BLE001
+                candidates = []
+        if not candidates:
+            if acc and not pdb:
+                return self._membrane_from_topology(st, acc, slabs, "no PDB entry to look up in OPM", target)
+            return {"error": "No PDB id for %s (%s). Give the PDB entry of this protein or a close homologue (pdb='3vw7'); "
+                             "OPM stores orientations per PDB entry." % (model, target.get("name"))}
+        path, tried = None, []
+        for ident in candidates:
+            try:
+                path = self.executor.opm_fetch(ident)
+                break
+            except Exception as e:  # noqa: BLE001
+                tried.append("%s (%s)" % (ident.upper(), str(e)[:60]))
+        if path is None:
+            if acc and not pdb:
+                return self._membrane_from_topology(st, acc, slabs, "OPM has none of %s" % ", ".join(t.split()[0] for t in tried), target)
+            return {"error": "OPM has no entry for %s. Try the PDB entry of a close homologue." % "; ".join(tried)}
+        # Stop pressed during the download: nothing changes. The download itself is not interrupted (the HTTP
+        # client has no cancel); Stop takes effect when it returns, at worst after the request's timeout
+        self._check_cancel()
+        run = self.execute_commands(["open %s" % _quoted(path)], origin="membrane", preapproved=True)
+        ref = _opened_model(run)
+        if not run.get("ok") or not ref:
+            return {"error": "Could not open OPM's %s: %s" % (ident.upper(), run.get("error") or "no model was made")}
+        closed = False
+        try:
+            frame = self.executor.membrane_frame(ref)
+            if frame.get("error"):
+                return {"error": "OPM returned no structure for %s." % ident.upper()}
+            half = float(frame["half"])
+            mm = self.execute_commands(["matchmaker %s to %s" % (st, ref)], origin="membrane", preapproved=True)
+            if not mm.get("ok"):
+                return {"error": "Could not superpose %s on OPM's %s: %s" % (st, ident.upper(), mm.get("error", ""))}
+            geo = self.executor.membrane_geometry(st)
+            if geo.get("error"):
+                return geo
+            # OPM's frame: z is the membrane normal, +z the extracellular side (checked on 3vw7: ECL residues at z ~ +19);
+            # look along the membrane plane with +z up on screen
+            cmds = ["close %s" % " ".join([ref] + list(target.get("planes") or [])), "view orient", "turn x -90"]
+            if slabs:
+                w = int(geo["extent"] + 30)
+                for z, name in ((half, "pellaeon_membrane_out"), (-half, "pellaeon_membrane_in")):
+                    # a thin box, not a one-sided sheet: the sheet's back face is unlit and shows black from below
+                    cmds.append("shape rectangle width %d height %d center %.1f,%.1f,%.1f slab 1.5 color #90a4ae80 name %s"
+                                % (w, w, geo["cx"], geo["cy"], z, name))
+            cmds.append("view %s" % st)
+            done = self.execute_commands(cmds, origin="membrane", preapproved=True)
+            closed = any(r.get("ok") and str(r.get("command", "")).startswith("close ") for r in done.get("results", []))
+            self._check_cancel()       # Stop during the frame's commands: the view is not as described
+            return {"model": st, "opm_entry": ident.upper(), "membrane_half_thickness": round(half, 1),
+                    "extracellular": "up (+z of the OPM frame); cytoplasm down", "slabs": bool(slabs),
+                    "reference_via": via or "the model's own PDB id", "commands": done.get("results", []),
+                    "note": "The camera now looks along the membrane with the extracellular side up. Turning with `turn y N` keeps that; "
+                            "`view` re-fits. Other structures superposed on %s share the frame." % st
+                            + (" The N-terminal region has low pLDDT: its placement (across the membrane plane or elsewhere) is not modelled; "
+                               "hide or fade it if asked, never move the model." if geo.get("low_plddt") else "")}
+        finally:
+            if not closed:     # an error, or Stop, between the open and the close: the reference does not stay in the session
+                self.execute_commands(["close %s" % ref], origin="membrane", preapproved=True, ignore_stop=True)
+
+    def _membrane_from_topology(self, st: str, acc: str, slabs: bool, why: str, target: Dict[str, Any]) -> Dict[str, Any]:
+        """OPM has nothing for this model: orient it from the UniProt topology instead (fetched here, applied in a hop)."""
+        feats = self.executor.protein_features(acc, ["Transmembrane", "Topological domain"]) or {}
+        self._check_cancel()
+        self._ensure_checkpoint()       # the hop moves the model
+        out = self.executor.membrane_from_topology(st, acc, slabs, why, feats)
+        if out.get("error"):
+            return out
+        cmds = (["close %s" % " ".join(target["planes"])] if target.get("planes") else []) + list(out.pop("commands", None) or [])
+        out["commands"] = self.execute_commands(cmds, origin="membrane", preapproved=True).get("results", [])
         return out
 
     def _mentions_table(self, text: str) -> bool:
@@ -2915,6 +3246,13 @@ class Agent:
             payload["note"] = ds["note"]
         if "error" not in payload:
             self.figure_notes.append("%s: %s." % (ds["source"], payload.get("summary") or column))
+            if self.annotations and self.annotations[-1].get("dataset") == name:
+                # the overlay's record names the table; the figure report needs the database behind it
+                self.annotations[-1].update({
+                    "tool": "fetch_annotation", "database": "AlphaMissense" if src.startswith("alpha") else "ConSurf-DB",
+                    "label": "AlphaMissense pathogenicity" if src.startswith("alpha") else "ConSurf conservation",
+                    "source": ds["source"], "url": ds.get("source_url", ""), "fetched": str(ds.get("fetched") or ""),
+                    "release": "", "representative": ds.get("representative", ""), "msa_depth": ds.get("msa_depth")})
         return payload
 
 
@@ -3152,7 +3490,11 @@ class Agent:
         run = self.execute_commands(cmds, origin="figure", preapproved=preapproved)
         if run.get("skipped"):
             return {"error": "The user did not approve saving the files.", "skipped": True}
-        files = [os.path.basename(c.split('"')[1]) for c in cmds if c.startswith("save ") and '"' in c]
+        # only what was written is listed: a save that failed (or never ran after one failed) is no file
+        saved = [os.path.basename(str(r.get("command", "")).split('"')[1]) for r in run.get("results", [])
+                 if r.get("ok") and str(r.get("command", "")).startswith("save ") and '"' in str(r.get("command", ""))]
+        files = list(saved)
+        png_saved = (name + ".png") in saved
         # text files: script, colors, sources + metadata, draft legend
         from .agent import export_lines_for  # noqa: F401  (self-import guard for classic packaging)
         script = export_lines_for(self)
@@ -3170,48 +3512,32 @@ class Agent:
             with open(os.path.join(outdir, name + "_colors.csv"), "w", newline="", encoding="utf-8") as f:
                 w = csv.writer(f); w.writerow(["model", "chain", "number", "residue", "ribbon_color", "atom_color"]); w.writerows(rows)
             files.append(name + "_colors.csv")
-        legend = self._legend_text(name, info)
-        with open(os.path.join(outdir, name + "_legend.md"), "w", encoding="utf-8") as f:
-            f.write(legend + "\n")
-        files.append(name + "_legend.md")
-        meta = {"name": name, "date": datetime.datetime.now().isoformat(timespec="seconds"), "chimerax": info.get("chimerax_version", ""),
-                "pellaeon": getattr(self, "version", ""), "image": {"width": width, "height": height, "supersample": supersample, "transparent": transparent},
-                "closeup": closeup.strip() or None, "models": info["models"], "background": info.get("background"), "camera": info.get("camera"),
-                "labels": info.get("labels", 0), "tables": [{"dataset": l["dataset"], "column": l["column"], "legend": l.get("legend")} for l in self.layers],
-                "notes": list(self.figure_notes), "commands_recorded": len(self.journal), "files": files}
-        with open(os.path.join(outdir, name + ".json"), "w", encoding="utf-8") as f:
-            json.dump(meta, f, indent=2, ensure_ascii=False)
-        files.append(name + ".json")
-        out = {"folder": outdir, "files": files, "legend": legend, "commands": run.get("results", []), "ok": bool(run.get("ok")),
+        # the report: legend, methods, sources and commands from the recorded facts (core/report.py), as Markdown,
+        # HTML and figure.json. Nothing in it comes from the model's prose.
+        from .report import collect_facts, render_markdown, render_html, facts_json, legend_lines, methods_paragraph
+        image = {"file": (name + ".png") if png_saved else "", "width": width if png_saved else None, "height": height if png_saved else None,
+                 "supersample": max(1, int(supersample)), "transparent": transparent, "saved": png_saved,
+                 "closeup": closeup.strip() or None, "closeup_file": (name + "_closeup.png") if (name + "_closeup.png") in saved else None}
+        facts = collect_facts(self, info, image, name)
+        facts["saved"] = datetime.datetime.now().isoformat(timespec="seconds")
+        facts["camera"], facts["window"] = info.get("camera"), info.get("window")
+        facts["session_file"] = (name + ".cxs") if (name + ".cxs") in saved else None
+        facts["tables"] = [{"dataset": l["dataset"], "column": l["column"], "legend": l.get("legend")} for l in self.layers]
+        report_files = [name + "_report.md", name + "_report.html", "figure.json"]
+        facts["files"] = files + report_files
+        with open(os.path.join(outdir, name + "_report.md"), "w", encoding="utf-8") as f:
+            f.write(render_markdown(facts))
+        with open(os.path.join(outdir, name + "_report.html"), "w", encoding="utf-8") as f:
+            f.write(render_html(facts))
+        with open(os.path.join(outdir, "figure.json"), "w", encoding="utf-8") as f:
+            f.write(facts_json(facts))
+        files += report_files
+        out = {"folder": outdir, "files": files, "legend": " ".join(legend_lines(facts)), "methods": methods_paragraph(facts),
+               "report": name + "_report.md", "commands": run.get("results", []), "ok": bool(run.get("ok")),
                "models": [m["source"] for m in info["models"]], "width": width, "height": height}
         if not run.get("ok"):
             out["note"] = "Some save commands failed; see the commands."
         return out
-
-    def _legend_text(self, name: str, info: Dict[str, Any]) -> str:
-        """Draft legend from recorded actions only."""
-        who = {"model": "", "rerun": "", "annotate": " (annotation)", "table": " (table overlay)", "compare": " (comparison)", "tidy": ""}
-        parts = ["# %s" % name, ""]
-        srcs = ["%s (%s)" % (m["name"], m["source"]) if m["source"] != m["name"] else m["name"] for m in info["models"]]
-        parts.append("Structure%s: %s." % ("s" if len(srcs) > 1 else "", "; ".join(srcs)))
-        colors = [j for j in self.journal if j.get("ok") and not j.get("noop") and first_word(j.get("command", "")) in ("color", "rainbow", "coloring")]
-        if colors:
-            last = colors[-1]
-            parts.append("Coloring: `%s`%s." % (last["command"], who.get(last.get("origin", ""), "")))
-        for n in self.figure_notes[-4:]:
-            parts.append(n.rstrip(".") + ".")
-        for l in self.layers:
-            parts.append("Table overlay %s / %s: %s." % (l["dataset"], l["column"], l.get("legend", "")))
-        styles = [j["command"] for j in self.journal if j.get("ok") and first_word(j.get("command", "")) in ("cartoon", "style", "show", "hide", "surface", "transparency")][-3:]
-        if styles:
-            parts.append("Representation commands: " + "; ".join("`%s`" % c for c in styles) + ".")
-        if info.get("labels"):
-            parts.append("%d label%s shown." % (info["labels"], "" if info["labels"] == 1 else "s"))
-        parts.append("Background %s. Rendered with ChimeraX %s; every command that produced this view is in %s.cxc." % (
-            info.get("background", ""), info.get("chimerax_version", ""), name))
-        parts.append("")
-        parts.append("_Draft written from the recorded commands; edit before use._")
-        return "\n".join(parts)
 
     def _refreshed_context(self, ctx: str) -> str:
         """The turn's context with its state block brought up to date. A nudge used to carry the state from before
@@ -3375,7 +3701,7 @@ class Agent:
     @staticmethod
     def _explain_text(p: Dict[str, Any]) -> str:
         who = {"model": "from your request", "rerun": "re-run by you", "typed": "typed by you in ChimeraX", "annotate": "by the annotation", "table": "by the table overlay",
-               "compare": "by the comparison", "tidy": "by tidy labels"}
+               "compare": "by the comparison", "tidy": "by tidy labels", "gpcrdb": "by the GPCRdb models", "membrane": "by the membrane view"}
         parts = ["**%s** (chain %s, %s)" % (p.get("residue"), p.get("chain"), p.get("model"))]
         look = []
         if p.get("ribbon_color"):
@@ -3489,6 +3815,7 @@ class Agent:
             return {"error": "Column '%s' has no usable values." % cols[ci]}
         numbering = "structure residue numbers"
         numbering_map = None
+        chain_status: List[Dict[str, Any]] = []
         own_numbers = str(accession or "").strip().lower() in ("none", "structure", "pdb")   # chosen: the structure's own numbers
         acc = "" if own_numbers else (accession or ds.get("accession") or "").strip()
         if not acc and not own_numbers and g.get("accession") is not None:
@@ -3512,6 +3839,7 @@ class Agent:
                     "candidates": mp.get("candidates") or []}))
             else:
                 numbering_map = {int(k): v for k, v in (mp.get("map") or {}).items()}
+                chain_status = [dict(c) for c in (mp.get("chain_status") or [])]
                 offs = mp.get("offsets") or {}
                 aligned = [c for c in (mp.get("chain_status") or []) if c.get("status") == "alignment"]
                 numbering = "UniProt %s numbering, %s" % (acc, "; ".join(
@@ -3551,6 +3879,18 @@ class Agent:
             layer = {"dataset": ds["name"], "column": cols[ci], "model": res["model"], "chain": chain or "", "palette": palette or "blue-white-red", "attr": attr,
                      "accession": acc, "legend": plan["legend"], "mapped": plan["mapped"]}
             self.layers = [l for l in self.layers if not (l["dataset"] == layer["dataset"] and l["column"] == layer["column"])] + [layer]
+            placed = plan.get("chains") or []
+            if acc:
+                statuses = [c for c in chain_status if c.get("chain", "").split("/")[-1] in placed] or chain_status
+            else:
+                statuses = [{"chain": "%s/%s" % (res["model"], c), "status": "structure"} for c in placed]
+            path = str(ds.get("path") or "")
+            self.annotations.append({
+                "tool": "table_overlay", "label": "Table %s" % ds["name"], "database": "", "dataset": ds["name"],
+                "source": "table %s%s" % (ds["name"], (" (%s)" % os.path.basename(path)) if path and not path.startswith("http") else ""),
+                "column": cols[ci], "model": res["model"], "chains": placed, "chain_status": statuses, "placed_by": plan.get("status") or {},
+                "numbering": "uniprot" if acc else "structure", "accession": acc, "palette": palette or "blue-white-red",
+                "release": "", "fetched": "", "url": path if path.startswith("http") else "", "legend": plan["legend"], "mapped": plan["mapped"]})
         return out
 
     def _unresolved_choices(self, tool: str, args: Dict[str, Any], why: Dict[str, Any]) -> Dict[str, Any]:
@@ -3673,6 +4013,17 @@ class Agent:
         if use_clinvar:
             out["legend"] = "red = pathogenic, orange = likely pathogenic, yellow = uncertain, cyan/blue = (likely) benign"
             self.figure_notes.append("ClinVar variants of %s: %s" % (gene, out["legend"]))
+        if res.get("ok"):
+            got = data if use_clinvar else feats
+            self.annotations.append({
+                "tool": "annotate", "label": ("ClinVar variants of %s" % gene) if use_clinvar else ("UniProt %s" % ", ".join(kinds or [kind])),
+                "database": "ClinVar" if use_clinvar else "UniProt", "source": source, "accession": acc, "gene": gene, "kind": kind,
+                "model": summary.get("model") or model, "chains": summary.get("chains") or [],
+                "chain_status": [dict(c) for c in (mapping.get("chain_status") or [])],
+                "placed_by": summary.get("status") or {}, "numbering": "uniprot",
+                "release": str(got.get("release") or ""), "fetched": str(got.get("fetched") or ""),
+                "url": ("https://www.ncbi.nlm.nih.gov/clinvar/?term=%s[gene]" % gene) if use_clinvar else ("https://rest.uniprot.org/uniprotkb/%s" % acc),
+                "legend": out.get("legend") or ("%s = %s" % (color, ", ".join(kinds or [kind]))), "mapped": summary.get("mapped", 0)})
             out["pathogenic"] = [it["label"] for it in items if it.get("pathogenic")][:40]
             # which disease each pathogenic variant is recorded for, so "which of these cause X" is answered from data
             out["conditions"] = dict(list({it["label"]: it["conditions"] for it in items
@@ -3701,6 +4052,8 @@ class Agent:
                     n += estimate_tokens(p.content)
                 elif isinstance(p, ToolCall):
                     n += estimate_tokens(json.dumps(p.args))
+                elif isinstance(p, ImagePart) and p.b64:
+                    n += 1200           # about what a picture with a long side of 1024 px costs
             n += estimate_tokens(m.meta.get("context", ""))
         return n
 

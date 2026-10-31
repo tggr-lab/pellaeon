@@ -38,13 +38,18 @@ class AnthropicProvider(Provider):
             h["anthropic-beta"] = ",".join(betas)
         return h
 
+    @staticmethod
+    def _image(mime: str, b64: str) -> Dict[str, Any]:
+        return {"type": "image", "source": {"type": "base64", "media_type": mime, "data": b64}}
+
     def _to_messages(self, messages: List[Message]) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
         last_user = max((i for i, m in enumerate(messages) if m.role == "user"), default=-1)
         for i, m in enumerate(messages):
             if m.role == "user":
                 text = self.user_text(m) if i == last_user else m.text()
-                out.append({"role": "user", "content": [{"type": "text", "text": text or "(empty)"}]})
+                out.append({"role": "user", "content": [{"type": "text", "text": text or "(empty)"}]
+                            + [self._image(p.mime, p.b64) for p in m.images()]})
             elif m.role == "assistant":
                 blocks: List[Dict[str, Any]] = []
                 for p in m.parts:
@@ -61,8 +66,7 @@ class AnthropicProvider(Provider):
                 for r in m.tool_results_list():
                     content: Any = [{"type": "text", "text": self.result_text(r)}]
                     if r.image_png_b64:
-                        content.append({"type": "image", "source": {"type": "base64", "media_type": "image/png",
-                                                                    "data": r.image_png_b64}})
+                        content.append(self._image("image/png", r.image_png_b64))
                     blocks.append({"type": "tool_result", "tool_use_id": r.call_id,
                                    "content": content, "is_error": bool(r.is_error)})
                 out.append({"role": "user", "content": blocks})

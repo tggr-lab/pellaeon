@@ -576,9 +576,10 @@ def residue_provenance(session, res_spec: str, journal: List[Dict[str, Any]], wi
 
 
 def figure_info(session) -> Dict[str, Any]:
-    """Read-only: what a figure bundle needs to record: models and where they came from, camera, background, labels."""
+    """Read-only: what a figure bundle needs to record: models and where they came from, the chains shown (with
+    atoms, a ribbon or a displayed molecular surface), camera, background, labels."""
     import re as _re
-    from chimerax.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure, MolecularSurface
     models = []
     for m in session.models.list(type=AtomicStructure):
         name = m.name or ""
@@ -591,8 +592,23 @@ def figure_info(session) -> Dict[str, Any]:
         fn = getattr(m, "filename", None)
         if fn and not src:                      # a local file; fetched entries keep their database id only
             src = "file " + str(fn)
+        surfaced = set()        # chains with a displayed molecular surface: shown, though every atom and ribbon may be hidden
+        try:
+            for sm in m.child_models():
+                if isinstance(sm, MolecularSurface) and sm.display and sm.atoms is not None:
+                    surfaced.update(str(x) for x in sm.atoms.residues.unique_chain_ids)
+        except Exception:  # noqa: BLE001
+            pass
+        shown_chains = []
+        for c in m.chains:
+            try:
+                res = c.existing_residues
+                if res.ribbon_displays.any() or res.atoms.displays.any() or c.chain_id in surfaced:
+                    shown_chains.append(c.chain_id)
+            except Exception:  # noqa: BLE001
+                shown_chains.append(c.chain_id)
         models.append({"id": "#" + m.id_string, "name": name, "source": src or name, "chains": [c.chain_id for c in m.chains],
-                       "residues": int(m.num_residues), "atoms": int(m.num_atoms), "shown": bool(m.display)})
+                       "chains_shown": shown_chains, "residues": int(m.num_residues), "atoms": int(m.num_atoms), "shown": bool(m.display)})
     v = session.main_view
     cam = v.camera
     bg = v.background_color
@@ -1116,131 +1132,66 @@ def fetch_to_cache(url: str, subdir: str = "downloads") -> str:
     return path
 
 
-def _open_url_or_path(session, what: str):
-    """Open a file or URL and return the new top-level models (URLs are cached locally first)."""
-    from chimerax.core.commands import run
-    if re.match(r"^https?://", what.strip(), re.I):
-        what = fetch_to_cache(what.strip())
-    before = set(id(m) for m in session.models.list())
-    run(session, "open %s" % _quote_path(what), log=False)
-    return [m for m in session.models.list() if id(m) not in before and m.parent is session.models.scene_root_model]
+# The membrane view (OPM, Orientations of Proteins in Membranes) is put together in core/agent.py: the lookups
+# run on the agent's thread and the commands go through execute_commands. These are its main-thread parts.
+_ACCESSION_RE = re.compile(r"\b([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})\b")
+MEMBRANE_PLANES = ("pellaeon_membrane_out", "pellaeon_membrane_in")
 
 
-def membrane_orient(session, model: str, pdb: Optional[str] = None, slabs: bool = True) -> Dict[str, Any]:
-    """Put a membrane protein in the membrane frame from OPM (Orientations of Proteins in Membranes):
-    fetch OPM's oriented coordinates for a PDB entry, superpose the model onto them, look from the side
-    with the extracellular face up, and optionally draw the two membrane boundaries."""
-    from chimerax.core.commands import run
-    from chimerax.atomic import AtomicStructure
-    import numpy as np
+def membrane_target(session, model: str, pdb: Optional[str] = None) -> Dict[str, Any]:
+    """The structure to orient, with what names it in the databases: the PDB id given or in its name, and the
+    UniProt accession in its name (an AlphaFold model). `planes` are the membrane planes already drawn."""
     st = _find_structure(session, model)
     if st is None:
         return {"error": _no_structure(session, model)}
     ident = (pdb or "").strip().lower() or (re.match(r"^([0-9][a-z0-9]{3})\b", (st.name or "").lower()) or [None, None])[1]
-    candidates = [ident] if ident else []
-    via = ""
-    if not candidates:
-        # an AlphaFold/UniProt model: for a GPCR, GPCRdb knows its experimental structures; try those on OPM
-        acc = re.search(r"\b([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})\b", st.name or "")
-        if acc:
-            try:
-                from .core import gpcrdb
-                entry = gpcrdb.entry_for_accession(acc.group(1))
-                rows = [r for r in (gpcrdb.structures(entry).get("structures") or []) if r.get("pdb")]
-                # OPM lags new PDB releases by months to years: the newest entries (ADRB2's 2023 cryo-EM
-                # structures) are all missing there, while 2RH1 is present. Older entries first, best resolution.
-                def _age_key(r):
-                    date = str(r.get("date") or "")
-                    recent = date[:4].isdigit() and int(date[:4]) >= _dt_year() - 1
-                    try:
-                        res = float(r.get("resolution") or 99)
-                    except (TypeError, ValueError):
-                        res = 99.0
-                    return (recent, res)
-                candidates = [str(r["pdb"]).lower() for r in sorted(rows, key=_age_key)][:10]
-                via = "GPCRdb (%s)" % entry
-            except Exception:  # noqa: BLE001
-                candidates = []
-    acc_m = re.search(r"\b([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})\b", st.name or "")
-    if not candidates:
-        if acc_m and not pdb:
-            return _membrane_from_topology(session, st, acc_m.group(1), slabs, "no PDB entry to look up in OPM")
-        return {"error": "No PDB id for %s (%s). Give the PDB entry of this protein or a close homologue (pdb='3vw7'); "
-                         "OPM stores orientations per PDB entry." % (model, st.name)}
-    ref, tried = None, []
-    for ident in candidates:
-        try:
-            ref = _open_url_or_path(session, "https://opm-assets.storage.googleapis.com/pdb/%s.pdb" % ident)
-            break
-        except Exception as e:  # noqa: BLE001
-            tried.append("%s (%s)" % (ident.upper(), str(e)[:60]))
-            ref = None
-    if ref is None:
-        if acc_m and not pdb:
-            return _membrane_from_topology(session, st, acc_m.group(1), slabs,
-                                           "OPM has none of %s" % ", ".join(t.split()[0] for t in tried))
-        return {"error": "OPM has no entry for %s. Try the PDB entry of a close homologue." % "; ".join(tried)}
-    refs = [m for m in ref if isinstance(m, AtomicStructure)]
-    if not refs:
-        for m in ref:
-            m.delete()
-        return {"error": "OPM returned no structure for %s." % ident.upper()}
-    opm = refs[0]
-    # membrane half-thickness: OPM's dummy atoms (DUM) mark the two boundary planes
+    acc = _ACCESSION_RE.search(st.name or "")
+    return {"model": "#" + st.id_string, "name": st.name, "pdb": ident or "", "accession": acc.group(1) if acc else "",
+            "planes": ["#" + m.id_string for m in session.models.list() if m.name in MEMBRANE_PLANES]}
+
+
+def membrane_frame(session, ref: str) -> Dict[str, Any]:
+    """The membrane half-thickness from OPM's reference entry: its dummy atoms (DUM) mark the two boundary planes."""
+    import numpy as np
+    opm = _find_structure(session, ref)
+    if opm is None:
+        return {"error": "OPM returned no structure (%s)." % ref}
     dum = opm.atoms.filter(opm.atoms.residues.names == "DUM")
-    half = float(np.abs(dum.coords[:, 2]).mean()) if len(dum) else 15.0
-    run(session, "matchmaker #%s to #%s" % (st.id_string, opm.id_string), log=False)
+    return {"half": float(np.abs(dum.coords[:, 2]).mean()) if len(dum) else 15.0}
+
+
+def membrane_geometry(session, model: str) -> Dict[str, Any]:
+    """Where the model sits in OPM's frame once superposed: its centre and extent in the membrane plane, and
+    whether the N-terminal region of an AlphaFold model has low confidence (then its placement means nothing)."""
+    st = _find_structure(session, model)
+    if st is None:
+        return {"error": _no_structure(session, model)}
     xyz = st.atoms.scene_coords
-    cx, cy = float(xyz[:, 0].mean()), float(xyz[:, 1].mean())
-    zmax = float(xyz[:, 2].max())
-    extent = float(max(xyz[:, 0].max() - xyz[:, 0].min(), xyz[:, 1].max() - xyz[:, 1].min()))
-    for m in ref:
-        m.delete()
-    # OPM's frame: z is the membrane normal, +z the extracellular side (checked on 3vw7: ECL residues at z ~ +19)
-    run(session, "view orient; turn x -90", log=False)      # look along the membrane plane, +z up on screen
-    cmds = []
-    if slabs:
-        w = int(extent + 30)
-        for z, name in ((half, "pellaeon_membrane_out"), (-half, "pellaeon_membrane_in")):
-            # a thin box, not a one-sided sheet: the sheet's back face is unlit and shows black from below
-            cmds.append("shape rectangle width %d height %d center %.1f,%.1f,%.1f slab 1.5 color #90a4ae80 name %s" % (w, w, cx, cy, z, name))
-    cmds.append("view #%s" % st.id_string)
     low = None
     try:
         b = st.residues.filter(st.residues.numbers <= 60).atoms
-        if len(b) and st.name.lower().startswith(("alphafold", "af-")) :
-            low = float((b.bfactors < 50).mean()) if len(b) else None
+        if len(b) and st.name.lower().startswith(("alphafold", "af-")):
+            low = float((b.bfactors < 50).mean())
     except Exception:  # noqa: BLE001
         low = None
-    for c in cmds:
-        run(session, c, log=False)
-    return {"model": "#" + st.id_string, "opm_entry": ident.upper(), "membrane_half_thickness": round(half, 1),
-            "extracellular": "up (+z of the OPM frame); cytoplasm down", "slabs": bool(slabs),
-            "reference_via": via or "the model's own PDB id",
-            "note": "The camera now looks along the membrane with the extracellular side up. Turning with `turn y N` keeps that; "
-                    "`view` re-fits. Other structures superposed on %s share the frame." % ("#" + st.id_string)
-                    + (" The N-terminal region has low pLDDT: its placement (across the membrane plane or elsewhere) is not modelled; "
-                       "hide or fade it if asked, never move the model." if low and low > 0.5 else "")}
-
-
-def _dt_year() -> int:
-    import datetime
-    return datetime.date.today().year
+    return {"cx": float(xyz[:, 0].mean()), "cy": float(xyz[:, 1].mean()),
+            "extent": float(max(xyz[:, 0].max() - xyz[:, 0].min(), xyz[:, 1].max() - xyz[:, 1].min())),
+            "low_plddt": bool(low and low > 0.5)}
 
 
 _OUTSIDE = ("extracellular", "lumenal", "periplasmic", "exoplasmic", "vesicular", "mitochondrial intermembrane")
 
 
-def _membrane_from_topology(session, st, accession: str, slabs: bool, why: str) -> Dict[str, Any]:
+def membrane_from_topology(session, model: str, accession: str, slabs: bool, why: str, feats: Dict[str, Any]) -> Dict[str, Any]:
     """Membrane frame from UniProt topology for a UniProt-numbered model (AlphaFold): the membrane normal points
     from the cytoplasmic ends of the transmembrane helices to their extracellular ends. The model is moved into
-    that frame (normal = +z, centred on the helices) and viewed from the side, extracellular side up."""
-    from chimerax.core.commands import run
+    that frame (normal = +z, centred on the helices); the view and the planes come back as `commands` for the
+    agent to run. `feats` are the UniProt Transmembrane and Topological domain features, fetched by the caller."""
     from chimerax.geometry import Place
     import numpy as np
-    from .bridge import pellaeon_dir
-    from .core.uniprot import UniProtClient
-    feats = UniProtClient(os.path.join(pellaeon_dir("cache"), "uniprot")).features(accession, ["Transmembrane", "Topological domain"])
+    st = _find_structure(session, model)
+    if st is None:
+        return {"error": _no_structure(session, model)}
     if feats.get("error"):
         return {"error": "%s, and UniProt could not be read: %s" % (why, feats["error"])}
     tms = sorted((f["start"], f["end"]) for f in feats.get("features", []) if f["type"] == "Transmembrane")
@@ -1300,65 +1251,18 @@ def _membrane_from_topology(session, st, accession: str, slabs: bool, why: str) 
     half = 15.0          # the hydrophobic core of a typical plasma membrane is about 30 A thick
     xyz = st.atoms.scene_coords
     extent = float(max(xyz[:, 0].max() - xyz[:, 0].min(), xyz[:, 1].max() - xyz[:, 1].min()))
-    run(session, "view orient; turn x -90", log=False)
-    for n_ in ("pellaeon_membrane_out", "pellaeon_membrane_in"):
-        for mm in [x for x in session.models.list() if x.name == n_]:
-            mm.delete()
+    cmds = ["view orient", "turn x -90"]
     if slabs:
         w = int(min(extent, 80) + 30)
         for zz, name in ((half, "pellaeon_membrane_out"), (-half, "pellaeon_membrane_in")):
-            run(session, "shape rectangle width %d height %d center 0,0,%.1f slab 1.5 color #90a4ae80 name %s" % (w, w, zz, name), log=False)
-    run(session, "view #%s" % st.id_string, log=False)
+            cmds.append("shape rectangle width %d height %d center 0,0,%.1f slab 1.5 color #90a4ae80 name %s" % (w, w, zz, name))
+    cmds.append("view #%s" % st.id_string)
     return {"model": "#" + st.id_string, "orientation_from": "UniProt %s topology (%d transmembrane helices)" % (accession, len(tms)),
             "why_not_opm": why, "extracellular": "up; cytoplasm down", "slabs": bool(slabs),
-            "membrane_half_thickness": half,
+            "membrane_half_thickness": half, "commands": cmds,
             "note": "Oriented from the UniProt topology, not from OPM: the membrane normal runs from the cytoplasmic to the "
                     "extracellular ends of the transmembrane helices, and the boundaries are drawn 15 A either side of their "
                     "centre, an approximation. Say so in one sentence. `turn y N` keeps extracellular up."}
-
-
-def gpcr_states(session, protein: str, open_states: Optional[List[str]] = None, cache_dir: Optional[str] = None) -> Dict[str, Any]:
-    """GPCRdb for a receptor: its experimental structures (state, ligand, resolution) and, on request, its
-    AlphaFold-Multistate inactive/active models opened as new models (superposed on each other)."""
-    from chimerax.core.commands import run
-    from .core import gpcrdb
-    try:
-        entry = gpcrdb.entry_for_accession(protein)
-    except Exception as e:  # noqa: BLE001
-        return {"error": "Could not turn %r into a GPCRdb entry name: %s (give a UniProt accession or entry name such as PAR1_HUMAN)." % (protein, e)}
-    if not entry:
-        return {"error": "No GPCRdb entry name for %r." % protein}
-    out = gpcrdb.structures(entry)
-    if out.get("error"):
-        return out
-    opened = []
-    for state in (open_states or []):
-        got = gpcrdb.fetch_model(entry, state, cache_dir)
-        if got.get("error"):
-            out.setdefault("model_errors", []).append(got["error"])
-            continue
-        try:
-            new = _open_url_or_path(session, got["path"])
-        except Exception as e:  # noqa: BLE001
-            out.setdefault("model_errors", []).append("Could not open the %s model: %s" % (state, e))
-            continue
-        if new:
-            m = new[0]
-            m.name = "GPCRdb %s %s (AlphaFold-Multistate%s)" % (entry, state, (" " + got["version"]) if got.get("version") else "")
-            opened.append({"model": "#" + m.id_string, "state": state, "name": m.name, "path": got["path"]})
-    if len(opened) >= 2:
-        run(session, "matchmaker %s to %s" % (opened[1]["model"], opened[0]["model"]), log=False)
-        # no recording recipe here: given one, the model records a movie to the desktop unasked
-        out["animation"] = ("For a state-change animation: morph %s,%s frames 30 same true  (makes a new model; play it with "
-                            "coordset #N 1,30). Record or save only if the user asks."
-                            % (opened[0]["model"].lstrip("#"), opened[1]["model"].lstrip("#")))
-    if not open_states:
-        out["multistate_models"] = ("GPCRdb also has AlphaFold-Multistate models (inactive and active, full length) for this receptor; "
-                                    "call gpcr_states again with open_states=['inactive','active'] to open them.")
-    out["opened"] = opened
-    out["note"] = ("Experimental structures are listed with their state and ligand; open one with `open <pdb>`. The multistate "
-                   "models are full-length AlphaFold predictions from GPCRdb, one per state, superposed on each other.")
-    return out
 
 
 _AA3 = {"ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C", "GLN": "Q", "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I",
@@ -1437,14 +1341,15 @@ def view_axis(session, spec: str = "", axis: str = "short") -> Dict[str, Any]:
 
 # --------------------------------------------------------------------------------------
 # Request-level undo. A checkpoint is recorded on the session (not the Executor, which can be
-# rebuilt) at the start of every user request: which models were open, and, unless the session
-# is very large, a saved .cxs snapshot. undo_last_request restores the checkpoint before the
-# LAST request: closing the model(s) it opened when that is all it did, or the whole session
-# when it also colored, styled, moved the view or deleted anything.
+# rebuilt) before the first command or tool of a user request that changes anything (a question
+# answered with `info` records none): which models were open, and, unless the session is very
+# large, a saved .cxs snapshot. undo_last_request restores the checkpoint of the last request
+# that changed something: closing the model(s) it opened when that is all it did, or the whole
+# session when it also colored, styled, moved the view or deleted anything.
 # --------------------------------------------------------------------------------------
 
 CHECKPOINT_ATOM_CAP = 300_000     # a .cxs of more than this takes seconds; above it only model ids are kept
-CHECKPOINT_SLOW_SECONDS = 3.0     # one slow save switches the session to ids-only checkpoints
+CHECKPOINT_SLOW_SECONDS = 3.0     # two slow saves in a row switch the session to ids-only checkpoints
 MAX_CHECKPOINTS = 3
 
 
@@ -1507,37 +1412,63 @@ def _atom_count(session) -> int:
         return 0
 
 
+CAP_REASONS = {
+    "atoms": "the session has more than %d atoms, too large to save a copy of first" % CHECKPOINT_ATOM_CAP,
+    "slow": "saving a copy of the session took more than %d s twice in a row" % CHECKPOINT_SLOW_SECONDS,
+    "off": "session copies are switched off (PELLAEON_CHECKPOINTS)",
+}
+
+
+def _save_session(session, path: str) -> None:
+    from chimerax.core.commands import run
+    run(session, "save %s" % _quote_path(path), log=False)
+
+
 def checkpoint_request(session, request_text: str, cache_dir: str) -> Dict[str, Any]:
-    """Record a restore point before a user request runs: the ids of every open model and,
-    unless the session is very large (over CHECKPOINT_ATOM_CAP atoms), a saved .cxs snapshot.
-    Keeps the last MAX_CHECKPOINTS; older snapshot files are removed. Called once at the start
-    of every request; bookkeeping only, must never raise into the turn that calls it."""
+    """Record a restore point before a user request changes anything: the ids of every open model and,
+    unless the session is very large (over CHECKPOINT_ATOM_CAP atoms) or saving it has been slow twice
+    in a row, a saved .cxs snapshot. Keeps the last MAX_CHECKPOINTS; older snapshot files are removed.
+    Called once per request, by the agent, before its first command or tool that changes something;
+    bookkeeping only, must never raise into the turn that calls it. A save that fails or is skipped is
+    recorded in `save_error` / `cap_reason`, so the agent can say before the change what undo will cover.
+    With PELLAEON_UNDO=snapshot the restore point is an in-memory snapshot instead (see undo.py)."""
+    if snapshot_undo():
+        return _snap_begin(session, request_text, cache_dir)
     cps = _checkpoints(session)
     cp: Dict[str, Any] = {"request": request_text, "ts": time.time(), "models_before": _open_model_ids(session),
-                          "cxs_path": None, "capped": False, "save_error": "",
+                          "cxs_path": None, "capped": False, "cap_reason": "", "save_error": "",
                           "new_model_ids": [], "only_opens": True, "any_activity": False}
     atoms = _atom_count(session)
+    slow_saves = int(getattr(session, "_pellaeon_checkpoint_slow", 0) or 0)
     if os.environ.get("PELLAEON_CHECKPOINTS", "").lower() in ("off", "0", "no"):
-        cp["capped"] = True                      # evaluation runs: no per-request session files
-    elif atoms > CHECKPOINT_ATOM_CAP or getattr(session, "_pellaeon_checkpoint_slow", False):
-        cp["capped"] = True
+        cp["capped"], cp["cap_reason"] = True, CAP_REASONS["off"]       # evaluation runs: no per-request session files
+        cp["quiet"] = True                                               # and nothing to tell the user about
+    elif atoms > CHECKPOINT_ATOM_CAP:
+        cp["capped"], cp["cap_reason"] = True, CAP_REASONS["atoms"]
+    elif slow_saves >= 2 and atoms >= getattr(session, "_pellaeon_checkpoint_slow_size", 0):
+        # two slow saves in a row at this size: a session this big does not pay for a file on every request.
+        # One slow save is not evidence (the first save of a session pays for imports); a smaller session tries again.
+        cp["capped"], cp["cap_reason"] = True, CAP_REASONS["slow"]
     elif not cp["models_before"]:
         pass                                     # empty session: the model ids say it all, nothing to snapshot
     else:
         try:
-            from chimerax.core.commands import run
             os.makedirs(cache_dir, exist_ok=True)
             path = os.path.join(cache_dir, "checkpoint_%d.cxs" % int(cp["ts"] * 1000))
             t0 = time.time()
-            run(session, "save %s" % _quote_path(path), log=False)
+            _save_session(session, path)
             if time.time() - t0 > CHECKPOINT_SLOW_SECONDS:
-                session._pellaeon_checkpoint_slow = True   # big session: do not pay this on every request
+                session._pellaeon_checkpoint_slow = slow_saves + 1
+                session._pellaeon_checkpoint_slow_size = atoms
+            else:
+                session._pellaeon_checkpoint_slow = 0
             cp["cxs_path"] = path if os.path.exists(path) else None
             if cp["cxs_path"] is None:
                 cp["save_error"] = "the session file was not written"
         except Exception as e:  # noqa: BLE001
             cp["save_error"] = str(e)
     cps.append(cp)
+    session._pellaeon_checkpoint_current = cp     # the request in flight: its batches report to it, undo skips it
     while len(cps) > MAX_CHECKPOINTS:
         old = cps.pop(0)
         p = old.get("cxs_path")
@@ -1549,16 +1480,25 @@ def checkpoint_request(session, request_text: str, cache_dir: str) -> Dict[str, 
     return cp
 
 
+def _current_checkpoint(session) -> Optional[Dict[str, Any]]:
+    """The checkpoint of the request in flight, while it is still on the stack."""
+    cp = getattr(session, "_pellaeon_checkpoint_current", None)
+    return cp if cp is not None and any(c is cp for c in _checkpoints(session)) else None
+
+
 def note_checkpoint_activity(session, commands: List[str], results: List[Dict[str, Any]]) -> None:
-    """After a batch of commands ran: update the current checkpoint with what it did, so
-    undo_last_request can tell a request that only opened models (cheap to undo: just close
-    them) from one that changed anything else (needs the whole session restored)."""
-    cps = getattr(session, "_pellaeon_checkpoints", None)
-    if not cps:
+    """After a batch of commands ran: update the checkpoint of the request in flight with what it did, so
+    undo_last_request can tell a request that only opened models (cheap to undo: just close them) from one
+    that changed anything else (needs the whole session restored). Commands that only read count for nothing."""
+    try:
+        from .core.safety import reads_only
+    except ImportError:      # the plain-Python tests import analysis as a top-level module
+        from core.safety import reads_only
+    cp = _current_checkpoint(session)
+    if cp is None:
         return
-    cp = cps[-1]
     for cmd, r in zip(commands, results):
-        if not r.get("ok"):
+        if not r.get("ok") or reads_only(str(cmd)):
             continue
         cp["any_activity"] = True
         toks = str(cmd).strip().lstrip("~").split()
@@ -1575,50 +1515,74 @@ def note_checkpoint_activity(session, commands: List[str], results: List[Dict[st
 def mark_checkpoint_dirty(session) -> None:
     """Something changed the session outside run_commands (run_python can do anything): the
     models-only fast path no longer applies to the current request."""
-    cps = getattr(session, "_pellaeon_checkpoints", None)
-    if cps:
-        cps[-1]["only_opens"] = False
-        cps[-1]["any_activity"] = True
+    cp = _current_checkpoint(session)
+    if cp is not None:
+        cp["only_opens"] = False
+        cp["any_activity"] = True
+        cp["dirty"] = True
+
+
+def _closing_restores(cp: Dict[str, Any]) -> bool:
+    """Closing the models the request opened puts everything back: it did nothing else, or nothing was open
+    before it (an empty session saves no file) and its commands touched only what it opened. Python code
+    can change anything, so a request that ran some is not covered."""
+    if not cp["new_model_ids"]:
+        return False
+    return bool(cp["only_opens"]) or (not cp["models_before"] and not cp.get("cxs_path") and not cp.get("dirty"))
 
 
 def _undo_target(session, direct: bool = False):
-    """The checkpoint to restore to. When the model asks for the undo, that ask is itself a request with a
-    checkpoint of its own on top, so the target is the one below it. The Undo button makes no request:
-    the last checkpoint is the state before the last real request. None when there is nothing to restore."""
+    """The checkpoint to restore to: the last one, skipping the request in flight (an undo asked in words is
+    itself a request; it has a checkpoint of its own only if it changed something before asking). The Undo
+    button (`direct`) makes no request. None when there is nothing to restore."""
     cps = _checkpoints(session)
-    need = 1 if direct else 2
-    if len(cps) < need:
-        return None, cps
-    return cps[-need], cps
+    current = None if direct else _current_checkpoint(session)
+    target = next((c for c in reversed(cps) if c is not current), None)
+    return target, cps
+
+
+UNDO_DETAIL = {
+    "models": "closes the model(s) it opened",
+    "session": "reopens the session saved before it; anything done since is lost",
+    "none": "it cannot be undone",
+    "snapshot": "puts back what it changed; changes made by hand since are kept",
+}
 
 
 def pending_undo(session, direct: bool = False) -> Dict[str, Any]:
-    """What undo_last_request would do, without doing it: used to word the confirmation card."""
+    """What undo_last_request would do, without doing it: used to word the confirmation card and the
+    Undo button. `detail` says what undoing does, `warning` what would be lost with it."""
+    if snapshot_undo():
+        return _snap_pending(session)
     target, _cps = _undo_target(session, direct)
     if target is None:
         return {"error": "There is no earlier request to undo yet."}
-    if target["only_opens"] and target["new_model_ids"]:
-        return {"request": target["request"], "kind": "models"}
-    if target.get("capped"):
-        return {"request": target["request"], "kind": "models" if target["new_model_ids"] else "none"}
-    if not target.get("cxs_path"):
-        return {"request": target["request"], "kind": "none"}
-    return {"request": target["request"], "kind": "session"}
+    if _closing_restores(target):
+        kind = "models"
+    elif target.get("capped"):
+        kind = "models" if target["new_model_ids"] else "none"
+    elif not target.get("cxs_path"):
+        kind = "none"
+    else:
+        kind = "session"
+    return {"request": target["request"], "kind": kind, "detail": UNDO_DETAIL[kind]}
 
 
 def undo_last_request(session, direct: bool = False) -> Dict[str, Any]:
     """Restore ChimeraX to how it was immediately before the last request ran. `run` is imported lazily
     at each use (not at the top) so the no-op/error branches below stay callable without ChimeraX, for
     plain-Python testing of the fast-path-vs-full-restore decision."""
+    if snapshot_undo():
+        return _snap_undo(session)
     target, cps = _undo_target(session, direct)
     if target is None:
         return {"error": "There is no earlier request to undo yet."}
     models_before = _open_model_ids(session)
     open_now = {m.id_string for m in session.models.list() if m.id}
 
-    if target["only_opens"] and target["new_model_ids"]:
+    if _closing_restores(target):
         ids = sorted(set(target["new_model_ids"]) & open_now)
-        cps.pop()  # direct: the target is the last entry, so it is spent; otherwise the undo request's own entry
+        cps.remove(target)  # spent, restored or not: the next undo reaches the request before it
         if not ids:
             return {"error": "The model(s) that request opened are already closed; nothing to undo.",
                     "request": target["request"]}
@@ -1632,35 +1596,210 @@ def undo_last_request(session, direct: bool = False) -> Dict[str, Any]:
 
     if target.get("capped"):
         ids = sorted(set(target["new_model_ids"]) & open_now)
-        cps.pop()  # direct: the target is the last entry, so it is spent; otherwise the undo request's own entry
+        cps.remove(target)
+        why = target.get("cap_reason") or CAP_REASONS["atoms"]
         if ids:
             from chimerax.core.commands import run
             run(session, "close " + " ".join("#" + i for i in ids), log=False)
             models_after = _open_model_ids(session)
             return {"restored": "models only", "request": target["request"], "models_before": models_before,
                     "models_after": models_after,
-                    "summary": "The session was too large to snapshot (over %d atoms) before that request ran, so "
-                               "only the model(s) it opened could be closed (%s); any color, style or view change "
-                               "it made is still there."
-                               % (CHECKPOINT_ATOM_CAP, ", ".join("#" + i for i in ids))}
-        return {"error": "The session was too large to snapshot (over %d atoms) before that request ran, and it "
-                         "did more than open a model, so it cannot be undone." % CHECKPOINT_ATOM_CAP,
-                "request": target["request"]}
+                    "summary": "No copy of the session was saved before that request ran (%s), so only the model(s) "
+                               "it opened could be closed (%s); any color, style or view change it made is still there."
+                               % (why, ", ".join("#" + i for i in ids))}
+        return {"error": "No copy of the session was saved before that request ran (%s), and it did more than open "
+                         "a model, so it cannot be undone." % why, "request": target["request"]}
 
     path = target.get("cxs_path")
     if not path or not os.path.exists(path):
-        cps.pop()  # direct: the target is the last entry, so it is spent; otherwise the undo request's own entry
+        cps.remove(target)
         return {"error": "The saved checkpoint for that request is missing (%s), so it cannot be restored."
                          % (target.get("save_error") or "file not found"), "request": target["request"]}
     from chimerax.core.commands import run
     run(session, "close", log=False)
     run(session, "open %s" % _quote_path(path), log=False)
-    cps.pop()  # direct: the target is the last entry, so it is spent; otherwise the undo request's own entry
+    cps.remove(target)
     models_after = _open_model_ids(session)
     return {"restored": "session", "request": target["request"], "models_before": models_before,
             "models_after": models_after,
             "summary": "Undid the last request (\"%s\"): restored the session to how it was before it ran. "
                        "Models now open: %s." % (target["request"], ", ".join("#" + i for i in _top_level(models_after)) or "none")}
+
+
+# --------------------------------------------------------------------------------------
+# Request-level undo from in-memory snapshots (PELLAEON_UNDO=snapshot; see undo.py). Each request that
+# changed something leaves one entry on a stack, pushed when the request ends, so the Undo button and the
+# undo_last_request tool both undo the top entry; pressing again undoes the request before it. A session
+# file is saved only before a batch that deletes or replaces atoms, models or pseudobonds (undo.needs_session).
+# --------------------------------------------------------------------------------------
+
+def snapshot_undo() -> bool:
+    return os.environ.get("PELLAEON_UNDO", "").lower() == "snapshot"
+
+
+def _undo_stack(session) -> List[Dict[str, Any]]:
+    st = getattr(session, "_pellaeon_undo_stack", None)
+    if st is None:
+        st = session._pellaeon_undo_stack = []
+    return st
+
+
+def _drop_entry(e: Dict[str, Any]) -> None:
+    p = e.get("session_path")
+    if p and os.path.exists(p):
+        try:
+            os.remove(p)
+        except OSError:
+            pass
+
+
+def _snap_begin(session, request_text: str, cache_dir: str) -> Dict[str, Any]:
+    from . import undo
+    finish_request(session)        # a request that never reached its end is closed first
+    p = {"request": request_text, "before": undo.capture(session), "cache_dir": cache_dir,
+         "session_path": None, "mid": None, "reason": "", "reason_command": "", "save_error": ""}
+    session._pellaeon_undo_pending = p
+    return {"request": request_text, "seconds": p["before"]["seconds"]}
+
+
+def before_batch(session, commands: List[str], reason: Optional[str] = None) -> None:
+    """Called before a batch of commands (or Python code, with a reason) runs inside a request: saves a session
+    file first when the batch can delete or replace what the snapshot cannot bring back. Once per request."""
+    if not snapshot_undo():
+        return
+    p = getattr(session, "_pellaeon_undo_pending", None)
+    if p is None or p["reason"]:
+        return
+    from . import undo
+    if reason:
+        why, what = reason, "the Python code"
+    else:
+        why, what = next(((w, c) for c, w in ((c, undo.needs_session(session, c)) for c in commands) if w), (None, ""))
+    if not why:
+        return
+    p["reason"], p["reason_command"] = why, what if reason else '"%s"' % what.strip()[:80]
+    if os.environ.get("PELLAEON_CHECKPOINTS", "").lower() in ("off", "0", "no"):
+        p["save_error"] = "session files are switched off"
+        return
+    if _atom_count(session) > CHECKPOINT_ATOM_CAP:
+        p["save_error"] = "the session has more than %d atoms, too large to save a copy first" % CHECKPOINT_ATOM_CAP
+        return
+    try:
+        from chimerax.core.commands import run
+        os.makedirs(p["cache_dir"], exist_ok=True)
+        path = os.path.join(p["cache_dir"], "checkpoint_%d.cxs" % int(time.time() * 1000))
+        run(session, "save %s" % _quote_path(path), log=False)
+        if not os.path.exists(path):
+            p["save_error"] = "the session file was not written"
+            return
+        p["session_path"] = path
+        p["mid"] = undo.capture(session)
+    except Exception as e:  # noqa: BLE001
+        p["save_error"] = "the session could not be saved (%s)" % e
+
+
+def finish_request(session) -> Optional[Dict[str, Any]]:
+    """Called when a request ends: keeps what it changed on the undo stack, or nothing when it changed nothing.
+    Without snapshot undo there is only the checkpoint of the request in flight to let go of."""
+    session._pellaeon_checkpoint_current = None
+    p = getattr(session, "_pellaeon_undo_pending", None)
+    if p is None:
+        return None
+    session._pellaeon_undo_pending = None
+    from . import undo
+    entry = undo.diff(p["before"], undo.capture(session))
+    entry.update(request=p["request"], session_path=p["session_path"], reason=p["reason"],
+                 reason_command=p["reason_command"], save_error=p["save_error"])
+    if p["session_path"]:
+        if entry["empty"]:
+            _drop_entry(entry)
+            return None
+        entry["mid"] = undo.diff(p["before"], p["mid"])     # what ran before the file was saved
+        entry["lost"] = []                                  # the file brings these back
+        try:
+            entry["screen"] = visible_snapshot(session)     # to tell what is done by hand afterwards
+        except Exception:  # noqa: BLE001
+            entry["screen"] = None
+    elif entry["empty"]:
+        return None
+    st = _undo_stack(session)
+    st.append(entry)
+    total = sum(e.get("bytes", 0) for e in st)
+    while len(st) > undo.MAX_ENTRIES or (len(st) > 1 and total > undo.MAX_BYTES):
+        old = st.pop(0)
+        total -= old.get("bytes", 0)
+        _drop_entry(old)
+    return entry
+
+
+def _snap_pending(session) -> Dict[str, Any]:
+    st = _undo_stack(session)
+    if not st:
+        return {"error": "There is no earlier request to undo yet."}
+    e = st[-1]
+    info: Dict[str, Any] = {"request": e["request"], "depth": len(st)}
+    if e.get("session_path"):
+        info["kind"] = "session"
+        info["detail"] = "reopens the session saved before %s ran, since that %s" % (e["reason_command"], e["reason"])
+        if e.get("screen") is not None:
+            try:
+                from .core.effects import describe
+                vis, hid = describe(e["screen"], visible_snapshot(session))
+                if vis or hid:
+                    info["warning"] = "what was changed since is undone too: " + "; ".join((vis + hid)[:4])
+            except Exception:  # noqa: BLE001
+                pass
+    elif e["lost"]:
+        info["kind"] = "partial"
+        info["detail"] = "puts back what it changed but not this: %s (%s)" % (
+            "; ".join(e["lost"][:3]), e.get("save_error") or "no session file was saved")
+    else:
+        info["kind"] = "snapshot"
+        info["detail"] = UNDO_DETAIL["snapshot"]
+    return info
+
+
+def _snap_undo(session) -> Dict[str, Any]:
+    from . import undo
+    st = _undo_stack(session)
+    if not st:
+        return {"error": "There is no earlier request to undo yet."}
+    e = st.pop()
+    models_before = _open_model_ids(session)
+    if e.get("session_path"):
+        path = e["session_path"]
+        if not os.path.exists(path):
+            return {"error": "The session file saved before that request is missing, so it cannot be restored.",
+                    "request": e["request"]}
+        from chimerax.core.commands import run
+        run(session, "close", log=False)
+        run(session, "open %s" % _quote_path(path), log=False)
+        rep = undo.restore(session, e["mid"], by_id=True, force=True)
+        _drop_entry(e)
+        for older in st:              # the models were made again from the file: find them by number from now on
+            older["by_id"] = True
+        how = "reopened the session saved before it"
+    else:
+        rep = undo.restore(session, e, by_id=bool(e.get("by_id")))
+        how = "put back what it changed"
+        if rep["closed"]:
+            how += " and closed %s" % ", ".join(rep["closed"])
+    p = getattr(session, "_pellaeon_undo_pending", None)
+    if p is not None:                 # asked for inside a request: the undo is not that request's own change
+        p["before"] = undo.capture(session)
+    models_after = _open_model_ids(session)
+    summary = "Undid the last request (\"%s\"): %s." % (e["request"], how)
+    if rep["kept"]:
+        summary += " Kept what was changed by hand since: %s." % "; ".join(rep["kept"][:4])
+    not_back = list(e.get("lost") or []) + rep["failed"]
+    if not_back:
+        summary += " Not restored: %s." % "; ".join(not_back[:4])
+    summary += " Models now open: %s." % (", ".join("#" + i for i in models_after) or "none")
+    if st:
+        summary += " %d earlier request%s can be undone." % (len(st), "" if len(st) == 1 else "s")
+    return {"restored": "session" if e.get("session_path") else "snapshot", "request": e["request"],
+            "models_before": models_before, "models_after": models_after, "kept": rep["kept"],
+            "not_restored": not_back, "summary": summary}
 
 
 # ---------------------------------------------------------------- state helpers for the guards (2026-10-01)

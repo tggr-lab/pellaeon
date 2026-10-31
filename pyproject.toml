@@ -27,6 +27,8 @@ no extra packages. Not affiliated with UCSF."""
 Home = "https://github.com/tggr-lab/pellaeon"
 Author = "https://github.com/YAMIR-1138"
 Lab = "https://github.com/tggr-lab"
+Documentation = "https://tggr-lab.github.io/pellaeon/"
+DOI = "https://doi.org/10.5281/zenodo.23395411"
 
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }

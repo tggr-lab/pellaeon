@@ -24,7 +24,7 @@ PRESETS: List[Dict[str, Any]] = [
         "id": "chatgpt", "provider": "chatgpt", "label": "ChatGPT (Plus/Pro account, no key)", "signin": True,
         "base_url": "https://chatgpt.com/backend-api/codex", "model": "gpt-6-sol",
         "key_env": "", "free": False, "needs_key": False,
-        "models_hint": ["gpt-6-sol", "gpt-6-luna", "gpt-6-astra"],
+        "models_hint": ["gpt-6-sol", "gpt-6-luna", "gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra"],
         "blurb": "The easiest start if you have a ChatGPT Plus or Pro account: sign in in the browser, no API key, and gpt-6-sol has the highest score in the feature comparison. "
                  "The same route the Codex CLI uses, within the plan's usage limits. Press Refresh list after signing in.",
         "key_url": "https://chatgpt.com/",

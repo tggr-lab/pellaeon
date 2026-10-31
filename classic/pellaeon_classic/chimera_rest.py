@@ -26,6 +26,10 @@ class ChimeraKnowledge(Knowledge):
         super().__init__(cache_dir, "chimera-classic", [], cheatsheet=cheatsheet, log=log)
         self.data_dir = data_dir
 
+    def _doc_files(self):
+        # the bundled passages enter the index key like doc pages do
+        return [(os.path.join(self.data_dir, "chimera_docs.json.gz"), "chimera_docs.json.gz")]
+
     def rebuild(self, progress=None) -> BM25Index:
         chunks: List[Chunk] = []
         try:
@@ -38,7 +42,8 @@ class ChimeraKnowledge(Knowledge):
         idx.build(chunks)
         self.index = idx
         try:
-            idx.save(self.cache_path, {"version": self.version_key})
+            idx.save(self.cache_path, {"version": self.version_key, "key": self.content_key})
+            self._prune()
         except Exception:
             pass
         self.log("Pellaeon: indexed %d Chimera doc passages" % len(chunks))
